@@ -1,0 +1,2569 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.9 21.9% 95.1%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 262.1 83.3% 57.8%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+
+    --sidebar-background: 240 10% 3.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 212.7 26.8% 83.9%;
+
+    --chart-1: 221 83% 53%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 341 90% 55%;
+    --chart-4: 41 90% 55%;
+    --chart-5: 261 83% 63%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 210 40% 98%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 212.7 26.8% 83.9%;
+
+    --chart-1: 210 40% 98%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 341 90% 55%;
+    --chart-4: 41 90% 55%;
+    --chart-5: 261 83% 63%;
+  }
+
+  /* ====== TEMA OCEAN (Blu Profondo) ====== */
+  .theme-ocean {
+    --background: 200 30% 96%;
+    --foreground: 200 50% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 200 50% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 50% 10%;
+    --primary: 200 80% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 30% 90%;
+    --secondary-foreground: 200 50% 15%;
+    --muted: 200 20% 92%;
+    --muted-foreground: 200 15% 45%;
+    --accent: 180 60% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 200 20% 85%;
+    --input: 200 20% 85%;
+    --ring: 200 80% 45%;
+    --sidebar-background: 200 40% 15%;
+    --sidebar-foreground: 200 10% 95%;
+    --sidebar-primary: 180 60% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 30% 25%;
+    --sidebar-accent-foreground: 200 10% 95%;
+  }
+
+  .dark.theme-ocean,
+  .dark .theme-ocean {
+    --background: 200 50% 8%;
+    --foreground: 200 10% 95%;
+    --card: 200 40% 12%;
+    --card-foreground: 200 10% 95%;
+    --popover: 200 40% 10%;
+    --popover-foreground: 200 10% 95%;
+    --primary: 190 80% 50%;
+    --primary-foreground: 200 50% 10%;
+    --secondary: 200 30% 20%;
+    --secondary-foreground: 200 10% 90%;
+    --muted: 200 25% 18%;
+    --muted-foreground: 200 15% 60%;
+    --accent: 180 60% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 200 25% 22%;
+    --input: 200 25% 22%;
+    --ring: 190 80% 50%;
+    --sidebar-background: 200 50% 6%;
+    --sidebar-foreground: 200 10% 95%;
+    --sidebar-primary: 180 60% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 35% 15%;
+    --sidebar-accent-foreground: 200 10% 95%;
+  }
+
+  /* ====== TEMA MOUNTAIN (Verde Montagna) ====== */
+  .theme-mountain {
+    --background: 150 25% 96%;
+    --foreground: 150 40% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 150 40% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 40% 10%;
+    --primary: 160 70% 35%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 20% 90%;
+    --secondary-foreground: 150 40% 15%;
+    --muted: 150 15% 92%;
+    --muted-foreground: 150 10% 45%;
+    --accent: 140 50% 40%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 15% 85%;
+    --input: 150 15% 85%;
+    --ring: 160 70% 35%;
+    --sidebar-background: 150 35% 12%;
+    --sidebar-foreground: 150 10% 95%;
+    --sidebar-primary: 140 50% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 25% 22%;
+    --sidebar-accent-foreground: 150 10% 95%;
+  }
+
+  .dark.theme-mountain,
+  .dark .theme-mountain {
+    --background: 150 40% 8%;
+    --foreground: 150 10% 95%;
+    --card: 150 35% 12%;
+    --card-foreground: 150 10% 95%;
+    --popover: 150 35% 10%;
+    --popover-foreground: 150 10% 95%;
+    --primary: 160 65% 45%;
+    --primary-foreground: 150 40% 10%;
+    --secondary: 150 25% 20%;
+    --secondary-foreground: 150 10% 90%;
+    --muted: 150 20% 18%;
+    --muted-foreground: 150 12% 60%;
+    --accent: 140 50% 35%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 150 20% 22%;
+    --input: 150 20% 22%;
+    --ring: 160 65% 45%;
+    --sidebar-background: 150 45% 6%;
+    --sidebar-foreground: 150 10% 95%;
+    --sidebar-primary: 140 50% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 30% 15%;
+    --sidebar-accent-foreground: 150 10% 95%;
+  }
+
+  /* ====== TEMA DESERT (Caldo Desertico) ====== */
+  .theme-desert {
+    --background: 35 35% 96%;
+    --foreground: 30 50% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 50% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 50% 10%;
+    --primary: 35 90% 50%;
+    --primary-foreground: 30 50% 10%;
+    --secondary: 35 25% 90%;
+    --secondary-foreground: 30 50% 15%;
+    --muted: 35 15% 92%;
+    --muted-foreground: 30 10% 45%;
+    --accent: 20 80% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 35 20% 85%;
+    --input: 35 20% 85%;
+    --ring: 35 90% 50%;
+    --sidebar-background: 30 40% 12%;
+    --sidebar-foreground: 35 10% 95%;
+    --sidebar-primary: 20 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 30% 22%;
+    --sidebar-accent-foreground: 35 10% 95%;
+  }
+
+  .dark.theme-desert,
+  .dark .theme-desert {
+    --background: 30 35% 8%;
+    --foreground: 35 10% 95%;
+    --card: 30 30% 12%;
+    --card-foreground: 35 10% 95%;
+    --popover: 30 30% 10%;
+    --popover-foreground: 35 10% 95%;
+    --primary: 40 85% 55%;
+    --primary-foreground: 30 50% 10%;
+    --secondary: 30 25% 20%;
+    --secondary-foreground: 35 10% 90%;
+    --muted: 30 20% 18%;
+    --muted-foreground: 30 12% 60%;
+    --accent: 20 75% 45%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 20% 22%;
+    --input: 30 20% 22%;
+    --ring: 40 85% 55%;
+    --sidebar-background: 30 40% 6%;
+    --sidebar-foreground: 35 10% 95%;
+    --sidebar-primary: 20 80% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 30% 15%;
+    --sidebar-accent-foreground: 35 10% 95%;
+  }
+
+  /* ====== TEMA ICE (Ghiaccio Freddo) ====== */
+  .theme-ice {
+    --background: 200 40% 97%;
+    --foreground: 210 30% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 30% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 30% 15%;
+    --primary: 200 70% 60%;
+    --primary-foreground: 210 40% 10%;
+    --secondary: 200 25% 92%;
+    --secondary-foreground: 210 30% 20%;
+    --muted: 200 20% 94%;
+    --muted-foreground: 200 15% 50%;
+    --accent: 190 60% 55%;
+    --accent-foreground: 210 40% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 200 25% 88%;
+    --input: 200 25% 88%;
+    --ring: 200 70% 60%;
+    --sidebar-background: 210 35% 15%;
+    --sidebar-foreground: 200 15% 95%;
+    --sidebar-primary: 190 60% 60%;
+    --sidebar-primary-foreground: 210 40% 10%;
+    --sidebar-accent: 210 25% 25%;
+    --sidebar-accent-foreground: 200 15% 95%;
+  }
+
+  .dark.theme-ice,
+  .dark .theme-ice {
+    --background: 210 30% 10%;
+    --foreground: 200 15% 95%;
+    --card: 210 25% 14%;
+    --card-foreground: 200 15% 95%;
+    --popover: 210 25% 12%;
+    --popover-foreground: 200 15% 95%;
+    --primary: 195 65% 55%;
+    --primary-foreground: 210 30% 10%;
+    --secondary: 210 20% 22%;
+    --secondary-foreground: 200 15% 90%;
+    --muted: 210 18% 20%;
+    --muted-foreground: 200 12% 65%;
+    --accent: 190 55% 50%;
+    --accent-foreground: 210 30% 10%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 210 18% 25%;
+    --input: 210 18% 25%;
+    --ring: 195 65% 55%;
+    --sidebar-background: 210 35% 8%;
+    --sidebar-foreground: 200 15% 95%;
+    --sidebar-primary: 190 60% 55%;
+    --sidebar-primary-foreground: 210 40% 10%;
+    --sidebar-accent: 210 25% 18%;
+    --sidebar-accent-foreground: 200 15% 95%;
+  }
+
+  /* ====== TEMA PINK (Rosa Elegante) ====== */
+  .theme-pink {
+    --background: 330 30% 97%;
+    --foreground: 330 40% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 330 40% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 330 40% 10%;
+    --primary: 330 80% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 330 25% 92%;
+    --secondary-foreground: 330 40% 15%;
+    --muted: 330 20% 94%;
+    --muted-foreground: 330 15% 45%;
+    --accent: 300 65% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 330 25% 88%;
+    --input: 330 25% 88%;
+    --ring: 330 80% 55%;
+    --sidebar-background: 330 35% 12%;
+    --sidebar-foreground: 330 15% 95%;
+    --sidebar-primary: 300 65% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 330 25% 22%;
+    --sidebar-accent-foreground: 330 15% 95%;
+  }
+
+  .dark.theme-pink,
+  .dark .theme-pink {
+    --background: 330 30% 8%;
+    --foreground: 330 15% 95%;
+    --card: 330 25% 12%;
+    --card-foreground: 330 15% 95%;
+    --popover: 330 25% 10%;
+    --popover-foreground: 330 15% 95%;
+    --primary: 330 75% 60%;
+    --primary-foreground: 330 30% 10%;
+    --secondary: 330 20% 20%;
+    --secondary-foreground: 330 15% 90%;
+    --muted: 330 18% 18%;
+    --muted-foreground: 330 12% 60%;
+    --accent: 300 60% 50%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 330 18% 22%;
+    --input: 330 18% 22%;
+    --ring: 330 75% 60%;
+    --sidebar-background: 330 35% 6%;
+    --sidebar-foreground: 330 15% 95%;
+    --sidebar-primary: 300 65% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 330 25% 15%;
+    --sidebar-accent-foreground: 330 15% 95%;
+  }
+
+  /* ====== TEMA JUVENTUS (Bianconero + Oro) ====== */
+  .theme-juventus {
+    --background: 0 0% 98%;
+    --foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+    --primary: 0 0% 10%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 45 90% 50%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 10%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 45 90% 55%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+  }
+
+  .dark.theme-juventus,
+  .dark .theme-juventus {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 5%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 45 85% 55%;
+    --accent-foreground: 0 0% 5%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 98%;
+    --sidebar-background: 0 0% 3%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 45 90% 55%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 98%;
+  }
+
+  /* Juventus Theme Background Image - no !important to allow custom overrides */
+  html.theme-juventus body:not(.custom-bg),
+  .theme-juventus body:not(.custom-bg) {
+    background-image: url('/images/juventus-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  .dark.theme-juventus body:not(.custom-bg),
+  .dark .theme-juventus body:not(.custom-bg),
+  html.dark.theme-juventus body:not(.custom-bg) {
+    background-image: url('/images/juventus-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  /* ====== TEMA AUDI (Premium Automotive) ====== */
+  .theme-audi {
+    /* Background: Clean white */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 13%;
+    /* #212121 - Audi dark gray */
+
+    /* Cards: Light gray, premium feel */
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 13%;
+
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 13%;
+
+    /* Primary: Audi Red #BB0A30 */
+    --primary: 349 92% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Neutral gray */
+    --secondary: 0 0% 95%;
+    --secondary-foreground: 0 0% 13%;
+
+    /* Muted: Soft gray */
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 40%;
+
+    /* Accent: Audi Red lighter */
+    --accent: 349 80% 95%;
+    --accent-foreground: 349 92% 39%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border & Input: Clean lines */
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 349 92% 39%;
+
+    /* Chart colors - Audi palette */
+    --chart-1: 349 92% 39%;
+    /* Audi Red */
+    --chart-2: 0 0% 20%;
+    /* Black */
+    --chart-3: 0 0% 50%;
+    /* Gray */
+    --chart-4: 0 0% 75%;
+    /* Light gray */
+    --chart-5: 349 70% 60%;
+    /* Light Red */
+
+    /* Sidebar: Audi Red (light mode) */
+    --sidebar-background: 349 92% 39%;
+    /* Audi Red #BB0A30 */
+    --sidebar-foreground: 0 0% 100%;
+    /* White text */
+    --sidebar-primary: 0 0% 100%;
+    /* White for active state */
+    --sidebar-primary-foreground: 349 92% 39%;
+    /* Red text on white */
+    --sidebar-accent: 349 70% 45%;
+    /* Lighter red for hover */
+    --sidebar-accent-foreground: 0 0% 100%;
+    /* White text on hover */
+    --sidebar-border: 349 70% 50%;
+    --sidebar-ring: 0 0% 100%;
+    /* White ring */
+  }
+
+  /* Additional selectors for Audi light mode sidebar - more specific */
+  html.theme-audi,
+  :root.theme-audi,
+  html .theme-audi {
+    --sidebar-background: 349 92% 39%;
+    /* Audi Red #BB0A30 */
+    --sidebar-foreground: 0 0% 100%;
+    /* White text */
+    --sidebar-primary: 0 0% 100%;
+    /* White for active state */
+    --sidebar-primary-foreground: 349 92% 39%;
+    /* Red text on white */
+    --sidebar-accent: 349 70% 45%;
+    /* Lighter red for hover */
+    --sidebar-accent-foreground: 0 0% 100%;
+    /* White text on hover */
+    --sidebar-border: 349 70% 50%;
+    --sidebar-ring: 0 0% 100%;
+    /* White ring */
+  }
+
+  .dark.theme-audi {
+    /* Background: Audi Black */
+    --background: 0 0% 6%;
+    --foreground: 0 0% 95%;
+
+    /* Cards: Dark elevated */
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
+
+    /* Popover */
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 95%;
+
+    /* Primary: Audi Red (brighter for dark mode) */
+    --primary: 349 92% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+
+    /* Muted */
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 65%;
+
+    /* Accent */
+    --accent: 0 0% 18%;
+    --accent-foreground: 349 92% 55%;
+
+    /* Border & Input */
+    --border: 0 0% 22%;
+    --input: 0 0% 18%;
+    --ring: 349 92% 50%;
+
+    /* Sidebar: Pure black */
+    --sidebar-background: 0 0% 4%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 349 92% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+  }
+
+  /* Audi Sidebar - Light Mode ONLY - Red with WHITE highlights */
+  .theme-audi:not(.dark) .bg-sidebar,
+  html.theme-audi:not(.dark) .bg-sidebar,
+  :root.theme-audi:not(.dark) .bg-sidebar {
+    background-color: hsl(349 92% 39%) !important;
+    /* Audi Red */
+  }
+
+  /* Audi Sidebar - Dark Mode - Black */
+  .dark.theme-audi .bg-sidebar,
+  html.dark.theme-audi .bg-sidebar,
+  .dark .theme-audi .bg-sidebar {
+    background-color: hsl(0 0% 4%) !important;
+    /* Black */
+  }
+
+  .theme-audi:not(.dark) [data-sidebar="menu-button"]:hover,
+  .theme-audi:not(.dark) [data-sidebar="menu-button"][data-active="true"],
+  html.theme-audi:not(.dark) [data-sidebar="menu-button"]:hover,
+  html.theme-audi:not(.dark) [data-sidebar="menu-button"][data-active="true"] {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    /* White semi-transparent */
+    color: white !important;
+  }
+
+  /* Override accent color for Audi sidebar menu buttons - Light Mode */
+  .theme-audi:not(.dark) .bg-sidebar button:hover,
+  .theme-audi:not(.dark) .bg-sidebar a:hover,
+  html.theme-audi:not(.dark) .bg-sidebar button:hover,
+  html.theme-audi:not(.dark) .bg-sidebar a:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+  }
+
+  /* Audi sidebar active state - Light Mode - white highlight */
+  .theme-audi:not(.dark) .bg-sidebar-primary\/15,
+  html.theme-audi:not(.dark) .bg-sidebar-primary\/15 {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  /* Override the accent bg specifically in sidebar - Light Mode */
+  .theme-audi:not(.dark) .bg-sidebar .hover\:bg-accent:hover,
+  html.theme-audi:not(.dark) .bg-sidebar .hover\:bg-accent:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  /* Audi Dark Mode - Red highlights on black background */
+  .dark.theme-audi [data-sidebar="menu-button"]:hover,
+  .dark.theme-audi [data-sidebar="menu-button"][data-active="true"],
+  html.dark.theme-audi [data-sidebar="menu-button"]:hover,
+  html.dark.theme-audi [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsl(349 92% 45% / 0.3) !important;
+    /* Red semi-transparent */
+    color: white !important;
+  }
+
+  .dark.theme-audi .bg-sidebar button:hover,
+  .dark.theme-audi .bg-sidebar a:hover,
+  html.dark.theme-audi .bg-sidebar button:hover,
+  html.dark.theme-audi .bg-sidebar a:hover {
+    background-color: hsl(349 92% 45% / 0.2) !important;
+    color: white !important;
+  }
+
+  .dark.theme-audi .bg-sidebar .hover\:bg-accent:hover,
+  html.dark.theme-audi .bg-sidebar .hover\:bg-accent:hover {
+    background-color: hsl(349 92% 45% / 0.2) !important;
+  }
+
+  /* ====== TEMA YELLOW (Giallo Solare) ====== */
+  /* ====== TEMA YELLOW (Giallo Solare) ====== */
+  html.theme-yellow,
+  .theme-yellow {
+    --background: 45 30% 92%;
+    /* Darker cream background for contrast */
+    --foreground: 45 80% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 45 80% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 45 80% 10%;
+    /* Better Gold/Amber for contrast on white */
+    --primary: 40 90% 45%;
+    --primary-foreground: 45 90% 98%;
+    --secondary: 48 40% 92%;
+    --secondary-foreground: 40 80% 20%;
+    --muted: 48 30% 94%;
+    --muted-foreground: 45 20% 40%;
+    --accent: 35 90% 55%;
+    /* More Orange-ish Accent for contrast */
+    --accent-foreground: 45 90% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 48 30% 80%;
+    --input: 48 30% 80%;
+    --ring: 40 90% 45%;
+    --sidebar-background: 40 40% 10%;
+    /* Darker richer sidebar */
+    --sidebar-foreground: 48 20% 95%;
+    --sidebar-primary: 40 90% 50%;
+    --sidebar-primary-foreground: 45 90% 98%;
+    --sidebar-accent: 40 40% 20%;
+    --sidebar-accent-foreground: 48 20% 95%;
+  }
+
+  .dark.theme-yellow,
+  .dark .theme-yellow {
+    --background: 45 50% 5%;
+    /* Deep dark background */
+    --foreground: 48 20% 95%;
+    --card: 45 40% 10%;
+    --card-foreground: 48 20% 95%;
+    --popover: 45 40% 10%;
+    --popover-foreground: 48 20% 95%;
+    --primary: 48 96% 53%;
+    --primary-foreground: 45 80% 10%;
+    --secondary: 45 30% 20%;
+    --secondary-foreground: 48 15% 90%;
+    --muted: 45 25% 18%;
+    --muted-foreground: 45 15% 60%;
+    --accent: 38 90% 55%;
+    --accent-foreground: 45 80% 10%;
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 45 25% 22%;
+    --input: 45 25% 22%;
+    --ring: 48 95% 55%;
+    --sidebar-background: 45 55% 4%;
+    --sidebar-foreground: 48 20% 95%;
+    --sidebar-primary: 48 96% 53%;
+    --sidebar-primary-foreground: 45 80% 10%;
+    --sidebar-accent: 45 35% 15%;
+    --sidebar-accent-foreground: 48 20% 95%;
+  }
+
+  /* ====== TEMA GLASS (Vetro) ====== */
+  html.theme-glass,
+  .theme-glass {
+    --background: 210 50% 98%;
+    --foreground: 222 47% 11%;
+    /* Cards are explicitly transparent in glass theme to let background show */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 84% 4.9%;
+    /* High contrast for sidebar icons in Glass Mode */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 210 100% 40%;
+    /* Darker Blue */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    /* Ensure muted icons are darker/visible - almost black */
+    --muted-foreground: 215 25% 40%;
+  }
+
+  /* Specific Body Gradient Override for Glass Theme */
+  html.theme-glass body {
+    background-image:
+      radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.5) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(236, 72, 153, 0.5) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.5) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(34, 197, 94, 0.5) 0px, transparent 50%) !important;
+    background-size: cover;
+    background-attachment: fixed;
+  }
+
+  .dark.theme-glass,
+  .dark .theme-glass {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 100% 50%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 210 100% 50%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 32% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+  }
+
+  /* Glass Sidebar - Light Mode */
+  .theme-glass .bg-sidebar,
+  html.theme-glass .bg-sidebar {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      4px 0 16px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Glass Sidebar - Dark Mode */
+  .dark.theme-glass .bg-sidebar,
+  .dark .theme-glass .bg-sidebar,
+  html.dark.theme-glass .bg-sidebar {
+    background-color: rgba(15, 15, 25, 0.4) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      4px 0 16px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* Glass Header - Light Mode */
+  .theme-glass header,
+  html.theme-glass header {
+    background-color: rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow:
+      inset 0 -1px 0 rgba(255, 255, 255, 0.3),
+      0 4px 16px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* Glass Header - Dark Mode */
+  .dark.theme-glass header,
+  .dark .theme-glass header,
+  html.dark.theme-glass header {
+    background-color: rgba(15, 15, 25, 0.45) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+      inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+      0 4px 16px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* ====== TEMA LOVE (Romantico) ====== */
+  html.theme-love,
+  .theme-love {
+    /* Background: Soft pink cream */
+    --background: 350 30% 97%;
+    --foreground: 350 50% 10%;
+
+    /* Cards: White with warm tint */
+    --card: 0 0% 100%;
+    --card-foreground: 350 50% 10%;
+
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 350 50% 10%;
+
+    /* Primary: Passionate Red */
+    --primary: 350 85% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: Soft rose */
+    --secondary: 350 40% 94%;
+    --secondary-foreground: 350 50% 15%;
+
+    /* Muted: Light pink */
+    --muted: 350 25% 95%;
+    --muted-foreground: 350 15% 45%;
+
+    /* Accent: Hot pink */
+    --accent: 330 80% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Destructive */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border & Input */
+    --border: 350 25% 88%;
+    --input: 350 25% 88%;
+    --ring: 350 85% 55%;
+
+    /* Chart colors - Love palette */
+    --chart-1: 350 85% 55%;
+    /* Red */
+    --chart-2: 330 80% 60%;
+    /* Pink */
+    --chart-3: 0 80% 65%;
+    /* Coral */
+    --chart-4: 320 70% 55%;
+    /* Magenta */
+    --chart-5: 340 90% 70%;
+    /* Light Pink */
+
+    /* Sidebar: Vibrant romantic red - similar to Audi's red sidebar */
+    --sidebar-background: 350 85% 45%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 350 85% 45%;
+    --sidebar-accent: 350 70% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 350 70% 55%;
+    --sidebar-ring: 0 0% 100%;
+  }
+
+  /* Additional selectors for Love light mode sidebar - more specific */
+  html.theme-love,
+  :root.theme-love,
+  html .theme-love {
+    --sidebar-background: 350 85% 45%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 350 85% 45%;
+    --sidebar-accent: 350 70% 55%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 350 70% 55%;
+    --sidebar-ring: 0 0% 100%;
+  }
+
+  .dark.theme-love,
+  .dark .theme-love {
+    /* Background: Deep romantic dark */
+    --background: 350 40% 6%;
+    --foreground: 350 15% 95%;
+
+    /* Cards: Dark elevated with warm tint */
+    --card: 350 35% 10%;
+    --card-foreground: 350 15% 95%;
+
+    /* Popover */
+    --popover: 350 35% 8%;
+    --popover-foreground: 350 15% 95%;
+
+    /* Primary: Bright romantic red */
+    --primary: 350 80% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 350 30% 18%;
+    --secondary-foreground: 350 15% 90%;
+
+    /* Muted */
+    --muted: 350 25% 15%;
+    --muted-foreground: 350 12% 60%;
+
+    /* Accent: Neon pink */
+    --accent: 330 75% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Border & Input */
+    --border: 350 25% 20%;
+    --input: 350 25% 18%;
+    --ring: 350 80% 60%;
+
+    /* Sidebar: Deep red/maroon for dark mode */
+    --sidebar-background: 350 60% 12%;
+    --sidebar-foreground: 350 15% 95%;
+    --sidebar-primary: 350 80% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 350 50% 25%;
+    --sidebar-accent-foreground: 350 15% 95%;
+    --sidebar-border: 350 45% 22%;
+    --sidebar-ring: 350 80% 60%;
+  }
+
+  /* Love Sidebar - Light Mode ONLY - RED with WHITE highlights */
+  .theme-love:not(.dark) .bg-sidebar,
+  html.theme-love:not(.dark) .bg-sidebar,
+  :root.theme-love:not(.dark) .bg-sidebar {
+    background-color: hsl(350 85% 45%) !important;
+    /* Vivid Love Red */
+  }
+
+  /* Love Sidebar - Dark Mode - Dark Red */
+  .dark.theme-love .bg-sidebar,
+  html.dark.theme-love .bg-sidebar,
+  .dark .theme-love .bg-sidebar {
+    background-color: hsl(350 60% 12%) !important;
+    /* Dark romantic red */
+  }
+
+  /* Love Theme Sidebar Hover Effects - Light Mode */
+  .theme-love:not(.dark) [data-sidebar="menu-button"]:hover,
+  .theme-love:not(.dark) [data-sidebar="menu-button"][data-active="true"],
+  html.theme-love:not(.dark) [data-sidebar="menu-button"]:hover,
+  html.theme-love:not(.dark) [data-sidebar="menu-button"][data-active="true"] {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+  }
+
+  /* Override accent color for Love sidebar menu buttons - Light Mode */
+  .theme-love:not(.dark) .bg-sidebar button:hover,
+  .theme-love:not(.dark) .bg-sidebar a:hover,
+  html.theme-love:not(.dark) .bg-sidebar button:hover,
+  html.theme-love:not(.dark) .bg-sidebar a:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+  }
+
+  /* Love sidebar active state - Light Mode - white highlight */
+  .theme-love:not(.dark) .bg-sidebar-primary\/15,
+  html.theme-love:not(.dark) .bg-sidebar-primary\/15 {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  /* Override the accent bg specifically in sidebar - Light Mode */
+  .theme-love:not(.dark) .bg-sidebar .hover\:bg-accent:hover,
+  html.theme-love:not(.dark) .bg-sidebar .hover\:bg-accent:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  /* Love Theme Sidebar Hover Effects - Dark Mode */
+  .dark.theme-love [data-sidebar="menu-button"]:hover,
+  .dark.theme-love [data-sidebar="menu-button"][data-active="true"],
+  html.dark.theme-love [data-sidebar="menu-button"]:hover,
+  html.dark.theme-love [data-sidebar="menu-button"][data-active="true"] {
+    background-color: hsl(350 80% 55% / 0.3) !important;
+    color: white !important;
+  }
+
+  .dark.theme-love .bg-sidebar button:hover,
+  .dark.theme-love .bg-sidebar a:hover,
+  html.dark.theme-love .bg-sidebar button:hover,
+  html.dark.theme-love .bg-sidebar a:hover {
+    background-color: hsl(350 70% 50% / 0.2) !important;
+    color: white !important;
+  }
+
+  .dark.theme-love .bg-sidebar .hover\:bg-accent:hover,
+  html.dark.theme-love .bg-sidebar .hover\:bg-accent:hover {
+    background-color: hsl(350 70% 50% / 0.2) !important;
+  }
+
+  /* Love Theme Sidebar Icons - Force white color for all icons */
+  /* Light Mode */
+  .theme-love:not(.dark) .bg-sidebar svg,
+  .theme-love:not(.dark) .bg-sidebar [data-sidebar="menu-button"] svg,
+  .theme-love:not(.dark) [data-sidebar] svg,
+  html.theme-love:not(.dark) .bg-sidebar svg,
+  html.theme-love:not(.dark) .bg-sidebar [data-sidebar="menu-button"] svg,
+  :root.theme-love:not(.dark) .bg-sidebar svg {
+    color: white !important;
+    stroke: white !important;
+  }
+
+  .theme-love:not(.dark) .bg-sidebar span,
+  .theme-love:not(.dark) [data-sidebar="menu-button"] span,
+  html.theme-love:not(.dark) .bg-sidebar span,
+  :root.theme-love:not(.dark) .bg-sidebar span {
+    color: white !important;
+  }
+
+  /* Dark Mode */
+  .dark.theme-love .bg-sidebar svg,
+  .dark.theme-love .bg-sidebar [data-sidebar="menu-button"] svg,
+  .dark.theme-love [data-sidebar] svg,
+  html.dark.theme-love .bg-sidebar svg,
+  html.dark.theme-love .bg-sidebar [data-sidebar="menu-button"] svg,
+  .dark .theme-love .bg-sidebar svg {
+    color: white !important;
+    stroke: white !important;
+  }
+
+  .dark.theme-love .bg-sidebar span,
+  .dark.theme-love [data-sidebar="menu-button"] span,
+  html.dark.theme-love .bg-sidebar span,
+  .dark .theme-love .bg-sidebar span {
+    color: white !important;
+  }
+
+  /* Love Theme Special Effects - Subtle heart pattern background */
+  html.theme-love body:not(.custom-bg)::before,
+  .theme-love body:not(.custom-bg)::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      radial-gradient(circle at 20% 80%, rgba(255, 100, 130, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(255, 150, 180, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(255, 120, 150, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+/* Falling Hearts Animation - Outside @layer for global access */
+@keyframes fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.falling-heart {
+  position: fixed;
+  top: 0;
+  z-index: 9999;
+  pointer-events: none;
+  animation: fall linear forwards;
+}
+
+/* Hourly Love Heart Animation - Center of screen */
+@keyframes love-heart-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+
+  70% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  90% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+
+.love-heart-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(255, 100, 130, 0.15) 0%, transparent 70%);
+}
+
+.love-heart-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.love-heart {
+  font-size: 150px;
+  display: block;
+  animation: love-heart-appear 5s ease-in-out forwards;
+  filter: drop-shadow(0 0 30px rgba(255, 50, 100, 0.6)) drop-shadow(0 0 60px rgba(255, 50, 100, 0.4));
+}
+
+@layer utilities {
+  .glass {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow:
+      0 8px 32px 0 rgba(31, 38, 135, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  }
+
+  .dark .glass {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .glass-card {
+    /* More transparent for true glass effect */
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    backdrop-filter: blur(24px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    box-shadow:
+      0 8px 32px 0 rgba(31, 38, 135, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .glass-card:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    box-shadow:
+      0 12px 40px rgba(31, 38, 135, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    transform: translateY(-2px);
+  }
+
+  .dark .glass-card {
+    background-color: rgba(30, 30, 40, 0.35) !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .dark .glass-card:hover {
+    background-color: rgba(30, 30, 40, 0.4) !important;
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  }
+
+  /* Glass theme specific - even more transparent */
+  .theme-glass .glass-card {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    backdrop-filter: blur(28px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(220%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    box-shadow:
+      0 8px 32px 0 rgba(31, 38, 135, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .theme-glass .glass-card:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    box-shadow:
+      0 16px 48px rgba(31, 38, 135, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  }
+
+  .dark.theme-glass .glass-card,
+  .dark .theme-glass .glass-card {
+    background-color: rgba(20, 20, 30, 0.28) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    box-shadow:
+      0 8px 32px 0 rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.03) !important;
+  }
+
+  .dark.theme-glass .glass-card:hover,
+  .dark .theme-glass .glass-card:hover {
+    background-color: rgba(20, 20, 30, 0.32) !important;
+    box-shadow:
+      0 16px 48px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  }
+}
+
+
+/* Custom Animations - Directly integrated to avoid import issues */
+@keyframes breathing-custom {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.02);
+    opacity: 0.85;
+  }
+}
+
+.animate-breathing-custom {
+  animation: breathing-custom 6s ease-in-out infinite !important;
+}
+
+/* Pulsing ring animation for new approval requests */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.02);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes border-pulse {
+
+  0%,
+  100% {
+    border-color: rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.4);
+  }
+
+  50% {
+    border-color: rgba(168, 85, 247, 1);
+    box-shadow: 0 0 20px 0 rgba(168, 85, 247, 0.6);
+  }
+}
+
+.animate-glow-custom {
+  position: relative;
+  border: 2px solid rgba(168, 85, 247, 0.5) !important;
+  animation: border-pulse 3s ease-in-out infinite !important;
+}
+
+.animate-glow-custom::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: linear-gradient(45deg,
+      rgba(168, 85, 247, 0.3),
+      rgba(139, 92, 246, 0.3),
+      rgba(168, 85, 247, 0.3));
+  z-index: -1;
+  animation: pulse-ring 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Override glass-card styles when glow is active */
+.glass-card.animate-glow-custom,
+.animate-glow-custom.glass-card,
+div.animate-glow-custom {
+  border: 2px solid rgba(168, 85, 247, 0.5) !important;
+  animation: border-pulse 3s ease-in-out infinite !important;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(at 0% 0%, hsla(var(--primary) / 0.2) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(var(--accent) / 0.2) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(var(--primary) / 0.2) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(var(--accent) / 0.2) 0px, transparent 50%);
+    background-attachment: fixed;
+    background-size: cover;
+  }
+
+  /* When custom background is uploaded, remove default gradient */
+  body.custom-bg {
+    background-color: transparent !important;
+  }
+
+  /* Dynamic overlay for custom backgrounds - improves text readability */
+  body.custom-bg::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  /* Light mode overlay - subtle dark tint */
+  body.custom-bg:not(.dark)::before {
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.6) 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        rgba(255, 255, 255, 0.6) 100%);
+  }
+
+  /* Dark mode overlay - subtle dark tint */
+  .dark body.custom-bg::before,
+  html.dark body.custom-bg::before {
+    background: linear-gradient(135deg,
+        rgba(0, 0, 0, 0.5) 0%,
+        rgba(0, 0, 0, 0.3) 50%,
+        rgba(0, 0, 0, 0.5) 100%);
+  }
+}
+
+/* Custom Animations Removed - Managed by Tailwind Config */
+
+/* ============================================
+   ACCESSIBILITY STYLES
+   ============================================ */
+
+/* Screen reader only - hides visually but accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible - enhanced keyboard focus indicator */
+[data-focus-visible],
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-pulse,
+  .animate-pulse-slow,
+  .animate-purple-glow,
+  .animate-green-glow,
+  .animate-red-glow {
+    animation: none !important;
+  }
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* ============================================
+   MICRO-INTERACTIONS & ANIMATIONS
+   ============================================ */
+
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Fade in up animation */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out;
+}
+
+/* Scale in animation */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out;
+}
+
+/* Slide in from right */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Bounce subtle */
+@keyframes bounce-subtle {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 0.5s ease-in-out;
+}
+
+/* Shake for errors */
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Spin slow for loading */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+/* Ping for notifications */
+@keyframes ping {
+
+  75%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ============================================
+   INTERACTIVE HOVER EFFECTS
+   ============================================ */
+
+/* Card hover lift effect */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -10px rgba(0, 0, 0, 0.15);
+}
+
+/* Button press effect */
+.press-effect {
+  transition: transform 0.1s ease;
+}
+
+.press-effect:active {
+  transform: scale(0.97);
+}
+
+/* Glow on hover */
+.hover-glow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(var(--primary), 0.3);
+}
+
+/* ============================================
+   GRADIENTS & BACKGROUNDS
+   ============================================ */
+
+/* Premium glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.dark .glass {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   TYPOGRAPHY ENHANCEMENTS
+   ============================================ */
+
+/* Headline font */
+.font-headline {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Balance text for headlines */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Truncate with fade */
+.truncate-fade {
+  position: relative;
+  overflow: hidden;
+}
+
+.truncate-fade::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40px;
+  background: linear-gradient(to right, transparent, hsl(var(--background)));
+}
+
+/* ============================================
+   ENHANCED ANIMATIONS FOR DASHBOARD
+   ============================================ */
+
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Staggered animation delays */
+.stagger-1 {
+  animation-delay: 50ms;
+}
+
+.stagger-2 {
+  animation-delay: 100ms;
+}
+
+.stagger-3 {
+  animation-delay: 150ms;
+}
+
+.stagger-4 {
+  animation-delay: 200ms;
+}
+
+.stagger-5 {
+  animation-delay: 250ms;
+}
+
+.stagger-6 {
+  animation-delay: 300ms;
+}
+
+.stagger-7 {
+  animation-delay: 350ms;
+}
+
+.stagger-8 {
+  animation-delay: 400ms;
+}
+
+/* Counter number styling */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Float animation for attention-grabbing elements */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse ring for notifications */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid currentColor;
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Chart bar entrance animation */
+@keyframes grow-up {
+  from {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+
+  to {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+}
+
+.animate-grow-up {
+  animation: grow-up 0.8s ease-out forwards;
+}
+
+/* Number pop effect */
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pop {
+  animation: pop 0.3s ease-out;
+}
+
+/* Gradient border animation */
+@keyframes gradient-rotate {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(90deg,
+      hsl(var(--primary)),
+      hsl(var(--accent)),
+      hsl(var(--primary)));
+  background-size: 200% 200%;
+  animation: gradient-rotate 3s linear infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* Success celebration animation */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100%) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Smooth entrance from different directions */
+@keyframes enter-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes enter-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes enter-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-enter-left {
+  animation: enter-from-left 0.5s ease-out forwards;
+}
+
+.animate-enter-right {
+  animation: enter-from-right 0.5s ease-out forwards;
+}
+
+.animate-enter-bottom {
+  animation: enter-from-bottom 0.5s ease-out forwards;
+}
+
+/* Loading dots */
+@keyframes loading-dots {
+
+  0%,
+  20% {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  80%,
+  100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+.loading-dot {
+  animation: loading-dots 1.4s infinite ease-in-out both;
+}
+
+.loading-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+/* Glow effect for important items */
+.glow-primary {
+  box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px hsl(142 76% 36% / 0.3);
+}
+
+.glow-warning {
+  box-shadow: 0 0 20px hsl(45 93% 47% / 0.3);
+}
+
+.glow-danger {
+  box-shadow: 0 0 20px hsl(0 84% 60% / 0.3);
+}
+
+/* ============================================
+   PREMIUM GLASSMORPHISM CARDS
+   ============================================ */
+
+/* Glass card effect - Light mode */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transform: translateY(-2px);
+}
+
+/* Glass card - Dark mode */
+.dark .glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .glass-card:hover {
+  background: rgba(30, 41, 59, 0.85);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Glass card variants */
+.glass-card-primary {
+  background: linear-gradient(135deg,
+      rgba(99, 102, 241, 0.15) 0%,
+      rgba(168, 85, 247, 0.1) 100%);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.glass-card-success {
+  background: linear-gradient(135deg,
+      rgba(34, 197, 94, 0.15) 0%,
+      rgba(16, 185, 129, 0.1) 100%);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.glass-card-warning {
+  background: linear-gradient(135deg,
+      rgba(245, 158, 11, 0.15) 0%,
+      rgba(249, 115, 22, 0.1) 100%);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.glass-card-danger {
+  background: linear-gradient(135deg,
+      rgba(239, 68, 68, 0.15) 0%,
+      rgba(220, 38, 38, 0.1) 100%);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ============================================
+   GRADIENT BUTTONS
+   ============================================ */
+
+.btn-gradient-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-primary:hover {
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-gradient-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+}
+
+.btn-gradient-success {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(17, 153, 142, 0.4);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-success:hover {
+  box-shadow: 0 6px 20px rgba(17, 153, 142, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-gradient-warning {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-warning:hover {
+  box-shadow: 0 6px 20px rgba(240, 147, 251, 0.6);
+  transform: translateY(-2px);
+}
+
+.btn-gradient-dark {
+  background: linear-gradient(135deg, #434343 0%, #000000 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-dark:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.btn-gradient-gold {
+  background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 50%, #b38728 100%);
+  color: #2d2d2d;
+  border: none;
+  box-shadow: 0 4px 15px rgba(191, 149, 63, 0.4);
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-gold:hover {
+  box-shadow: 0 6px 20px rgba(191, 149, 63, 0.6);
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   COUNT-UP ANIMATION
+   ============================================ */
+
+@keyframes count-up-appear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-count-up {
+  animation: count-up-appear 0.5s ease-out forwards;
+}
+
+.count-up-number {
+  font-variant-numeric: tabular-nums;
+  transition: all 0.3s ease-out;
+}
+
+/* Number highlight effect on change */
+@keyframes number-highlight {
+  0% {
+    color: hsl(var(--primary));
+    transform: scale(1.1);
+  }
+
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}
+
+.number-updated {
+  animation: number-highlight 0.5s ease-out;
+}
+
+/* ============================================
+   SPARKLINE MINI CHARTS
+   ============================================ */
+
+.sparkline-container {
+  position: relative;
+  width: 100%;
+  height: 40px;
+  overflow: hidden;
+}
+
+.sparkline {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sparkline-gradient-primary {
+  stroke: url(#sparkline-gradient-primary);
+}
+
+.sparkline-gradient-success {
+  stroke: url(#sparkline-gradient-success);
+}
+
+.sparkline-gradient-warning {
+  stroke: url(#sparkline-gradient-warning);
+}
+
+.sparkline-area {
+  opacity: 0.1;
+}
+
+/* ============================================
+   ENHANCED SKELETON LOADING
+   ============================================ */
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-premium {
+  background: linear-gradient(90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.08) 20%,
+      hsl(var(--muted-foreground) / 0.12) 40%,
+      hsl(var(--muted-foreground) / 0.08) 60%,
+      hsl(var(--muted)) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+
+.skeleton-text {
+  height: 1em;
+  border-radius: 4px;
+  margin-bottom: 0.5em;
+}
+
+.skeleton-title {
+  height: 1.5em;
+  width: 60%;
+  border-radius: 4px;
+}
+
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-card {
+  height: 120px;
+  border-radius: var(--radius);
+}
+
+/* ============================================
+   KPI CARD ENHANCEMENTS
+   ============================================ */
+
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle at top right,
+      hsl(var(--primary) / 0.1) 0%,
+      transparent 70%);
+  pointer-events: none;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-trend-up {
+  color: hsl(142 76% 36%);
+}
+
+.kpi-trend-down {
+  color: hsl(0 84% 60%);
+}
+
+.kpi-trend-neutral {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Trend arrow animation */
+@keyframes trend-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-trend {
+  animation: trend-bounce 1s ease-in-out infinite;
+}
+
+/* ============================================
+   PROGRESS BAR ENHANCEMENTS
+   ============================================ */
+
+.progress-gradient {
+  background: linear-gradient(90deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--accent)) 100%);
+}
+
+.progress-animated {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-animated::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%);
+  animation: progress-shine 2s ease-in-out infinite;
+}
+
+@keyframes progress-shine {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   BADGE STYLES FOR GAMIFICATION
+   ============================================ */
+
+.badge-glow {
+  position: relative;
+}
+
+.badge-glow::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: inherit;
+  border-radius: inherit;
+  filter: blur(8px);
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.badge-gold {
+  background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 50%, #b38728 100%);
+  color: #2d2d2d;
+}
+
+.badge-silver {
+  background: linear-gradient(135deg, #c0c0c0 0%, #ffffff 50%, #a8a8a8 100%);
+  color: #2d2d2d;
+}
+
+.badge-bronze {
+  background: linear-gradient(135deg, #cd7f32 0%, #e6c3a1 50%, #8b4513 100%);
+  color: white;
+}
+
+.badge-diamond {
+  background: linear-gradient(135deg, #b9f2ff 0%, #ffffff 50%, #87ceeb 100%);
+  color: #0a4d68;
+}
+
+/* XP Progress Bar */
+.xp-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: hsl(var(--muted));
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease-out;
+}
+
+/* Level badge */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.875rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
+/* ============================================
+   AVATAR ENHANCEMENTS
+   ============================================ */
+
+.avatar-online {
+  position: relative;
+}
+
+.avatar-online::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  background: #22c55e;
+  border: 2px solid hsl(var(--background));
+  border-radius: 50%;
+}
+
+.avatar-away::after {
+  background: #f59e0b;
+}
+
+.avatar-busy::after {
+  background: #ef4444;
+}
+
+.avatar-offline::after {
+  background: #9ca3af;
+}
+
+/* ============================================
+   LEADERBOARD STYLES
+   ============================================ */
+
+.leaderboard-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-item:hover {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.leaderboard-rank {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  border-radius: 50%;
+}
+
+.leaderboard-rank-1 {
+  background: linear-gradient(135deg, #bf953f 0%, #fcf6ba 50%, #b38728 100%);
+  color: #2d2d2d;
+}
+
+.leaderboard-rank-2 {
+  background: linear-gradient(135deg, #c0c0c0 0%, #ffffff 50%, #a8a8a8 100%);
+  color: #2d2d2d;
+}
+
+.leaderboard-rank-3 {
+  background: linear-gradient(135deg, #cd7f32 0%, #e6c3a1 50%, #8b4513 100%);
+  color: white;
+}
+
+/* ============================================
+   STREAK ANIMATION
+   ============================================ */
+
+@keyframes flame-flicker {
+
+  0%,
+  100% {
+    transform: scaleY(1) scaleX(1);
+    filter: brightness(1);
+  }
+
+  25% {
+    transform: scaleY(1.1) scaleX(0.95);
+    filter: brightness(1.1);
+  }
+
+  50% {
+    transform: scaleY(0.95) scaleX(1.05);
+    filter: brightness(0.95);
+  }
+
+  75% {
+    transform: scaleY(1.05) scaleX(0.98);
+    filter: brightness(1.05);
+  }
+}
+
+.streak-flame {
+  animation: flame-flicker 1s ease-in-out infinite;
+  color: #f97316;
+}
+
+.streak-counter {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}@import "../styles/animations.css";

@@ -1,0 +1,173 @@
+================================================================================
+                    W[r]DIGITAL MARKETING HUB
+                    GUIDA INSTALLAZIONE WINDOWS
+================================================================================
+
+                         Versione: 1.0
+                         Data: Dicembre 2024
+
+================================================================================
+
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                              CONTENUTO PACCHETTO                               ║
+╠═══════════════════════════════════════════════════════════════════════════════╣
+║                                                                                ║
+║  📁 Avvia_WRDigital_HUB.bat     → Avvia il server e apre l'app                ║
+║  📁 Installa_PWA_Chrome.bat     → Configura Chrome per installare la PWA      ║
+║  📁 WRDigital_HUB.url           → Collegamento rapido all'app                 ║
+║  📁 icons/                      → Icone per collegamento desktop              ║
+║  📁 ISTRUZIONI_WINDOWS.txt      → Questo file                                 ║
+║                                                                                ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+
+================================================================================
+SEZIONE 1: REQUISITI
+================================================================================
+
+Prima di iniziare, assicurati di avere:
+
+  ✓ Node.js 18+ installato (scarica da https://nodejs.org/)
+  ✓ Google Chrome o Microsoft Edge (consigliato Chrome)
+  ✓ La cartella hub-app dell'applicazione
+
+
+================================================================================
+SEZIONE 2: PRIMA INSTALLAZIONE
+================================================================================
+
+PASSO 1: POSIZIONA I FILE
+-------------------------
+1. Copia l'intera cartella "hub-app" sul tuo PC
+   Esempio: C:\Programmi\WRDigital\hub-app
+
+2. Copia la cartella "windows-installer" dove preferisci
+   (può anche stare dentro hub-app)
+
+
+PASSO 2: INSTALLA LE DIPENDENZE (solo la prima volta)
+------------------------------------------------------
+1. Apri il Prompt dei comandi (cmd) o PowerShell
+2. Naviga alla cartella hub-app:
+   
+   cd C:\Programmi\WRDigital\hub-app
+   
+3. Esegui:
+   
+   npm install
+   
+
+PASSO 3: AVVIA L'APPLICAZIONE
+-----------------------------
+1. Fai doppio clic su "Avvia_WRDigital_HUB.bat"
+2. Attendi che il server si avvii
+3. L'app si aprirà automaticamente in Chrome/Edge
+
+
+================================================================================
+SEZIONE 3: INSTALLAZIONE COME APP (PWA)
+================================================================================
+
+Per installare l'Hub come app sul desktop (con icona dedicata):
+
+METODO 1: Automatico (consigliato)
+----------------------------------
+1. Fai doppio clic su "Installa_PWA_Chrome.bat"
+2. Segui le istruzioni a schermo
+3. Dopo aver riavviato Chrome, vai su http://localhost:9002
+4. Clicca l'icona di installazione (🔽) nella barra degli indirizzi
+5. Clicca "Installa"
+
+
+METODO 2: Manuale
+-----------------
+1. Apri Chrome
+2. Vai a: chrome://flags/#unsafely-treat-insecure-origin-as-secure
+3. Nel campo di testo, inserisci: http://localhost:9002
+4. Imposta su "Enabled"
+5. Clicca "Relaunch"
+6. Vai su http://localhost:9002
+7. Clicca i 3 puntini ⋮ → "Installa W[r]Digital HUB..."
+
+
+================================================================================
+SEZIONE 4: CREARE COLLEGAMENTO SUL DESKTOP
+================================================================================
+
+Dopo aver installato la PWA:
+
+1. L'icona apparirà automaticamente sul desktop
+2. Puoi anche creare un collegamento a "Avvia_WRDigital_HUB.bat"
+   - Tasto destro → Invia a → Desktop (crea collegamento)
+
+
+================================================================================
+SEZIONE 5: AVVIO AUTOMATICO ALL'ACCENSIONE
+================================================================================
+
+Per far partire l'Hub automaticamente quando accendi il PC:
+
+1. Premi Win + R
+2. Digita: shell:startup
+3. Premi Invio
+4. Copia "Avvia_WRDigital_HUB.bat" nella cartella che si apre
+
+L'app si avvierà automaticamente ad ogni accesso a Windows.
+
+
+================================================================================
+SEZIONE 6: RISOLUZIONE PROBLEMI
+================================================================================
+
+PROBLEMA: "Node non riconosciuto come comando"
+SOLUZIONE: 
+  - Installa Node.js da https://nodejs.org/
+  - Riavvia il PC dopo l'installazione
+
+PROBLEMA: L'app non si avvia / porta già in uso
+SOLUZIONE:
+  - Apri Task Manager (Ctrl+Shift+Esc)
+  - Cerca processi "node.exe" e terminali
+  - Prova a riavviare
+
+PROBLEMA: La PWA non si installa
+SOLUZIONE:
+  - Usa "Installa_PWA_Chrome.bat" per configurare Chrome
+  - Assicurati di riavviare Chrome dopo la configurazione
+  - Usa Chrome o Edge (Firefox non supporta pienamente le PWA)
+
+PROBLEMA: "EADDRINUSE" - porta già in uso
+SOLUZIONE:
+  - Un'altra istanza del server è in esecuzione
+  - Chiudi tutte le finestre cmd relative all'Hub
+  - Oppure usa Task Manager per terminare node.exe
+
+
+================================================================================
+SEZIONE 7: ACCESSO DA ALTRI DISPOSITIVI
+================================================================================
+
+Per accedere all'Hub da altri PC/dispositivi sulla stessa rete:
+
+1. Trova l'IP del PC server:
+   - Apri cmd
+   - Digita: ipconfig
+   - Cerca "Indirizzo IPv4" (es. 192.168.1.100)
+
+2. Dagli altri dispositivi, vai a:
+   http://192.168.1.100:9002
+
+
+================================================================================
+                              SUPPORTO
+================================================================================
+
+Per problemi o domande:
+- Consulta questa guida
+- Verifica i requisiti
+- Contattare il supporto tecnico W[r]Digital
+
+================================================================================
+                              BUON LAVORO!
+================================================================================

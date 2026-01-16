@@ -1,0 +1,102 @@
+{
+  "name": "wrdigital-hub",
+  "version": "1.0.0",
+  "description": "W[r]Digital Marketing HUB - Desktop Application",
+  "main": "main.js",
+  "author": "W[r]Digital",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-is-dev": "^2.0.0"
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "png-to-ico": "^3.0.1"
+  },
+  "build": {
+    "appId": "com.wrdigital.hub",
+    "productName": "WRDigital HUB",
+    "copyright": "Copyright © 2024 W[r]Digital",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "splash.html",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../",
+        "to": "hub-app",
+        "filter": [
+          "**/*",
+          "!node_modules/**/*",
+          "!.next/**/*",
+          "!electron-app/**/*",
+          "!windows-installer/**/*",
+          "!*.zip"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WRDigital HUB",
+      "runAfterFinish": true,
+      "installerLanguages": [
+        "it",
+        "en"
+      ],
+      "language": "1040"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "build/icons",
+      "category": "Office"
+    }
+  }
+}

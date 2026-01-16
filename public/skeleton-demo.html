@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skeleton Loaders Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Skeleton Loaders Demo</h1>
+                <p class="text-gray-600 mt-1">Visualizza i placeholder di caricamento</p>
+            </div>
+            <button 
+                onclick="toggleSkeleton()" 
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                id="toggleBtn"
+            >
+                👁️ Mostra Contenuto Reale
+            </button>
+        </div>
+
+        <!-- Skeleton Cards -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4 text-gray-900">Skeleton Cards (Metriche)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="cards">
+                <!-- Skeleton -->
+                <div class="skeleton-card rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                        <div class="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+                    <div class="h-3 w-full bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div class="skeleton-card rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                        <div class="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+                    <div class="h-3 w-full bg-gray-200 rounded animate-pulse"></div>
+                </div>
+                <div class="skeleton-card rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                        <div class="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+                    <div class="h-3 w-full bg-gray-200 rounded animate-pulse"></div>
+                </div>
+
+                <!-- Real Content (hidden) -->
+                <div class="real-card hidden rounded-lg border border-green-200 bg-white p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-sm text-gray-600">Tasso Completamento</p>
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            ✓
+                        </div>
+                    </div>
+                    <p class="text-3xl font-bold text-green-600">75.5%</p>
+                    <p class="text-sm text-gray-600 mt-2">120 task totali</p>
+                </div>
+                <div class="real-card hidden rounded-lg border border-blue-200 bg-white p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-sm text-gray-600">Tempo Medio</p>
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            ⏱️
+                        </div>
+                    </div>
+                    <p class="text-3xl font-bold text-blue-600">12.3h</p>
+                    <p class="text-sm text-gray-600 mt-2">Per completare un task</p>
+                </div>
+                <div class="real-card hidden rounded-lg border border-red-200 bg-white p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-sm text-gray-600">Task in Ritardo</p>
+                        <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                            ⚠️
+                        </div>
+                    </div>
+                    <p class="text-3xl font-bold text-red-600">3</p>
+                    <p class="text-sm text-gray-600 mt-2">Da completare</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Skeleton Task List -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4 text-gray-900">Skeleton Task List</h2>
+            <div class="space-y-3" id="tasks">
+                <!-- Skeleton -->
+                <div class="skeleton-task rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 space-y-2">
+                            <div class="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                            <div class="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                        <div class="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="h-6 w-6 bg-gray-200 rounded-full animate-pulse"></div>
+                        <div class="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                        <div class="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto"></div>
+                    </div>
+                </div>
+                <div class="skeleton-task rounded-lg border border-gray-200 bg-white p-4 space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 space-y-2">
+                            <div class="h-5 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                            <div class="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                        <div class="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="h-6 w-6 bg-gray-200 rounded-full animate-pulse"></div>
+                        <div class="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                        <div class="h-4 w-20 bg-gray-200 rounded animate-pulse ml-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Real Content (hidden) -->
+                <div class="real-task hidden rounded-lg border border-gray-200 bg-white p-4">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-900">Implementare Analytics Dashboard</h3>
+                            <p class="text-sm text-gray-600">Creare grafici e metriche per il team</p>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-600">
+                            In Lavorazione
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-600">
+                        <div class="flex items-center gap-1">
+                            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs">
+                                M
+                            </div>
+                            Mario
+                        </div>
+                        <span>•</span>
+                        <span>📅 Domani</span>
+                    </div>
+                </div>
+                <div class="real-task hidden rounded-lg border border-gray-200 bg-white p-4">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-900">Fix bug login</h3>
+                            <p class="text-sm text-gray-600">Risolvere errore autenticazione</p>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">
+                            Critico
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm text-gray-600">
+                        <div class="flex items-center gap-1">
+                            <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-xs">
+                                L
+                            </div>
+                            Luca
+                        </div>
+                        <span>•</span>
+                        <span>📅 Oggi</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Info -->
+        <section class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+            <h3 class="font-semibold text-blue-900 mb-2">💡 Come Funziona</h3>
+            <ul class="space-y-2 text-sm text-blue-800">
+                <li>• Gli skeleton mostrano la <strong>struttura</strong> del contenuto mentre carica</li>
+                <li>• L'animazione <strong>pulse</strong> indica che qualcosa sta caricando</li>
+                <li>• Migliora la <strong>percezione</strong> della velocità dell'app</li>
+                <li>• Usati da Facebook, LinkedIn, YouTube, Netflix</li>
+                <li>• Clicca il pulsante sopra per vedere la <strong>trasformazione</strong></li>
+            </ul>
+        </section>
+    </div>
+
+    <script>
+        let showingSkeleton = true;
+
+        function toggleSkeleton() {
+            showingSkeleton = !showingSkeleton;
+            const btn = document.getElementById('toggleBtn');
+            
+            // Toggle cards
+            document.querySelectorAll('.skeleton-card').forEach(el => {
+                el.classList.toggle('hidden', !showingSkeleton);
+            });
+            document.querySelectorAll('.real-card').forEach(el => {
+                el.classList.toggle('hidden', showingSkeleton);
+            });
+            
+            // Toggle tasks
+            document.querySelectorAll('.skeleton-task').forEach(el => {
+                el.classList.toggle('hidden', !showingSkeleton);
+            });
+            document.querySelectorAll('.real-task').forEach(el => {
+                el.classList.toggle('hidden', showingSkeleton);
+            });
+            
+            // Update button
+            btn.textContent = showingSkeleton ? '👁️ Mostra Contenuto Reale' : '💀 Mostra Skeleton';
+            btn.className = showingSkeleton 
+                ? 'px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition'
+                : 'px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition';
+        }
+    </script>
+</body>
+</html>

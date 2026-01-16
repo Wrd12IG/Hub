@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Build output (we build inside container)
+.next
+
+# Development files
+*.md
+.git
+.gitignore
+.env.local
+.env*.local
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+__tests__
+*.test.*
+*.spec.*
