@@ -76,9 +76,9 @@ export const allNavItems: NavItem[] = [
 
   // Lavoro quotidiano
   { href: '/tasks', icon: ClipboardList, label: 'Tasks' },
-  { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti' },
+  { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects' },
   { href: '/projects', icon: LayoutGrid, label: 'Progetti' },
-  { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti' },
+  { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects' },
   { href: '/briefs', icon: BookOpen, label: 'Briefs' },
 
   // Pianificazione
@@ -155,7 +155,13 @@ export function SidebarNav() {
       return allNavItems;
     }
     const userPermissions = permissions[currentUser.role] || [];
-    return allNavItems.filter(item => userPermissions.includes(item.href));
+    return allNavItems.filter(item => {
+      // Check for custom permission key first, then fallback to href
+      if (item.permission) {
+        return userPermissions.includes(item.permission) || userPermissions.includes(item.href);
+      }
+      return userPermissions.includes(item.href);
+    });
   }, [currentUser, permissions]);
 
   const visibleAdminItems = useMemo(() => {

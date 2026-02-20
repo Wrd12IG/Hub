@@ -163,6 +163,8 @@ const navItems = [
     { href: '/absences', label: 'Assenze' },
     { href: '/chat', label: 'Chat' },
     { href: '/documents', label: 'Documenti' },
+    { href: '/admin/recurring-tasks', label: 'Task Ricorrenti' },
+    { href: '/admin/recurring-projects', label: 'Progetti Ricorrenti' },
     { href: '/admin', label: 'Pannello Admin' },
 ];
 
