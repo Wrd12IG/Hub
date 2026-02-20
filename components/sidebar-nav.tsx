@@ -99,6 +99,8 @@ export const allNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { href: '/admin', icon: Settings, label: 'Pannello Admin' },
+  { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects' },
+  { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects' },
   { href: '/import-editorial', icon: Upload, label: 'Importa Piano' },
 ];
 
@@ -151,39 +153,82 @@ export function SidebarNav() {
     if (currentUser.role === 'Cliente') {
       return clientNavItems;
     }
+
+    // Normalize role name for more robust matching
     const role = (currentUser.role || '').trim();
-    if (role === 'Amministratore' || role === 'Admin') {
+    const normalizedRole = role.toLowerCase();
+
+    // Admins see everything
+    if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return allNavItems;
     }
+
+    // Get permissions for current role (try trimmed role as key)
     const userPermissions = permissions[role] || [];
+
+    // Filter items based on permissions
     return allNavItems.filter(item => {
-      // Check for custom permission key first, then fallback to href
-      const hasPermission = item.permission ? userPermissions.includes(item.permission) : false;
-      const hasHrefAccess = userPermissions.includes(item.href);
-      return hasPermission || hasHrefAccess;
+      // 1. If user has the specific permission key (e.g. '_create-recurring-projects')
+      if (item.permission && userPermissions.includes(item.permission)) {
+        return true;
+      }
+
+      // 2. If user has the href permission (e.g. '/tasks' or '/admin/recurring-projects')
+      if (userPermissions.includes(item.href)) {
+        return true;
+      }
+
+      // 3. Special case for project managers for recurrent items (if they have the creator permission)
+      if (normalizedRole.includes('project') && normalizedRole.includes('manager')) {
+        if (item.href.includes('recurring')) {
+          return userPermissions.includes('_create-recurring-projects');
+        }
+      }
+
+      return false;
     });
   }, [currentUser, permissions]);
 
   const visibleAdminItems = useMemo(() => {
     if (!currentUser) return [];
+
+    // Normalize role name
     const role = (currentUser.role || '').trim();
-    if (role === 'Amministratore' || role === 'Admin') {
+    const normalizedRole = role.toLowerCase();
+
+    // Admins see everything
+    if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return adminNavItems;
     }
+
+    // Get permissions for current role
     const userPermissions = permissions[role] || [];
+
     return adminNavItems.filter(item => {
       if (item.href === '/admin') return userPermissions.includes(item.href);
+
       const hasPermission = item.permission ? userPermissions.includes(item.permission) : false;
       const hasHrefAccess = userPermissions.includes(item.href);
+
       return hasPermission || hasHrefAccess;
     });
   }, [currentUser, permissions]);
 
   const visibleTools = useMemo(() => {
-    if (!currentUser || currentUser.role === 'Amministratore') {
+    if (!currentUser) return [];
+
+    // Normalize role name
+    const role = (currentUser.role || '').trim();
+    const normalizedRole = role.toLowerCase();
+
+    // Admins see everything
+    if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return allTools;
     }
-    const userPermissions = permissions[currentUser.role] || [];
+
+    // Get permissions for current role
+    const userPermissions = permissions[role] || [];
+
     return allTools.filter(item => userPermissions.includes(item.href));
   }, [currentUser, permissions]);
 
