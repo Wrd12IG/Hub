@@ -151,28 +151,31 @@ export function SidebarNav() {
     if (currentUser.role === 'Cliente') {
       return clientNavItems;
     }
-    if (currentUser.role === 'Amministratore') {
+    const role = (currentUser.role || '').trim();
+    if (role === 'Amministratore' || role === 'Admin') {
       return allNavItems;
     }
-    const userPermissions = permissions[currentUser.role] || [];
+    const userPermissions = permissions[role] || [];
     return allNavItems.filter(item => {
       // Check for custom permission key first, then fallback to href
-      if (item.permission) {
-        return userPermissions.includes(item.permission) || userPermissions.includes(item.href);
-      }
-      return userPermissions.includes(item.href);
+      const hasPermission = item.permission ? userPermissions.includes(item.permission) : false;
+      const hasHrefAccess = userPermissions.includes(item.href);
+      return hasPermission || hasHrefAccess;
     });
   }, [currentUser, permissions]);
 
   const visibleAdminItems = useMemo(() => {
     if (!currentUser) return [];
-    if (currentUser.role === 'Amministratore') {
+    const role = (currentUser.role || '').trim();
+    if (role === 'Amministratore' || role === 'Admin') {
       return adminNavItems;
     }
-    const userPermissions = permissions[currentUser.role] || [];
+    const userPermissions = permissions[role] || [];
     return adminNavItems.filter(item => {
       if (item.href === '/admin') return userPermissions.includes(item.href);
-      return item.permission ? userPermissions.includes(item.permission) : false;
+      const hasPermission = item.permission ? userPermissions.includes(item.permission) : false;
+      const hasHrefAccess = userPermissions.includes(item.href);
+      return hasPermission || hasHrefAccess;
     });
   }, [currentUser, permissions]);
 

@@ -297,7 +297,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    const collectionsToListen: { name: string, setter: React.Dispatch<React.SetStateAction<any[]>> }[] = [
+    const collectionsToListen: { name: string, setter: (data: any[]) => void }[] = [
       { name: 'users', setter: setUsers },
       { name: 'clients', setter: setClients },
       { name: 'projects', setter: setAllProjects },
@@ -309,6 +309,13 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       { name: 'briefServices', setter: setBriefServices },
       { name: 'briefServiceCategories', setter: setBriefServiceCategories },
       { name: 'serviceContracts', setter: setServiceContracts },
+      {
+        name: 'rolePermissions', setter: (data: any[]) => {
+          const perms: RolePermissions = {};
+          data.forEach(d => { perms[d.id] = d.permissions || []; });
+          setPermissions(perms);
+        }
+      },
     ];
 
     const unsubs = collectionsToListen.map(({ name, setter }) =>
