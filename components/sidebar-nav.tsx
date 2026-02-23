@@ -304,7 +304,7 @@ export function SidebarNav() {
             )}
             <h1 className="text-lg font-semibold text-sidebar-foreground font-headline group-data-[state=collapsed]:hidden transition-all duration-200 whitespace-nowrap overflow-hidden flex items-center gap-2">
               <span>W<span className="text-yellow-400">[</span>r<span className="text-yellow-400">]</span>Digital</span>
-              <Badge variant="outline" className="text-[10px] py-0 px-1 bg-yellow-400/10 text-yellow-400 border-yellow-400/20">v1.1.2</Badge>
+              <Badge variant="outline" className="text-[10px] py-0 px-1 bg-yellow-400/10 text-yellow-400 border-yellow-400/20">v1.1.3</Badge>
             </h1>
           </div>
           <SidebarTrigger className="group-data-[state=collapsed]:hidden" />
