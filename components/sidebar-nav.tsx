@@ -155,16 +155,20 @@ export function SidebarNav() {
     }
 
     // Normalize role name for more robust matching
-    const role = (currentUser.role || '').trim();
-    const normalizedRole = role.toLowerCase();
+    const roleName = (currentUser.role || '').trim();
+    const normalizedRole = roleName.toLowerCase();
 
     // Admins see everything
     if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return allNavItems;
     }
 
-    // Get permissions for current role (try trimmed role as key)
-    const userPermissions = permissions[role] || [];
+    // Get permissions for current role (case-insensitive lookup)
+    const permissionsKey = Object.keys(permissions).find(
+      k => k.toLowerCase() === normalizedRole
+    ) || roleName;
+
+    const userPermissions = permissions[permissionsKey] || [];
 
     // Filter items based on permissions
     return allNavItems.filter(item => {
@@ -179,7 +183,8 @@ export function SidebarNav() {
       }
 
       // 3. Special case for project managers for recurrent items (if they have the creator permission)
-      if (normalizedRole.includes('project') && normalizedRole.includes('manager')) {
+      // Robust check for any role containing "project" and "manager" or just "pm"
+      if ((normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm') {
         if (item.href.includes('recurring')) {
           return userPermissions.includes('_create-recurring-projects');
         }
@@ -193,22 +198,33 @@ export function SidebarNav() {
     if (!currentUser) return [];
 
     // Normalize role name
-    const role = (currentUser.role || '').trim();
-    const normalizedRole = role.toLowerCase();
+    const roleName = (currentUser.role || '').trim();
+    const normalizedRole = roleName.toLowerCase();
 
     // Admins see everything
     if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return adminNavItems;
     }
 
-    // Get permissions for current role
-    const userPermissions = permissions[role] || [];
+    // Get permissions for current role (case-insensitive lookup)
+    const permissionsKey = Object.keys(permissions).find(
+      k => k.toLowerCase() === normalizedRole
+    ) || roleName;
+
+    const userPermissions = permissions[permissionsKey] || [];
 
     return adminNavItems.filter(item => {
       if (item.href === '/admin') return userPermissions.includes(item.href);
 
       const hasPermission = item.permission ? userPermissions.includes(item.permission) : false;
       const hasHrefAccess = userPermissions.includes(item.href);
+
+      // Special case for PMs for recurring
+      if ((normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm') {
+        if (item.href.includes('recurring')) {
+          if (userPermissions.includes('_create-recurring-projects')) return true;
+        }
+      }
 
       return hasPermission || hasHrefAccess;
     });
@@ -218,16 +234,20 @@ export function SidebarNav() {
     if (!currentUser) return [];
 
     // Normalize role name
-    const role = (currentUser.role || '').trim();
-    const normalizedRole = role.toLowerCase();
+    const roleName = (currentUser.role || '').trim();
+    const normalizedRole = roleName.toLowerCase();
 
     // Admins see everything
     if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return allTools;
     }
 
-    // Get permissions for current role
-    const userPermissions = permissions[role] || [];
+    // Get permissions for current role (case-insensitive lookup)
+    const permissionsKey = Object.keys(permissions).find(
+      k => k.toLowerCase() === normalizedRole
+    ) || roleName;
+
+    const userPermissions = permissions[permissionsKey] || [];
 
     return allTools.filter(item => userPermissions.includes(item.href));
   }, [currentUser, permissions]);
