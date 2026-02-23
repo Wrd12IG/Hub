@@ -142,6 +142,14 @@ export function SidebarNav() {
 
   const currentTheme = mounted ? resolvedTheme : 'light';
 
+  // GLOBAL DEBUG LOG - VERSION 1.1
+  console.log('[SidebarNav] VERSION 1.1 - RENDER', {
+    hasUser: !!currentUser,
+    role: currentUser?.role,
+    permsKeys: permissions ? Object.keys(permissions) : 'none',
+    isLoading: isLoadingLayout
+  });
+
   const unreadChatCount = useMemo(() => {
     if (!notifications) return 0;
     // Count unread notifications that link to a conversation
@@ -196,16 +204,21 @@ export function SidebarNav() {
     }
 
     return allNavItems.filter(item => {
+      const isRecurringItem = item.href.includes('recurring');
+
       // 1. Permission key match
       if (item.permission && userPermissions.includes(item.permission)) return true;
       // 2. Href match
       if (userPermissions.includes(item.href)) return true;
       // 3. Special case for PM and recurring
       const isPM = (normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm';
-      if (isPM && item.href.includes('recurring')) {
+
+      if (isPM && isRecurringItem) {
         const hasActionPerm = userPermissions.includes('_create-recurring-projects');
         const hasHrefPerm = userPermissions.includes(item.href);
-        return hasActionPerm || hasHrefPerm;
+        const result = hasActionPerm || hasHrefPerm;
+        console.log(`[SidebarNav] Recurring Item Check [${item.label}]:`, { isPM, hasActionPerm, hasHrefPerm, result });
+        return result;
       }
       return false;
     });
