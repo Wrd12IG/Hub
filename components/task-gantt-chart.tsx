@@ -25,6 +25,7 @@ const statusColors: Record<string, string> = {
     'Da Fare': 'opacity-60',
     'In Lavorazione': 'opacity-100',
     'In Approvazione': 'opacity-80 pattern-stripes',
+    'In Approvazione Cliente': 'opacity-90 bg-purple-500',
     'Approvato': 'opacity-50 brightness-110',
     'Annullato': 'opacity-30 line-through',
 };

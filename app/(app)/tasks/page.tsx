@@ -60,6 +60,7 @@ const statusColors: { [key: string]: { bg: string, text: string, border: string 
     'Da Fare': { bg: '#6b7280', text: '#ffffff', border: 'border-gray-500' },           // gray-500
     'In Lavorazione': { bg: '#3b82f6', text: '#ffffff', border: 'border-blue-500' },    // blue-500
     'In Approvazione': { bg: '#f97316', text: '#ffffff', border: 'border-orange-500' }, // orange-500
+    'In Approvazione Cliente': { bg: '#a855f7', text: '#ffffff', border: 'border-purple-500' }, // purple-500
     'Approvato': { bg: '#10b981', text: '#ffffff', border: 'border-emerald-500' },      // emerald-500
     'Annullato': { bg: '#64748b', text: '#ffffff', border: 'border-slate-500' },        // slate-500
 };
@@ -164,7 +165,7 @@ const TaskCard = ({
     const creator = task.createdBy ? usersById[task.createdBy] : null;
     const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
     const timeSpentFormatted = formatTime(task.timeSpent || 0);
-    const isTaskInApproval = task.status === 'In Approvazione';
+    const isTaskInApproval = task.status === 'In Approvazione' || task.status === 'In Approvazione Cliente';
     const timeProgress = task.estimatedDuration > 0 ? Math.min(100, ((task.timeSpent || 0) / (task.estimatedDuration * 60)) * 100) : 0;
     const timeExceeded = task.estimatedDuration > 0 && (task.timeSpent || 0) > (task.estimatedDuration * 60);
     const timeWarning = task.estimatedDuration > 0 && timeProgress >= 80 && timeProgress < 100;
@@ -183,7 +184,7 @@ const TaskCard = ({
     }, [isTaskInApproval, task.updatedAt]);
 
     const isNewApprovalRequest = isTaskInApproval && approvalDaysPending < 1;
-    const isOverdue = daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' && task.status !== 'Annullato';
+    const isOverdue = daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' && task.status !== 'Annullato' && task.status !== 'In Approvazione Cliente';
 
     useEffect(() => {
         if (isHighlighted && cardRef.current) {
@@ -561,7 +562,7 @@ const TaskCard = ({
                             <Square className="h-4 w-4 fill-current" />
                         </Button>
                     ) : (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100" onClick={() => handlePlay(task)} disabled={['Annullato', 'In Approvazione', 'Approvato'].includes(task.status)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100" onClick={() => handlePlay(task)} disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}>
                             <Play className="h-4 w-4 fill-current" />
                         </Button>
                     )}
@@ -1099,6 +1100,7 @@ function TasksPageContent() {
             'Da Fare': [],
             'In Lavorazione': [],
             'In Approvazione': [],
+            'In Approvazione Cliente': [],
             'Approvato': [],
             'Annullato': [],
         };
@@ -1111,7 +1113,7 @@ function TasksPageContent() {
                 return;
             };
 
-            const isTaskOverdue = isBefore(parseISO(task.dueDate), startOfToday()) && !['Approvato', 'Annullato', 'In Approvazione'].includes(task.status);
+            const isTaskOverdue = isBefore(parseISO(task.dueDate), startOfToday()) && !['Approvato', 'Annullato', 'In Approvazione', 'In Approvazione Cliente'].includes(task.status);
 
             if (isTaskOverdue) {
                 overdue.push(task);

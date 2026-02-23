@@ -89,7 +89,7 @@ export interface Task {
     id: string;
     title: string;
     description?: string;
-    status: 'Da Fare' | 'In Lavorazione' | 'In Approvazione' | 'Approvato' | 'Annullato';
+    status: 'Da Fare' | 'In Lavorazione' | 'In Approvazione' | 'In Approvazione Cliente' | 'Approvato' | 'Annullato';
     priority: 'Bassa' | 'Media' | 'Alta' | 'Critica';
     dueDate?: string;
     estimatedDuration: number;
@@ -287,9 +287,11 @@ export type NotificationType =
     | 'task_overdue'
     | 'task_comment'
     | 'task_approval_requested'
+    | 'task_client_approval_requested'
     | 'task_approved'
     | 'task_rejected'
     | 'task_attachment'
+    | 'client_approval_reminder'
     // Projects
     | 'project_added'
     | 'project_due_soon'
@@ -564,6 +566,7 @@ export const allTaskStatuses: Task['status'][] = [
     'Da Fare',
     'In Lavorazione',
     'In Approvazione',
+    'In Approvazione Cliente',
     'Approvato',
     'Annullato'
 ];

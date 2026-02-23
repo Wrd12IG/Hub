@@ -138,6 +138,7 @@ const TASK_STATUS_COLORS: { [key: string]: string } = {
     'Da Fare': '#9CA3AF',
     'In Lavorazione': '#3B82F6',
     'In Approvazione': '#F97316',
+    'In Approvazione Cliente': '#A855F7',
     'Approvato': '#10B981',
     'Annullato': '#6B7280',
 };

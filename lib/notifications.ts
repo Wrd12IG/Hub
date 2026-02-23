@@ -70,6 +70,12 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, {
         category: 'task',
         priority: 'high'
     },
+    task_client_approval_requested: {
+        title: '👥 Richiesta approvazione cliente',
+        getText: (d) => `Il task "${d.taskTitle}" richiede l'approvazione del cliente`,
+        category: 'task',
+        priority: 'high'
+    },
     task_approved: {
         title: '🎉 Task approvato',
         getText: (d) => `Il tuo task "${d.taskTitle}" è stato approvato`,
@@ -87,6 +93,12 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, {
         getText: (d) => `${d.userName} ha aggiunto un allegato a "${d.taskTitle}"`,
         category: 'task',
         priority: 'low'
+    },
+    client_approval_reminder: {
+        title: '⏳ Sollecito approvazione cliente',
+        getText: (d) => `Il task "${d.taskTitle}" è in attesa di approvazione cliente da oltre 4 giorni`,
+        category: 'task',
+        priority: 'high'
     },
 
     // Projects
@@ -1148,6 +1160,32 @@ export async function notifyTaskApprovalRequested(
     const relatedData = await getTaskRelatedData(task);
 
     await createNotificationForUsers(approverIds, 'task_approval_requested', {
+        taskTitle: task.title,
+        taskId: task.id,
+        requesterName,
+        description: task.description || '',
+        dueDate: task.dueDate,
+        timeSpent: task.timeSpent,
+        attachmentCount: task.attachments?.length || 0,
+        ...relatedData
+    }, {
+        link: `/tasks?taskId=${task.id}`,
+        resourceId: task.id,
+        resourceType: 'task'
+    });
+}
+
+/**
+ * Notify about task client approval request
+ */
+export async function notifyTaskClientApprovalRequested(
+    task: Task,
+    approverIds: string[],
+    requesterName: string
+): Promise<void> {
+    const relatedData = await getTaskRelatedData(task);
+
+    await createNotificationForUsers(approverIds, 'task_client_approval_requested', {
         taskTitle: task.title,
         taskId: task.id,
         requesterName,

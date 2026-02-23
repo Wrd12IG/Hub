@@ -36,6 +36,7 @@ const statusColors: Record<string, { bg: string; text: string; border: string }>
     'Da Fare': { bg: '#6b7280', text: '#ffffff', border: 'border-gray-500' },
     'In Lavorazione': { bg: '#3b82f6', text: '#ffffff', border: 'border-blue-500' },
     'In Approvazione': { bg: '#f97316', text: '#ffffff', border: 'border-orange-500' },
+    'In Approvazione Cliente': { bg: '#a855f7', text: '#ffffff', border: 'border-purple-500' },
     'Approvato': { bg: '#10b981', text: '#ffffff', border: 'border-emerald-500' },
     'Annullato': { bg: '#64748b', text: '#ffffff', border: 'border-slate-500' },
 };
@@ -104,7 +105,7 @@ export const TaskCard = memo(function TaskCard({
     const cardRef = useRef<HTMLDivElement>(null);
 
     // Calculated values
-    const isTaskInApproval = task.status === 'In Approvazione';
+    const isTaskInApproval = task.status === 'In Approvazione' || task.status === 'In Approvazione Cliente';
     const timeSpentFormatted = formatTime(task.timeSpent || 0);
     const timeProgress = task.estimatedDuration > 0
         ? Math.min(100, ((task.timeSpent || 0) / (task.estimatedDuration * 60)) * 100)
@@ -130,7 +131,7 @@ export const TaskCard = memo(function TaskCard({
     }, [isTaskInApproval, task.updatedAt]);
 
     const isOverdue = daysRemaining !== null && daysRemaining < 0 &&
-        task.status !== 'Approvato' && task.status !== 'Annullato';
+        task.status !== 'Approvato' && task.status !== 'Annullato' && task.status !== 'In Approvazione Cliente';
 
     // Dependencies check
     const unapprovedDependencies = useMemo(() => {
@@ -543,7 +544,7 @@ export const TaskCard = memo(function TaskCard({
                             size="icon"
                             className="h-9 w-9 text-green-600 hover:bg-green-100"
                             onClick={onPlay}
-                            disabled={['Annullato', 'In Approvazione', 'Approvato'].includes(task.status)}
+                            disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}
                             aria-label="Avvia timer"
                         >
                             <Play className="fill-current" aria-hidden="true" />

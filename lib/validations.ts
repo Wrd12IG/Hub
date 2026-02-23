@@ -14,7 +14,7 @@ export const taskSchema = z.object({
     assignedUserId: z.string().optional().nullable(),
     dueDate: z.string().optional().nullable(),
     priority: z.enum(['Bassa', 'Media', 'Alta', 'Critica']),
-    status: z.enum(['Da Fare', 'In Lavorazione', 'In Approvazione', 'Approvato', 'Annullato']),
+    status: z.enum(['Da Fare', 'In Lavorazione', 'In Approvazione', 'In Approvazione Cliente', 'Approvato', 'Annullato']),
     estimatedDuration: z.number().min(0, 'La durata stimata non può essere negativa').optional(),
     activityType: z.string().optional().nullable(),
     attachments: z.array(z.object({

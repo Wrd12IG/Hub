@@ -67,7 +67,7 @@ export async function checkDueSoonTasks(): Promise<{ processed: number; notifica
             const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
 
             // Skip completed/cancelled tasks
-            if (task.status === 'Approvato' || task.status === 'Annullato') continue;
+            if (task.status === 'Approvato' || task.status === 'Annullato' || task.status === 'In Approvazione Cliente') continue;
             if (!task.dueDate) continue;
 
             const dueDate = parseISO(task.dueDate);
@@ -152,7 +152,7 @@ export async function checkOverdueTasks(): Promise<{ processed: number; notifica
         for (const taskDoc of tasksSnapshot.docs) {
             const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
 
-            if (task.status === 'Approvato' || task.status === 'Annullato') continue;
+            if (task.status === 'Approvato' || task.status === 'Annullato' || task.status === 'In Approvazione Cliente') continue;
             if (!task.dueDate) continue;
 
             const dueDate = parseISO(task.dueDate);
@@ -225,7 +225,7 @@ export async function checkStuckTasks(): Promise<{ processed: number; notificati
 
     try {
         const tasksSnapshot = await getDocs(
-            query(collection(db, 'tasks'), where('status', '==', 'In Approvazione'))
+            query(collection(db, 'tasks'), where('status', 'in', ['In Approvazione', 'In Approvazione Cliente']))
         );
 
         const usersSnapshot = await getDocs(collection(db, 'users'));
@@ -247,17 +247,21 @@ export async function checkStuckTasks(): Promise<{ processed: number; notificati
             const daysSinceUpdate = differenceInDays(now, updatedAt);
 
             if (daysSinceUpdate >= 2) {
+                const isClientApproval = task.status === 'In Approvazione Cliente';
+                const notificationType = isClientApproval ? 'client_approval_reminder' : 'approval_reminder';
+                const notificationTitle = isClientApproval ? '⏳ Task in attesa di approvazione cliente' : '⏳ Task in attesa di approvazione';
+
                 // Check if already notified recently
                 const notifQuery = query(
                     collection(db, 'notifications'),
                     where('taskId', '==', task.id),
-                    where('type', '==', 'approval_reminder')
+                    where('type', '==', notificationType)
                 );
                 const existingNotifs = await getDocs(notifQuery);
 
                 // Only notify once every 2 days
                 const recentNotif = existingNotifs.docs.find(n => {
-                    const notifDate = parseISO(n.data().createdAt);
+                    const notifDate = typeof n.data().createdAt === 'string' ? parseISO(n.data().createdAt) : n.data().createdAt?.toDate?.() || new Date();
                     return differenceInDays(now, notifDate) < 2;
                 });
 
@@ -266,9 +270,9 @@ export async function checkStuckTasks(): Promise<{ processed: number; notificati
                         const notificationRef = doc(collection(db, 'notifications'));
                         batch.set(notificationRef, {
                             userId: admin.id,
-                            title: '⏳ Task in attesa di approvazione',
-                            message: `"${task.title}" è in approvazione da ${daysSinceUpdate} giorni`,
-                            type: 'approval_reminder',
+                            title: notificationTitle,
+                            message: `"${task.title}" è in approvazione ${isClientApproval ? 'client' : ''} da ${daysSinceUpdate} giorni`,
+                            type: notificationType,
                             taskId: task.id,
                             link: `/tasks?taskId=${task.id}`,
                             isRead: false,
@@ -315,7 +319,7 @@ export async function updateProjectStatusAutomatically(projectId: string): Promi
         if (activeTasks.length === 0) return false;
 
         const completedTasks = activeTasks.filter(t => t.status === 'Approvato');
-        const inProgressTasks = activeTasks.filter(t => t.status === 'In Lavorazione' || t.status === 'In Approvazione');
+        const inProgressTasks = activeTasks.filter(t => t.status === 'In Lavorazione' || t.status === 'In Approvazione' || t.status === 'In Approvazione Cliente');
 
         let newStatus: Project['status'] = project.status;
 
@@ -460,7 +464,7 @@ export async function generateWeeklyReport(): Promise<{ sent: number; users: str
             });
 
             const pendingTasks = userTasks.filter(t =>
-                t.status !== 'Approvato' && t.status !== 'Annullato'
+                t.status !== 'Approvato' && t.status !== 'Annullato' && t.status !== 'In Approvazione Cliente'
             );
 
             const overdueTasks = pendingTasks.filter(t =>

@@ -11,6 +11,7 @@ const STATUS_COLORS: Record<string, string> = {
     'Da Fare': '#9CA3AF',
     'In Lavorazione': '#FBBC05',
     'In Approvazione': '#4285F4',
+    'In Approvazione Cliente': '#A855F7',
     'Approvato': '#34A853',
     'Annullato': '#EA4335',
 };

@@ -37,6 +37,7 @@ export function TimelineView({ projects, tasks }: TimelineViewProps) {
             case 'Da Fare': return 'bg-gray-400';
             case 'In Lavorazione': return 'bg-primary';
             case 'In Approvazione': return 'bg-yellow-500';
+            case 'In Approvazione Cliente': return 'bg-purple-500';
             case 'Approvato': return 'bg-green-500';
             case 'Completato': return 'bg-green-600';
             default: return 'bg-gray-300';
@@ -56,6 +57,7 @@ export function TimelineView({ projects, tasks }: TimelineViewProps) {
                 <div className="flex gap-2 text-xs">
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-primary rounded-sm"></div> In Lavorazione</div>
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-yellow-500 rounded-sm"></div> In Approvazione</div>
+                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> Appr. Cliente</div>
                     <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500 rounded-sm"></div> Completato</div>
                 </div>
             </div>

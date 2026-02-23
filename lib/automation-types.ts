@@ -81,6 +81,21 @@ export const DEFAULT_AUTOMATION_RULES: Omit<AutomationRule, 'id' | 'createdAt' |
         ]
     },
     {
+        name: 'Reminder Approvazione Cliente',
+        description: 'Ricorda al cliente dopo 4 giorni',
+        isActive: true,
+        trigger: {
+            type: 'task_stuck',
+            conditions: [
+                { field: 'status', operator: 'equals', value: 'In Approvazione Cliente' },
+                { field: 'daysSinceUpdate', operator: 'greater_than', value: 4 }
+            ]
+        },
+        actions: [
+            { type: 'send_notification', config: { to: 'admin', title: 'Task in attesa di approvazione cliente', template: 'client_approval_reminder' } }
+        ]
+    },
+    {
         name: 'Aggiorna Stato Progetto Automatico',
         description: 'Quando tutti i task sono completati, completa il progetto',
         isActive: true,

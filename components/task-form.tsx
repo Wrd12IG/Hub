@@ -55,7 +55,7 @@ const formSchema = z.object({
         message: "Il titolo deve essere di almeno 2 caratteri.",
     }),
     description: z.string().optional(),
-    status: z.enum(['Da Fare', 'In Lavorazione', 'In Approvazione', 'Approvato', 'Annullato']),
+    status: z.enum(['Da Fare', 'In Lavorazione', 'In Approvazione', 'In Approvazione Cliente', 'Approvato', 'Annullato']),
     priority: z.enum(['Bassa', 'Media', 'Alta', 'Critica']),
     dueDate: z.date().optional(),
     estimatedDuration: z.string().refine((val) => !isNaN(Number(val)) && Number(val) >= 0, {

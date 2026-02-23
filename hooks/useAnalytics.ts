@@ -38,6 +38,7 @@ export function useTaskAnalytics(tasks: Task[], users: User[], dateRange?: { sta
             'Da Fare': tasks.filter(t => t.status === 'Da Fare').length,
             'In Lavorazione': tasks.filter(t => t.status === 'In Lavorazione').length,
             'In Approvazione': tasks.filter(t => t.status === 'In Approvazione').length,
+            'In Approvazione Cliente': tasks.filter(t => t.status === 'In Approvazione Cliente').length,
             'Approvato': tasks.filter(t => t.status === 'Approvato').length,
             'Annullato': tasks.filter(t => t.status === 'Annullato').length,
         };
@@ -70,7 +71,7 @@ export function useTaskAnalytics(tasks: Task[], users: User[], dateRange?: { sta
 
         // 5. TASK IN RITARDO
         const overdueTasks = tasks.filter(task => {
-            if (!task.dueDate || task.status === 'Approvato' || task.status === 'Annullato') {
+            if (!task.dueDate || task.status === 'Approvato' || task.status === 'Annullato' || task.status === 'In Approvazione Cliente') {
                 return false;
             }
             return differenceInHours(parseISO(task.dueDate), now) < 0;
@@ -157,7 +158,7 @@ export function useTaskAnalytics(tasks: Task[], users: User[], dateRange?: { sta
 
         // 10. TASK URGENTI (deadline < 24h)
         const urgentTasks = tasks.filter(task => {
-            if (!task.dueDate || task.status === 'Approvato' || task.status === 'Annullato') {
+            if (!task.dueDate || task.status === 'Approvato' || task.status === 'Annullato' || task.status === 'In Approvazione Cliente') {
                 return false;
             }
             const hoursUntil = differenceInHours(parseISO(task.dueDate), now);
@@ -243,7 +244,7 @@ export function useTeamMetrics(tasks: Task[], users: User[]) {
 
         // Carico di lavoro medio
         const avgWorkload = activeUsers.length > 0
-            ? tasks.filter(t => t.status !== 'Approvato' && t.status !== 'Annullato').length / activeUsers.length
+            ? tasks.filter(t => t.status !== 'Approvato' && t.status !== 'Annullato' && t.status !== 'In Approvazione Cliente').length / activeUsers.length
             : 0;
 
         // Distribuzione carico
@@ -251,7 +252,8 @@ export function useTeamMetrics(tasks: Task[], users: User[]) {
             const userActiveTasks = tasks.filter(t =>
                 t.assignedUserId === user.id &&
                 t.status !== 'Approvato' &&
-                t.status !== 'Annullato'
+                t.status !== 'Annullato' &&
+                t.status !== 'In Approvazione Cliente'
             ).length;
 
             return {

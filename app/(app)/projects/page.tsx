@@ -995,6 +995,7 @@ export default function ProjectsPage() {
                                                     'Da Fare': 'bg-gray-500',
                                                     'In Lavorazione': 'bg-primary',
                                                     'In Approvazione': 'bg-orange-500',
+                                                    'In Approvazione Cliente': 'bg-purple-500',
                                                     'Approvato': 'bg-emerald-500',
                                                     'Annullato': 'bg-slate-500',
                                                 };

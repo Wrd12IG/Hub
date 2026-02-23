@@ -29,6 +29,7 @@ import {
     notifyTaskAssigned,
     notifyTaskComment,
     notifyTaskApprovalRequested,
+    notifyTaskClientApprovalRequested,
     notifyTaskApproved,
     notifyTaskRejected,
     notifyAbsenceRequest,
@@ -236,8 +237,9 @@ export async function updateTask(
     // Get current task for comparison
     const currentTask = await getTask(taskId);
 
-    // Validazione lato server: verifica allegati prima di passare a "In Approvazione"
-    if (data.status === 'In Approvazione' && currentTask?.status !== 'In Approvazione') {
+    // Validazione lato server: verifica allegati prima di passare a "In Approvazione" o "In Approvazione Cliente"
+    if ((data.status === 'In Approvazione' || data.status === 'In Approvazione Cliente') &&
+        currentTask?.status !== 'In Approvazione' && currentTask?.status !== 'In Approvazione Cliente') {
         const skipAttachment = data.skipAttachmentOnApproval ?? currentTask?.skipAttachmentOnApproval ?? false;
 
         if (!skipAttachment) {
@@ -316,6 +318,22 @@ export async function updateTask(
 
             if (approverIds.length > 0) {
                 await notifyTaskApprovalRequested(updatedTask, approverIds, actionUserName);
+            }
+        }
+
+        // Notify clients when task is sent for client approval
+        if (data.status === 'In Approvazione Cliente' && currentTask?.status !== 'In Approvazione Cliente') {
+            const users = await getUsers();
+            const clientIds: string[] = [];
+
+            // Add clients associated with this task's client ID
+            if (updatedTask.clientId) {
+                users.filter(u => u.role === 'Cliente' && u.clientId === updatedTask.clientId)
+                    .forEach(u => clientIds.push(u.id));
+            }
+
+            if (clientIds.length > 0) {
+                await notifyTaskClientApprovalRequested(updatedTask, clientIds, actionUserName);
             }
         }
     } catch (error) {

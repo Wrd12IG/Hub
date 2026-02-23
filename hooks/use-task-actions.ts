@@ -24,7 +24,10 @@ export function useTaskActions({
     // Send task for approval
     const sendForApproval = useCallback(async (
         task: Task,
-        options?: { attachment?: { url?: string; file?: File; filename?: string } }
+        options?: {
+            attachment?: { url?: string; file?: File; filename?: string };
+            status?: 'In Approvazione' | 'In Approvazione Cliente';
+        }
     ) => {
         if (!currentUser) {
             toast.error('Utente non autenticato');
@@ -61,10 +64,12 @@ export function useTaskActions({
                 });
             }
 
+            const targetStatus = options?.status || 'In Approvazione';
+
             await updateTask(
                 task.id,
                 {
-                    status: 'In Approvazione',
+                    status: targetStatus,
                     attachments: updatedAttachments,
                 },
                 currentUser.id,
@@ -72,7 +77,7 @@ export function useTaskActions({
                 true
             );
 
-            toast.success('Task inviato in approvazione');
+            toast.success(`Task inviato in ${targetStatus === 'In Approvazione Cliente' ? 'approvazione cliente' : 'approvazione'}`);
             playSound('success');
             return true;
         } catch (error: any) {
@@ -84,6 +89,11 @@ export function useTaskActions({
             setIsSubmitting(false);
         }
     }, [currentUser, canApprove]);
+
+    // Send task for client approval (shortcut)
+    const sendForClientApproval = useCallback(async (task: Task) => {
+        return sendForApproval(task, { status: 'In Approvazione Cliente' });
+    }, [sendForApproval]);
 
     // Approve a task
     const approveTask = useCallback(async (task: Task, sendEmail: boolean = true) => {

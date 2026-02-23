@@ -120,6 +120,7 @@ const statusColors: Record<string, string> = {
     'Da Fare': 'bg-gray-500',
     'In Lavorazione': 'bg-primary',
     'In Approvazione': 'bg-orange-500',
+    'In Approvazione Cliente': 'bg-purple-500',
     'Approvato': 'bg-emerald-500',
     'Annullato': 'bg-slate-500',
     'Pianificazione': 'bg-accent',

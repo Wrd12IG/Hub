@@ -32,10 +32,11 @@ const PRIORITY_ORDER: Record<string, number> = {
 
 const STATUS_ORDER: Record<string, number> = {
     'In Approvazione': 0,
-    'In Lavorazione': 1,
-    'Da Fare': 2,
-    'Approvato': 3,
-    'Annullato': 4,
+    'In Approvazione Cliente': 1,
+    'In Lavorazione': 2,
+    'Da Fare': 3,
+    'Approvato': 4,
+    'Annullato': 5,
 };
 
 export function useTaskFilters({ currentUser, initialFilters }: UseTaskFiltersOptions) {
@@ -128,7 +129,8 @@ export function useTaskFilters({ currentUser, initialFilters }: UseTaskFiltersOp
                 const isOverdue = task.dueDate &&
                     isBefore(parseISO(task.dueDate), startOfToday()) &&
                     task.status !== 'Approvato' &&
-                    task.status !== 'Annullato';
+                    task.status !== 'Annullato' &&
+                    task.status !== 'In Approvazione Cliente';
                 if (!isOverdue) {
                     return false;
                 }
@@ -187,6 +189,7 @@ export function useTaskFilters({ currentUser, initialFilters }: UseTaskFiltersOp
             'Da Fare': [],
             'In Lavorazione': [],
             'In Approvazione': [],
+            'In Approvazione Cliente': [],
             'Approvato': [],
             'Annullato': [],
         };
@@ -198,11 +201,14 @@ export function useTaskFilters({ currentUser, initialFilters }: UseTaskFiltersOp
         });
 
         // Sort "In Approvazione" tasks by date (most recent first)
-        grouped['In Approvazione'].sort((a, b) => {
+        // Sort "In Approvazione" and "In Approvazione Cliente" tasks by date (most recent first)
+        const sortByDate = (a: Task, b: Task) => {
             const aDate = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
             const bDate = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
             return bDate - aDate;
-        });
+        };
+        grouped['In Approvazione'].sort(sortByDate);
+        grouped['In Approvazione Cliente'].sort(sortByDate);
 
         return grouped;
     }, []);
