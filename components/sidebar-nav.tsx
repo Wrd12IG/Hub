@@ -62,6 +62,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { AudiIcon, lucideToAudiMap } from './audi-icons';
 import { useSiteIcons } from '@/hooks/use-site-icons';
+import { RolePermissions } from '@/lib/data';
 
 export type NavItem = {
   href: string;
@@ -148,107 +149,99 @@ export function SidebarNav() {
   }, [notifications]);
 
 
+  // Helper functions for permission checks
+  const getRolePermissions = (role: string, perms: RolePermissions) => {
+    const normalized = (role || '').trim().toLowerCase();
+    if (!normalized) return [];
+
+    // 1. Precise case-insensitive match
+    const keys = Object.keys(perms);
+    const exactMatchKey = keys.find(k => k.trim().toLowerCase() === normalized);
+    if (exactMatchKey) return perms[exactMatchKey];
+
+    // 2. Contains match (e.g. "Project Manager" matches "project manager" or "pm")
+    const isPM = normalized.includes('project') && normalized.includes('manager') || normalized === 'pm';
+    if (isPM) {
+      const pmKey = keys.find(k => {
+        const lk = k.toLowerCase().trim();
+        return (lk.includes('project') && lk.includes('manager')) || lk === 'pm' || lk === 'project manager';
+      });
+      if (pmKey) return perms[pmKey];
+    }
+
+    return perms[role] || [];
+  };
+
   const visibleNavItems = useMemo(() => {
     if (!currentUser) return [];
     if (currentUser.role === 'Cliente') {
       return clientNavItems;
     }
 
-    // Normalize role name for more robust matching
     const roleName = (currentUser.role || '').trim();
     const normalizedRole = roleName.toLowerCase();
 
-    // Admins see everything
     if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return allNavItems;
     }
 
-    // Get permissions for current role (case-insensitive lookup)
-    const permissionsKey = Object.keys(permissions).find(
-      k => k.toLowerCase() === normalizedRole
-    ) || roleName;
+    const userPermissions = getRolePermissions(roleName, permissions);
 
-    const userPermissions = permissions[permissionsKey] || [];
+    // Debug logging for Project Manager visibility issues
+    if (normalizedRole.includes('project') || normalizedRole.includes('pm')) {
+      console.log('[SidebarNav] Current Role:', roleName);
+      console.log('[SidebarNav] Normalized:', normalizedRole);
+      console.log('[SidebarNav] Available Perms Keys:', Object.keys(permissions));
+      console.log('[SidebarNav] Resolved Perms for Role:', userPermissions);
+    }
 
-    // Filter items based on permissions
     return allNavItems.filter(item => {
-      // 1. If user has the specific permission key (e.g. '_create-recurring-projects')
-      if (item.permission && userPermissions.includes(item.permission)) {
-        return true;
+      // 1. Permission key match
+      if (item.permission && userPermissions.includes(item.permission)) return true;
+      // 2. Href match
+      if (userPermissions.includes(item.href)) return true;
+      // 3. Special case for PM and recurring
+      const isPM = (normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm';
+      if (isPM && item.href.includes('recurring')) {
+        const hasActionPerm = userPermissions.includes('_create-recurring-projects');
+        const hasHrefPerm = userPermissions.includes(item.href);
+        return hasActionPerm || hasHrefPerm;
       }
-
-      // 2. If user has the href permission (e.g. '/tasks' or '/admin/recurring-projects')
-      if (userPermissions.includes(item.href)) {
-        return true;
-      }
-
-      // 3. Special case for project managers for recurrent items (if they have the creator permission)
-      // Robust check for any role containing "project" and "manager" or just "pm"
-      if ((normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm') {
-        if (item.href.includes('recurring')) {
-          return userPermissions.includes('_create-recurring-projects');
-        }
-      }
-
       return false;
     });
   }, [currentUser, permissions]);
 
   const visibleAdminItems = useMemo(() => {
     if (!currentUser) return [];
-
-    // Normalize role name
     const roleName = (currentUser.role || '').trim();
     const normalizedRole = roleName.toLowerCase();
 
-    // Admins see everything
     if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return adminNavItems;
     }
 
-    // Get permissions for current role (case-insensitive lookup)
-    const permissionsKey = Object.keys(permissions).find(
-      k => k.toLowerCase() === normalizedRole
-    ) || roleName;
-
-    const userPermissions = permissions[permissionsKey] || [];
+    const userPermissions = getRolePermissions(roleName, permissions);
 
     return adminNavItems.filter(item => {
+      const isPM = (normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm';
+      if (isPM && item.href.includes('recurring')) {
+        if (userPermissions.includes('_create-recurring-projects') || userPermissions.includes(item.href)) return true;
+      }
       if (item.href === '/admin') return userPermissions.includes(item.href);
-
       const hasPermission = item.permission ? userPermissions.includes(item.permission) : false;
       const hasHrefAccess = userPermissions.includes(item.href);
-
-      // Special case for PMs for recurring
-      if ((normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm') {
-        if (item.href.includes('recurring')) {
-          if (userPermissions.includes('_create-recurring-projects')) return true;
-        }
-      }
-
       return hasPermission || hasHrefAccess;
     });
   }, [currentUser, permissions]);
 
   const visibleTools = useMemo(() => {
     if (!currentUser) return [];
-
-    // Normalize role name
     const roleName = (currentUser.role || '').trim();
     const normalizedRole = roleName.toLowerCase();
-
-    // Admins see everything
     if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
       return allTools;
     }
-
-    // Get permissions for current role (case-insensitive lookup)
-    const permissionsKey = Object.keys(permissions).find(
-      k => k.toLowerCase() === normalizedRole
-    ) || roleName;
-
-    const userPermissions = permissions[permissionsKey] || [];
-
+    const userPermissions = getRolePermissions(roleName, permissions);
     return allTools.filter(item => userPermissions.includes(item.href));
   }, [currentUser, permissions]);
 
