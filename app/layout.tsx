@@ -30,6 +30,10 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "WrDigital HUB",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "build-version": "1.1.2",
+  },
   formatDetection: {
     telephone: false,
   },
