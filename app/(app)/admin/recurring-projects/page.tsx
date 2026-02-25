@@ -169,13 +169,11 @@ export default function RecurringProjectsPage() {
   const [editingProject, setEditingProject] = useState<RecurringProject | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<RecurringProject | null>(null);
 
-  const [recurrenceModalOpen, setRecurrenceModalOpen] = useState(false);
-  const [projectForRecurrence, setProjectForRecurrence] = useState<RecurringProject | null>(null);
-
   // Stato per modal selezione data
   const [datePickerModalOpen, setDatePickerModalOpen] = useState(false);
   const [projectForDatePicker, setProjectForDatePicker] = useState<RecurringProject | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | undefined>(undefined);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -221,26 +219,11 @@ export default function RecurringProjectsPage() {
 
       await fetchData();
       handleCloseModal();
-      setProjectForRecurrence(savedProject);
-      setRecurrenceModalOpen(true);
 
     } catch (error) {
       console.error(error); toast.error('Impossibile salvare.');
     }
   };
-
-  const handleRecurrenceSubmit = async (recurrence: RecurringProject['recurrence']) => {
-    if (!projectForRecurrence) return;
-    try {
-      await updateRecurringProject(projectForRecurrence.id, { recurrence });
-      toast.success("Ricorrenza salvata.");
-      setRecurrenceModalOpen(false);
-      setProjectForRecurrence(null);
-      fetchData();
-    } catch (e) {
-      toast.error('Errore.');
-    }
-  }
 
   const handleDelete = async () => {
     if (!projectToDelete) return;
@@ -273,22 +256,22 @@ export default function RecurringProjectsPage() {
     }
   };
 
-  // Genera progetto con data specifica (opzionale)
-  const handleGenerateNow = async (template: RecurringProject, customDate?: Date) => {
+  // Genera progetto con data specifica (opzionale sia inizio che fine)
+  const handleGenerateNow = async (template: RecurringProject, customDate?: Date, customEndDate?: Date) => {
     if (!currentUser) {
       toast.error("Dati mancanti (utente non trovato).");
       return;
     }
     setIsGenerating(template.id);
     try {
-      // Usa la data custom se fornita, altrimenti calcola dalla ricorrenza
-      const generationDate = customDate || getNextGenerationDate(template.recurrence);
+      // Usa data custom se fornita, altrimenti logica predefinita fallback a oggi
+      const generationDate = customDate || new Date();
 
       const priorityKey = template.projectDetails.priority as keyof TaskPrioritySettings;
       const defaultPriorityDays = prioritySettings && prioritySettings[priorityKey] != null ? Number(prioritySettings[priorityKey]) : 7;
       const priorityDays = template.durationDays && template.durationDays > 0 ? template.durationDays : defaultPriorityDays;
 
-      const projectEndDate = addWorkingDays(generationDate, priorityDays);
+      const projectEndDate = customEndDate || addWorkingDays(generationDate, priorityDays);
 
       const projectToCreate: Omit<Project, 'id'> = {
         ...template.projectDetails,
@@ -355,24 +338,15 @@ export default function RecurringProjectsPage() {
   const handleOpenDatePicker = (template: RecurringProject) => {
     setProjectForDatePicker(template);
     setSelectedDate(new Date());
+    setSelectedEndDate(undefined);
     setDatePickerModalOpen(true);
   }
 
   // Handler per generare con data selezionata
   const handleGenerateForDate = () => {
     if (!projectForDatePicker) return;
-    handleGenerateNow(projectForDatePicker, selectedDate);
+    handleGenerateNow(projectForDatePicker, selectedDate, selectedEndDate);
   }
-
-
-  const formatRecurrence = (recurrence?: RecurringProject['recurrence']) => {
-    if (!recurrence || typeof recurrence === 'string') return 'Non impostata';
-    const rec = recurrence as RecurrenceConfig;
-    if (rec.type === 'daily') return `Ogni giorno alle ${rec.time}`;
-    if (rec.type === 'weekly') return `Ogni ${daysOfWeek.find(d => d.value === rec.dayOfWeek)?.label} alle ${rec.time}`;
-    if (rec.type === 'monthly') return `Il ${weeksOfMonth.find(w => w.value === rec.weekOfMonth)?.label} ${daysOfWeek.find(d => d.value === rec.dayOfWeek)?.label} di ogni mese alle ${rec.time}`;
-    return 'N/D';
-  };
 
   return (
     <div className="space-y-6">
@@ -398,7 +372,6 @@ export default function RecurringProjectsPage() {
               <TableRow>
                 <TableHead>Nome Template</TableHead>
                 <TableHead>Cliente</TableHead>
-                <TableHead>Ricorrenza</TableHead>
                 <TableHead>N. Task</TableHead>
                 <TableHead>Stato</TableHead>
                 <TableHead>Ultima Generazione</TableHead>
@@ -423,7 +396,6 @@ export default function RecurringProjectsPage() {
                   <TableRow key={project.id}>
                     <TableCell className="font-medium">{project.name}</TableCell>
                     <TableCell>{clientsById[project.projectDetails.clientId]?.name || 'N/D'}</TableCell>
-                    <TableCell>{formatRecurrence(project.recurrence)}</TableCell>
                     <TableCell>{project.taskTemplates.length}</TableCell>
                     <TableCell>
                       <Badge variant={project.isActive ? 'default' : 'secondary'}>{project.isActive ? 'Attivo' : 'Inattivo'}</Badge>
@@ -432,9 +404,9 @@ export default function RecurringProjectsPage() {
                       {project.lastGenerated ? format(new Date(project.lastGenerated), 'dd/MM/yyyy HH:mm') : 'Mai'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" variant="outline" onClick={() => handleGenerateNow(project)} disabled={isGenerating === project.id}>
+                      <Button size="sm" variant="outline" onClick={() => handleOpenDatePicker(project)} disabled={isGenerating === project.id}>
                         {isGenerating === project.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                        Genera Ora
+                        Genera
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -446,12 +418,6 @@ export default function RecurringProjectsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleDuplicate(project)}>
                             <Copy className="mr-2 h-4 w-4" /> Duplica
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleOpenDatePicker(project)}>
-                            <Calendar className="mr-2 h-4 w-4" /> Genera per data
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { setProjectForRecurrence(project); setRecurrenceModalOpen(true); }}>
-                            <Settings className="mr-2 h-4 w-4" /> Imposta Ricorrenza
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive" onClick={() => setProjectToDelete(project)}>
@@ -483,12 +449,7 @@ export default function RecurringProjectsPage() {
         activityTypes={activityTypes}
       />
 
-      <RecurrenceForm
-        isOpen={recurrenceModalOpen}
-        onClose={() => setRecurrenceModalOpen(false)}
-        onSubmit={handleRecurrenceSubmit}
-        project={projectForRecurrence}
-      />
+
 
       <AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>
         <AlertDialogContent>
@@ -507,24 +468,32 @@ export default function RecurringProjectsPage() {
       <Dialog open={datePickerModalOpen} onOpenChange={setDatePickerModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Genera per data specifica</DialogTitle>
+            <DialogTitle>Genera da Template</DialogTitle>
             <DialogDescription>
-              Seleziona la data di inizio del progetto "{projectForDatePicker?.name}".
-              La scadenza verrà calcolata automaticamente in base alla priorità.
+              Conferma le date per il progetto "{projectForDatePicker?.name}".
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 flex flex-col items-center">
-            <Label className="mb-2 self-start">Data di inizio progetto</Label>
-            <CalendarComponent
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-              locale={it}
-              className="rounded-md border"
-            />
-            <p className="mt-2 text-sm text-muted-foreground">
-              Data selezionata: <strong>{format(selectedDate, 'dd MMMM yyyy', { locale: it })}</strong>
-            </p>
+          <div className="py-4 space-y-4">
+            <div className="flex flex-col">
+              <Label className="mb-2">Data di inizio progetto</Label>
+              <Input
+                type="date"
+                value={selectedDate ? format(selectedDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setSelectedDate(new Date(e.target.value))}
+                required
+              />
+            </div>
+            <div className="flex flex-col pt-2 border-t">
+              <Label className="mb-2">Data di scadenza progetto (opzionale)</Label>
+              <Input
+                type="date"
+                value={selectedEndDate ? format(selectedEndDate, 'yyyy-MM-dd') : ''}
+                onChange={(e) => setSelectedEndDate(e.target.value ? new Date(e.target.value) : undefined)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Se vuoto, la scadenza verrà calcolata in base all'urgenza o ai giorni previsti dal template.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setDatePickerModalOpen(false)}>Annulla</Button>
@@ -764,114 +733,6 @@ function TaskTemplateForm({ isOpen, onClose, onSubmit, task, users, activityType
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Annulla</Button>
             <Button type="submit" disabled={isSubmitting}>{task ? 'Salva' : 'Aggiungi'}</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-interface RecurrenceFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (recurrence: RecurringProject['recurrence']) => void;
-  project: RecurringProject | null;
-}
-
-// RecurrenceForm fix
-function RecurrenceForm({ isOpen, onClose, onSubmit, project }: RecurrenceFormProps) {
-  const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
-
-  useEffect(() => {
-    if (project?.recurrence && typeof project.recurrence !== 'string') {
-      const type = (project.recurrence as RecurrenceConfig).type;
-      if (type === 'daily' || type === 'weekly' || type === 'monthly') {
-        setRecurrenceType(type);
-      }
-    }
-  }, [project]);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data: RecurrenceConfig = {
-      type: formData.get('type') as any, // unsafe cast but form controlled
-      time: formData.get('time') as string,
-      dayOfWeek: formData.has('dayOfWeek') ? Number(formData.get('dayOfWeek')) : undefined,
-      weekOfMonth: formData.has('weekOfMonth') ? Number(formData.get('weekOfMonth')) : undefined,
-    };
-
-    const rawEndDate = formData.get('endDate') as string;
-    if (rawEndDate) {
-      data.endDate = new Date(rawEndDate).toISOString();
-    }
-
-    onSubmit(data);
-  }
-
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Imposta Ricorrenza per "{project?.name}"</DialogTitle>
-          <DialogDescription>Scegli la frequenza con cui questo progetto deve essere generato.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div>
-            <Label htmlFor="type">Tipo di Ricorrenza</Label>
-            <Select name="type" required value={recurrenceType} onValueChange={(v) => setRecurrenceType(v as any)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Giornaliera</SelectItem>
-                <SelectItem value="weekly">Settimanale</SelectItem>
-                <SelectItem value="monthly">Mensile</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            {recurrenceType === 'weekly' || recurrenceType === 'monthly' ? (
-              <div>
-                <Label htmlFor="dayOfWeek">Giorno della settimana</Label>
-                <Select name="dayOfWeek" required defaultValue={(project?.recurrence && typeof project.recurrence !== 'string' && project.recurrence.dayOfWeek !== undefined) ? project.recurrence.dayOfWeek.toString() : undefined}>
-                  <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
-                  <SelectContent>{daysOfWeek.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            ) : <div />}
-            <div>
-              <Label htmlFor="time">Orario</Label>
-              <Input id="time" name="time" type="time" required defaultValue={(project?.recurrence && typeof project.recurrence !== 'string') ? project.recurrence.time : '09:00'} />
-            </div>
-          </div>
-          {recurrenceType === 'monthly' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="weekOfMonth">Settimana del mese</Label>
-                <Select name="weekOfMonth" required defaultValue={(project?.recurrence && typeof project.recurrence !== 'string' && project.recurrence.weekOfMonth !== undefined) ? project.recurrence.weekOfMonth.toString() : undefined}>
-                  <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
-                  <SelectContent>{weeksOfMonth.map(w => <SelectItem key={w.value} value={w.value.toString()}>{w.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <div className="pt-2 border-t">
-            <Label htmlFor="endDate" className="mb-2 block">
-              Data di fine ricorrenza <span className="text-sm font-normal text-muted-foreground">(opzionale)</span>
-            </Label>
-            <Input
-              id="endDate"
-              name="endDate"
-              type="date"
-              defaultValue={(project?.recurrence && typeof project.recurrence !== 'string' && project.recurrence.endDate) ? new Date(project.recurrence.endDate).toISOString().split('T')[0] : ''}
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Lascia vuoto se desideri che il progetto venga generato senza un limite di tempo.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="ghost" onClick={onClose}>Annulla</Button>
-            <Button type="submit">Salva Ricorrenza</Button>
           </DialogFooter>
         </form>
       </DialogContent>
