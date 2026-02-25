@@ -275,8 +275,8 @@ export default function RecurringProjectsPage() {
 
   // Genera progetto con data specifica (opzionale)
   const handleGenerateNow = async (template: RecurringProject, customDate?: Date) => {
-    if (!currentUser || !prioritySettings) {
-      toast.error("Dati mancanti.");
+    if (!currentUser) {
+      toast.error("Dati mancanti (utente non trovato).");
       return;
     }
     setIsGenerating(template.id);
@@ -285,7 +285,8 @@ export default function RecurringProjectsPage() {
       const generationDate = customDate || getNextGenerationDate(template.recurrence);
 
       const priorityKey = template.projectDetails.priority as keyof TaskPrioritySettings;
-      const priorityDays = prioritySettings[priorityKey] != null ? Number(prioritySettings[priorityKey]) : 7;
+      const defaultPriorityDays = prioritySettings && prioritySettings[priorityKey] != null ? Number(prioritySettings[priorityKey]) : 7;
+      const priorityDays = template.durationDays && template.durationDays > 0 ? template.durationDays : defaultPriorityDays;
 
       const projectEndDate = addWorkingDays(generationDate, priorityDays);
 
@@ -571,7 +572,7 @@ function RecurringProjectForm({ isOpen, onClose, onSubmit, projectTemplate, user
         budget: 0
       },
       taskTemplates: taskTemplates,
-      durationDays: 0,
+      durationDays: formData.has('durationDays') ? Number(formData.get('durationDays')) : 0,
       clientId: formData.get('clientId') as string,
       lastGenerated: projectTemplate?.lastGenerated
     };
@@ -622,12 +623,18 @@ function RecurringProjectForm({ isOpen, onClose, onSubmit, projectTemplate, user
                   <div><Label htmlFor="clientId">Cliente</Label><Select name="clientId" required defaultValue={projectTemplate?.projectDetails.clientId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{clients.sort((a, b) => a.name.localeCompare(b.name)).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                   <div><Label htmlFor="teamLeaderId">Team Leader</Label><Select name="teamLeaderId" required defaultValue={projectTemplate?.projectDetails.teamLeaderId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{users.sort((a, b) => a.name.localeCompare(b.name)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
                 </div>
-                <div>
-                  <Label htmlFor="priority">Urgenza (per calcolo scadenza)</Label>
-                  <Select name="priority" required defaultValue={projectTemplate?.projectDetails.priority || 'Media'}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{allTaskPriorities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="priority">Urgenza (per calcolo scadenza)</Label>
+                    <Select name="priority" required defaultValue={projectTemplate?.projectDetails.priority || 'Media'}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{allTaskPriorities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="durationDays">Giorni esatti per scadenza <span className="text-muted-foreground text-xs font-normal">(opzionale, sovrascrive l'urgenza)</span></Label>
+                    <Input id="durationDays" name="durationDays" type="number" min="1" placeholder="Es. 10" defaultValue={projectTemplate?.durationDays || ''} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -793,6 +800,12 @@ function RecurrenceForm({ isOpen, onClose, onSubmit, project }: RecurrenceFormPr
       dayOfWeek: formData.has('dayOfWeek') ? Number(formData.get('dayOfWeek')) : undefined,
       weekOfMonth: formData.has('weekOfMonth') ? Number(formData.get('weekOfMonth')) : undefined,
     };
+
+    const rawEndDate = formData.get('endDate') as string;
+    if (rawEndDate) {
+      data.endDate = new Date(rawEndDate).toISOString();
+    }
+
     onSubmit(data);
   }
 
@@ -842,6 +855,20 @@ function RecurrenceForm({ isOpen, onClose, onSubmit, project }: RecurrenceFormPr
               </div>
             </div>
           )}
+          <div className="pt-2 border-t">
+            <Label htmlFor="endDate" className="mb-2 block">
+              Data di fine ricorrenza <span className="text-sm font-normal text-muted-foreground">(opzionale)</span>
+            </Label>
+            <Input
+              id="endDate"
+              name="endDate"
+              type="date"
+              defaultValue={(project?.recurrence && typeof project.recurrence !== 'string' && project.recurrence.endDate) ? new Date(project.recurrence.endDate).toISOString().split('T')[0] : ''}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Lascia vuoto se desideri che il progetto venga generato senza un limite di tempo.
+            </p>
+          </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Annulla</Button>
             <Button type="submit">Salva Ricorrenza</Button>

@@ -503,6 +503,7 @@ export interface RecurrenceConfig {
     dayOfWeek?: number;
     weekOfMonth?: number;
     interval?: number;
+    endDate?: string; // Data di fine della ricorrenza
 }
 
 
