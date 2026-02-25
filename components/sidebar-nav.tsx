@@ -100,8 +100,6 @@ export const allNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { href: '/admin', icon: Settings, label: 'Pannello Admin' },
-  { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects' },
-  { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects' },
   { href: '/import-editorial', icon: Upload, label: 'Importa Piano' },
 ];
 
