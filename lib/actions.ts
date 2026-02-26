@@ -72,13 +72,18 @@ async function fetchCollection<T>(collectionName: string): Promise<T[]> {
 
 // Helper to remove undefined values (Firestores doesn't like them)
 const cleanData = (data: any): any => {
-    const cleaned: any = {};
-    Object.keys(data).forEach(key => {
-        if (data[key] !== undefined) {
-            cleaned[key] = data[key];
-        }
-    });
-    return cleaned;
+    if (data === null || data === undefined) return data;
+    if (Array.isArray(data)) return data.map(item => cleanData(item));
+    if (typeof data === 'object' && data.constructor === Object) {
+        const cleaned: any = {};
+        Object.keys(data).forEach(key => {
+            if (data[key] !== undefined) {
+                cleaned[key] = cleanData(data[key]);
+            }
+        });
+        return cleaned;
+    }
+    return data;
 };
 
 // Users
@@ -455,7 +460,7 @@ export async function getAbsences(): Promise<Absence[]> {
 
 export async function addAbsence(data: Omit<Absence, 'id'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'absences'), {
-        ...data,
+        ...cleanData(data),
         createdAt: Timestamp.now(),
     });
 
@@ -485,7 +490,7 @@ export async function updateAbsence(id: string, data: Partial<Absence>): Promise
     const absenceSnap = await getDoc(absenceRef);
     const currentAbsence = absenceSnap.exists() ? { id, ...absenceSnap.data() } as Absence : null;
 
-    await updateDoc(absenceRef, data);
+    await updateDoc(absenceRef, cleanData(data));
 
     // Send notification if status changed
     if (currentAbsence && data.status && data.status !== currentAbsence.status) {
@@ -523,7 +528,7 @@ export async function getCalendarActivities(): Promise<CalendarActivity[]> {
 
 export async function addCalendarActivity(data: Omit<CalendarActivity, 'id'>, createdBy?: string): Promise<string> {
     const docRef = await addDoc(collection(db, 'calendarActivities'), {
-        ...data,
+        ...cleanData(data),
         createdAt: Timestamp.now(),
     });
 
@@ -541,7 +546,7 @@ export async function addCalendarActivity(data: Omit<CalendarActivity, 'id'>, cr
 }
 
 export async function updateCalendarActivity(id: string, data: Partial<CalendarActivity>): Promise<void> {
-    await updateDoc(doc(db, 'calendarActivities', id), data);
+    await updateDoc(doc(db, 'calendarActivities', id), cleanData(data));
 }
 
 export async function deleteCalendarActivity(id: string): Promise<void> {
@@ -559,7 +564,7 @@ export async function addCalendarActivityPreset(data: Omit<CalendarActivityPrese
 }
 
 export async function updateCalendarActivityPreset(id: string, data: Partial<CalendarActivityPreset>): Promise<void> {
-    await updateDoc(doc(db, 'calendarActivityPresets', id), data);
+    await updateDoc(doc(db, 'calendarActivityPresets', id), cleanData(data));
 }
 
 export async function deleteCalendarActivityPreset(id: string): Promise<void> {
@@ -655,7 +660,7 @@ export async function getEditorialContents(): Promise<EditorialContent[]> {
 
 export async function addEditorialContent(data: Omit<EditorialContent, 'id'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'editorialContents'), {
-        ...data,
+        ...cleanData(data),
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     });
@@ -664,7 +669,7 @@ export async function addEditorialContent(data: Omit<EditorialContent, 'id'>): P
 
 export async function updateEditorialContent(contentId: string, data: Partial<Omit<EditorialContent, 'id'>>): Promise<void> {
     await updateDoc(doc(db, 'editorialContents', contentId), {
-        ...data,
+        ...cleanData(data),
         updatedAt: Timestamp.now(),
     });
 }
@@ -694,7 +699,7 @@ export async function importEditorialContents(contents: Omit<EditorialContent, '
     let count = 0;
     for (const content of contents) {
         await addDoc(collection(db, 'editorialContents'), {
-            ...content,
+            ...cleanData(content),
             createdAt: Timestamp.now(),
             updatedAt: Timestamp.now(),
         });
@@ -710,14 +715,14 @@ export async function getRecurringTasks(): Promise<RecurringTask[]> {
 
 export async function addRecurringTask(data: Omit<RecurringTask, 'id'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'recurringTasks'), {
-        ...data,
+        ...cleanData(data),
         createdAt: Timestamp.now(),
     });
     return docRef.id;
 }
 
 export async function updateRecurringTask(id: string, data: Partial<RecurringTask>): Promise<void> {
-    await updateDoc(doc(db, 'recurringTasks', id), data);
+    await updateDoc(doc(db, 'recurringTasks', id), cleanData(data));
 }
 
 export async function deleteRecurringTask(id: string): Promise<void> {
@@ -731,14 +736,14 @@ export async function getRecurringProjects(): Promise<RecurringProject[]> {
 
 export async function addRecurringProject(data: Omit<RecurringProject, 'id'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'recurringProjects'), {
-        ...data,
+        ...cleanData(data),
         createdAt: Timestamp.now(),
     });
     return docRef.id;
 }
 
 export async function updateRecurringProject(id: string, data: Partial<RecurringProject>): Promise<void> {
-    await updateDoc(doc(db, 'recurringProjects', id), data);
+    await updateDoc(doc(db, 'recurringProjects', id), cleanData(data));
 }
 
 export async function deleteRecurringProject(id: string): Promise<void> {
@@ -1058,7 +1063,7 @@ export async function getBriefs(): Promise<Brief[]> {
 
 export async function addBrief(data: Omit<Brief, 'id'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'briefs'), {
-        ...data,
+        ...cleanData(data),
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     });
@@ -1077,7 +1082,7 @@ export async function updateBrief(id: string, data: Partial<Brief>): Promise<voi
     const currentBrief = briefSnap.exists() ? { id, ...briefSnap.data() } as Brief : null;
 
     const updateData = {
-        ...data,
+        ...cleanData(data),
         updatedAt: Timestamp.now()
     };
     await updateDoc(briefRef, updateData);
@@ -1166,7 +1171,7 @@ export async function getTaskTemplateBundle(id: string): Promise<TaskTemplateBun
 
 export async function addTaskTemplateBundle(data: Omit<TaskTemplateBundle, 'id'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'taskTemplateBundles'), {
-        ...data,
+        ...cleanData(data),
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     });
@@ -1175,7 +1180,7 @@ export async function addTaskTemplateBundle(data: Omit<TaskTemplateBundle, 'id'>
 
 export async function updateTaskTemplateBundle(id: string, data: Partial<TaskTemplateBundle>): Promise<void> {
     await updateDoc(doc(db, 'taskTemplateBundles', id), {
-        ...data,
+        ...cleanData(data),
         updatedAt: Timestamp.now(),
     });
 }

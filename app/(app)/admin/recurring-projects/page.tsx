@@ -316,7 +316,7 @@ export default function RecurringProjectsPage() {
           activityType: tt.activityType
         };
         // Add task with projectId
-        return addTask(newTask, newProjectId);
+        return addTask(newTask, currentUser.id);
       });
 
       await Promise.all(tasksPromises);
