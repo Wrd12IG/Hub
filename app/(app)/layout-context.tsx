@@ -198,8 +198,10 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       throw new Error('La password è richiesta.');
     }
 
+    const trimmedEmail = email.trim();
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
       const authUser = userCredential.user;
       return { success: true, userId: authUser.uid };
     } catch (error: any) {
@@ -216,13 +218,18 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       return { success: false, error: "La password è obbligatoria per creare un nuovo utente." };
     }
 
+    const trimmedEmail = user.email.trim();
+    if (!trimmedEmail) {
+      return { success: false, error: "L'indirizzo email è obbligatorio." };
+    }
+
     try {
       // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, user.email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
       const authUser = userCredential.user;
 
       // 2. Create user profile in Firestore
-      await addUser(authUser.uid, user);
+      await addUser(authUser.uid, { ...user, email: trimmedEmail });
 
       await refetchData('users');
 
@@ -231,6 +238,9 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         return { success: false, error: 'Questa email è già in uso.' };
+      }
+      if (error.code === 'auth/invalid-email') {
+        return { success: false, error: "L'indirizzo email inserito non è valido." };
       }
       if (error.code === 'auth/weak-password') {
         return { success: false, error: 'La password deve essere di almeno 6 caratteri.' };

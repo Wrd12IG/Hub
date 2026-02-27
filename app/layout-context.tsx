@@ -30,7 +30,7 @@ interface LayoutContextType {
   taskPrioritySettings: TaskPrioritySettings | null;
   setTaskPrioritySettings: React.Dispatch<React.SetStateAction<TaskPrioritySettings | null>>;
   isLoadingLayout: boolean;
-  refetchData: <T extends 'users' | 'clients' | 'projects' | 'tasks' | 'absences' | 'activityTypes' | 'calendarActivities' | 'calendarActivityPresets' | 'briefServices' | 'briefServiceCategories' | 'serviceContracts'| 'all'>(dataType: T) => Promise<any[] | void>;
+  refetchData: <T extends 'users' | 'clients' | 'projects' | 'tasks' | 'absences' | 'activityTypes' | 'calendarActivities' | 'calendarActivityPresets' | 'briefServices' | 'briefServiceCategories' | 'serviceContracts' | 'all'>(dataType: T) => Promise<any[] | void>;
   clientDetails: Client | null;
   setClientDetails: React.Dispatch<React.SetStateAction<Client | null>>;
   handleLogin: (email: string, password?: string) => Promise<{ success: boolean; userId?: string; error?: string; }>;
@@ -52,21 +52,21 @@ export const useLayoutData = () => {
 
 // Helper function to handle Firestore timestamp conversion
 export const convertTimestamps = (data: any): any => {
-    if (!data) return data;
-    if (Array.isArray(data)) {
-        return data.map(item => convertTimestamps(item));
+  if (!data) return data;
+  if (Array.isArray(data)) {
+    return data.map(item => convertTimestamps(item));
+  }
+  if (typeof data === 'object' && data !== null) {
+    if (data instanceof Timestamp) {
+      return data.toDate().toISOString();
     }
-    if (typeof data === 'object' && data !== null) {
-        if (data instanceof Timestamp) {
-          return data.toDate().toISOString();
-        }
-        const convertedData: {[key: string]: any} = {};
-        for (const key in data) {
-            convertedData[key] = convertTimestamps(data[key]);
-        }
-        return convertedData;
+    const convertedData: { [key: string]: any } = {};
+    for (const key in data) {
+      convertedData[key] = convertTimestamps(data[key]);
     }
-    return data;
+    return convertedData;
+  }
+  return data;
 };
 
 
@@ -95,99 +95,106 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   // Real-time data
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  
+
 
   const usersById = useMemo(() => users.reduce((acc, user) => ({ ...acc, [user.id]: user }), {} as Record<string, User>), [users]);
   const clientsById = useMemo(() => clients.reduce((acc, client) => ({ ...acc, [client.id]: client }), {} as Record<string, Client>), [clients]);
-  const tasksById = useMemo(() => allTasks.reduce((acc, task) => ({...acc, [task.id]: task}), {} as Record<string, Task>), [allTasks]);
-  const projectsById = useMemo(() => allProjects.reduce((acc, project) => ({...acc, [project.id]: project}), {} as Record<string, Project>), [allProjects]);
+  const tasksById = useMemo(() => allTasks.reduce((acc, task) => ({ ...acc, [task.id]: task }), {} as Record<string, Task>), [allTasks]);
+  const projectsById = useMemo(() => allProjects.reduce((acc, project) => ({ ...acc, [project.id]: project }), {} as Record<string, Project>), [allProjects]);
 
 
-   const refetchData = useCallback(async (dataType: 'users' | 'clients' | 'projects' | 'tasks' | 'absences' | 'activityTypes' | 'calendarActivities' | 'calendarActivityPresets' | 'briefServices' | 'briefServiceCategories' | 'serviceContracts' | 'all') => {
-      const fetchMap = {
-        users: getUsers,
-        clients: getClients,
-        projects: getProjects,
-        tasks: getTasks,
-        absences: getAbsences,
-        activityTypes: getActivityTypes,
-        calendarActivities: getCalendarActivities,
-        calendarActivityPresets: getCalendarActivityPresets,
-        briefServices: getBriefServices,
-        briefServiceCategories: getBriefServiceCategories,
-        serviceContracts: getServiceContracts,
-      };
+  const refetchData = useCallback(async (dataType: 'users' | 'clients' | 'projects' | 'tasks' | 'absences' | 'activityTypes' | 'calendarActivities' | 'calendarActivityPresets' | 'briefServices' | 'briefServiceCategories' | 'serviceContracts' | 'all') => {
+    const fetchMap = {
+      users: getUsers,
+      clients: getClients,
+      projects: getProjects,
+      tasks: getTasks,
+      absences: getAbsences,
+      activityTypes: getActivityTypes,
+      calendarActivities: getCalendarActivities,
+      calendarActivityPresets: getCalendarActivityPresets,
+      briefServices: getBriefServices,
+      briefServiceCategories: getBriefServiceCategories,
+      serviceContracts: getServiceContracts,
+    };
 
-      const updateState = (type: keyof typeof fetchMap, data: any) => {
-        switch (type) {
-            case 'users': setUsers(data as User[]); break;
-            case 'clients': setClients(data as Client[]); break;
-            case 'projects': setAllProjects(data as Project[]); break;
-            case 'tasks': setAllTasks(data as Task[]); break;
-            case 'absences': setAbsences(data as Absence[]); break;
-            case 'activityTypes': setActivityTypes(data as ActivityType[]); break;
-            case 'calendarActivities': setCalendarActivities(data as CalendarActivity[]); break;
-            case 'calendarActivityPresets': setCalendarActivityPresets(data as CalendarActivityPreset[]); break;
-            case 'briefServices': setBriefServices(data as BriefService[]); break;
-            case 'briefServiceCategories': setBriefServiceCategories(data as BriefServiceCategory[]); break;
-            case 'serviceContracts': setServiceContracts(data as ServiceContract[]); break;
-        }
+    const updateState = (type: keyof typeof fetchMap, data: any) => {
+      switch (type) {
+        case 'users': setUsers(data as User[]); break;
+        case 'clients': setClients(data as Client[]); break;
+        case 'projects': setAllProjects(data as Project[]); break;
+        case 'tasks': setAllTasks(data as Task[]); break;
+        case 'absences': setAbsences(data as Absence[]); break;
+        case 'activityTypes': setActivityTypes(data as ActivityType[]); break;
+        case 'calendarActivities': setCalendarActivities(data as CalendarActivity[]); break;
+        case 'calendarActivityPresets': setCalendarActivityPresets(data as CalendarActivityPreset[]); break;
+        case 'briefServices': setBriefServices(data as BriefService[]); break;
+        case 'briefServiceCategories': setBriefServiceCategories(data as BriefServiceCategory[]); break;
+        case 'serviceContracts': setServiceContracts(data as ServiceContract[]); break;
       }
+    }
 
-      if (dataType === 'all') {
-          const allData = await Promise.all(
-              Object.entries(fetchMap).map(async ([key, fn]) => {
-                  try {
-                    const data = await fn();
-                    return { key, data };
-                  } catch (e) {
-                      console.error(`Failed to fetch ${key}:`, e);
-                      return { key, data: [] }; // Return empty array on error
-                  }
-              })
-          );
-          allData.forEach(({ key, data }) => {
-              updateState(key as keyof typeof fetchMap, data);
-          });
-          return;
-      }
-      
-      const data = await fetchMap[dataType]();
-      updateState(dataType, data);
-      return data;
+    if (dataType === 'all') {
+      const allData = await Promise.all(
+        Object.entries(fetchMap).map(async ([key, fn]) => {
+          try {
+            const data = await fn();
+            return { key, data };
+          } catch (e) {
+            console.error(`Failed to fetch ${key}:`, e);
+            return { key, data: [] }; // Return empty array on error
+          }
+        })
+      );
+      allData.forEach(({ key, data }) => {
+        updateState(key as keyof typeof fetchMap, data);
+      });
+      return;
+    }
+
+    const data = await fetchMap[dataType]();
+    updateState(dataType, data);
+    return data;
   }, []);
 
   const handleLogin = useCallback(async (email: string, password?: string): Promise<{ success: boolean; userId?: string; error?: string; }> => {
     if (!password) {
-        throw new Error('La password è richiesta.');
+      throw new Error('La password è richiesta.');
     }
 
+    const trimmedEmail = email.trim();
+
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const authUser = userCredential.user;
-        return { success: true, userId: authUser.uid };
+      const userCredential = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+      const authUser = userCredential.user;
+      return { success: true, userId: authUser.uid };
     } catch (error: any) {
-        if (error.code === 'auth/invalid-credential') {
-             return { success: false, error: 'Credenziali non valide. Controlla email e password.' };
-        }
-        console.error('Firebase Auth login error:', error);
-        return { success: false, error: 'Errore di autenticazione. Riprova.' };
+      if (error.code === 'auth/invalid-credential') {
+        return { success: false, error: 'Credenziali non valide. Controlla email e password.' };
+      }
+      console.error('Firebase Auth login error:', error);
+      return { success: false, error: 'Errore di autenticazione. Riprova.' };
     }
   }, []);
-  
-    const handleCreateUser = useCallback(async (user: Omit<User, 'id'>, password?: string): Promise<{ success: boolean; userId?: string; error?: string }> => {
+
+  const handleCreateUser = useCallback(async (user: Omit<User, 'id'>, password?: string): Promise<{ success: boolean; userId?: string; error?: string }> => {
     if (!password) {
       return { success: false, error: "La password è obbligatoria per creare un nuovo utente." };
     }
-    
+
+    const trimmedEmail = user.email.trim();
+    if (!trimmedEmail) {
+      return { success: false, error: "L'indirizzo email è obbligatorio." };
+    }
+
     try {
       // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, user.email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
       const authUser = userCredential.user;
 
       // 2. Create user profile in Firestore
-      await addUser(authUser.uid, user);
-      
+      await addUser(authUser.uid, { ...user, email: trimmedEmail });
+
       await refetchData('users');
 
       return { success: true, userId: authUser.uid };
@@ -195,6 +202,9 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         return { success: false, error: 'Questa email è già in uso.' };
+      }
+      if (error.code === 'auth/invalid-email') {
+        return { success: false, error: "L'indirizzo email inserito non è valido." };
       }
       if (error.code === 'auth/weak-password') {
         return { success: false, error: 'La password deve essere di almeno 6 caratteri.' };
@@ -207,7 +217,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   const handleLogout = () => {
     auth.signOut();
   };
-  
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -260,26 +270,26 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!currentUser?.id) return;
-    
+
     const collectionsToListen: { name: string, setter: React.Dispatch<React.SetStateAction<any[]>> }[] = [
-        { name: 'users', setter: setUsers },
-        { name: 'clients', setter: setClients },
-        { name: 'projects', setter: setAllProjects },
-        { name: 'tasks', setter: setAllTasks },
-        { name: 'absences', setter: setAbsences },
-        { name: 'activityTypes', setter: setActivityTypes },
-        { name: 'calendarActivities', setter: setCalendarActivities },
-        { name: 'calendarActivityPresets', setter: setCalendarActivityPresets },
-        { name: 'briefServices', setter: setBriefServices },
-        { name: 'briefServiceCategories', setter: setBriefServiceCategories },
-        { name: 'serviceContracts', setter: setServiceContracts },
+      { name: 'users', setter: setUsers },
+      { name: 'clients', setter: setClients },
+      { name: 'projects', setter: setAllProjects },
+      { name: 'tasks', setter: setAllTasks },
+      { name: 'absences', setter: setAbsences },
+      { name: 'activityTypes', setter: setActivityTypes },
+      { name: 'calendarActivities', setter: setCalendarActivities },
+      { name: 'calendarActivityPresets', setter: setCalendarActivityPresets },
+      { name: 'briefServices', setter: setBriefServices },
+      { name: 'briefServiceCategories', setter: setBriefServiceCategories },
+      { name: 'serviceContracts', setter: setServiceContracts },
     ];
 
-    const unsubs = collectionsToListen.map(({ name, setter }) => 
-        onSnapshot(collection(db, name), (snapshot) => {
-            const data = snapshot.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }));
-            setter(data);
-        }, (error) => console.error(`Error fetching ${name}:`, error))
+    const unsubs = collectionsToListen.map(({ name, setter }) =>
+      onSnapshot(collection(db, name), (snapshot) => {
+        const data = snapshot.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }));
+        setter(data);
+      }, (error) => console.error(`Error fetching ${name}:`, error))
     );
 
     const qConversations = query(
@@ -297,13 +307,13 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     }, (error) => console.error("Error fetching conversations:", error));
 
     const qNotifications = query(
-        collection(db, 'users', currentUser.id, 'notifications'),
-        orderBy('timestamp', 'desc'),
-        limit(20)
+      collection(db, 'users', currentUser.id, 'notifications'),
+      orderBy('timestamp', 'desc'),
+      limit(20)
     );
     const unsubNotifications = onSnapshot(qNotifications, (snapshot) => {
-        const fetchedNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as Notification);
-        setNotifications(fetchedNotifications);
+      const fetchedNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as Notification);
+      setNotifications(fetchedNotifications);
     }, (error) => console.error("Error fetching notifications:", error));
 
     return () => {
