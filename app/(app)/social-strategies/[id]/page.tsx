@@ -151,7 +151,10 @@ export default function SocialStrategyDetailPage() {
                     <SocialStrategyResults
                         result={strategy.outputJson}
                         clientName={client?.name}
+                        clientId={strategy.clientId}
+                        userId={strategy.createdBy}
                         periodLabel={strategy.periodLabel}
+                        toneOfVoice={client?.socialProfile?.toneOfVoice}
                     />
                 </div>
 

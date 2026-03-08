@@ -19,10 +19,18 @@ import {
     Download,
     Layers,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Video,
+    Camera,
+    Layout,
+    GalleryHorizontal,
+    PlusCircle,
+    Loader2,
+    Check
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
+import { addTask, addEditorialContent } from '@/lib/actions';
 
 interface SocialStrategyResultsProps {
     result: {
@@ -46,13 +54,30 @@ interface SocialStrategyResultsProps {
         testo_email: string;
     };
     clientName?: string;
+    clientId?: string;
+    userId?: string;
     periodLabel?: string;
+    toneOfVoice?: string;
 }
 
-export function SocialStrategyResults({ result, clientName, periodLabel }: SocialStrategyResultsProps) {
+export function SocialStrategyResults({ result, clientName, clientId, userId, periodLabel, toneOfVoice }: SocialStrategyResultsProps) {
     const { toast } = useToast();
     const [emailText, setEmailText] = useState(result.testo_email);
     const [expandedIdea, setExpandedIdea] = useState<number | null>(null);
+
+    // Media Generation State
+    const [selectedMediaTypes, setSelectedMediaTypes] = useState<Record<number, string>>({});
+    const [mediaBriefs, setMediaBriefs] = useState<Record<number, any>>({});
+    const [loadingBriefs, setLoadingBriefs] = useState<Record<number, boolean>>({});
+    const [savedPosts, setSavedPosts] = useState<Record<number, boolean>>({});
+    const [isSaving, setIsSaving] = useState<Record<number, boolean>>({});
+
+    const mediaTypes = [
+        { id: 'Video', icon: Video, label: 'Video/Reel' },
+        { id: 'Foto', icon: Camera, label: 'Foto/Grafica' },
+        { id: 'Infografica', icon: Layout, label: 'Infografica' },
+        { id: 'Carosello', icon: GalleryHorizontal, label: 'Carosello' },
+    ];
 
     const copyToClipboard = (text: string, title: string) => {
         navigator.clipboard.writeText(text);
@@ -166,6 +191,96 @@ export function SocialStrategyResults({ result, clientName, periodLabel }: Socia
         }
     };
 
+    const handleGenerateMediaBrief = async (index: number, mediaType: string) => {
+        const item = result.calendario[index];
+        setLoadingBriefs(prev => ({ ...prev, [index]: true }));
+
+        try {
+            const response = await fetch('/api/social-strategy/media-brief', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    topic: item.topic,
+                    platform: item.piattaforma,
+                    mediaType,
+                    caption: item.caption,
+                    clientName,
+                    toneOfVoice
+                })
+            });
+
+            if (!response.ok) throw new Error('Failed to generate brief');
+
+            const brief = await response.json();
+            setMediaBriefs(prev => ({ ...prev, [index]: brief }));
+            toast({ title: 'Brief Generato', description: `Brief per ${mediaType} creato con successo.` });
+        } catch (error) {
+            toast({ title: 'Errore', description: 'Impossibile generare il brief media.', variant: 'destructive' });
+        } finally {
+            setLoadingBriefs(prev => ({ ...prev, [index]: false }));
+        }
+    };
+
+    const handleCreateTaskAndPlan = async (index: number) => {
+        if (!clientId || !userId) {
+            toast({ title: 'Configurazione mancante', description: 'ClientID o UserID non trovati.', variant: 'destructive' });
+            return;
+        }
+
+        const item = result.calendario[index];
+        const brief = mediaBriefs[index];
+        const mediaType = selectedMediaTypes[index] || item.formato;
+
+        setIsSaving(prev => ({ ...prev, [index]: true }));
+
+        try {
+            // 1. Create Task for Media Production
+            const taskTitle = `[Produzione Media] ${item.topic}`;
+            const taskDescription = brief
+                ? `Tipo Media: ${brief.tipo_media}\n\nVisione Creativa: ${brief.descrizione_creativa}\n\nStruttura:\n${brief.struttura.map((s: any) => `- ${s.elemento}: ${s.dettagli}`).join('\n')}\n\nNote Tecniche: ${brief.note_tecniche}`
+                : `Produzione media per post: ${item.topic}\nFormato richiesto: ${mediaType}`;
+
+            const taskResult = await addTask({
+                title: taskTitle,
+                description: taskDescription,
+                clientId: clientId,
+                status: 'Da Fare',
+                priority: 'Media',
+                createdBy: userId,
+                activityType: 'social-media', // Using the string ID directly as per Task interface
+                dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+                estimatedDuration: 60,
+                timeSpent: 0
+            }, userId);
+
+            // 2. Add to Editorial Plan
+            await addEditorialContent({
+                topic: item.topic,
+                clientId: clientId,
+                format: mediaType,
+                status: 'Da Programmare',
+                copy: item.caption,
+                facebook: item.piattaforma.toLowerCase().includes('facebook'),
+                instagram: item.piattaforma.toLowerCase().includes('instagram'),
+                linkedin: item.piattaforma.toLowerCase().includes('linkedin'),
+                tiktok: item.piattaforma.toLowerCase().includes('tiktok'),
+                youtube: item.piattaforma.toLowerCase().includes('youtube'),
+                focus: item.cta,
+                taskId: taskResult.taskId,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            } as any);
+
+            setSavedPosts(prev => ({ ...prev, [index]: true }));
+            toast({ title: 'Successo!', description: 'Post aggiunto al piano e task creato.' });
+        } catch (error) {
+            console.error(error);
+            toast({ title: 'Errore', description: 'Impossibile salvare il post nel piano.', variant: 'destructive' });
+        } finally {
+            setIsSaving(prev => ({ ...prev, [index]: false }));
+        }
+    };
+
     return (
         <Card className="glass-card overflow-hidden">
             <Tabs defaultValue="strategia" className="w-full">
@@ -232,7 +347,7 @@ export function SocialStrategyResults({ result, clientName, periodLabel }: Socia
                                         </div>
                                         <Badge variant="outline" className="text-[10px]">{item.formato}</Badge>
                                     </div>
-                                    <CardContent className="p-4 space-y-3">
+                                    <CardContent className="p-4 space-y-4">
                                         <div>
                                             <p className="text-xs font-bold text-muted-foreground uppercase">Topic</p>
                                             <p className="text-sm font-medium">{item.topic}</p>
@@ -251,8 +366,67 @@ export function SocialStrategyResults({ result, clientName, periodLabel }: Socia
                                             </div>
                                             <p className="text-xs whitespace-pre-wrap italic bg-accent/20 p-2 rounded">{item.caption}</p>
                                         </div>
-                                        <div className="flex justify-between items-center pt-2 border-t">
+
+                                        <div className="pt-3 border-t space-y-3">
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Crea Media Post</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {mediaTypes.map(type => (
+                                                    <Button
+                                                        key={type.id}
+                                                        variant={selectedMediaTypes[i] === type.id ? 'default' : 'outline'}
+                                                        size="sm"
+                                                        className="h-8 text-[10px] px-2 flex gap-1"
+                                                        onClick={() => setSelectedMediaTypes(prev => ({ ...prev, [i]: type.id }))}
+                                                        disabled={savedPosts[i]}
+                                                    >
+                                                        <type.icon className="h-3 w-3" /> {type.label}
+                                                    </Button>
+                                                ))}
+                                            </div>
+
+                                            {selectedMediaTypes[i] && !mediaBriefs[i] && !savedPosts[i] && (
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    className="w-full h-8 text-xs aurora-button"
+                                                    onClick={() => handleGenerateMediaBrief(i, selectedMediaTypes[i])}
+                                                    disabled={loadingBriefs[i]}
+                                                >
+                                                    {loadingBriefs[i] ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Sparkles className="h-3 w-3 mr-2" />}
+                                                    Genera Brief per {selectedMediaTypes[i]}
+                                                </Button>
+                                            )}
+
+                                            {mediaBriefs[i] && (
+                                                <div className="p-3 bg-primary/5 rounded border border-primary/10 animate-in fade-in zoom-in duration-300">
+                                                    <p className="text-[10px] font-bold text-primary mb-1 uppercase tracking-tight">Visione Creativa (AI):</p>
+                                                    <p className="text-[11px] leading-tight mb-2">{mediaBriefs[i].descrizione_creativa}</p>
+                                                    <div className="space-y-1">
+                                                        <p className="text-[9px] font-bold text-muted-foreground uppercase">Struttura:</p>
+                                                        {mediaBriefs[i].struttura.slice(0, 3).map((s: any, idx: number) => (
+                                                            <p key={idx} className="text-[10px] leading-tight">• {s.elemento}: {s.dettagli}</p>
+                                                        ))}
+                                                        {mediaBriefs[i].struttura.length > 3 && <p className="text-[9px] italic">...e altro</p>}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-2 border-t mt-1">
                                             <span className="text-[10px] font-bold text-primary italic">CTA: {item.cta}</span>
+                                            {savedPosts[i] ? (
+                                                <Badge className="bg-green-500 hover:bg-green-600 gap-1"><Check className="h-3 w-3" /> Aggiunto</Badge>
+                                            ) : (
+                                                <Button
+                                                    size="sm"
+                                                    className={`h-7 text-[10px] gap-1 px-3 ${selectedMediaTypes[i] ? 'rainbow-border' : ''}`}
+                                                    onClick={() => handleCreateTaskAndPlan(i)}
+                                                    disabled={isSaving[i]}
+                                                >
+                                                    {isSaving[i] ? <Loader2 className="h-3 w-3 animate-spin" /> : <PlusCircle className="h-3 w-3" />}
+                                                    Inserisci nel Piano
+                                                </Button>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>

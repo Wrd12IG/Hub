@@ -100,6 +100,12 @@ QUESTO PERIODO:
 - Eventi/ricorrenze: ${events}
 - Note extra: ${extraNotes}
 
+ISTRUZIONI QUANTITÀ E STRUTTURA:
+- Se la frequenza è "settimanale", genera un calendario di circa 5 post totali.
+- Se la frequenza è "mensile", genera un calendario MOLTO CORPOSO con almeno 20-24 post (circa 5-6 post a settimana) ben distribuiti su tutto il mese per coprire tutte le piattaforme attive (${profile.platforms?.join(', ') || 'tutte'}).
+- OGNI giorno nel calendario deve essere diverso o coprire una diversa combinazione di piattaforma/argomento.
+- NON limitarti a 2 post a settimana per un mese intero.
+
 Genera un JSON con questa struttura esatta:
 {
   "sommario_strategico": "paragrafo 3-4 righe",
@@ -290,7 +296,14 @@ Genera un JSON con questa struttura esatta:
                                     <Send className="mr-2 h-4 w-4" /> Segna come Inviata
                                 </Button>
                             </div>
-                            <SocialStrategyResults result={generatedResult} clientName={selectedClient?.name} periodLabel={periodLabel} />
+                            <SocialStrategyResults
+                                result={generatedResult}
+                                clientName={selectedClient?.name}
+                                clientId={selectedClientId}
+                                userId={currentUser?.id}
+                                periodLabel={periodLabel}
+                                toneOfVoice={selectedClient?.socialProfile?.toneOfVoice}
+                            />
                         </div>
                     ) : error ? (
                         <div className="h-full flex flex-col items-center justify-center min-h-[400px] gap-4 bg-destructive/5 border-destructive/20 border rounded-lg p-8 text-center">
