@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Set to 60 seconds (max for Vercel Pro, default is 10s on Hobby)
 
 export async function POST(req: NextRequest) {
     console.log('>>> API CALL: /api/social-strategy/generate');
@@ -14,11 +15,14 @@ export async function POST(req: NextRequest) {
         const geminiApiKey = process.env.GEMINI_API_KEY;
         const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
-        // Prefer Gemini if available, or if Anthropic is still placeholder
-        if (geminiApiKey && geminiApiKey !== 'your_gemini_key_here') {
+        const isGeminiValid = geminiApiKey && geminiApiKey !== 'your_gemini_key_here';
+        const isAnthropicValid = anthropicApiKey && anthropicApiKey !== 'your_api_key_here';
+
+        // Prefer Gemini if available
+        if (isGeminiValid) {
             const model = 'gemini-2.0-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-            console.log(`Using Google Gemini API. Model: ${model}`);
+
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -43,8 +47,6 @@ export async function POST(req: NextRequest) {
                 const errorBody = await response.json().catch(() => ({}));
                 console.error('Gemini API error:', JSON.stringify(errorBody, null, 2));
 
-                // If it's a 404 from Gemini, we don't want to return 404 to the browser 
-                // because it looks like our route is missing.
                 const status = response.status === 404 ? 500 : response.status;
 
                 return NextResponse.json({
@@ -56,6 +58,15 @@ export async function POST(req: NextRequest) {
             }
 
             const result = await response.json();
+
+            if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+                return NextResponse.json({
+                    error: 'Risposta AI non valida o bloccata (Safety/Limit)',
+                    details: 'No candidate content found',
+                    raw_result: result
+                }, { status: 500 });
+            }
+
             const content = result.candidates[0].content.parts[0].text;
 
             try {
@@ -64,7 +75,7 @@ export async function POST(req: NextRequest) {
                 const endIdx = content.lastIndexOf('}');
 
                 if (startIdx === -1 || endIdx === -1) {
-                    throw new Error('No JSON structure found in response');
+                    throw new Error('No JSON structure found in response content');
                 }
 
                 const jsonStr = content.substring(startIdx, endIdx + 1);
@@ -72,24 +83,30 @@ export async function POST(req: NextRequest) {
             } catch (e: any) {
                 console.error('Failed to parse Gemini response as JSON:', content);
                 return NextResponse.json({
-                    error: 'AI output non valida',
+                    error: 'AI output non valida (JSON parsing)',
                     details: e.message,
-                    content_preview: content.substring(0, 100) + '...'
+                    content_preview: content.length > 200 ? content.substring(0, 200) + '...' : content
                 }, { status: 500 });
             }
         }
 
-        // Fallback or old Anthropic logic
-        if (!anthropicApiKey || anthropicApiKey === 'your_api_key_here') {
-            return NextResponse.json({ error: 'Configurazione mancante: Inserisci GEMINI_API_KEY o ANTHROPIC_API_KEY nel file .env.local' }, { status: 500 });
+        // Check if anything is configured
+        if (!isAnthropicValid && !isGeminiValid) {
+            console.error('CRITICAL: All AI API Keys are missing in production.');
+            return NextResponse.json({
+                error: 'Configurazione AI mancante in questo ambiente (Web/Prod).',
+                details: 'Le variabili d\'ambiente (GEMINI_API_KEY) devono essere configurate nel pannello di controllo del server (es. Dashboard Vercel). Mentre in locale funzionano con .env.local, sul web vanno aggiunte a mano.',
+                env_status: { gemini: !!geminiApiKey, anthropic: !!anthropicApiKey }
+            }, { status: 500 });
         }
 
+        // Fallback or old Anthropic logic
         console.log('Falling back to Anthropic API...');
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': anthropicApiKey,
+                'x-api-key': anthropicApiKey as string,
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
@@ -104,8 +121,6 @@ export async function POST(req: NextRequest) {
 
         if (!response.ok) {
             const errorBody = await response.json().catch(() => ({}));
-            console.error('Anthropic API error status:', response.status);
-            console.error('Anthropic API error body:', JSON.stringify(errorBody, null, 2));
             return NextResponse.json({
                 error: 'Errore durante la generazione della strategia (Anthropic API).',
                 details: errorBody.error?.message || response.statusText,
@@ -114,29 +129,22 @@ export async function POST(req: NextRequest) {
         }
 
         const result = await response.json();
-        console.log('Anthropic API response received successfully');
-
-        if (!result.content || !result.content[0]) {
-            throw new Error('Formato risposta Anthropic non valido');
-        }
-
         const content = result.content[0].text;
 
-        // The AI is instructed to return ONLY JSON.
-        // We attempt to parse it or clean it if markdown backticks were added despite instructions.
-        let jsonResult;
         try {
-            const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
-            jsonResult = JSON.parse(cleanContent);
+            const startIdx = content.indexOf('{');
+            const endIdx = content.lastIndexOf('}');
+            const jsonStr = content.substring(startIdx, endIdx + 1);
+            return NextResponse.json(JSON.parse(jsonStr));
         } catch (e) {
-            console.error('Failed to parse AI response as JSON:', content);
             return NextResponse.json({ error: 'Invalid JSON response from AI', rawContent: content }, { status: 500 });
         }
 
-        return NextResponse.json(jsonResult);
-
     } catch (error: any) {
-        console.error('Error in social strategy generator API:', error);
-        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+        console.error('CRITICAL ERROR in /api/social-strategy/generate:', error);
+        return NextResponse.json({
+            error: 'Errore interno del server durante la generazione.',
+            details: error.message,
+        }, { status: 500 });
     }
 }

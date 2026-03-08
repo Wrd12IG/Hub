@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
     console.log('>>> API CALL: /api/social-strategy/media-brief');
@@ -14,7 +15,12 @@ export async function POST(req: NextRequest) {
         const geminiApiKey = process.env.GEMINI_API_KEY;
 
         if (!geminiApiKey || geminiApiKey === 'your_gemini_key_here') {
-            return NextResponse.json({ error: 'GEMINI_API_KEY non configurata' }, { status: 500 });
+            console.error('CRITICAL: GEMINI_API_KEY is not defined in production environment.');
+            return NextResponse.json({
+                error: 'Configurazione API mancante in produzione.',
+                details: 'Assicurati di aver aggiunto GEMINI_API_KEY nelle variabili d\'ambiente del server (es. Dashboard Vercel).',
+                env_status: !!geminiApiKey
+            }, { status: 500 });
         }
 
         const systemPrompt = `Sei un esperto Social Media Manager e Creative Director per l'agenzia WRDigital. 
