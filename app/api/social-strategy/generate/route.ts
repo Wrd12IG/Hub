@@ -13,22 +13,19 @@ export async function POST(req: NextRequest) {
 
         // Prefer Gemini if available, or if Anthropic is still placeholder
         if (geminiApiKey && geminiApiKey !== 'your_gemini_key_here') {
-            console.log('Using Google Gemini API (v1/flash)...');
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+            console.log('Using Google Gemini API (v1beta/flash)...');
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     contents: [{
-                        parts: [{ text: `${systemPrompt}\n\nUSER REQUEST:\n${prompt}` }]
+                        parts: [{ text: `${systemPrompt}\n\nRichiesta utente per la strategia:\n${prompt}` }]
                     }],
                     generationConfig: {
                         temperature: 0.7,
-                        topK: 40,
-                        topP: 0.95,
                         maxOutputTokens: 8192,
-                        responseMimeType: "application/json",
                     }
                 })
             });
@@ -46,7 +43,8 @@ export async function POST(req: NextRequest) {
             const content = result.candidates[0].content.parts[0].text;
 
             try {
-                return NextResponse.json(JSON.parse(content));
+                const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
+                return NextResponse.json(JSON.parse(cleanContent));
             } catch (e) {
                 console.error('Failed to parse Gemini response as JSON:', content);
                 return NextResponse.json({ error: 'Risposta AI non valida (JSON corrotto)', rawContent: content }, { status: 500 });
