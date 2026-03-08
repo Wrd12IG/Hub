@@ -16,6 +16,23 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Bot, Sparkles, ArrowLeft, Loader2, AlertTriangle, Save, Send } from 'lucide-react';
 import Link from 'next/link';
 import { SocialStrategyResults } from '@/components/social-strategy-results';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+
+const SOCIAL_HOLIDAYS: Record<string, string[]> = {
+    'gennaio': ['Capodanno (1)', 'Epifania (6)', 'Blue Monday', 'Giorno della Memoria (27)'],
+    'febbraio': ['San Valentino (14)', 'Carnevale', 'Giorno del Ricordo (10)', 'World Cancer Day (4)', 'Nutella Day (5)'],
+    'marzo': ['Festa della Donna (8)', 'Festa del Papà (19)', 'San Patrizio (17)', 'Inizio Primavera (21)', 'Giorno della felicità (20)'],
+    'aprile': ['Pesce d\'Aprile (1)', 'Pasqua', 'Pasquetta', 'Liberazione (25)', 'Giornata della Terra (22)', 'World Health Day (7)'],
+    'maggio': ['Festa dei Lavoratori (1)', 'Festa della Mamma', 'World Red Cross Day (8)', 'Giornata dell\'Europa (9)'],
+    'giugno': ['Festa della Repubblica (2)', 'Inizio Estate (21)', 'World Environment Day (5)', 'Ocean Day (8)', 'Pride Month'],
+    'luglio': ['World Emoji Day (17)', 'Giornata dell\'Amicizia (30)', 'Amazon Prime Day'],
+    'agosto': ['Ferragosto (15)', 'Giornata dell\'Umanità (19)', 'Gatto Day (8)'],
+    'settembre': ['Inizio Scuole', 'Inizio Autunno (23)', 'Bicicletta Day (17)'],
+    'ottobre': ['Halloween (31)', 'Festa dei Nonni (2)', 'World Mental Health Day (10)', 'Giornata del Pane (16)'],
+    'novembre': ['Ognissanti (1)', 'Black Friday', 'Cyber Monday', 'Movember', 'Giorno della gentilezza (13)'],
+    'dicembre': ['Immacolata (8)', 'Natale (25)', 'Santo Stefano (26)', 'San Silvestro (31)', 'Giorno dei Diritti Umani (10)']
+};
 
 function NewSocialStrategyForm() {
     const { clients, currentUser, isLoadingLayout } = useLayoutData();
@@ -29,6 +46,8 @@ function NewSocialStrategyForm() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedResult, setGeneratedResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
+    const [detectedMonth, setDetectedMonth] = useState<string | null>(null);
+    const [selectedHolidays, setSelectedHolidays] = useState<string[]>([]);
 
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -55,6 +74,28 @@ function NewSocialStrategyForm() {
             fetchOriginal();
         }
     }, [searchParams]);
+
+    // Detect month from period label
+    useEffect(() => {
+        const lowerLabel = periodLabel.toLowerCase();
+        const month = Object.keys(SOCIAL_HOLIDAYS).find(m => lowerLabel.includes(m));
+        if (month !== detectedMonth) {
+            setDetectedMonth(month || null);
+            setSelectedHolidays([]); // Reset if month changes
+        }
+    }, [periodLabel, detectedMonth]);
+
+    const toggleHoliday = (holiday: string) => {
+        const newSelected = selectedHolidays.includes(holiday)
+            ? selectedHolidays.filter(h => h !== holiday)
+            : [...selectedHolidays, holiday];
+
+        setSelectedHolidays(newSelected);
+
+        // Update the actual events textarea
+        const baseEvents = events.split(', ').filter(e => !Object.values(SOCIAL_HOLIDAYS).flat().includes(e) && e !== '');
+        setEvents([...baseEvents, ...newSelected].join(', '));
+    };
 
     const selectedClient = clients.find(c => c.id === selectedClientId);
 
@@ -249,12 +290,34 @@ Genera un JSON con questa struttura esatta:
                                 />
                             </div>
 
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 <Label>Eventi/Ricorrenze Rilevanti</Label>
-                                <Input
-                                    placeholder="es. Black Friday"
+
+                                {detectedMonth && (
+                                    <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg space-y-2 animate-in slide-in-from-top-1">
+                                        <p className="text-[10px] font-bold uppercase text-primary flex items-center gap-1">
+                                            <Sparkles className="h-3 w-3" /> Suggeriti per {detectedMonth.charAt(0).toUpperCase() + detectedMonth.slice(1)}:
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {SOCIAL_HOLIDAYS[detectedMonth].map(holiday => (
+                                                <Badge
+                                                    key={holiday}
+                                                    variant={selectedHolidays.includes(holiday) ? 'default' : 'outline'}
+                                                    className="cursor-pointer text-[10px] py-0 px-2 h-6"
+                                                    onClick={() => toggleHoliday(holiday)}
+                                                >
+                                                    {holiday}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <Textarea
+                                    placeholder="es. Black Friday, Saldi, Evento X..."
                                     value={events}
                                     onChange={(e) => setEvents(e.target.value)}
+                                    className="min-h-[60px]"
                                 />
                             </div>
 
