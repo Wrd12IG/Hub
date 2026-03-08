@@ -16,24 +16,20 @@ export async function POST(req: NextRequest) {
         // Use a high-quality dynamic image source that feels like AI generation
         // for the purpose of this demo/implementation.
         // A real implementation would call OpenAI DALL-E 3 here.
-        const encodedKeywords = encodeURIComponent(topic || 'marketing');
-        const imageUrl = `https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80&q=${Date.now()}`;
+        // For now, let's use a reliable set of high-quality marketing placeholders
+        // In real production, this would call DALL-E or Midjourney via API.
+        const placeholders = [
+            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80', // Digital Marketing
+            'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80', // Social Media app
+            'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80', // Strategy
+            'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=800&q=80', // Team/Office
+            'https://images.unsplash.com/photo-1557838923-2985c318be48?auto=format&fit=crop&w=800&q=80'  // Social networking
+        ];
 
-        // In a real scenario, we'd do this:
-        /*
-        const response = await openai.images.generate({
-          model: "dall-e-3",
-          prompt: `A professional high-quality social media ${mediaType} moodboard for ${clientName} about ${topic}. Style: ${toneOfVoice}.`,
-          n: 1,
-          size: "1024x1024",
-        });
-        return NextResponse.json({ imageUrl: response.data[0].url });
-        */
+        const randomIndex = Math.floor(Math.random() * placeholders.length);
+        const imageUrl = placeholders[randomIndex];
 
-        // For now, let's return a dynamic-looking placeholder that changes with the topic
-        const fallbackUrl = `https://source.unsplash.com/800x600/?${encodedKeywords},style`;
-
-        return NextResponse.json({ imageUrl: fallbackUrl });
+        return NextResponse.json({ imageUrl });
 
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
