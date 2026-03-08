@@ -25,12 +25,15 @@ export async function POST(req: NextRequest) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    system_instruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
                     contents: [{
-                        parts: [{ text: `${systemPrompt}\n\nRichiesta utente:\n${prompt}` }]
+                        parts: [{ text: prompt }]
                     }],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 8000,
+                        maxOutputTokens: 5000,
                         responseMimeType: "application/json",
                     }
                 })
