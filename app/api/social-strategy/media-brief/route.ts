@@ -37,6 +37,9 @@ Contesto del post:
 
 Tipo di Media richiesto: ${mediaType}
 
+ISTRUZIONI SPECIALI PER ${mediaType}:
+${mediaType === 'Carosello' ? '- Genera esattamente 5-7 slide. Per ogni slide specifica: Titolo Gancio, Testo di supporto, Descrizione dell\'elemento visivo (foto/icona) e Call to Action finale.' : '- Fornisci una visione d\'insieme artistica e tecnica coerente con il brand.'}
+
 Genera un JSON con questa struttura:
 {
   "tipo_media": "${mediaType}",

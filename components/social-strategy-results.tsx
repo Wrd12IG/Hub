@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,10 +24,17 @@ import {
     Camera,
     Layout,
     GalleryHorizontal,
-    PlusCircle,
+    Wand2,
+    RefreshCw,
+    Palette,
+    Share2,
+    MessageSquare,
+    ExternalLink,
     Loader2,
-    Check
+    Check,
+    PlusCircle
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
 import { addTask, addEditorialContent } from '@/lib/actions';
@@ -60,6 +67,7 @@ interface SocialStrategyResultsProps {
     toneOfVoice?: string;
 }
 
+
 export function SocialStrategyResults({ result, clientName, clientId, userId, periodLabel, toneOfVoice }: SocialStrategyResultsProps) {
     const { toast } = useToast();
     const [emailText, setEmailText] = useState(result.testo_email);
@@ -71,6 +79,12 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
     const [loadingBriefs, setLoadingBriefs] = useState<Record<number, boolean>>({});
     const [savedPosts, setSavedPosts] = useState<Record<number, boolean>>({});
     const [isSaving, setIsSaving] = useState<Record<number, boolean>>({});
+
+    // New Innovative Features State
+    const [customCaptions, setCustomCaptions] = useState<Record<number, string>>({});
+    const [isRewriting, setIsRewriting] = useState<Record<number, boolean>>({});
+    const [moodboards, setMoodboards] = useState<Record<number, string>>({});
+    const [isLoadingMoodboard, setIsLoadingMoodboard] = useState<Record<number, boolean>>({});
 
     const mediaTypes = [
         { id: 'Video', icon: Video, label: 'Video/Reel' },
@@ -188,6 +202,65 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                 description: 'Impossibile generare il file PowerPoint. Controlla la console per i dettagli.',
                 variant: 'destructive'
             });
+        }
+    };
+
+    const handleRewriteCaption = async (index: number, targetTone: string) => {
+        const item = result.calendario[index];
+        setIsRewriting(prev => ({ ...prev, [index]: true }));
+
+        try {
+            const response = await fetch('/api/social-strategy/rewrite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    originalCaption: customCaptions[index] || item.caption,
+                    targetTone,
+                    topic: item.topic,
+                    clientName,
+                    toneOfVoice
+                })
+            });
+
+            if (!response.ok) throw new Error('Rewrite failed');
+
+            const { rewritten } = await response.json();
+            setCustomCaptions(prev => ({ ...prev, [index]: rewritten }));
+            toast({ title: 'Riscritto!', description: `Caption riformulata in tono ${targetTone}.` });
+        } catch (error) {
+            toast({ title: 'Errore', description: 'Impossibile riscrivere la caption.', variant: 'destructive' });
+        } finally {
+            setIsRewriting(prev => ({ ...prev, [index]: false }));
+        }
+    };
+
+    const handleGenerateMoodboard = async (index: number) => {
+        const item = result.calendario[index];
+        const mediaType = selectedMediaTypes[index] || item.formato;
+        setIsLoadingMoodboard(prev => ({ ...prev, [index]: true }));
+
+        try {
+            const response = await fetch('/api/social-strategy/moodboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    topic: item.topic,
+                    platform: item.piattaforma,
+                    mediaType,
+                    clientName,
+                    toneOfVoice
+                })
+            });
+
+            if (!response.ok) throw new Error('Moodboard failed');
+
+            const { imageUrl } = await response.json();
+            setMoodboards(prev => ({ ...prev, [index]: imageUrl }));
+            toast({ title: 'Moodboard Pronta', description: 'Immagine di anteprima generata.' });
+        } catch (error) {
+            toast({ title: 'Errore', description: 'Impossibile generare la moodboard.', variant: 'destructive' });
+        } finally {
+            setIsLoadingMoodboard(prev => ({ ...prev, [index]: false }));
         }
     };
 
@@ -354,17 +427,34 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                                         </div>
                                         <div>
                                             <div className="flex justify-between items-center mb-1">
-                                                <p className="text-xs font-bold text-muted-foreground uppercase">Caption</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="text-xs font-bold text-muted-foreground uppercase">Caption</p>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full hover:bg-primary/10">
+                                                                {isRewriting[i] ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3 text-primary" />}
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="start">
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Ironico')} className="text-xs">😜 Ironico</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Formale')} className="text-xs">👔 Formale</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Ispirazionale')} className="text-xs">✨ Ispirazionale</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Tecnico')} className="text-xs">🔬 Tecnico</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    onClick={() => copyToClipboard(item.caption, 'Caption')}
+                                                    onClick={() => copyToClipboard(customCaptions[i] || item.caption, 'Caption')}
                                                 >
                                                     <Copy className="h-3 w-3" />
                                                 </Button>
                                             </div>
-                                            <p className="text-xs whitespace-pre-wrap italic bg-accent/20 p-2 rounded">{item.caption}</p>
+                                            <p className="text-xs whitespace-pre-wrap italic bg-accent/20 p-2 rounded border border-primary/5 transition-all">
+                                                {customCaptions[i] || item.caption}
+                                            </p>
                                         </div>
 
                                         <div className="pt-3 border-t space-y-3">
@@ -382,7 +472,26 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                                                         <type.icon className="h-3 w-3" /> {type.label}
                                                     </Button>
                                                 ))}
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={isLoadingMoodboard[i] || savedPosts[i]}
+                                                    className="h-8 text-[10px] gap-1 px-2 border-primary/30 hover:bg-primary/5 text-primary"
+                                                    onClick={() => handleGenerateMoodboard(i)}
+                                                >
+                                                    {isLoadingMoodboard[i] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Palette className="h-3 w-3" />}
+                                                    Moodboard AI
+                                                </Button>
                                             </div>
+
+                                            {moodboards[i] && (
+                                                <div className="mt-2 rounded-lg overflow-hidden border bg-black/5 relative group/moodboard">
+                                                    <img src={moodboards[i]} alt="Moodboard" className="w-full h-24 object-cover opacity-80 group-hover/moodboard:opacity-100 transition-opacity" />
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/moodboard:opacity-100 bg-black/40 transition-opacity">
+                                                        <Button variant="secondary" size="sm" className="h-6 text-[9px] px-2" onClick={() => window.open(moodboards[i], '_blank')}>Vedi Full</Button>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {selectedMediaTypes[i] && !mediaBriefs[i] && !savedPosts[i] && (
                                                 <Button
@@ -465,7 +574,25 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                     </TabsContent>
 
                     <TabsContent value="email" className="mt-0 space-y-4">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center bg-primary/5 p-4 rounded-xl border border-primary/10 mb-4">
+                            <div className="space-y-1">
+                                <h4 className="text-sm font-bold flex items-center gap-2"><Share2 className="h-4 w-4 text-primary" /> Pagina Preview Cliente</h4>
+                                <p className="text-xs text-muted-foreground">Invia questo link al cliente per l'approvazione rapida.</p>
+                            </div>
+                            <Button
+                                variant="default"
+                                size="sm"
+                                className="shadow-lg shadow-primary/20"
+                                onClick={() => {
+                                    const shareUrl = `${window.location.origin}/share/social-strategy/${clientId}?t=${Date.now()}`;
+                                    copyToClipboard(shareUrl, 'Link Anteprima');
+                                }}
+                            >
+                                <ExternalLink className="mr-2 h-4 w-4" /> Genera Link
+                            </Button>
+                        </div>
+
+                        <div className="flex justify-between items-center pt-2">
                             <h3 className="text-sm font-bold uppercase tracking-wider text-primary">Preview Email per il Cliente</h3>
                             <Button variant="outline" size="sm" onClick={() => copyToClipboard(emailText, 'Email')}>
                                 <Copy className="mr-2 h-4 w-4" /> Copia Testo

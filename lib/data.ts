@@ -67,6 +67,10 @@ export interface SocialStrategy {
     outputJson: any; // Complete AI response
     manualNotes?: string;
     status: 'bozza' | 'inviata' | 'archiviata';
+    shareId?: string; // For public preview
+    clientApprovalStatus?: 'pending' | 'approved' | 'feedback';
+    clientComments?: string;
+    moodboards?: Record<number, string>; // index -> imageUrl
 }
 
 export interface Project {
