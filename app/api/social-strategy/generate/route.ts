@@ -16,9 +16,9 @@ export async function POST(req: NextRequest) {
 
         // Prefer Gemini if available, or if Anthropic is still placeholder
         if (geminiApiKey && geminiApiKey !== 'your_gemini_key_here') {
-            const model = 'gemini-1.5-flash';
+            const model = 'gemini-2.0-flash';
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-            console.log(`Using Google Gemini API. URL: https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=REDACTED`);
+            console.log(`Using Google Gemini API. Model: ${model}`);
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
                     generationConfig: {
                         temperature: 0.7,
                         maxOutputTokens: 8000,
+                        responseMimeType: "application/json",
                     }
                 })
             });
