@@ -42,13 +42,20 @@ export async function POST(req: NextRequest) {
 
         // 2. Try to generate REAL image using Gemini Imagen 3
         try {
-            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3:generateImages?key=${geminiApiKey}`;
+            // Updated model name to match current Google AI Studio Imagen 3 availability
+            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${geminiApiKey}`;
             const imagenResponse = await fetch(imagenUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: imagePrompt,
                     numberOfImages: 1,
+                    safetySettings: [
+                        { category: "HATE_SPEECH", threshold: "BLOCK_NONE" },
+                        { category: "HARASSMENT", threshold: "BLOCK_NONE" },
+                        { category: "SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                        { category: "DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                    ]
                 })
             });
 
@@ -59,20 +66,23 @@ export async function POST(req: NextRequest) {
                     const mimeType = imagenData.images[0].mimeType || 'image/png';
                     return NextResponse.json({ imageUrl: `data:${mimeType};base64,${base64}` });
                 }
+            } else {
+                console.error('Imagen 3 API returned error:', await imagenResponse.text());
             }
         } catch (e) {
             console.error('Gemini Imagen 3 not available or failed:', e);
         }
 
-        // 3. Fallback: High-quality dynamic placeholder
-        const placeholders = [
-            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80',
-            'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80',
-        ];
+        // 3. Fallback: High-quality UNIQUE placeholder based on TOPIC
+        // If Imagen fails, we use a search-based unsplash URL to ensure post diversity.
+        const encodedTopic = encodeURIComponent(topic || 'business');
+        const randomSeed = Math.floor(Math.random() * 1000);
+        const imageUrl = `https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80&sig=${encodedTopic}-${randomSeed}`;
 
-        const imageUrl = placeholders[Math.floor(Math.random() * placeholders.length)];
-        return NextResponse.json({ imageUrl });
+        // Alternative reliable unique image service
+        const finalUrl = `https://loremflickr.com/800/600/${encodedTopic}?random=${randomSeed}`;
+
+        return NextResponse.json({ imageUrl: finalUrl });
 
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
