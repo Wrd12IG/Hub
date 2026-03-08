@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
 
         // Prefer Gemini if available, or if Anthropic is still placeholder
         if (geminiApiKey && geminiApiKey !== 'your_gemini_key_here') {
-            console.log('Using Google Gemini API...');
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiApiKey}`, {
+            console.log('Using Google Gemini API (flash)...');
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
