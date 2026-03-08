@@ -181,7 +181,8 @@ Genera un JSON con questa struttura esatta:
             });
 
             if (!response.ok) {
-                throw new Error('Errore nella generazione della strategia.');
+                const errorBody = await response.json().catch(() => ({}));
+                throw new Error(errorBody.error || errorBody.details || 'Errore nella generazione della strategia.');
             }
 
             const data = await response.json();
