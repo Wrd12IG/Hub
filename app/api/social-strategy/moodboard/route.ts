@@ -7,28 +7,71 @@ export async function POST(req: NextRequest) {
     try {
         const { topic, platform, mediaType, clientName, toneOfVoice } = await req.json();
 
-        // Normally we'd use DALL-E or Midjourney. 
-        // For this implementation, we use Gemini to generate a perfect search query 
-        // or a descriptive visual concept, and we'll use a high-quality visual source.
+        const geminiApiKey = process.env.GEMINI_API_KEY;
 
-        const keywords = [topic, platform, 'aesthetic', 'marketing', 'professional'].join(' ');
+        if (!geminiApiKey || geminiApiKey === 'your_gemini_key_here') {
+            return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
+        }
 
-        // Use a high-quality dynamic image source that feels like AI generation
-        // for the purpose of this demo/implementation.
-        // A real implementation would call OpenAI DALL-E 3 here.
-        // For now, let's use a reliable set of high-quality marketing placeholders
-        // In real production, this would call DALL-E or Midjourney via API.
+        // 1. Use Gemini 2.0 Flash to generate a "Perfect Creative Prompt"
+        const promptModel = 'gemini-2.0-flash';
+        const promptUrl = `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiApiKey}`;
+
+        const visualSystemPrompt = `Sei un esperto Visual Designer. Crea un prompt in INGLESE per generare un'immagine fotografica di altissima qualità (stile editoriale, 8k, bokeh) per un post social.
+        Dati:
+        - Cliente: ${clientName || 'N/D'}
+        - Topic: ${topic}
+        - Piattaforma: ${platform}
+        - Media: ${mediaType}
+
+        Sii descrittivo, evita testi nell'immagine, concentrati su texture, luci e composizione. Rispondi SOLO con il prompt in inglese.`;
+
+        const promptResponse = await fetch(promptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: visualSystemPrompt }] }]
+            })
+        });
+
+        let imagePrompt = `${topic} professional social media photography`;
+        if (promptResponse.ok) {
+            const promptResult = await promptResponse.json();
+            imagePrompt = promptResult.candidates[0].content.parts[0].text.trim();
+        }
+
+        // 2. Try to generate REAL image using Gemini Imagen 3
+        try {
+            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3:generateImages?key=${geminiApiKey}`;
+            const imagenResponse = await fetch(imagenUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: imagePrompt,
+                    numberOfImages: 1,
+                })
+            });
+
+            if (imagenResponse.ok) {
+                const imagenData = await imagenResponse.json();
+                if (imagenData.images && imagenData.images[0]) {
+                    const base64 = imagenData.images[0].base64Data;
+                    const mimeType = imagenData.images[0].mimeType || 'image/png';
+                    return NextResponse.json({ imageUrl: `data:${mimeType};base64,${base64}` });
+                }
+            }
+        } catch (e) {
+            console.error('Gemini Imagen 3 not available or failed:', e);
+        }
+
+        // 3. Fallback: High-quality dynamic placeholder
         const placeholders = [
-            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80', // Digital Marketing
-            'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80', // Social Media app
-            'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80', // Strategy
-            'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&w=800&q=80', // Team/Office
-            'https://images.unsplash.com/photo-1557838923-2985c318be48?auto=format&fit=crop&w=800&q=80'  // Social networking
+            'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&w=800&q=80',
+            'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80',
         ];
 
-        const randomIndex = Math.floor(Math.random() * placeholders.length);
-        const imageUrl = placeholders[randomIndex];
-
+        const imageUrl = placeholders[Math.floor(Math.random() * placeholders.length)];
         return NextResponse.json({ imageUrl });
 
     } catch (error: any) {
