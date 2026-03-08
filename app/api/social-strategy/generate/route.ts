@@ -13,19 +13,19 @@ export async function POST(req: NextRequest) {
 
         // Prefer Gemini if available, or if Anthropic is still placeholder
         if (geminiApiKey && geminiApiKey !== 'your_gemini_key_here') {
-            console.log('Using Google Gemini API (v1beta/flash)...');
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+            console.log('Using Google Gemini API (v1/flash stable)...');
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     contents: [{
-                        parts: [{ text: `${systemPrompt}\n\nRichiesta utente per la strategia:\n${prompt}` }]
+                        parts: [{ text: `${systemPrompt}\n\nRichiesta utente:\n${prompt}` }]
                     }],
                     generationConfig: {
                         temperature: 0.7,
-                        maxOutputTokens: 8192,
+                        maxOutputTokens: 8000,
                     }
                 })
             });
