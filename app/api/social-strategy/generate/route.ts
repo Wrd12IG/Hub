@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
+    console.log('>>> API CALL: /api/social-strategy/generate');
     try {
         const { prompt, systemPrompt } = await req.json();
 
@@ -13,8 +16,10 @@ export async function POST(req: NextRequest) {
 
         // Prefer Gemini if available, or if Anthropic is still placeholder
         if (geminiApiKey && geminiApiKey !== 'your_gemini_key_here') {
-            console.log('Using Google Gemini API (v1/flash stable)...');
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+            const model = 'gemini-1.5-flash';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
+            console.log(`Using Google Gemini API. URL: https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=REDACTED`);
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -32,11 +37,18 @@ export async function POST(req: NextRequest) {
 
             if (!response.ok) {
                 const errorBody = await response.json().catch(() => ({}));
-                console.error('Gemini API error:', errorBody);
+                console.error('Gemini API error:', JSON.stringify(errorBody, null, 2));
+
+                // If it's a 404 from Gemini, we don't want to return 404 to the browser 
+                // because it looks like our route is missing.
+                const status = response.status === 404 ? 500 : response.status;
+
                 return NextResponse.json({
                     error: 'Errore durante la generazione della strategia (Gemini API).',
-                    details: errorBody.error?.message || response.statusText
-                }, { status: response.status });
+                    details: errorBody.error?.message || response.statusText,
+                    code: errorBody.error?.code,
+                    status: response.status
+                }, { status });
             }
 
             const result = await response.json();
