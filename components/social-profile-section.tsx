@@ -24,7 +24,7 @@ interface SocialProfileSectionProps {
 
 const PLATFORMS = ['Instagram', 'LinkedIn', 'Facebook', 'TikTok', 'X', 'YouTube'];
 const TONES = ['Professionale', 'Creativo & Bold', 'Empatico', 'Ironico & Fun', 'Luxury & Elegante', 'Motivazionale'];
-const SECTORS = ['Moda & Lifestyle', 'Food & Beverage', 'Tech & SaaS', 'Real Estate', 'Salute & Benessere', 'Retail', 'B2B', 'Turismo', 'Educazione', 'Altro'];
+const SECTORS = ['Moda & Lifestyle', 'Food & Beverage', 'Tech & SaaS', 'TECH & IT', 'Automotive', 'Real Estate', 'Salute & Benessere', 'Retail', 'B2B', 'Turismo', 'Educazione', 'Altro'];
 
 export function SocialProfileSection({ client }: SocialProfileSectionProps) {
     const [isEditing, setIsEditing] = useState(false);
