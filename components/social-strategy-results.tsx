@@ -95,57 +95,75 @@ export function SocialStrategyResults({ result, clientName, periodLabel }: Socia
     };
 
     const exportToPPTX = async () => {
-        const pptxgen = (await import('pptxgenjs')).default;
-        const pres = new pptxgen();
+        toast({ title: 'Esportazione in corso', description: 'Preparazione del file PowerPoint...' });
 
-        // Slide 1: Copertina
-        const slide1 = pres.addSlide();
-        slide1.addText(`Strategia Social`, { x: 1, y: 1.5, w: '80%', h: 1, fontSize: 44, bold: true, color: '363636', align: 'center' });
-        slide1.addText(clientName || 'Cliente', { x: 1, y: 2.5, w: '80%', h: 0.5, fontSize: 32, color: 'FFD700', align: 'center' });
-        slide1.addText(periodLabel || '', { x: 1, y: 3.2, w: '80%', h: 0.5, fontSize: 18, color: '808080', align: 'center' });
+        try {
+            // Dynamic import of pptxgenjs
+            const pptxgenModule = await import('pptxgenjs');
+            const PptxGenJS = pptxgenModule.default || pptxgenModule;
+            const pres = new PptxGenJS();
 
-        // Slide 2: Sommario & Obiettivi
-        const slide2 = pres.addSlide();
-        slide2.addText('Visione Strategica', { x: 0.5, y: 0.5, fontSize: 28, bold: true, color: 'primary' });
-        slide2.addText(result.sommario_strategico, { x: 0.5, y: 1.2, w: '90%', fontSize: 14 });
-        slide2.addText('Obiettivi:', { x: 0.5, y: 2.5, fontSize: 18, bold: true });
-        slide2.addText(result.obiettivi.map(o => `• ${o}`).join('\n'), { x: 0.5, y: 2.9, w: '90%', fontSize: 12 });
+            const PRIMARY_COLOR = '2563EB'; // Blue primary from globals.css
 
-        // Slide 3: Messaggio Chiave
-        const slide3 = pres.addSlide();
-        slide3.addShape(pres.ShapeType.rect, { x: 0, y: 0, w: '100%', h: '100%', fill: { color: 'primary' } });
-        slide3.addText('MESSAGGIO CHIAVE', { x: 0, y: 1.5, w: '100%', h: 1, fontSize: 24, color: 'ffffff', align: 'center', bold: true });
-        slide3.addText(`"${result.messaggio_chiave}"`, { x: 1, y: 2.5, w: '80%', h: 2, fontSize: 36, color: 'ffffff', align: 'center', italic: true });
+            // Slide 1: Copertina
+            const slide1 = pres.addSlide();
+            slide1.addText(`Strategia Social`, { x: 1, y: 1.5, w: '80%', h: 1, fontSize: 44, bold: true, color: '363636', align: 'center' });
+            slide1.addText(clientName || 'Cliente', { x: 1, y: 2.5, w: '80%', h: 0.5, fontSize: 32, color: 'FFD700', align: 'center' });
+            slide1.addText(periodLabel || '', { x: 1, y: 3.2, w: '80%', h: 0.5, fontSize: 18, color: '808080', align: 'center' });
 
-        // Slide 4+: Calendario (Simplified for export)
-        result.calendario.forEach((c, idx) => {
-            if (idx % 2 === 0) {
-                const slide = pres.addSlide();
-                slide.addText(`Piano Editoriale - Parte ${Math.floor(idx / 2) + 1}`, { x: 0.5, y: 0.3, fontSize: 24, bold: true });
+            // Slide 2: Sommario & Obiettivi
+            const slide2 = pres.addSlide();
+            slide2.addText('Visione Strategica', { x: 0.5, y: 0.5, fontSize: 28, bold: true, color: PRIMARY_COLOR });
+            slide2.addText(result.sommario_strategico, { x: 0.5, y: 1.2, w: '90%', fontSize: 14 });
+            slide2.addText('Obiettivi:', { x: 0.5, y: 2.5, fontSize: 18, bold: true });
+            slide2.addText(result.obiettivi.map(o => `• ${o}`).join('\n'), { x: 0.5, y: 2.9, w: '90%', fontSize: 12 });
 
-                // Item 1
-                slide.addText(`${c.giorno} | ${c.piattaforma}`, { x: 0.5, y: 1, w: 4, fontSize: 16, bold: true, color: 'primary' });
-                slide.addText(`Formato: ${c.formato}\nTopic: ${c.topic}\nCTA: ${c.cta}`, { x: 0.5, y: 1.5, w: 4, fontSize: 11 });
-                slide.addText(c.caption, { x: 0.5, y: 2.8, w: 4, h: 2.5, fontSize: 9, italic: true, color: '666666' });
+            // Slide 3: Messaggio Chiave
+            const slide3 = pres.addSlide();
+            slide3.addShape(pres.ShapeType.rect, { x: 0, y: 0, w: '100%', h: '100%', fill: { color: PRIMARY_COLOR } });
+            slide3.addText('MESSAGGIO CHIAVE', { x: 0, y: 1.5, w: '100%', h: 1, fontSize: 24, color: 'ffffff', align: 'center', bold: true });
+            slide3.addText(`"${result.messaggio_chiave}"`, { x: 1, y: 2.5, w: '80%', h: 2, fontSize: 36, color: 'ffffff', align: 'center', italic: true });
 
-                // Item 2 (if exists)
-                const next = result.calendario[idx + 1];
-                if (next) {
-                    slide.addText(`${next.giorno} | ${next.piattaforma}`, { x: 5.5, y: 1, w: 4, fontSize: 16, bold: true, color: 'primary' });
-                    slide.addText(`Formato: ${next.formato}\nTopic: ${next.topic}\nCTA: ${next.cta}`, { x: 5.5, y: 1.5, w: 4, fontSize: 11 });
-                    slide.addText(next.caption, { x: 5.5, y: 2.8, w: 4, h: 2.5, fontSize: 9, italic: true, color: '666666' });
+            // Slide 4+: Calendario (Simplified for export)
+            result.calendario.forEach((c, idx) => {
+                if (idx % 2 === 0) {
+                    const slide = pres.addSlide();
+                    slide.addText(`Piano Editoriale - Parte ${Math.floor(idx / 2) + 1}`, { x: 0.5, y: 0.3, fontSize: 24, bold: true });
+
+                    // Item 1
+                    slide.addText(`${c.giorno} | ${c.piattaforma}`, { x: 0.5, y: 1, w: 4, fontSize: 16, bold: true, color: PRIMARY_COLOR });
+                    slide.addText(`Formato: ${c.formato}\nTopic: ${c.topic}\nCTA: ${c.cta}`, { x: 0.5, y: 1.5, w: 4, fontSize: 11 });
+                    slide.addText(c.caption || '', { x: 0.5, y: 2.8, w: 4, h: 2.5, fontSize: 9, italic: true, color: '666666' });
+
+                    // Item 2 (if exists)
+                    const next = result.calendario[idx + 1];
+                    if (next) {
+                        slide.addText(`${next.giorno} | ${next.piattaforma}`, { x: 5.5, y: 1, w: 4, fontSize: 16, bold: true, color: PRIMARY_COLOR });
+                        slide.addText(`Formato: ${next.formato}\nTopic: ${next.topic}\nCTA: ${next.cta}`, { x: 5.5, y: 1.5, w: 4, fontSize: 11 });
+                        slide.addText(next.caption || '', { x: 5.5, y: 2.8, w: 4, h: 2.5, fontSize: 9, italic: true, color: '666666' });
+                    }
                 }
-            }
-        });
+            });
 
-        // Final Slide: Idee WOW & KPI
-        const slideFinal = pres.addSlide();
-        slideFinal.addText('Idee WOW ✨', { x: 0.5, y: 0.5, fontSize: 28, bold: true, color: 'primary' });
-        slideFinal.addText(result.idee_wow.map(i => `★ ${i.titolo}: ${i.descrizione}`).join('\n\n'), { x: 0.5, y: 1.2, w: '90%', fontSize: 11 });
-        slideFinal.addText('Principali KPI:', { x: 0.5, y: 4, fontSize: 18, bold: true });
-        slideFinal.addText(result.kpi.join('  |  '), { x: 0.5, y: 4.4, w: '90%', fontSize: 12 });
+            // Final Slide: Idee WOW & KPI
+            const slideFinal = pres.addSlide();
+            slideFinal.addText('Idee WOW ✨', { x: 0.5, y: 0.5, fontSize: 28, bold: true, color: PRIMARY_COLOR });
+            slideFinal.addText(result.idee_wow.map(i => `★ ${i.titolo}: ${i.descrizione}`).join('\n\n'), { x: 0.5, y: 1.2, w: '90%', fontSize: 11 });
+            slideFinal.addText('Principali KPI:', { x: 0.5, y: 4, fontSize: 18, bold: true });
+            slideFinal.addText(result.kpi.join('  |  '), { x: 0.5, y: 4.4, w: '90%', fontSize: 12 });
 
-        pres.writeFile({ fileName: `Strategia_Social_${clientName || ''}.pptx` });
+            const fileName = `Strategia_Social_${clientName || ''}_${new Date().toISOString().split('T')[0]}.pptx`;
+            await pres.writeFile({ fileName });
+
+            toast({ title: 'Completato', description: 'File PowerPoint generato con successo.' });
+        } catch (error) {
+            console.error('Error exporting to PPTX:', error);
+            toast({
+                title: 'Errore',
+                description: 'Impossibile generare il file PowerPoint. Controlla la console per i dettagli.',
+                variant: 'destructive'
+            });
+        }
     };
 
     return (
