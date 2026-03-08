@@ -56,11 +56,23 @@ export async function POST(req: NextRequest) {
             const content = result.candidates[0].content.parts[0].text;
 
             try {
-                const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
-                return NextResponse.json(JSON.parse(cleanContent));
-            } catch (e) {
+                // Find start and end of JSON if AI added extra text
+                const startIdx = content.indexOf('{');
+                const endIdx = content.lastIndexOf('}');
+
+                if (startIdx === -1 || endIdx === -1) {
+                    throw new Error('No JSON structure found in response');
+                }
+
+                const jsonStr = content.substring(startIdx, endIdx + 1);
+                return NextResponse.json(JSON.parse(jsonStr));
+            } catch (e: any) {
                 console.error('Failed to parse Gemini response as JSON:', content);
-                return NextResponse.json({ error: 'Risposta AI non valida (JSON corrotto)', rawContent: content }, { status: 500 });
+                return NextResponse.json({
+                    error: 'AI output non valida',
+                    details: e.message,
+                    content_preview: content.substring(0, 100) + '...'
+                }, { status: 500 });
             }
         }
 

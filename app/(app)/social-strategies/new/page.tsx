@@ -142,10 +142,10 @@ QUESTO PERIODO:
 - Note extra: ${extraNotes}
 
 ISTRUZIONI QUANTITÀ E STRUTTURA:
-- Se la frequenza è "settimanale", genera un calendario di circa 5 post totali.
-- Se la frequenza è "mensile", genera un calendario MOLTO CORPOSO con almeno 20-24 post (circa 5-6 post a settimana) ben distribuiti su tutto il mese per coprire tutte le piattaforme attive (${profile.platforms?.join(', ') || 'tutte'}).
+- Se la frequenza è "settimanale", genera un calendario di circa 4-5 post totali.
+- Se la frequenza è "mensile", genera un calendario corposo con almeno 12-15 post (circa 3-4 post a settimana) distribuiti bene su tutto il mese e sulle diverse piattaforme attive del cliente (${profile.platforms?.join(', ') || 'tutte'}).
 - OGNI giorno nel calendario deve essere diverso o coprire una diversa combinazione di piattaforma/argomento.
-- NON limitarti a 2 post a settimana per un mese intero.
+- Sii creativo e specifico per ogni singolo post (topic, caption, cta).
 
 Genera un JSON con questa struttura esatta:
 {
