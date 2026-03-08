@@ -44,7 +44,7 @@ import {
 } from './notifications';
 
 // Helper to convert Firestore timestamps
-const convertTimestamps = (data: any): any => {
+export const convertTimestamps = (data: any): any => {
     if (!data) return data;
     if (data instanceof Timestamp) {
         return data.toDate().toISOString();
@@ -71,7 +71,7 @@ async function fetchCollection<T>(collectionName: string): Promise<T[]> {
 }
 
 // Helper to remove undefined values (Firestores doesn't like them)
-const cleanData = (data: any): any => {
+export const cleanData = (data: any): any => {
     if (data === null || data === undefined) return data;
     if (Array.isArray(data)) return data.map(item => cleanData(item));
     if (typeof data === 'object' && data.constructor === Object) {

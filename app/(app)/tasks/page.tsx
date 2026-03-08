@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { getTask, addTask, updateTask, deleteTask, uploadFilesAndGetAttachments, getAbsences, getClients, getProjects, getUsers, getActivityTypes, stopTaskTimer } from '@/lib/actions';
+import { getTask, addTask, updateTask, deleteTask, uploadFilesAndGetAttachments, getAbsences, getClients, getProjects, getUsers, getActivityTypes } from '@/lib/actions';
 import type { Task, Client, User, Project, ActivityType, Attachment, Absence, TaskApproval, TaskComment } from '@/lib/data';
 import { allTaskStatuses } from '@/lib/data';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -792,24 +792,13 @@ function TasksPageContent() {
         try {
             setIsSubmitting(true);
 
-            // Se il timer è attivo per questo task, fermalo e salva il tempo
+            // Se il timer è attivo per questo task, fermalo prima di procedere
+            // Il cleanup del PomodoroWidget salverà il tempo automaticamente
             const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
-            if (isTimerActiveForThisTask && task.timerStartedAt) {
-                try {
-                    const timerStart = new Date(task.timerStartedAt).getTime();
-                    const now = Date.now();
-                    const elapsedSeconds = Math.floor((now - timerStart) / 1000);
-
-                    if (elapsedSeconds > 0) {
-                        await stopTaskTimer(task.id, elapsedSeconds);
-                        toast.info(`Timer fermato automaticamente. Salvati ${Math.floor(elapsedSeconds / 60)} minuti.`);
-                    }
-
-                    // Resetta il pomodoro widget
-                    setPomodoroTask(null);
-                } catch (error) {
-                    console.error("Errore nel fermare il timer:", error);
-                }
+            if (isTimerActiveForThisTask) {
+                setPomodoroTask(null);
+                // Breve attesa per permettere al cleanup del widget di avviarsi
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             let newAttachment: Attachment;
@@ -885,11 +874,13 @@ function TasksPageContent() {
         const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
 
         if (isTimerActiveForThisTask) {
-            // If we click stop, the pomodoro widget will handle saving time.
+            // Ferma il timer: il cleanup del PomodoroWidget salverà il tempo automaticamente
+            // tramite il cleanup di useEffect (cleanupRanRef non è stato impostato a true,
+            // quindi il cleanup fire-and-forget salverà elapsedSecondsRef.current)
             setPomodoroTask(null);
         } else {
-            // If another timer is running, stop it first.
-            // The PomodoroWidget's useEffect will handle saving its time.
+            // Se c'è già un timer attivo per un altro task, fermalo prima.
+            // Il cleanup del widget salverà automaticamente il tempo trascorso.
             if (pomodoroTask) {
                 setPomodoroTask(null);
             }
@@ -903,7 +894,7 @@ function TasksPageContent() {
                     return;
                 }
             }
-            // Use a timeout to ensure the old task's cleanup runs before starting the new one
+            // Timeout per assicurarsi che il cleanup del vecchio task abbia avuto il tempo di eseguire
             setTimeout(() => setPomodoroTask(task), 150);
         }
     };
@@ -935,24 +926,13 @@ function TasksPageContent() {
     const handleSendForApproval = async (task: Task) => {
         if (!currentUser) return;
 
-        // Se il timer è attivo per questo task, fermalo e salva il tempo
+        // Se il timer è attivo per questo task, fermalo prima di procedere
+        // Il cleanup del PomodoroWidget salverà il tempo automaticamente
         const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
-        if (isTimerActiveForThisTask && task.timerStartedAt) {
-            try {
-                const timerStart = new Date(task.timerStartedAt).getTime();
-                const now = Date.now();
-                const elapsedSeconds = Math.floor((now - timerStart) / 1000);
-
-                if (elapsedSeconds > 0) {
-                    await stopTaskTimer(task.id, elapsedSeconds);
-                    toast.info(`Timer fermato automaticamente. Salvati ${Math.floor(elapsedSeconds / 60)} minuti.`);
-                }
-
-                // Resetta il pomodoro widget
-                setPomodoroTask(null);
-            } catch (error) {
-                console.error("Errore nel fermare il timer:", error);
-            }
+        if (isTimerActiveForThisTask) {
+            setPomodoroTask(null);
+            // Breve attesa per permettere al cleanup del widget di avviarsi
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         // Se skipAttachmentOnApproval è true, invia direttamente

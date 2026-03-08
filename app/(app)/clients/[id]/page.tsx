@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { generateClientPublicLink, revokeClientPublicLink } from '@/lib/actions';
-import { ArrowLeft, Mail, Phone, MapPin, Euro, Calendar, CheckSquare, Link as LinkIcon, Copy, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Euro, Calendar, CheckSquare, Link as LinkIcon, Copy, Trash2, Bot, Zap, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
 import { Client, Task, Project } from '@/lib/data';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
+import { SocialProfileSection } from '@/components/social-profile-section';
 
 export default function ClientDetailsPage() {
     const params = useParams();
@@ -202,6 +203,7 @@ export default function ClientDetailsPage() {
             )}
 
             <TabsSection
+                client={client}
                 projects={clientProjects}
                 tasks={clientTasks}
             />
@@ -209,7 +211,7 @@ export default function ClientDetailsPage() {
     );
 }
 
-function TabsSection({ projects, tasks }: { projects: Project[], tasks: Task[] }) {
+function TabsSection({ client, projects, tasks }: { client: Client, projects: Project[], tasks: Task[] }) {
     const [activeTab, setActiveTab] = useState('active-projects');
 
     return (
@@ -226,6 +228,12 @@ function TabsSection({ projects, tasks }: { projects: Project[], tasks: Task[] }
                     className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'recent-tasks' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}
                 >
                     Task Recenti
+                </button>
+                <button
+                    onClick={() => setActiveTab('social')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === 'social' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'} flex items-center gap-2`}
+                >
+                    <Bot className="h-4 w-4" /> Social & Marketing
                 </button>
             </div>
 
@@ -276,6 +284,10 @@ function TabsSection({ projects, tasks }: { projects: Project[], tasks: Task[] }
                         ))
                     )}
                 </div>
+            )}
+
+            {activeTab === 'social' && (
+                <SocialProfileSection client={client} />
             )}
         </div>
     )

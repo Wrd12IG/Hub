@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Square, CornerDownLeft, Timer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,10 @@ export default function PomodoroWidget({ task, onClose }: PomodoroWidgetProps) {
 
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const startTimeRef = useRef<number | null>(null);
+    // Ref per uso nel cleanup (evita closure stale su elapsedSeconds)
+    const elapsedSecondsRef = useRef(0);
+    // Flag: evita doppio salvataggio se handleStop è già stato chiamato prima del cleanup
+    const cleanupRanRef = useRef(false);
 
     const formatTime = (totalSeconds: number) => {
         const hours = Math.floor(totalSeconds / 3600);
@@ -29,33 +33,36 @@ export default function PomodoroWidget({ task, onClose }: PomodoroWidgetProps) {
         return [hours, minutes, seconds].map(v => v.toString().padStart(2, '0')).join(':');
     };
 
-    const saveTime = useCallback(async (timeToSave: number) => {
-        if (timeToSave <= 0) return;
-
-        try {
-            await stopTaskTimer(task.id, timeToSave);
-            toast.success(`Sessione terminata! Registrati ${formatTime(timeToSave)}.`);
-        } catch (error) {
-            console.error('Error stopping timer:', error);
-            toast.error("Errore nel salvataggio del tempo.");
-        }
-    }, [task.id]);
-
     useEffect(() => {
         startTimeRef.current = Date.now();
+        cleanupRanRef.current = false;
 
-        // Save timer start to Firestore for global visibility
+        // Salva l'avvio del timer su Firestore per visibilità globale
         if (currentUser) {
             startTaskTimer(task.id, currentUser.id).catch(console.error);
         }
 
         intervalRef.current = setInterval(() => {
-            setElapsedSeconds(Math.floor((Date.now() - (startTimeRef.current || 0)) / 1000));
+            const elapsed = Math.floor((Date.now() - (startTimeRef.current || 0)) / 1000);
+            setElapsedSeconds(elapsed);
+            elapsedSecondsRef.current = elapsed; // Aggiorna sempre il ref
         }, 1000);
 
+        // Safety net: salva il tempo quando il componente viene smontato senza handleStop esplicito
+        // (es. navigazione pagina, refresh, o setPomodoroTask(null) chiamato dall'esterno).
+        // Il flag cleanupRanRef evita il doppio salvataggio quando handleStop viene chiamato prima.
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
+            }
+
+            if (cleanupRanRef.current) return; // Il tempo è già stato salvato
+            cleanupRanRef.current = true;
+
+            // Fire-and-forget: non possiamo usare await nel cleanup di useEffect
+            const elapsed = elapsedSecondsRef.current;
+            if (elapsed > 0) {
+                stopTaskTimer(task.id, elapsed).catch(console.error);
             }
         };
     }, [task.id, currentUser]);
@@ -65,12 +72,26 @@ export default function PomodoroWidget({ task, onClose }: PomodoroWidgetProps) {
             clearInterval(intervalRef.current);
         }
 
-        // Play timer completion sound
+        // Marca come già salvato per evitare doppio salvataggio nel cleanup
+        cleanupRanRef.current = true;
+
+        // Suono di completamento
         if (soundSettings.enabled && soundSettings.timerSound) {
             playSound('timer', soundSettings.volume);
         }
 
-        await saveTime(elapsedSeconds);
+        const timeToSave = elapsedSecondsRef.current;
+        if (timeToSave > 0) {
+            try {
+                await stopTaskTimer(task.id, timeToSave);
+                toast.success(`Sessione terminata! Registrati ${formatTime(timeToSave)}.`);
+            } catch (error) {
+                console.error('Error stopping timer:', error);
+                toast.error("Errore nel salvataggio del tempo.");
+                cleanupRanRef.current = false; // Permetti retry via cleanup
+            }
+        }
+
         onClose();
     };
 

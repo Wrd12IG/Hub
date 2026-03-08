@@ -38,6 +38,35 @@ export interface Client {
     publicTokenCreatedAt?: string;
     createdAt?: string;
     updatedAt?: string;
+    // Social & Marketing Profile (stored as part of Client for simplicity, or in a separate collection)
+    socialProfile?: SocialProfile;
+}
+
+export interface SocialProfile {
+    platforms: string[];
+    toneOfVoice: string;
+    sector: string;
+    targetAudience: string;
+    competitors: string;
+    thingsToAvoid: string;
+    aiInfo: string;
+    frequencyDefault: 'settimanale' | 'mensile';
+}
+
+export interface SocialStrategy {
+    id: string;
+    clientId: string;
+    createdBy: string;
+    frequency: 'settimanale' | 'mensile';
+    periodLabel: string;
+    generationDate: string;
+    sendDate?: string;
+    periodObjective: string;
+    periodEvents: string;
+    periodNotes: string;
+    outputJson: any; // Complete AI response
+    manualNotes?: string;
+    status: 'bozza' | 'inviata' | 'archiviata';
 }
 
 export interface Project {

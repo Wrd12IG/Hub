@@ -84,6 +84,7 @@ export const allNavItems: NavItem[] = [
 
   // Pianificazione
   { href: '/calendar', icon: Calendar, label: 'Calendario' },
+  { href: '/social-strategies', icon: Bot, label: 'Strategie Social' },
   { href: '/editorial-plan', icon: Newspaper, label: 'Piano Editoriale' },
   { href: '/absences', icon: CalendarX2, label: 'Assenze' },
 

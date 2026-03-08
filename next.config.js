@@ -105,6 +105,42 @@ const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
+    webpack: (config, { isServer, webpack }) => {
+        if (!isServer) {
+            config.resolve.fallback = {
+                ...config.resolve.fallback,
+                fs: false,
+                https: false,
+                http: false,
+                net: false,
+                tls: false,
+                child_process: false,
+                readline: false,
+                zlib: false,
+                path: false,
+                os: false,
+                stream: false,
+                crypto: false,
+            };
+
+            // Handle node: protocol
+            config.plugins.push(
+                new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+                    resource.request = resource.request.replace(/^node:/, "");
+                })
+            );
+
+            config.resolve.alias = {
+                ...config.resolve.alias,
+                pptxgenjs: require('path').resolve(__dirname, 'node_modules/pptxgenjs/dist/pptxgen.bundle.js'),
+                // Alias the now-stripped versions to false
+                "fs": false,
+                "https": false,
+                "http": false,
+            };
+        }
+        return config;
+    },
 };
 
 module.exports = withPWA(nextConfig);
