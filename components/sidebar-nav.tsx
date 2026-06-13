@@ -42,6 +42,14 @@ import {
   Library,
   BookOpen,
   Image as ImageIcon,
+  Building2,
+  Search,
+  Briefcase,
+  Youtube,
+  Music,
+  Linkedin,
+  Instagram,
+  Facebook
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -54,15 +62,15 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { ScrollArea } from './ui/scroll-area';
 import { useTheme } from 'next-themes';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { AudiIcon, lucideToAudiMap } from './audi-icons';
 import { useSiteIcons } from '@/hooks/use-site-icons';
 import { RolePermissions } from '@/lib/data';
+import ClientSwitcher from './ClientSwitcher';
 
 export type NavItem = {
   href: string;
@@ -119,9 +127,12 @@ export function SidebarNav() {
   const { setTheme, theme, resolvedTheme } = useTheme();
   const { currentUser, permissions, isLoadingLayout, handleLogout, notifications } = useLayoutData();
   const { getMainIcon } = useSiteIcons();
-  const { } = useSidebar();
+  const { toggle: toggleSidebar } = useSidebar();
   const [colorTheme, setColorTheme] = useState<string>('default');
   const [mounted, setMounted] = useState(false);
+  
+  const clientMatch = pathname.match(/^\/clients\/([^/]+)/);
+  const activeClientId = clientMatch ? clientMatch[1] : null;
 
   useEffect(() => {
     setMounted(true);
@@ -264,7 +275,7 @@ export function SidebarNav() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {colorTheme === 'juventus' ? (
-              <div className="relative w-12 h-12 flex-shrink-0">
+              <div className="relative w-12 h-12 flex-shrink-0 group-data-[state=collapsed]:w-8 group-data-[state=collapsed]:h-8 transition-all duration-200">
                 <Image
                   key={`${colorTheme}-${currentTheme}`}
                   src="/assets/juventus-logo-dark.png"
@@ -276,7 +287,7 @@ export function SidebarNav() {
                 />
               </div>
             ) : colorTheme === 'audi' ? (
-              <div className="relative w-12 h-12 flex-shrink-0">
+              <div className="relative w-12 h-12 flex-shrink-0 group-data-[state=collapsed]:w-8 group-data-[state=collapsed]:h-8 transition-all duration-200">
                 <Image
                   key={`audi-logo-${currentTheme}`}
                   src={currentTheme === 'dark' ? "/assets/audi-logo-light.png" : "/assets/audi-logo-dark.png"}
@@ -288,7 +299,7 @@ export function SidebarNav() {
                 />
               </div>
             ) : (
-              <div className="relative w-12 h-12 flex-shrink-0">
+              <div className="relative w-12 h-12 flex-shrink-0 group-data-[state=collapsed]:w-8 group-data-[state=collapsed]:h-8 transition-all duration-200">
                 <Image
                   key={`wr-logo-${currentTheme}`}
                   src={getMainIcon()}
@@ -306,86 +317,232 @@ export function SidebarNav() {
               <Badge variant="outline" className="text-[10px] py-0 px-1 bg-yellow-400/10 text-yellow-400 border-yellow-400/20">v1.1.3</Badge>
             </h1>
           </div>
-          <SidebarTrigger className="group-data-[state=collapsed]:hidden" />
+          <SidebarTrigger />
         </div>
       </SidebarHeader>
+      
+      {/* BRAND SWITCHER */}
+      <div className="px-3 pt-4 pb-2 group-data-[state=collapsed]:hidden">
+        <ClientSwitcher />
+      </div>
+      {/* MINI BRAND SWITCHER FOR COLLAPSED STATE */}
+      <div className="px-3 pt-4 pb-2 hidden group-data-[state=collapsed]:flex justify-center">
+        <div onClick={toggleSidebar} className="h-8 w-8 rounded-md bg-sidebar-accent flex items-center justify-center cursor-pointer" title="Espandi la sidebar per selezionare il cliente">
+          <Briefcase className="h-4 w-4 text-sidebar-foreground/70" />
+        </div>
+      </div>
+
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarMenu>
-            {visibleNavItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href} prefetch={true}>
-                  <SidebarMenuButton
-                    isActive={pathname.startsWith(item.href)}
-                    tooltip={item.label}
-                  >
-                    <div className="relative flex-shrink-0">
-                      {colorTheme === 'audi' ? (
-                        <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
-                      ) : (
-                        <item.icon className="h-5 w-5 flex-shrink-0" />
-                      )}
-                      {item.label === 'Chat' && unreadChatCount > 0 && (
-                        <Badge className="absolute -top-2 -right-2 h-4 w-4 justify-center p-0 text-[10px]">{unreadChatCount}</Badge>
-                      )}
-                    </div>
-                    <span className="group-data-[state=collapsed]:hidden truncate">{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-
-        {visibleTools.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>AI Tools</SidebarGroupLabel>
-            <SidebarMenu>
-              {visibleTools.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} prefetch={true}>
-                    <SidebarMenuButton
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={item.label}
-                    >
-                      {colorTheme === 'audi' ? (
-                        <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
-                      ) : (
-                        <item.icon className="h-5 w-5 flex-shrink-0 text-white/90" />
-                      )}
-                      <span className="group-data-[state=collapsed]:hidden truncate">{item.label}</span>
+        {activeClientId ? (
+          /* =========================================
+             VISTA CLIENTE (METRICOOL PARADIGM)
+             ========================================= */
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Operatività & Hub</SidebarGroupLabel>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname === `/clients/${activeClientId}`} tooltip="Overview Cliente">
+                      <Gauge className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Overview Cliente</span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
-
-        {visibleAdminItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Impostazioni</SidebarGroupLabel>
-            <SidebarMenu>
-              {visibleAdminItems.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <Link href={item.href} prefetch={true}>
-                    <SidebarMenuButton
-                      isActive={pathname.startsWith(item.href)}
-                      tooltip={item.label}
-                    >
-                      {colorTheme === 'audi' ? (
-                        <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
-                      ) : (
-                        <item.icon className="h-5 w-5 flex-shrink-0 text-white/90" />
-                      )}
-                      <span className="group-data-[state=collapsed]:hidden truncate">{item.label}</span>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/tasks`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/tasks`)} tooltip="Task">
+                      <ClipboardList className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Task</span>
                     </SidebarMenuButton>
                   </Link>
                 </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/projects`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/projects`)} tooltip="Progetti">
+                      <LayoutGrid className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Progetti</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Canali Marketing</SidebarGroupLabel>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/calendar`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/calendar`)} tooltip="Piano Editoriale">
+                      <Newspaper className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Piano Editoriale</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/meta-ads`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/meta-ads`)} tooltip="Meta Ads">
+                      <Bot className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Meta Ads</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/google-ads`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/google-ads`)} tooltip="Google Ads">
+                      <Search className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Google Ads</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/youtube`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/youtube`)} tooltip="YouTube">
+                      <Youtube className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">YouTube</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/tiktok`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/tiktok`)} tooltip="TikTok">
+                      <Music className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">TikTok</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/linkedin`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/linkedin`)} tooltip="LinkedIn">
+                      <Linkedin className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">LinkedIn</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/instagram`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/instagram`)} tooltip="Instagram">
+                      <Instagram className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Instagram</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/facebook`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/facebook`)} tooltip="Facebook">
+                      <Facebook className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Facebook</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/gbp`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/gbp`)} tooltip="Profilo GBP">
+                      <Building2 className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Profilo GBP</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>AI & Automation</SidebarGroupLabel>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/ads-automation`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/ads-automation`)} tooltip="Automazione Ads">
+                      <Sliders className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Automazione Ads</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
+          </>
+        ) : (
+          /* =========================================
+             VISTA GLOBALE (AGENZIA)
+             ========================================= */
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Menu Globale</SidebarGroupLabel>
+              <SidebarMenu>
+                {visibleNavItems.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <Link href={item.href} prefetch={true}>
+                      <SidebarMenuButton
+                        isActive={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
+                        tooltip={item.label}
+                      >
+                        <div className="relative flex-shrink-0">
+                          {colorTheme === 'audi' ? (
+                            <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
+                          ) : (
+                            <item.icon className="h-5 w-5 flex-shrink-0" />
+                          )}
+                          {item.label === 'Chat' && unreadChatCount > 0 && (
+                            <Badge className="absolute -top-2 -right-2 h-4 w-4 justify-center p-0 text-[10px]">{unreadChatCount}</Badge>
+                          )}
+                        </div>
+                        <span className="group-data-[state=collapsed]:hidden truncate">{item.label}</span>
+                      </SidebarMenuButton>
+                    </Link>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+
+            {visibleTools.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel>AI Tools</SidebarGroupLabel>
+                <SidebarMenu>
+                  {visibleTools.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <Link href={item.href} prefetch={true}>
+                        <SidebarMenuButton
+                          isActive={pathname.startsWith(item.href)}
+                          tooltip={item.label}
+                        >
+                          {colorTheme === 'audi' ? (
+                            <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
+                          ) : (
+                            <item.icon className="h-5 w-5 flex-shrink-0 text-white/90" />
+                          )}
+                          <span className="group-data-[state=collapsed]:hidden truncate">{item.label}</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+            )}
+
+            {visibleAdminItems.length > 0 && (
+              <SidebarGroup>
+                <SidebarGroupLabel>Impostazioni</SidebarGroupLabel>
+                <SidebarMenu>
+                  {visibleAdminItems.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <Link href={item.href} prefetch={true}>
+                        <SidebarMenuButton
+                          isActive={pathname.startsWith(item.href)}
+                          tooltip={item.label}
+                        >
+                          {colorTheme === 'audi' ? (
+                            <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
+                          ) : (
+                            <item.icon className="h-5 w-5 flex-shrink-0 text-white/90" />
+                          )}
+                          <span className="group-data-[state=collapsed]:hidden truncate">{item.label}</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroup>
+            )}
+          </>
         )}
       </SidebarContent>
       <SidebarFooter>

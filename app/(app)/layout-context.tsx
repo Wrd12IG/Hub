@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { onAuthStateChanged, User as AuthUser, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { onIdTokenChanged, User as AuthUser, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { getDoc, doc, collection, query, where, orderBy, limit, onSnapshot, getDocs, setDoc, Timestamp } from 'firebase/firestore';
 import type { User, Client, Project, Task, ActivityType, Absence, RolePermissions, Conversation, Notification, CalendarActivity, TaskPrioritySettings, CalendarActivityPreset, BriefService, BriefServiceCategory, ServiceContract } from '@/lib/data';
@@ -255,8 +255,10 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onIdTokenChanged(auth, async (user) => {
       if (user) {
+        const token = await user.getIdToken();
+        localStorage.setItem('token', token);
         setIsLoadingLayout(true);
         try {
           const userDocRef = doc(db, 'users', user.uid);
@@ -282,6 +284,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
           setIsLoadingLayout(false);
         }
       } else {
+        localStorage.removeItem('token');
         setCurrentUser(null);
         setUsers([]);
         setClients([]);

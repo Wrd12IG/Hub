@@ -3,79 +3,111 @@
 @tailwind utilities;
 
 @layer base {
+  /* ============================================
+     PRECISION INDUSTRIAL DARK — Design System
+     Primary: Amber #F5C518 | One accent rule
+     ============================================ */
   :root {
-    --background: 222.9 21.9% 95.1%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light mode: clean, professional, warm-neutral */
+    --background: 220 14% 96%;
+    --foreground: 220 25% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 25% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 262.1 83.3% 57.8%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 220 25% 12%;
 
-    --sidebar-background: 240 10% 3.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 212.7 26.8% 83.9%;
+    /* PRIMARY = Amber — The One Accent Rule */
+    --primary: 45 93% 47%;
+    --primary-foreground: 220 25% 10%;
 
-    --chart-1: 221 83% 53%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 341 90% 55%;
-    --chart-4: 41 90% 55%;
-    --chart-5: 261 83% 63%;
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 220 25% 20%;
+    --muted: 220 12% 93%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 220 14% 92%;
+    --accent-foreground: 220 25% 12%;
+    --destructive: 0 78% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 14% 88%;
+    --input: 220 14% 88%;
+    --ring: 45 93% 47%;
+    --radius: 0.375rem;
+
+    /* Sidebar: stays dark in light mode for contrast */
+    --sidebar-background: 220 18% 10%;
+    --sidebar-foreground: 220 10% 82%;
+    --sidebar-primary: 45 93% 47%;
+    --sidebar-primary-foreground: 220 18% 8%;
+    --sidebar-accent: 220 15% 17%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 15% 14%;
+    --sidebar-ring: 45 93% 47%;
+
+    /* Semantic chart palette — amber-anchored */
+    --chart-1: 45 93% 47%;
+    --chart-2: 200 70% 50%;
+    --chart-3: 330 70% 55%;
+    --chart-4: 142 60% 44%;
+    --chart-5: 260 70% 60%;
+
+    /* Status semantic tokens */
+    --status-todo: 220 10% 55%;
+    --status-inprogress: 200 70% 50%;
+    --status-review: 45 93% 47%;
+    --status-done: 142 60% 44%;
+    --status-blocked: 0 78% 55%;
+    --status-paused: 38 90% 52%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* DARK MODE: Precision Industrial — warm near-black */
+    --background: 220 13% 9%;
+    --foreground: 210 18% 93%;
+    --card: 220 12% 13%;
+    --card-foreground: 210 18% 93%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 210 18% 93%;
 
-    --sidebar-background: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 212.7 26.8% 83.9%;
+    /* PRIMARY = Amber stays the same in dark */
+    --primary: 45 93% 47%;
+    --primary-foreground: 220 13% 9%;
 
-    --chart-1: 210 40% 98%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 341 90% 55%;
-    --chart-4: 41 90% 55%;
-    --chart-5: 261 83% 63%;
+    --secondary: 220 12% 18%;
+    --secondary-foreground: 210 15% 88%;
+    --muted: 220 11% 16%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 220 12% 18%;
+    --accent-foreground: 210 18% 93%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 12% 20%;
+    --input: 220 12% 18%;
+    --ring: 45 93% 47%;
+
+    /* Sidebar: even darker than background */
+    --sidebar-background: 220 15% 7%;
+    --sidebar-foreground: 220 10% 78%;
+    --sidebar-primary: 45 93% 47%;
+    --sidebar-primary-foreground: 220 15% 7%;
+    --sidebar-accent: 220 13% 14%;
+    --sidebar-accent-foreground: 220 10% 90%;
+    --sidebar-border: 220 13% 12%;
+    --sidebar-ring: 45 93% 47%;
+
+    /* Chart palette — amber-anchored, high contrast on dark */
+    --chart-1: 45 93% 47%;
+    --chart-2: 200 75% 55%;
+    --chart-3: 330 72% 60%;
+    --chart-4: 142 62% 48%;
+    --chart-5: 260 72% 65%;
+
+    /* Status semantic tokens */
+    --status-todo: 220 10% 55%;
+    --status-inprogress: 200 70% 55%;
+    --status-review: 45 93% 47%;
+    --status-done: 142 62% 48%;
+    --status-blocked: 0 70% 55%;
+    --status-paused: 38 88% 55%;
   }
 
   /* ====== TEMA OCEAN (Blu Profondo) ====== */
@@ -1341,6 +1373,46 @@ div.animate-glow-custom {
   animation: border-pulse 3s ease-in-out infinite !important;
 }
 
+/* ── In Approvazione SCADUTO: lampeggio viola urgente ─────── */
+/* Più veloce (1.5s), più saturo, sfondo viola visibile */
+@keyframes border-pulse-urgent {
+  0%, 100% {
+    border-color: rgba(147, 51, 234, 0.5);
+    box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.3);
+    background-color: rgba(147, 51, 234, 0.05);
+  }
+  50% {
+    border-color: rgba(147, 51, 234, 1);
+    box-shadow: 0 0 24px 4px rgba(147, 51, 234, 0.5);
+    background-color: rgba(147, 51, 234, 0.12);
+  }
+}
+
+.animate-glow-approval-overdue {
+  position: relative;
+  border: 2px solid rgba(147, 51, 234, 0.6) !important;
+  animation: border-pulse-urgent 1.5s ease-in-out infinite !important;
+}
+
+.animate-glow-approval-overdue::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  background: linear-gradient(135deg,
+      rgba(147, 51, 234, 0.25),
+      rgba(168, 85, 247, 0.15),
+      rgba(147, 51, 234, 0.25));
+  z-index: -1;
+  animation: pulse-ring 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.dark .animate-glow-approval-overdue {
+  border-color: rgba(192, 132, 252, 0.7) !important;
+}
+
+
 @layer base {
   * {
     @apply border-border;
@@ -2566,4 +2638,153 @@ div.animate-glow-custom {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-}@import "../styles/animations.css";
+}
+
+/* ============================================================
+   PRECISION INDUSTRIAL DARK — Utility Classes
+   Applied globally on top of shadcn/ui tokens
+   ============================================================ */
+
+/* ── Sidebar: Amber Active State (The One Accent Rule) ────── */
+[data-sidebar="menu-button"][data-active="true"] {
+  border-left: 2px solid hsl(var(--sidebar-primary)) !important;
+  padding-left: calc(0.75rem - 2px) !important;
+  color: hsl(var(--sidebar-primary)) !important;
+  background-color: hsl(var(--sidebar-accent)) !important;
+}
+
+[data-sidebar="menu-button"][data-active="true"] svg {
+  color: hsl(var(--sidebar-primary)) !important;
+}
+
+/* ── Semantic Status Badges ──────────────────────────────── */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.badge-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.badge-status-todo       { background: hsl(220 10% 55% / 0.12); color: hsl(220 10% 55%); }
+.badge-status-todo::before { background: hsl(220 10% 55%); }
+
+.badge-status-inprogress { background: hsl(200 70% 50% / 0.15); color: hsl(200 75% 58%); }
+.badge-status-inprogress::before { background: hsl(200 75% 58%); }
+
+.badge-status-review     { background: hsl(45 93% 47% / 0.15); color: hsl(45 90% 50%); }
+.badge-status-review::before { background: hsl(45 90% 50%); }
+
+.badge-status-done       { background: hsl(142 60% 44% / 0.15); color: hsl(142 55% 50%); }
+.badge-status-done::before { background: hsl(142 55% 50%); }
+
+.badge-status-blocked    { background: hsl(0 70% 55% / 0.15); color: hsl(0 70% 60%); }
+.badge-status-blocked::before { background: hsl(0 70% 60%); }
+
+.badge-status-paused     { background: hsl(38 88% 52% / 0.15); color: hsl(38 88% 57%); }
+.badge-status-paused::before { background: hsl(38 88% 57%); }
+
+/* ── Glass Card: modal/overlay use only ─────────────────── */
+/* Previously used everywhere. Now scoped to overlay contexts */
+.glass-card {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+.glass-card:hover {
+  background-color: rgba(255, 255, 255, 0.11) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* ── Tabular Mono Numbers ────────────────────────────────── */
+.num, .tabular-nums {
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* KPI display numbers: large, mono, amber-on-dark */
+.kpi-value {
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  color: hsl(var(--foreground));
+}
+
+.kpi-value.critical {
+  color: hsl(var(--primary)); /* amber for critical metrics */
+}
+
+/* ── Card Hover Lift ─────────────────────────────────────── */
+.card-lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px hsl(var(--foreground) / 0.08);
+}
+
+/* ── Page Entrance Animation ─────────────────────────────── */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main > * {
+  animation: page-enter 0.22s ease forwards;
+}
+
+/* ── Input Focus: amber ring ─────────────────────────────── */
+[data-slot="input"]:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5) !important;
+}
+
+/* ── Primary Button: amber fill ─────────────────────────── */
+.btn-primary,
+[data-variant="default"].btn {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary:hover,
+[data-variant="default"].btn:hover {
+  background: hsl(45 93% 42%);
+}
+
+/* ── Sidebar Group Labels: uppercase micro-text ──────────── */
+[data-sidebar="group-label"] {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: hsl(var(--sidebar-foreground) / 0.45);
+}

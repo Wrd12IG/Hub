@@ -15,8 +15,11 @@ import DynamicIcons from '@/components/dynamic-icons';
 import { useKonamiCodeToggle } from '@/hooks/useKonamiCode';
 import { BukowskiMode, BukowskiConfetti } from '@/components/easter-eggs/bukowski-mode';
 import { BirthdayCelebration } from '@/components/birthday-celebration';
+import { IdleBreakPopup } from '@/components/idle-break-popup';
 
 
+
+import { TranslationProvider } from '@/hooks/useTranslation';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isLoadingLayout, pomodoroTask, setPomodoroTask, users } = useLayoutData();
@@ -45,31 +48,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <CommandMenuProvider>
-      <div className="flex h-screen w-full bg-transparent">
+    <TranslationProvider>
+      <CommandMenuProvider>
+        <div className="flex h-screen w-full bg-transparent">
 
-        <SidebarNav />
-        <SidebarInset className="relative isolate">
-          <Header />
-          <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6">
-            {children}
-          </main>
-          <CommandMenu />
-        </SidebarInset>
-        <Toaster richColors />
-        {pomodoroTask && (
-          <PomodoroWidget
-            task={pomodoroTask}
-            onClose={() => setPomodoroTask(null)}
-          />
-        )}
-        <MotivationalQuote />
-        <LoveHeartAnimation />
-        <DynamicIcons />
-        <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
-        <BukowskiConfetti />
-        <BirthdayCelebration users={users} />
-      </div>
-    </CommandMenuProvider>
+          <SidebarNav />
+          <SidebarInset className="relative isolate">
+            <Header />
+            <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6">
+              {children}
+            </main>
+            <CommandMenu />
+          </SidebarInset>
+          <Toaster richColors />
+          {pomodoroTask && (
+            <PomodoroWidget
+              task={pomodoroTask}
+              onClose={() => setPomodoroTask(null)}
+            />
+          )}
+          <MotivationalQuote />
+          <LoveHeartAnimation />
+          <DynamicIcons />
+          <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
+          <BukowskiConfetti />
+          <BirthdayCelebration users={users} />
+          <IdleBreakPopup idleMinutes={5} onBreakLogged={(log) => console.log('Break logged:', log)} />
+        </div>
+      </CommandMenuProvider>
+    </TranslationProvider>
   );
 }

@@ -43,10 +43,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import type { Notification } from '@/lib/data';
 import { useCommandMenu } from '@/components/command-menu';
 import { SoundSettingsButton } from '@/components/sound-settings-button';
+import { toast } from 'sonner';
 
 import { ThemeSelector } from '@/components/theme-selector';
 import { NotificationCenter } from '@/components/notification-center';
 import Image from 'next/image';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export function Header() {
     const pathname = usePathname();
@@ -60,6 +62,7 @@ export function Header() {
     const { setTheme, theme, resolvedTheme } = useTheme();
     const [isClient, setIsClient] = useState(false);
     const { setOpen } = useCommandMenu();
+    const { language, setLanguage, t } = useTranslation();
 
 
     const [searchQuery, setSearchQuery] = useState('');
@@ -181,6 +184,32 @@ export function Header() {
                 </Button>
 
                 <ThemeSelector />
+                
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="font-bold uppercase"
+                    onClick={() => setLanguage(language === 'it' ? 'en' : 'it')}
+                >
+                    {language}
+                </Button>
+
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => {
+                        import('@/lib/push-notifications').then(({ PushNotificationManager }) => {
+                            const manager = new PushNotificationManager();
+                            manager.subscribeToPush().then((sub: any) => {
+                                if (sub) toast.success('Notifiche Push attivate con successo!');
+                            });
+                        });
+                    }}
+                    title="Attiva Notifiche Push"
+                >
+                    <Bell className="h-5 w-5" />
+                    <span className="sr-only">Attiva Push</span>
+                </Button>
 
                 <SoundSettingsButton />
 
