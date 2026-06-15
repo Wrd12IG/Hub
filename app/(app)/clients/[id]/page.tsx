@@ -107,8 +107,10 @@ export default function ClientDetailPage() {
   const [loadingPerformance, setLoadingPerformance] = useState(false)
   const [ga4Properties, setGa4Properties] = useState<{ propertyId: string; displayName: string; websiteUrl: string; accountName: string }[]>([])
   const [loadingGa4Props, setLoadingGa4Props] = useState(false)
-  const [googleAdsAccounts, setGoogleAdsAccounts] = useState<string[]>([])
+  const [googleAdsAccounts, setGoogleAdsAccounts] = useState<{ id: string; name: string; formattedId: string }[]>([])
   const [loadingGoogleAdsAccounts, setLoadingGoogleAdsAccounts] = useState(false)
+  const [metaAdAccounts, setMetaAdAccounts] = useState<{ id: string; name: string; currency: string; account_status: number }[]>([])
+  const [loadingMetaAccounts, setLoadingMetaAccounts] = useState(false)
   const [gbpLocations, setGbpLocations] = useState<{ name: string; title: string; address: string; isVerified: boolean }[]>([])
   const [gbpAccounts, setGbpAccounts] = useState<{ name: string; accountName: string; type: string }[]>([])
   const [loadingGbpLocations, setLoadingGbpLocations] = useState(false)
@@ -1767,10 +1769,10 @@ export default function ClientDetailPage() {
 
       {/* TAB: API SETTINGS */}
       {activeTab === 'settings' && (
-        <div style={{ maxWidth: '600px' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>Configurazione <span style={{ color: '#06b6d4' }}>Meta API</span></h2>
+        <div style={{ maxWidth: '680px' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>Configurazione <span style={{ color: '#06b6d4' }}>Integrazioni API</span></h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-            Aggiorna i parametri di connessione per scaricare dati reali dal Meta Business Manager.
+            Collega Meta Ads e l’ecosistema Google per sincronizzare dati reali in automatico.
           </p>
 
           {/* ── Stato Token Meta (live) ── */}
@@ -1839,12 +1841,59 @@ export default function ClientDetailPage() {
           }}>
             {/* ─── META ADS INTEGRATION ─── */}
             <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#06b6d4', marginBottom: '1rem' }}>Meta Ads & Facebook</h3>
-              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#06b6d4' }}>Meta Ads & Facebook</h3>
+                <button
+                  type="button"
+                  disabled={loadingMetaAccounts}
+                  onClick={async () => {
+                    setLoadingMetaAccounts(true)
+                    try {
+                      const token = localStorage.getItem('token')
+                      const res = await fetch(`${API_URL}/api/meta/ad-accounts`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      })
+                      if (res.ok) {
+                        const data = await res.json()
+                        setMetaAdAccounts(data.accounts || [])
+                      } else {
+                        const err = await res.json().catch(() => ({}))
+                        alert('Errore: ' + (err.error || 'Impossibile caricare gli account. Verifica META_SYSTEM_USER_TOKEN in Vercel.'))
+                      }
+                    } catch(e) { console.error(e) }
+                    finally { setLoadingMetaAccounts(false) }
+                  }}
+                  style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: loadingMetaAccounts ? 'rgba(6,182,212,0.3)' : '#06b6d4', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  {loadingMetaAccounts ? '⏳ Caricamento...' : '🔗 Carica Account Meta'}
+                </button>
+              </div>
+
+              {/* Dropdown Meta Ad Account */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Ad Account ID</label>
-                <input name="metaAdAccountId" defaultValue={client.metaAdAccountId} placeholder="es. act_123456789" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem' }}>Inserisci il prefisso "act_" seguito dal numero del tuo Ad Account</p>
+                {metaAdAccounts.length > 0 ? (
+                  <select
+                    name="metaAdAccountId"
+                    defaultValue={client.metaAdAccountId}
+                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(6,182,212,0.4)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                  >
+                    <option value="">-- Seleziona account --</option>
+                    {metaAdAccounts.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({a.id}) — {a.currency} {a.account_status === 1 ? '✅' : '⚠️'}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    name="metaAdAccountId"
+                    defaultValue={client.metaAdAccountId}
+                    placeholder="es. act_123456789 — oppure clicca Carica Account Meta"
+                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }}
+                  />
+                )}
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem' }}>Clicca "Carica Account Meta" per vedere gli account accessibili dall\'agenzia.</p>
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
@@ -1858,17 +1907,65 @@ export default function ClientDetailPage() {
                   {!client.hasMetaToken && <span style={{ marginLeft: '0.5rem', color: '#ef4444', fontSize: '0.75rem' }}>MANCANTE</span>}
                   {client.hasMetaToken && <span style={{ marginLeft: '0.5rem', color: '#10b981', fontSize: '0.75rem' }}>Configurato ✅ (lascia vuoto per mantenere)</span>}
                 </label>
-                <input name="metaAccessToken" placeholder="EAAB..." type="password" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
+                <input name="metaAccessToken" placeholder="EAAB... (System User Token permanente da Meta Business)" type="password" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem' }}>Per il caricamento automatico degli account, aggiungi <code>META_SYSTEM_USER_TOKEN</code> nelle variabili Vercel.</p>
               </div>
             </div>
 
             {/* ─── GOOGLE INTEGRATION ─── */}
             <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#3b82f6', marginBottom: '1rem' }}>Ecosistema Google</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#3b82f6' }}>Ecosistema Google</h3>
+                <button
+                  type="button"
+                  disabled={loadingGoogleAdsAccounts}
+                  onClick={async () => {
+                    setLoadingGoogleAdsAccounts(true)
+                    try {
+                      const token = localStorage.getItem('token')
+                      const res = await fetch(`${API_URL}/api/google-ads/customers`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      })
+                      if (res.ok) {
+                        const data = await res.json()
+                        setGoogleAdsAccounts(data.customers || [])
+                      } else {
+                        const err = await res.json().catch(() => ({}))
+                        alert('Errore: ' + (err.error || 'Configura GOOGLE_ADS_DEVELOPER_TOKEN e credenziali Google nelle variabili Vercel.'))
+                      }
+                    } catch(e) { console.error(e) }
+                    finally { setLoadingGoogleAdsAccounts(false) }
+                  }}
+                  style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: loadingGoogleAdsAccounts ? 'rgba(59,130,246,0.3)' : '#3b82f6', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  {loadingGoogleAdsAccounts ? '⏳ Caricamento...' : '🔗 Carica Account Google Ads'}
+                </button>
+              </div>
 
+              {/* Google Ads Customer ID */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Google Ads Customer ID</label>
-                <input name="googleAdAccountId" defaultValue={client.googleAdAccountId || ''} placeholder="es. 123-456-7890" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
+                {googleAdsAccounts.length > 0 ? (
+                  <select
+                    name="googleAdAccountId"
+                    defaultValue={client.googleAdAccountId || ''}
+                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(59,130,246,0.4)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                  >
+                    <option value="">-- Seleziona account --</option>
+                    {googleAdsAccounts.map((a: any) => (
+                      <option key={a.id} value={a.formattedId || a.id}>
+                        {a.name} — {a.formattedId || a.id}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    name="googleAdAccountId"
+                    defaultValue={client.googleAdAccountId || ''}
+                    placeholder="es. 123-456-7890 — oppure clicca Carica Account Google Ads"
+                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }}
+                  />
+                )}
               </div>
 
               <div style={{ marginBottom: '1.25rem' }}>
