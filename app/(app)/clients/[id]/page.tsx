@@ -21,26 +21,7 @@ import { cn } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
-const DUMMY_LATEST_CONTENT = [
-  { date: '16 Apr', title: 'Perché la SEO è morta (ancora)', type: 'Youtube', views: '12.4k', cta: '24 Leads' },
-  { date: '14 Apr', title: 'Tutorial Funnel Meta Ads', type: 'Instagram', views: '4.2k', cta: '12 Leads' },
-  { date: '12 Apr', title: 'Newsletter: I 3 Errori B2B', type: 'Sito', views: '840', cta: '4 Leads' },
-]
-
-const DUMMY_COMPETITORS = [
-  { name: 'Rival A', format: 'Vlog Aggressivo', insight: 'Hook diretto sul problema', views: '20k', imgColor: '#ef4444' },
-  { name: 'Rival B', format: 'Educational', insight: 'Struttura lavagna', views: '15k', imgColor: '#10b981' },
-]
-
-const DUMMY_MARKET_TRENDS = [
-  { topic: 'AI Automation', sentiment: 'Molto Positivo', angle: 'Efficienza' },
-  { topic: 'Short Form', sentiment: 'Saturazione', angle: 'Puntare su retention' },
-]
-
-const DUMMY_ALERTS = [
-  { title: 'Sito Web Irraggiungibile', type: 'SITE_DOWN', severity: 'CRITICAL', time: '12 min fa' },
-  { title: 'Spike CPA (+45%)', type: 'CPA_SPIKE', severity: 'WARNING', time: '1 ora fa' },
-]
+// Nessun dato placeholder — tutti i dati sono reali da Firebase / API collegate
 
 interface Client {
   id: string; name: string; websiteUrl: string; creativeMode: string;
@@ -115,7 +96,7 @@ export default function ClientDetailPage() {
   const [seoReportOpen, setSeoReportOpen] = useState(false)
   const [seoReportsList, setSeoReportsList] = useState<any[]>([])
   const [isReportsOpen, setIsReportsOpen] = useState(false)
-  const [ticketAssigned, setTicketAssigned] = useState(false)
+
   const [allClients, setAllClients] = useState<{ id: string, name: string }[]>([])
   const [campaignFilter, setCampaignFilter] = useState('')
   const [ga4Data, setGa4Data] = useState<any | null>(null)
@@ -745,37 +726,13 @@ export default function ClientDetailPage() {
                 ) : (
                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Nessuna anomalia grave rilevata. Operatività fluida.</div>
                 )}
-                {/* Esempio Mock Alert del sito */}
-                <div style={{ background: 'rgba(245,158,11,0.05)', borderLeft: '3px solid #f59e0b', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  <div style={{ flex: '1 1 50%' }}>
-                    <div style={{ fontWeight: 700, color: '#f59e0b' }}>Bounce Rate Elevato (78%)</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Il traffico organico abbandona subito.</div>
+                {/* Alert reali — visibili solo quando GA4 o Meta sono collegati */}
+                {client.hasMetaToken && client.ga4PropertyId ? null : (
+                  <div style={{ marginTop: '0.75rem', background: 'rgba(59,130,246,0.05)', borderLeft: '3px solid rgba(59,130,246,0.4)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>
+                    <div style={{ fontWeight: 600, color: '#3b82f6', marginBottom: '0.25rem' }}>Collega i servizi per gli alert automatici</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Connetti Meta Ads e Google Analytics in "⚙️ Setup API" per ricevere anomalie in tempo reale.</div>
                   </div>
-                  
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                     {ticketAssigned ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600 }}>
-                           <CheckCircle2 size={12}/> Ticket Inviato a Operatore
-                        </div>
-                     ) : (
-                        <select 
-                           onChange={(e) => {
-                              if (e.target.value !== '') {
-                                 setTicketAssigned(true);
-                                 // Simulazione API d'assegnazione al backend verso Action Center
-                              }
-                           }}
-                           style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', padding: '4px 8px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', outline: 'none' }}
-                        >
-                           <option value="">Assegna Ticket...</option>
-                           <option value="op1">Marco - Media Buyer</option>
-                           <option value="op2">Giulia - Account Mgr</option>
-                           <option value="op3">Tu (Autorisoluzione)</option>
-                        </select>
-                     )}
-                     <button style={{ background: 'transparent', border: '1px solid #f59e0b', color: '#f59e0b', padding: '4px 12px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Esplora</button>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* HEALTH SCORE COMPACT */}
