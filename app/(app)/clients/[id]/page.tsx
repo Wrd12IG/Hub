@@ -1260,35 +1260,12 @@ export default function ClientDetailPage() {
                   </div>
                 </div>
 
-                {/* Database Contenuti */}
-                <div>
-                  <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>Contenuti Top Performance</h3>
-                  <div style={{ border: '1px solid rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden' }}>
-                    <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                      <thead style={{ background: 'rgba(0,0,0,0.02)' }}>
-                        <tr>
-                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.05)', fontWeight: 600 }}>Data</th>
-                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.05)', fontWeight: 600 }}>Titolo</th>
-                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.05)', fontWeight: 600 }}>Piattaforma</th>
-                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.05)', fontWeight: 600 }}>Views & ER</th>
-                          <th style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.05)', fontWeight: 600 }}>Risultato</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {DUMMY_LATEST_CONTENT.map((c, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid rgba(0,0,0,0.02)' }}>
-                            <td style={{ padding: '0.75rem 1rem', color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>{c.date}</td>
-                            <td style={{ padding: '0.75rem 1rem', fontWeight: 500 }}>{c.title}</td>
-                            <td style={{ padding: '0.75rem 1rem' }}>
-                              <span style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '50px', background: 'rgba(0,0,0,0.05)', color: 'var(--text-secondary)' }}>{c.type}</span>
-                            </td>
-                            <td style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>{c.views}</td>
-                            <td style={{ padding: '0.75rem 1rem', color: '#10b981', fontWeight: 600 }}>{c.cta}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                {/* Contenuti Top Performance — visibili quando i canali social sono collegati */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1rem', gap: '0.75rem', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.1)' }}>
+                  <PlayCircle size={32} style={{ opacity: 0.2 }} />
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nessun contenuto tracciato</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', textAlign: 'center', maxWidth: 320 }}>Collega i canali social del cliente per visualizzare automaticamente i contenuti con le migliori performance.</div>
+                  <button onClick={() => setActiveTab('settings')} style={{ marginTop: '0.5rem', fontSize: '0.8rem', background: 'var(--brand-cyan, #06b6d4)', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>⚙️ Setup API</button>
                 </div>
 
               </div>
@@ -1305,44 +1282,37 @@ export default function ClientDetailPage() {
                     </button>
                   </div>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {DUMMY_COMPETITORS.map((c, i) => (
-                      <div key={i} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', padding: '1rem', borderRadius: '12px', display: 'flex', gap: '1rem' }}>
-                         <div style={{ width: 60, height: 80, borderRadius: '8px', background: c.imgColor, flexShrink: 0, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
-                           <Video size={24} />
-                         </div>
-                         <div style={{ flex: 1 }}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                             <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{c.name}</div>
-                             <div style={{ fontSize: '0.75rem', color: '#60a5fa', background: 'rgba(96,165,250,0.1)', padding: '2px 8px', borderRadius: '50px', whiteSpace: 'nowrap' }}>{c.views} views</div>
-                           </div>
-                           <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', marginBottom: '0.3rem' }}>Stile: {c.format}</div>
-                           <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', background: 'rgba(0,0,0,0.03)', padding: '0.4rem 0.6rem', borderRadius: '6px', borderLeft: `2px solid ${c.imgColor}` }}>
-                             <Lightbulb size={12} style={{ display: 'inline', marginRight: '4px' }}/> {c.insight}
-                           </div>
-                         </div>
-                      </div>
-                    ))}
-                  </div>
+                  {/* Competitor reali — aggiunti dalla tab AI Intelligence */}
+                  {client.intelligence?.competitors && client.intelligence.competitors.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {client.intelligence.competitors.map((c: any, i: number) => (
+                        <div key={i} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', padding: '1rem', borderRadius: '12px', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                          <div style={{ width: 48, height: 48, borderRadius: '8px', background: 'rgba(99,102,241,0.15)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1', fontWeight: 700, fontSize: '1.1rem' }}>
+                            {c.name?.charAt(0) || '?'}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.25rem' }}>{c.name}</div>
+                            {c.insight && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{c.insight}</div>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', gap: '0.5rem', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.1)' }}>
+                      <Users size={28} style={{ opacity: 0.2 }} />
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Nessun competitor aggiunto</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>Vai nella tab "AI Intelligence" per aggiungere i competitor del cliente.</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Trend Analysis */}
                 <div>
                   <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>Integrazione Trend Locali</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {DUMMY_MARKET_TRENDS.map((trend, i) => (
-                      <div key={i} style={{ padding: '1rem', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#1C1E21' }}>{trend.topic}</div>
-                          <div style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '50px', background: trend.sentiment.includes('Positivo') ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)', color: trend.sentiment.includes('Positivo') ? '#10b981' : '#f59e0b' }}>
-                            {trend.sentiment}
-                          </div>
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <Zap size={12} color="#a5b4fc" /> Cavalca: <span style={{ color: '#6366f1', fontWeight: 500 }}>{trend.angle}</span>
-                        </div>
-                      </div>
-                    ))}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', gap: '0.5rem', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.1)' }}>
+                    <TrendingUp size={28} style={{ opacity: 0.2 }} />
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Trend non disponibili</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>I trend di settore vengono generati automaticamente dall'analisi AI Intelligence del cliente.</div>
                   </div>
                 </div>
 
