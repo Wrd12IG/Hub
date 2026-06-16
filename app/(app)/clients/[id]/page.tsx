@@ -2128,9 +2128,9 @@ export default function ClientDetailPage() {
                     style={{ width: '100%', padding: '0.75rem', background: '#fff', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem' }}
                   >
                     <option value="">— Seleziona Account —</option>
-                    {googleAdsAccounts.map(p => (
-                      <option key={p} value={p?.replace('customers/', '').replace(/-/g, '')}>
-                        {p}
+                    {googleAdsAccounts.map(a => (
+                      <option key={a.id} value={a.formattedId || a.id}>
+                        {a.name} — {a.formattedId || a.id}
                       </option>
                     ))}
                   </select>
