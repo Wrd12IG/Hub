@@ -1,5 +1,11 @@
+/**
+ * GET /api/clients/[id]/gbp
+ *
+ * Google Business Profile data.
+ * Se non configurato → 503 con notConfigured:true (NO dati finti a zero).
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, getClientToken } from '@/lib/api-auth';
 
 export async function GET(
   request: NextRequest,
@@ -7,85 +13,38 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
-  const id = params.id;
+  const { id: clientId } = params;
 
-  if (!id) {
+  if (!clientId) {
     return NextResponse.json({ error: 'Client ID is required' }, { status: 400 });
   }
 
-  // --- Mock Data ---
+  // Controlla se le credenziali GBP sono configurate
+  const tokenData = await getClientToken(clientId, 'google').catch(() => null);
 
-  const coperturaSummary = {
-    googleMaps: 0,
-    ricercaGoogle: 0,
-    totale: 0
-  };
+  if (!tokenData?.accessToken) {
+    return NextResponse.json(
+      {
+        notConfigured: true,
+        _meta: {
+          source: 'empty',
+          hint: 'Collega Google Business Profile nella scheda ⚙️ Setup API.',
+        },
+      },
+      { status: 503 }
+    );
+  }
 
-  const clicSummary = {
-    sitoWeb: 0,
-    telefono: 0,
-    indirizzo: 0,
-    totale: 0
-  };
-
-  const recensioniSummary = {
-    valutazione: 0,
-    totale: 0
-  };
-
-  const distribuzioneCopertura: any[] = [];
-  const paroleChiave: any[] = [];
-  const recensioni: any[] = [];
-
-  // Utility to generate dynamic charts for the 56 days
-  const generateChartData = (days = 56, type: 'copertura' | 'clic' | 'recensioni'): any[] => {
-    return Array.from({ length: days }).map((_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (days - 1 - i));
-      const dateString = date.toISOString().split('T')[0];
-      
-      if (type === 'copertura') {
-        return {
-          date: dateString,
-          googleMaps: 0,
-          ricercaGoogle: 0,
-          totale: 0
-        };
-      }
-      
-      if (type === 'clic') {
-        return {
-          date: dateString,
-          sitoWeb: 0,
-          telefono: 0,
-          indirizzo: 0,
-          totale: 0
-        };
-      }
-      
-      if (type === 'recensioni') {
-        return {
-          date: dateString,
-          valutazione: null,
-          totale: 0
-        };
-      }
-      
-      return { date: dateString };
-    });
-  };
-
-  const data = {
-    coperturaSummary,
-    clicSummary,
-    recensioniSummary,
-    coperturaChart: generateChartData(56, 'copertura'),
-    clicChart: generateChartData(56, 'clic'),
-    recensioniChart: generateChartData(56, 'recensioni'),
-    distribuzioneCopertura,
-    paroleChiave,
-    recensioni
-  };
-
-  return NextResponse.json(data);
+  // TODO: implementare chiamata reale a Google Business Profile API v4
+  // GET https://mybusinessbusinessinformation.googleapis.com/v1/accounts/{accountId}/locations
+  return NextResponse.json(
+    {
+      notConfigured: true,
+      _meta: {
+        source: 'empty',
+        hint: 'Integrazione GBP in arrivo. Dati reali disponibili presto.',
+      },
+    },
+    { status: 503 }
+  );
 }

@@ -344,24 +344,26 @@ export default function ClientDetailPage() {
   }, [id])
 
   useEffect(() => {
-    if (client?.ga4PropertyId) {
-      const fetchGa4 = async () => {
-        setLoadingGa4(true)
-        try {
-          const token = localStorage.getItem('token')
-          const res = await fetch(`${API_URL}/api/clients/${id}/analytics?daysBack=${overviewDaysBack}&compare=${compareMode}`, { headers: { Authorization: `Bearer ${token}` } })
-          if (res.ok) {
-            const data = await res.json()
-            if (data.ok) setGa4Data(data.report)
-          }
-        } catch(e) {
-          console.error("Failed to fetch dynamic GA4 data", e)
-        } finally {
-          setLoadingGa4(false)
+    if (!client?.ga4PropertyId) return;
+    const fetchGa4 = async () => {
+      setLoadingGa4(true)
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch(`${API_URL}/api/clients/${id}/analytics?dateRange=${overviewDaysBack}d&compare=${compareMode}`, { headers: { Authorization: `Bearer ${token}` } })
+        const data = await res.json()
+        if (res.ok && !data.notConfigured) {
+          setGa4Data(data)
+        } else {
+          setGa4Data(null)
         }
+      } catch(e) {
+        console.error('Failed to fetch GA4 data', e)
+        setGa4Data(null)
+      } finally {
+        setLoadingGa4(false)
       }
-      fetchGa4()
     }
+    fetchGa4()
   }, [client?.ga4PropertyId, overviewDaysBack, compareMode, id])
 
   if (loading) return (
@@ -985,38 +987,48 @@ export default function ClientDetailPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <Globe size={20} color="#3b82f6" />
-                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Sito Web (Real GA4)</span>
+                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Sito Web (GA4)</span>
                           </div>
-                          {loadingGa4 ? <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Caricamento...</span> : (
-                             <span style={{ fontSize: '0.7rem', color: ga4Data?.traffic?.users?.chg >= 0 ? '#10b981' : '#ef4444', background: ga4Data?.traffic?.users?.chg >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '50px', fontWeight: 600 }}>
-                               {ga4Data?.traffic?.users?.chg > 0 ? '+' : ''}{ga4Data?.traffic?.users?.chg || 0}%
+                          {loadingGa4 ? <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Caricamento...</span> : ga4Data?.traffic?.users?.chg != null ? (
+                             <span style={{ fontSize: '0.7rem', color: ga4Data.traffic.users.chg >= 0 ? '#10b981' : '#ef4444', background: ga4Data.traffic.users.chg >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '50px', fontWeight: 600 }}>
+                               {ga4Data.traffic.users.chg > 0 ? '+' : ''}{ga4Data.traffic.users.chg}%
                              </span>
-                          )}
+                          ) : null}
                         </div>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <div style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1 }}>{loadingGa4 ? '...' : (ga4Data?.traffic?.users?.val || 0).toLocaleString()}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Utenti Unici nel Periodo</div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Sessions Social</div>
-                              <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : totalSocialSessions.toLocaleString()}</div>
-                           </div>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>CVR da Social</div>
-                              <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : `${socialCvr}%`}</div>
-                           </div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem', marginTop: '0.5rem' }}>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Bounce Rate</div>
-                              <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : `${ga4Data?.behavior?.bounceRate?.val?.toFixed(1)}%`}</div>
-                           </div>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Channel Top</div>
-                              <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loadingGa4 ? '...' : (ga4Data?.traffic?.channels?.[0]?.channel || 'N/A')}</div>
-                           </div>
-                        </div>
+                        {!loadingGa4 && !ga4Data ? (
+                          <div style={{ textAlign: 'center', padding: '1rem 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📊</div>
+                            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>GA4 non collegato</div>
+                            <button onClick={() => setActiveTab('settings')} style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Collega in Setup API →</button>
+                          </div>
+                        ) : (
+                          <>
+                            <div style={{ marginBottom: '1rem' }}>
+                              <div style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1 }}>{loadingGa4 ? '...' : ga4Data?.traffic?.users?.val != null ? ga4Data.traffic.users.val.toLocaleString() : '—'}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Utenti Unici nel Periodo</div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
+                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
+                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Sessions Social</div>
+                                  <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : ga4Data ? totalSocialSessions.toLocaleString() : '—'}</div>
+                               </div>
+                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
+                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>CVR da Social</div>
+                                  <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : ga4Data ? `${socialCvr}%` : '—'}</div>
+                               </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
+                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Bounce Rate</div>
+                                  <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : ga4Data?.behavior?.bounceRate?.val != null ? `${ga4Data.behavior.bounceRate.val.toFixed(1)}%` : '—'}</div>
+                               </div>
+                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
+                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Channel Top</div>
+                                  <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loadingGa4 ? '...' : (ga4Data?.traffic?.channels?.[0]?.channel || '—')}</div>
+                               </div>
+                            </div>
+                          </>
+                        )}
                         <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                            <div style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Audience Core WEB</div>
                            <div style={{ display: 'flex', gap: '1.5rem' }}>

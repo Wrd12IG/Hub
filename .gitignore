@@ -60,3 +60,4 @@ public/workbox-*.js.map
 .cache/
 coverage/
 *.log
+.vercel
