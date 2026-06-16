@@ -155,6 +155,9 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
 
     // Filter projects and tasks based on selected client
     const watchedClientId = form.watch("clientId")
+    // Live preview for workload bars
+    const watchedDuration = form.watch("estimatedDuration")
+    const watchedDueDate  = form.watch("dueDate")
 
     // Reset form when task changes
     React.useEffect(() => {
@@ -709,87 +712,124 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     const WORK_DAYS_WEEK = 5;
                                     const now = new Date();
 
-                                    // Start of day / week (Mon) / month
+                                    // Period boundaries
                                     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                                    const dayOfWeek = now.getDay(); // 0=Sun
-                                    const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
-                                    const startOfWeek = new Date(startOfDay);
-                                    startOfWeek.setDate(startOfDay.getDate() + diffToMon);
-                                    const endOfWeek = new Date(startOfWeek);
-                                    endOfWeek.setDate(startOfWeek.getDate() + 4); // Fri
+                                    const endOfDay   = new Date(startOfDay); endOfDay.setHours(23, 59, 59, 999);
+                                    const dayOfWeek  = now.getDay();
+                                    const diffToMon  = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                                    const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() + diffToMon);
+                                    const endOfWeek   = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 4);
                                     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                                    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                                    const endOfMonth   = new Date(now.getFullYear(), now.getMonth() + 1, 0); endOfMonth.setHours(23,59,59,999);
 
-                                    // Working days this month (Mon–Fri only)
+                                    // Working days this month (Mon–Fri)
                                     let workDaysMonth = 0;
                                     for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
                                         const dow = d.getDay();
                                         if (dow !== 0 && dow !== 6) workDaysMonth++;
                                     }
 
-                                    const maxDay = WORK_HOURS_DAY;
-                                    const maxWeek = WORK_HOURS_DAY * WORK_DAYS_WEEK;
+                                    const maxDay   = WORK_HOURS_DAY;
+                                    const maxWeek  = WORK_HOURS_DAY * WORK_DAYS_WEEK;
                                     const maxMonth = WORK_HOURS_DAY * workDaysMonth;
 
-                                    // Filter active tasks for this user (exclude current task being edited)
+                                    // Saved tasks (exclude self when editing)
                                     const activeTasks = allTasks.filter(t =>
                                         t.assignedUserId === field.value &&
                                         t.status !== 'Approvato' &&
                                         t.status !== 'Annullato' &&
-                                        t.id !== task?.id // exclude self when editing
+                                        t.id !== task?.id
                                     );
 
-                                    // Helper: hours of tasks whose dueDate falls within [start, end]
                                     const hoursInRange = (start: Date, end: Date) =>
                                         activeTasks
-                                            .filter(t => {
-                                                if (!t.dueDate) return false;
-                                                const d = new Date(t.dueDate);
-                                                return d >= start && d <= end;
-                                            })
+                                            .filter(t => { if (!t.dueDate) return false; const d = new Date(t.dueDate); return d >= start && d <= end; })
                                             .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
 
-                                    const endOfDay = new Date(startOfDay);
-                                    endOfDay.setHours(23, 59, 59, 999);
-
-                                    const dayHours = hoursInRange(startOfDay, endOfDay);
-                                    const weekHours = hoursInRange(startOfWeek, endOfWeek);
+                                    const dayHours   = hoursInRange(startOfDay, endOfDay);
+                                    const weekHours  = hoursInRange(startOfWeek, endOfWeek);
                                     const monthHours = hoursInRange(startOfMonth, endOfMonth);
 
-                                    const pct = (val: number, max: number) => Math.min((val / max) * 100, 100);
-                                    const color = (p: number) => p < 60 ? '#22c55e' : p < 85 ? '#f59e0b' : '#ef4444';
-                                    const label = (p: number) => p < 60 ? 'Libero' : p < 85 ? 'Quasi pieno' : 'Sovraccarico';
+                                    // ── Live preview from form fields ──
+                                    const previewH = Math.max(0, parseFloat(watchedDuration) || 0);
+                                    const due = watchedDueDate ? new Date(watchedDueDate) : null;
+                                    const inDay   = due && due >= startOfDay   && due <= endOfDay;
+                                    const inWeek  = due && due >= startOfWeek  && due <= endOfWeek;
+                                    const inMonth = due && due >= startOfMonth && due <= endOfMonth;
 
-                                    const WorkloadBar = ({ hours, max, label: lbl }: { hours: number; max: number; label: string }) => {
-                                        const p = pct(hours, max);
-                                        const c = color(p);
+                                    const previewDay   = (previewH > 0 && inDay)   ? previewH : 0;
+                                    const previewWeek  = (previewH > 0 && inWeek)  ? previewH : 0;
+                                    const previewMonth = (previewH > 0 && inMonth) ? previewH : 0;
+
+                                    // ── Helpers ──
+                                    const pct   = (val: number, max: number) => Math.min((val / max) * 100, 100);
+                                    const color = (p: number) => p < 60 ? '#22c55e' : p < 85 ? '#f59e0b' : '#ef4444';
+                                    const badge = (p: number) => p < 60 ? 'Libero' : p < 85 ? 'Quasi pieno' : 'Sovraccarico';
+
+                                    const WorkloadBar = ({
+                                        hours, preview, max, label: lbl
+                                    }: { hours: number; preview: number; max: number; label: string }) => {
+                                        const pBase    = pct(hours, max);
+                                        const pTotal   = pct(hours + preview, max);
+                                        const cBase    = color(pBase);
+                                        const cTotal   = color(pTotal);
+                                        const hasPreview = preview > 0;
                                         return (
-                                            <div className="mb-2">
+                                            <div className="mb-2.5">
                                                 <div className="flex justify-between items-center mb-0.5">
                                                     <span className="font-medium text-foreground">{lbl}</span>
-                                                    <span style={{ color: c }} className="font-semibold tabular-nums">
-                                                        {hours.toFixed(1)}h / {max}h
-                                                        <span className="ml-1 text-[10px] opacity-70">({label(p)})</span>
+                                                    <span className="flex items-center gap-1 font-semibold tabular-nums" style={{ color: hasPreview ? cTotal : cBase }}>
+                                                        {hasPreview ? (
+                                                            <>
+                                                                {hours.toFixed(1)}
+                                                                <span style={{ color: cTotal, opacity: 0.85 }}>+{preview.toFixed(1)}</span>
+                                                                h / {max}h
+                                                            </>
+                                                        ) : (
+                                                            <>{hours.toFixed(1)}h / {max}h</>
+                                                        )}
+                                                        <span className="ml-0.5 text-[10px] opacity-60">({badge(pTotal)})</span>
                                                     </span>
                                                 </div>
-                                                <div className="relative w-full h-2 rounded-full bg-secondary overflow-hidden">
+                                                <div className="relative w-full h-2.5 rounded-full bg-secondary overflow-hidden">
+                                                    {/* existing load */}
                                                     <div
-                                                        className="h-full rounded-full transition-all duration-500"
-                                                        style={{ width: `${p}%`, backgroundColor: c }}
+                                                        className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
+                                                        style={{ width: `${pBase}%`, backgroundColor: cBase }}
                                                     />
+                                                    {/* preview segment — striped, starts after existing */}
+                                                    {hasPreview && (
+                                                        <div
+                                                            className="absolute top-0 h-full rounded-r-full transition-all duration-300"
+                                                            style={{
+                                                                left: `${pBase}%`,
+                                                                width: `${Math.min(pct(preview, max), 100 - pBase)}%`,
+                                                                backgroundColor: cTotal,
+                                                                opacity: 0.45,
+                                                                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.35) 3px, rgba(255,255,255,0.35) 5px)',
+                                                            }}
+                                                        />
+                                                    )}
                                                 </div>
                                             </div>
                                         );
                                     };
 
+                                    const hasAnyPreview = previewDay > 0 || previewWeek > 0 || previewMonth > 0;
+
                                     return (
-                                        <div className="mt-3 p-3 rounded-xl border bg-muted/30 space-y-1 text-xs">
-                                            <p className="font-semibold text-foreground mb-2 flex items-center gap-1">
+                                        <div className="mt-3 p-3 rounded-xl border bg-muted/30 text-xs">
+                                            <p className="font-semibold text-foreground mb-2.5 flex items-center gap-1.5">
                                                 <span>⏱️</span> Carico utente
+                                                {hasAnyPreview && (
+                                                    <span className="ml-auto text-[10px] font-normal text-muted-foreground italic">
+                                                        Anteprima +{previewH.toFixed(1)}h
+                                                    </span>
+                                                )}
                                             </p>
-                                            <WorkloadBar hours={dayHours} max={maxDay} label="Oggi" />
-                                            <WorkloadBar hours={weekHours} max={maxWeek} label="Questa settimana" />
-                                            <WorkloadBar hours={monthHours} max={maxMonth} label="Questo mese" />
+                                            <WorkloadBar hours={dayHours}   preview={previewDay}   max={maxDay}   label="Oggi" />
+                                            <WorkloadBar hours={weekHours}  preview={previewWeek}  max={maxWeek}  label="Questa settimana" />
+                                            <WorkloadBar hours={monthHours} preview={previewMonth} max={maxMonth} label="Questo mese" />
                                         </div>
                                     );
                                 })() : (
