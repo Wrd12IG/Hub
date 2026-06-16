@@ -515,7 +515,8 @@ export interface RecurringTask {
     assignedUserId?: string;
     recurrence: RecurrenceConfig;
     isActive: boolean;
-    nextRunDate?: string;
+    lastRun?: string;      // aggiornato dal cron dopo ogni esecuzione
+    nextRunDate?: string;  // calcolato dal cron
     createdAt?: string;
 }
 

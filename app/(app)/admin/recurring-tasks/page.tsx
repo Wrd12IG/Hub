@@ -85,6 +85,7 @@ export default function RecurringTasksPage() {
   const [editingTask, setEditingTask] = useState<RecurringTask | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<RecurringTask | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [isActiveForm, setIsActiveForm] = useState(true); // controlled state for Switch
   const { toast } = useToast();
 
   // Stato per generazione task per data specifica
@@ -114,6 +115,7 @@ export default function RecurringTasksPage() {
   const handleCloseModal = () => {
     setModalOpen(null);
     setEditingTask(null);
+    setIsActiveForm(true);
   };
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -129,13 +131,12 @@ export default function RecurringTasksPage() {
       activityType: (formData.get('activityType') as string) || undefined,
       estimatedDuration: Number(formData.get('estimatedDuration')),
       assignedUserId: (formData.get('assignedUserId') as string) || undefined,
-      isActive: formData.get('isActive') === 'on',
+      isActive: isActiveForm, // use React state — shadcn Switch doesn't submit via FormData
       recurrence: {
         type: formData.get('type') as RecurringTask['recurrence']['type'],
         time: formData.get('time') as string,
-        dayOfWeek: formData.has('dayOfWeek') ? Number(formData.get('dayOfWeek')) : undefined,
-        weekOfMonth: formData.has('weekOfMonth') ? Number(formData.get('weekOfMonth')) : undefined,
-
+        dayOfWeek: formData.get('dayOfWeek') ? Number(formData.get('dayOfWeek')) : undefined,
+        weekOfMonth: formData.get('weekOfMonth') ? Number(formData.get('weekOfMonth')) : undefined,
       },
     };
 
@@ -215,6 +216,24 @@ export default function RecurringTasksPage() {
     setIsGenerating(taskForDatePicker.id);
 
     try {
+      const dueDateISO = selectedDate.toISOString();
+      const dueDatePrefix = dueDateISO.substring(0, 10); // yyyy-MM-dd
+
+      // ── Deduplicazione client-side: cerca task già generato oggi per questo template ──
+      const duplicate = allTasks.find(t =>
+        (t as any).recurringTaskId === taskForDatePicker.id &&
+        t.dueDate?.startsWith(dueDatePrefix)
+      );
+      if (duplicate) {
+        toast({
+          title: 'Task già esistente',
+          description: `Esiste già un task "${taskForDatePicker.title}" per il ${format(selectedDate, 'dd/MM/yyyy')}. Verifica nella lista task.`,
+          variant: 'destructive',
+        });
+        setIsGenerating(null);
+        return;
+      }
+
       const newTask: Omit<Task, 'id'> = {
         title: taskForDatePicker.title,
         description: taskForDatePicker.description || '',
@@ -222,7 +241,7 @@ export default function RecurringTasksPage() {
         clientId: taskForDatePicker.clientId,
         projectId: taskForDatePicker.projectId,
         status: 'Da Fare',
-        dueDate: selectedDate.toISOString(),
+        dueDate: dueDateISO,
         assignedUserId: taskForDatePicker.assignedUserId,
         estimatedDuration: taskForDatePicker.estimatedDuration,
         actualDuration: 0,
@@ -232,7 +251,8 @@ export default function RecurringTasksPage() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         activityType: taskForDatePicker.activityType,
-      };
+        recurringTaskId: taskForDatePicker.id, // per deduplicazione futura
+      } as any;
 
       await addTask(newTask, currentUser?.id || 'system');
 
@@ -298,6 +318,8 @@ export default function RecurringTasksPage() {
                 <TableHead>Titolo Task</TableHead>
                 <TableHead>Ricorrenza</TableHead>
                 <TableHead>Assegnato a</TableHead>
+                <TableHead>Ultima gen.</TableHead>
+                <TableHead>Prossima</TableHead>
                 <TableHead>Stato</TableHead>
                 <TableHead className="text-right">Azioni</TableHead>
               </TableRow>
@@ -327,6 +349,12 @@ export default function RecurringTasksPage() {
                     <TableCell>{task.title}</TableCell>
                     <TableCell>{formatRecurrence(task.recurrence)}</TableCell>
                     <TableCell>{task.assignedUserId ? usersById[task.assignedUserId]?.name || task.assignedUserId : 'N/D'}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {task.lastRun ? format(new Date(task.lastRun), 'dd/MM/yy HH:mm') : '—'}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {task.nextRunDate ? format(new Date(task.nextRunDate), 'dd/MM/yyyy') : '—'}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={task.isActive ? 'default' : 'secondary'}>{task.isActive ? 'Attivo' : 'Inattivo'}</Badge>
                     </TableCell>
@@ -361,17 +389,19 @@ export default function RecurringTasksPage() {
         </CardContent>
       </Card>
 
-      <RecurringTaskForm
-        isOpen={!!modalOpen}
-        onClose={handleCloseModal}
-        onSubmit={handleFormSubmit}
-        task={editingTask}
-        users={users}
-        clients={clients}
-        projects={allProjects}
-        activityTypes={activityTypes}
-        allTasks={allTasks}
-      />
+        <RecurringTaskForm
+          isOpen={!!modalOpen}
+          onClose={handleCloseModal}
+          onSubmit={handleFormSubmit}
+          task={editingTask}
+          users={users}
+          clients={clients}
+          projects={allProjects}
+          activityTypes={activityTypes}
+          allTasks={allTasks}
+          isActive={isActiveForm}
+          onIsActiveChange={setIsActiveForm}
+        />
       <AlertDialog open={!!taskToDelete} onOpenChange={() => setTaskToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -430,15 +460,22 @@ interface RecurringTaskFormProps {
   projects: Project[];
   activityTypes: ActivityType[];
   allTasks: Task[];
+  isActive: boolean;
+  onIsActiveChange: (v: boolean) => void;
 }
 
-function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, projects, activityTypes, allTasks }: RecurringTaskFormProps) {
+function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, projects, activityTypes, allTasks, isActive, onIsActiveChange }: RecurringTaskFormProps) {
   const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'monthly'>((task?.recurrence.type as any) || 'daily');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (task) setRecurrenceType(task.recurrence.type as any);
-    else setRecurrenceType('daily');
+    if (task) {
+      setRecurrenceType(task.recurrence.type as any);
+      onIsActiveChange(task.isActive);
+    } else {
+      setRecurrenceType('daily');
+      onIsActiveChange(true);
+    }
   }, [task]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -461,7 +498,11 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
             <CardContent className="space-y-4">
               <div className="flex items-end">
                 <div className="flex items-center space-x-2">
-                  <Switch id="isActive" name="isActive" defaultChecked={task?.isActive ?? true} />
+                  <Switch
+                    id="isActive"
+                    checked={isActive}
+                    onCheckedChange={onIsActiveChange}
+                  />
                   <Label htmlFor="isActive">Attivo</Label>
                 </div>
               </div>

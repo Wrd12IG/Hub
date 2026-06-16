@@ -722,7 +722,7 @@ export async function addRecurringTask(data: Omit<RecurringTask, 'id'>): Promise
 }
 
 export async function updateRecurringTask(id: string, data: Partial<RecurringTask>): Promise<void> {
-    await updateDoc(doc(db, 'recurringTasks', id), cleanData(data));
+    await updateDoc(doc(db, 'recurringTasks', id), { ...cleanData(data), updatedAt: Timestamp.now() });
 }
 
 export async function deleteRecurringTask(id: string): Promise<void> {

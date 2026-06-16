@@ -1,0 +1,37 @@
+name: Recurring Tasks Cron
+
+on:
+  schedule:
+    # Ogni giorno feriale alle 07:00 UTC (= 08:00 ora invernale / 09:00 ora legale italiana)
+    - cron: '0 7 * * 1-5'
+  # Permette esecuzione manuale dalla UI GitHub Actions
+  workflow_dispatch:
+
+jobs:
+  generate-recurring-tasks:
+    name: Genera Task Ricorrenti
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Chiama endpoint cron
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.HUB_URL }}/api/cron/recurring-tasks")
+
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n 1)
+
+          echo "HTTP Status: $HTTP_CODE"
+          echo "Response: $BODY"
+
+          # Fallisce se HTTP != 200
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Cron fallito con status $HTTP_CODE"
+            exit 1
+          fi
+
+          # Estrai summary se jq disponibile
+          echo "$BODY" | jq '{summary, date}' 2>/dev/null || true
+          echo "✅ Cron completato con successo"

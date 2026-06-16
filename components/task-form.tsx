@@ -788,7 +788,8 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     const monthHours = monthTaskHours + activityHoursInRange(startOfMonth, endOfMonth);
 
                                     // ── Live preview from current form fields ──
-                                    const previewH = Math.max(0, parseFloat(watchedDuration) || 0);
+                                    const previewH = Math.max(0, (parseFloat(watchedDuration) || 0) / 60); // min → ore
+
                                     const due = watchedDueDate ? new Date(watchedDueDate) : null;
                                     const inDay   = due ? inRange(due, startOfDay, endOfDay)    : false;
                                     const inWeek  = due ? inRange(due, startOfWeek, endOfWeek)  : previewH > 0; // no date → counts as undated backlog
