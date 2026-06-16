@@ -703,29 +703,101 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     </SelectContent>
                                 </Select>
 
-                                <div className="mt-2 text-xs">
-                                    <FormLabel className="text-xs">Carico settimanale:</FormLabel>
-                                    {field.value && field.value !== 'nessuno' ? (
-                                        (() => {
-                                            const userTasks = allTasks.filter(t =>
-                                                t.assignedUserId === field.value &&
-                                                t.status !== 'Approvato' && t.status !== 'Annullato'
-                                            );
-                                            const totalHours = userTasks.reduce((acc, t) => acc + (t.estimatedDuration || 0), 0) / 60;
-                                            const maxHours = 40; // Hardcoded per ora
-                                            const percentage = Math.min((totalHours / maxHours) * 100, 100);
+                                {/* ─── Workload indicators ─── */}
+                                {field.value && field.value !== 'nessuno' ? (() => {
+                                    const WORK_HOURS_DAY = 8;
+                                    const WORK_DAYS_WEEK = 5;
+                                    const now = new Date();
 
-                                            return (
-                                                <>
-                                                    <div role="progressbar" aria-valuemin={0} aria-valuemax={100} className="relative w-full overflow-hidden rounded-full bg-secondary h-2 my-1">
-                                                        <div className="h-full w-full flex-1 bg-primary transition-all" style={{ transform: `translateX(-${100 - percentage}%)` }}></div>
-                                                    </div>
-                                                    <p className="text-right text-muted-foreground">{totalHours.toFixed(1)} / {maxHours} ore pianificate</p>
-                                                </>
-                                            )
-                                        })()
-                                    ) : <p className="text-muted-foreground">Nessun utente selezionato</p>}
-                                </div>
+                                    // Start of day / week (Mon) / month
+                                    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                                    const dayOfWeek = now.getDay(); // 0=Sun
+                                    const diffToMon = (dayOfWeek === 0 ? -6 : 1 - dayOfWeek);
+                                    const startOfWeek = new Date(startOfDay);
+                                    startOfWeek.setDate(startOfDay.getDate() + diffToMon);
+                                    const endOfWeek = new Date(startOfWeek);
+                                    endOfWeek.setDate(startOfWeek.getDate() + 4); // Fri
+                                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                                    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+                                    // Working days this month (Mon–Fri only)
+                                    let workDaysMonth = 0;
+                                    for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
+                                        const dow = d.getDay();
+                                        if (dow !== 0 && dow !== 6) workDaysMonth++;
+                                    }
+
+                                    const maxDay = WORK_HOURS_DAY;
+                                    const maxWeek = WORK_HOURS_DAY * WORK_DAYS_WEEK;
+                                    const maxMonth = WORK_HOURS_DAY * workDaysMonth;
+
+                                    // Filter active tasks for this user (exclude current task being edited)
+                                    const activeTasks = allTasks.filter(t =>
+                                        t.assignedUserId === field.value &&
+                                        t.status !== 'Approvato' &&
+                                        t.status !== 'Annullato' &&
+                                        t.id !== task?.id // exclude self when editing
+                                    );
+
+                                    // Helper: hours of tasks whose dueDate falls within [start, end]
+                                    const hoursInRange = (start: Date, end: Date) =>
+                                        activeTasks
+                                            .filter(t => {
+                                                if (!t.dueDate) return false;
+                                                const d = new Date(t.dueDate);
+                                                return d >= start && d <= end;
+                                            })
+                                            .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+
+                                    const endOfDay = new Date(startOfDay);
+                                    endOfDay.setHours(23, 59, 59, 999);
+
+                                    const dayHours = hoursInRange(startOfDay, endOfDay);
+                                    const weekHours = hoursInRange(startOfWeek, endOfWeek);
+                                    const monthHours = hoursInRange(startOfMonth, endOfMonth);
+
+                                    const pct = (val: number, max: number) => Math.min((val / max) * 100, 100);
+                                    const color = (p: number) => p < 60 ? '#22c55e' : p < 85 ? '#f59e0b' : '#ef4444';
+                                    const label = (p: number) => p < 60 ? 'Libero' : p < 85 ? 'Quasi pieno' : 'Sovraccarico';
+
+                                    const WorkloadBar = ({ hours, max, label: lbl }: { hours: number; max: number; label: string }) => {
+                                        const p = pct(hours, max);
+                                        const c = color(p);
+                                        return (
+                                            <div className="mb-2">
+                                                <div className="flex justify-between items-center mb-0.5">
+                                                    <span className="font-medium text-foreground">{lbl}</span>
+                                                    <span style={{ color: c }} className="font-semibold tabular-nums">
+                                                        {hours.toFixed(1)}h / {max}h
+                                                        <span className="ml-1 text-[10px] opacity-70">({label(p)})</span>
+                                                    </span>
+                                                </div>
+                                                <div className="relative w-full h-2 rounded-full bg-secondary overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full transition-all duration-500"
+                                                        style={{ width: `${p}%`, backgroundColor: c }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    };
+
+                                    return (
+                                        <div className="mt-3 p-3 rounded-xl border bg-muted/30 space-y-1 text-xs">
+                                            <p className="font-semibold text-foreground mb-2 flex items-center gap-1">
+                                                <span>⏱️</span> Carico utente
+                                            </p>
+                                            <WorkloadBar hours={dayHours} max={maxDay} label="Oggi" />
+                                            <WorkloadBar hours={weekHours} max={maxWeek} label="Questa settimana" />
+                                            <WorkloadBar hours={monthHours} max={maxMonth} label="Questo mese" />
+                                        </div>
+                                    );
+                                })() : (
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                        Seleziona un utente per vedere il carico di lavoro
+                                    </p>
+                                )}
+
                                 <FormMessage />
                             </FormItem>
                         )}
