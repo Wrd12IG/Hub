@@ -713,27 +713,27 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     const now = new Date();
 
                                     // Period boundaries
-                                    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                                    const endOfDay   = new Date(startOfDay); endOfDay.setHours(23, 59, 59, 999);
-                                    const dayOfWeek  = now.getDay();
-                                    const diffToMon  = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                                    const startOfDay  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                                    const endOfDay    = new Date(startOfDay); endOfDay.setHours(23, 59, 59, 999);
+                                    const dayOfWeek   = now.getDay();
+                                    const diffToMon   = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
                                     const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() + diffToMon);
-                                    const endOfWeek   = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 4);
+                                    const endOfWeek   = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 4); endOfWeek.setHours(23,59,59,999);
                                     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
                                     const endOfMonth   = new Date(now.getFullYear(), now.getMonth() + 1, 0); endOfMonth.setHours(23,59,59,999);
 
                                     // Working days this month (Mon–Fri)
                                     let workDaysMonth = 0;
                                     for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
-                                        const dow = d.getDay();
-                                        if (dow !== 0 && dow !== 6) workDaysMonth++;
+                                        if (d.getDay() !== 0 && d.getDay() !== 6) workDaysMonth++;
                                     }
 
                                     const maxDay   = WORK_HOURS_DAY;
                                     const maxWeek  = WORK_HOURS_DAY * WORK_DAYS_WEEK;
                                     const maxMonth = WORK_HOURS_DAY * workDaysMonth;
 
-                                    // Saved tasks (exclude self when editing)
+                                    // All active tasks for this user (same filter as admin dashboard)
+                                    // estimatedDuration is stored in MINUTES → divide by 60 for hours
                                     const activeTasks = allTasks.filter(t =>
                                         t.assignedUserId === field.value &&
                                         t.status !== 'Approvato' &&
@@ -741,21 +741,39 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                         t.id !== task?.id
                                     );
 
-                                    const hoursInRange = (start: Date, end: Date) =>
-                                        activeTasks
-                                            .filter(t => { if (!t.dueDate) return false; const d = new Date(t.dueDate); return d >= start && d <= end; })
-                                            .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+                                    // Helper: resolve the reference date of a task (same as reports page)
+                                    const taskRefDate = (t: typeof activeTasks[0]): Date => {
+                                        if (t.dueDate) return new Date(t.dueDate);
+                                        if (t.updatedAt) return new Date(t.updatedAt as string);
+                                        return now;
+                                    };
 
-                                    const dayHours   = hoursInRange(startOfDay, endOfDay);
-                                    const weekHours  = hoursInRange(startOfWeek, endOfWeek);
-                                    const monthHours = hoursInRange(startOfMonth, endOfMonth);
+                                    const inRange = (d: Date, start: Date, end: Date) => d >= start && d <= end;
 
-                                    // ── Live preview from form fields ──
+                                    // TODAY: tasks whose reference date = today
+                                    const dayHours = activeTasks
+                                        .filter(t => inRange(taskRefDate(t), startOfDay, endOfDay))
+                                        .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+
+                                    // THIS WEEK: tasks due this week + all tasks without any date
+                                    // (backlog items without deadline still occupy working time)
+                                    const weekTasksWithDate = activeTasks.filter(t => t.dueDate && inRange(new Date(t.dueDate), startOfWeek, endOfWeek));
+                                    const weekTasksNoDate   = activeTasks.filter(t => !t.dueDate);
+                                    const weekHours = [...weekTasksWithDate, ...weekTasksNoDate]
+                                        .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+
+                                    // THIS MONTH: all active tasks with dueDate in month + undated tasks
+                                    const monthTasksWithDate = activeTasks.filter(t => t.dueDate && inRange(new Date(t.dueDate), startOfMonth, endOfMonth));
+                                    const monthTasksNoDate   = activeTasks.filter(t => !t.dueDate);
+                                    const monthHours = [...monthTasksWithDate, ...monthTasksNoDate]
+                                        .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+
+                                    // ── Live preview from current form fields ──
                                     const previewH = Math.max(0, parseFloat(watchedDuration) || 0);
                                     const due = watchedDueDate ? new Date(watchedDueDate) : null;
-                                    const inDay   = due && due >= startOfDay   && due <= endOfDay;
-                                    const inWeek  = due && due >= startOfWeek  && due <= endOfWeek;
-                                    const inMonth = due && due >= startOfMonth && due <= endOfMonth;
+                                    const inDay   = due ? inRange(due, startOfDay, endOfDay)    : false;
+                                    const inWeek  = due ? inRange(due, startOfWeek, endOfWeek)  : previewH > 0; // no date → counts as undated backlog
+                                    const inMonth = due ? inRange(due, startOfMonth, endOfMonth): previewH > 0;
 
                                     const previewDay   = (previewH > 0 && inDay)   ? previewH : 0;
                                     const previewWeek  = (previewH > 0 && inWeek)  ? previewH : 0;
@@ -797,7 +815,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                                         className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
                                                         style={{ width: `${pBase}%`, backgroundColor: cBase }}
                                                     />
-                                                    {/* preview segment — striped, starts after existing */}
+                                                    {/* preview segment — striped */}
                                                     {hasPreview && (
                                                         <div
                                                             className="absolute top-0 h-full rounded-r-full transition-all duration-300"
@@ -816,11 +834,16 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     };
 
                                     const hasAnyPreview = previewDay > 0 || previewWeek > 0 || previewMonth > 0;
+                                    const totalActiveTasks = activeTasks.length;
+                                    const undatedCount = activeTasks.filter(t => !t.dueDate).length;
 
                                     return (
                                         <div className="mt-3 p-3 rounded-xl border bg-muted/30 text-xs">
                                             <p className="font-semibold text-foreground mb-2.5 flex items-center gap-1.5">
                                                 <span>⏱️</span> Carico utente
+                                                <span className="ml-1 text-[10px] font-normal text-muted-foreground">
+                                                    ({totalActiveTasks} task attivi{undatedCount > 0 ? `, ${undatedCount} senza data` : ''})
+                                                </span>
                                                 {hasAnyPreview && (
                                                     <span className="ml-auto text-[10px] font-normal text-muted-foreground italic">
                                                         Anteprima +{previewH.toFixed(1)}h
@@ -837,6 +860,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                         Seleziona un utente per vedere il carico di lavoro
                                     </p>
                                 )}
+
 
                                 <FormMessage />
                             </FormItem>
