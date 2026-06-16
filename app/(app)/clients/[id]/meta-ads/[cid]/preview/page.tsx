@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Rocket, CheckCircle2, Loader2, AlertTriangle, AlertCircle, Eye, RefreshCw, Brain, ShieldCheck, XCircle, Zap, Link as LinkIcon, Copy } from 'lucide-react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 interface PreflightCheck {
   id: string; label: string; status: 'OK' | 'WARN' | 'FAIL' | 'SKIP'

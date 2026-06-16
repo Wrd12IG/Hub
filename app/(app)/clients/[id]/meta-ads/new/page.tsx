@@ -196,7 +196,8 @@ function PlacementSelector({ config, onChange }: { config: PlacementConfig; onCh
   )
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+
 
 type Objective = 'AWARENESS' | 'REACH' | 'TRAFFIC' | 'ENGAGEMENT' | 'LEADS' | 'CONVERSIONS' | 'VIDEO_VIEWS'
 

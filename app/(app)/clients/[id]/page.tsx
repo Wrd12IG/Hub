@@ -1,5 +1,6 @@
 "use client"
 
+import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
@@ -156,7 +158,7 @@ export default function ClientDetailPage() {
             clearInterval(interval)
             setLoadingAudit(false)
             console.error('[audit] Background operation failed:', data.error)
-            alert('L\'operazione in background è fallita:\n\n' + data.error)
+            toast.error('Operazione in background fallita: ' + data.error)
           } else if (data.status === 'completed') {
             clearInterval(interval)
             window.location.reload()
@@ -220,7 +222,7 @@ export default function ClientDetailPage() {
       setReportModalData({ ...data, campaignId, campaignName, objective })
       setReportModalDatePreset(preset)
     } catch (e) {
-      alert('Impossibile caricare il report. Controlla che la campagna abbia generato traffico.')
+      toast.error('Impossibile caricare il report. Controlla che la campagna abbia generato traffico.')
       if (!reportModalData) setReportModalData(null)
     } finally {
       setLoadingReportId(null)
@@ -242,7 +244,7 @@ export default function ClientDetailPage() {
       window.location.reload()
     } catch (e) {
       console.error('[competitor] Error adding competitor:', e)
-      alert('Impossibile aggiungere il competitor. Riprova.')
+      toast.error('Impossibile aggiungere il competitor. Riprova.')
     }
   }
 
@@ -258,7 +260,7 @@ export default function ClientDetailPage() {
       window.location.reload()
     } catch (e) {
       console.error('[competitor] Error deleting competitor:', e)
-      alert('Impossibile eliminare il competitor. Riprova.')
+      toast.error('Impossibile eliminare il competitor. Riprova.')
     }
   }
 
@@ -281,7 +283,7 @@ export default function ClientDetailPage() {
         window.location.reload()
       } catch (e) {
         console.error('[vision] Error uploading screenshot:', e)
-        alert('Impossibile caricare lo screenshot. Riprova.')
+        toast.error('Impossibile caricare lo screenshot. Riprova.')
       } finally {
         setUploadingVisionIndex(null)
       }
@@ -301,11 +303,11 @@ export default function ClientDetailPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        alert(data.error || 'Errore durante la generazione dell\'audit.')
+        toast.error(data.error || 'Errore durante la generazione dell\'audit.')
         setLoadingAudit(false)
       }
     } catch (e) {
-      alert('Errore di connessione.')
+      toast.error('Errore di connessione.')
       setLoadingAudit(false)
     }
   }
@@ -668,7 +670,8 @@ export default function ClientDetailPage() {
 
                   {/* Conversions Category */}
                   <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Conversioni (Ultimi 30gg vs prec.)</h4>
+                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Conversioni (Ultimi {overviewDaysBack}gg vs prec.)</h4>
+
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.75rem' }}>
                       {[
                         { label: 'Conversioni Totali', metric: ga4Data.conversions?.totalConversions, format: (v: number) => v.toLocaleString() },
@@ -1373,7 +1376,8 @@ export default function ClientDetailPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg" alt="Meta" style={{ height: '14px' }}/> Sincronizzate da Meta
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <Image src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg" alt="Meta" width={42} height={14} style={{ height: '14px', width: 'auto' }} unoptimized /> Sincronizzate da Meta
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Campagne attualmente attive sull'Ad Account configurato</p>
               </div>
@@ -1606,14 +1610,14 @@ export default function ClientDetailPage() {
                 body: JSON.stringify(data)
               });
               if (res.ok) {
-                alert('Integrazioni aggiornate con successo e salvate crittografate! La pagina si ricarichera\'.');
-                window.location.reload();
+                toast.success('Integrazioni aggiornate e salvate crittografate! La pagina si ricaricherà.')
+                setTimeout(() => window.location.reload(), 1500)
               } else {
                 const errBody = await res.json().catch(() => ({}))
-                alert('Errore durante l\'aggiornamento: ' + (errBody?.error ?? res.status));
+                toast.error('Errore durante l\'aggiornamento: ' + (errBody?.error ?? res.status))
               }
-            } catch(err) {
-              alert('Errore di rete.');
+            } catch {
+              toast.error('Errore di rete.')
             }
           }}>
             {/* ─── META ADS INTEGRATION ─── */}
@@ -1635,7 +1639,7 @@ export default function ClientDetailPage() {
                         setMetaAdAccounts(data.accounts || [])
                       } else {
                         const err = await res.json().catch(() => ({}))
-                        alert('Errore: ' + (err.error || 'Impossibile caricare gli account. Verifica META_SYSTEM_USER_TOKEN in Vercel.'))
+                        toast.error(err.error || 'Impossibile caricare gli account. Verifica META_SYSTEM_USER_TOKEN in Vercel.')
                       }
                     } catch(e) { console.error(e) }
                     finally { setLoadingMetaAccounts(false) }
@@ -1708,7 +1712,7 @@ export default function ClientDetailPage() {
                         setGoogleAdsAccounts(data.customers || [])
                       } else {
                         const err = await res.json().catch(() => ({}))
-                        alert('Errore: ' + (err.error || 'Configura GOOGLE_ADS_DEVELOPER_TOKEN e credenziali Google nelle variabili Vercel.'))
+                        toast.error(err.error || 'Configura GOOGLE_ADS_DEVELOPER_TOKEN e credenziali Google nelle variabili Vercel.')
                       }
                     } catch(e) { console.error(e) }
                     finally { setLoadingGoogleAdsAccounts(false) }
@@ -1807,7 +1811,7 @@ export default function ClientDetailPage() {
                         setGa4Properties(data.properties || [])
                       } else {
                         const err = await res.json().catch(() => ({}))
-                        alert('Errore: ' + (err.error || 'impossibile caricare le proprieta\'. Verifica che Analytics Admin API sia abilitata nel GCP project.'))
+                        toast.error(err.error || 'Impossibile caricare le proprietà. Verifica che Analytics Admin API sia abilitata nel GCP project.')
                       }
                     } catch(e) { console.error(e) }
                     finally { setLoadingGa4Props(false) }
@@ -1946,7 +1950,7 @@ export default function ClientDetailPage() {
                         setGbpAccounts(data.accounts || [])
                       } else {
                         const err = await res.json().catch(() => ({}))
-                        alert('Errore: ' + (err.error || 'impossibile caricare le location. Devi prima fare login con l\'account Google.'))
+                        toast.error(err.error || 'Impossibile caricare le location. Devi prima fare login con l\'account Google.')
                       }
                     } catch(e) { console.error(e) }
                     finally { setLoadingGbpLocations(false) }

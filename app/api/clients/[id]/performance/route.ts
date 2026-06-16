@@ -19,11 +19,14 @@ export async function GET(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    // TODO: Phase 4 Migration - Connect to Google Ads and Meta APIs
-    // For now, return a successful empty/mock payload to keep the frontend running smoothly
+    const daysBack = parseInt(request.nextUrl.searchParams.get('daysBack') || '30', 10);
+
+    // Phase 4 TODO: Connect real Google Ads and Meta APIs
+    // Stub returns empty aggregates — frontend hides widgets when all zeros
     return NextResponse.json({
       ok: true,
-      message: 'Performance API migration in progress',
+      daysBack,
+      message: 'Performance API — real data integration pending',
       summary: {
         totalSpend: 0,
         totalImpressions: 0,
@@ -32,6 +35,7 @@ export async function GET(
       },
       campaigns: []
     });
+
 
   } catch (error) {
     console.error(`Error fetching performance for client ${params.id}:`, error);
