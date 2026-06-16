@@ -1030,246 +1030,55 @@ export default function ClientDetailPage() {
                           </>
                         )}
                         <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                           <div style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Audience Core WEB</div>
-                           <div style={{ display: 'flex', gap: '1.5rem' }}>
-                              {/* Geolocation Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Milano</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '32%', height: '100%', background: '#3b82f6', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>32%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Roma</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '18%', height: '100%', background: '#3b82f6', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>18%</span>
-                                 </div>
-                              </div>
-                              {/* Age Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>35-44</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '42%', height: '100%', background: '#8b5cf6', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>42%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>25-34</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '28%', height: '100%', background: '#8b5cf6', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>28%</span>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                              {ga4Data ? 'Dati demografici disponibili nel report GA4 completo' : 'Collega GA4 per vedere le demografiche reali del sito'}
+                            </div>
+                         </div>
+                      </div>
 
                      {/* 2. INSTAGRAM */}
-                     <div style={{ background: 'rgba(225,48,108,0.03)', border: '1px solid rgba(225,48,108,0.2)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Instagram size={20} color="#e1306c" />
-                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Instagram</span>
-                          </div>
-                          <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '50px', fontWeight: 600 }}>+4.1%</span>
-                        </div>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <div style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1 }}>88.4k</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Followers</div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Reach Organica</div>
-                              <div style={{ fontWeight: 700 }}>1.2M</div>
+                      <div style={{ background: 'rgba(225,48,108,0.03)', border: '1px solid rgba(225,48,108,0.2)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                             <Instagram size={20} color="#e1306c" />
+                             <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Instagram</span>
                            </div>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Engagement Rate</div>
-                              <div style={{ fontWeight: 700 }}>4.8%</div>
-                           </div>
-                        </div>
-                        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                           <Video size={12} color="#e1306c" /> Top Format: <span style={{ fontWeight: 600 }}>Reels (10-15s)</span>
-                        </div>
-                        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                           <div style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Demografia Profilo IG</div>
-                           <div style={{ display: 'flex', gap: '1.5rem' }}>
-                              {/* Geolocation Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Milano</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '45%', height: '100%', background: '#e1306c', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>45%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Torino</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '20%', height: '100%', background: '#e1306c', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>20%</span>
-                                 </div>
-                              </div>
-                              {/* Age Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>18-24</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '60%', height: '100%', background: '#10b981', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>60%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>25-34</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '25%', height: '100%', background: '#10b981', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>25%</span>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
+                         </div>
+                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📱</div>
+                           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>Instagram non collegato</div>
+                           <div style={{ fontSize: '0.75rem', maxWidth: '200px' }}>Collega il Page ID Meta in Setup API per vedere follower, reach ed engagement reali</div>
+                           <button onClick={() => setActiveTab('settings')} style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#e1306c', background: 'none', border: '1px solid rgba(225,48,108,0.3)', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer' }}>Collega in Setup API →</button>
+                         </div>
+                      </div>
 
                      {/* 3. YOUTUBE */}
-                     <div style={{ background: 'rgba(239,68,68,0.03)', border: '1px solid rgba(239,68,68,0.2)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Youtube size={20} color="#ef4444" />
-                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>YouTube</span>
-                          </div>
-                          <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '50px', fontWeight: 600 }}>+2.5%</span>
-                        </div>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <div style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1 }}>12.1k</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Iscritti</div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Views (30d)</div>
-                              <div style={{ fontWeight: 700 }}>154k</div>
+                      <div style={{ background: 'rgba(239,68,68,0.03)', border: '1px solid rgba(239,68,68,0.2)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                             <Youtube size={20} color="#ef4444" />
+                             <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>YouTube</span>
                            </div>
-                           <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Watch Time Med.</div>
-                              <div style={{ fontWeight: 700 }}>4:20 min</div>
-                           </div>
-                        </div>
-                        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                           <PlayCircle size={12} color="#ef4444" /> Top Format: <span style={{ fontWeight: 600 }}>Edu / Long-form 10m</span>
-                        </div>
-                        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                           <div style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Iscritti Fedeli YT</div>
-                           <div style={{ display: 'flex', gap: '1.5rem' }}>
-                              {/* Geolocation Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Roma</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '48%', height: '100%', background: '#ef4444', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>48%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Napoli</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '22%', height: '100%', background: '#ef4444', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>22%</span>
-                                 </div>
-                              </div>
-                              {/* Age Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>25-34</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '55%', height: '100%', background: '#f59e0b', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>55%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>35-44</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '31%', height: '100%', background: '#f59e0b', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>31%</span>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
+                         </div>
+                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>▶️</div>
+                           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>YouTube non collegato</div>
+                           <div style={{ fontSize: '0.75rem', maxWidth: '200px' }}>Integrazione YouTube Analytics in arrivo — iscritti, views e watch time reali</div>
+                         </div>
+                      </div>
 
                      {/* 4. TIKTOK */}
-                     <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.1)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Music size={20} color="#000000" />
-                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>TikTok</span>
-                          </div>
-                          <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '2px 8px', borderRadius: '50px', fontWeight: 600 }}>+18%</span>
-                        </div>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <div style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1 }}>120k</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Followers</div>
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
-                           <div style={{ background: 'rgba(0,0,0,0.04)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Views Totali</div>
-                              <div style={{ fontWeight: 700 }}>3.4M</div>
-                           </div>
-                           <div style={{ background: 'rgba(0,0,0,0.04)', padding: '0.5rem', borderRadius: '8px' }}>
-                              <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Completamento</div>
-                              <div style={{ fontWeight: 700 }}>65%</div>
-                           </div>
-                        </div>
-                        <div style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                           <TrendingUp size={12} /> Top Format: <span style={{ fontWeight: 600 }}>POV & Trend Audios</span>
-                        </div>
-                        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                           <div style={{ color: 'var(--text-secondary)', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Community TikTok</div>
-                           <div style={{ display: 'flex', gap: '1.5rem' }}>
-                              {/* Geolocation Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Napoli</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '38%', height: '100%', background: '#000000', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>38%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '55px', color: 'var(--text-secondary)' }}>Bari</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '15%', height: '100%', background: '#000000', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>15%</span>
-                                 </div>
-                              </div>
-                              {/* Age Bars */}
-                              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>13-17</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '45%', height: '100%', background: '#10b981', borderRadius: '10px' }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>45%</span>
-                                 </div>
-                                 <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.7rem' }}>
-                                    <span style={{ width: '40px', color: 'var(--text-secondary)' }}>18-24</span>
-                                    <div style={{ flex: 1, height: '4px', background: 'rgba(0,0,0,0.05)', borderRadius: '10px', overflow: 'hidden', marginRight: '0.5rem' }}>
-                                       <div style={{ width: '40%', height: '100%', background: '#10b981', borderRadius: '10px', opacity: 0.7 }}></div>
-                                    </div>
-                                    <span style={{ width: '25px', textAlign: 'right', fontWeight: 600 }}>40%</span>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
+                      <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.1)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                           <Music size={20} color="#000000" />
+                           <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>TikTok</span>
+                         </div>
+                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎵</div>
+                           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>TikTok non collegato</div>
+                           <div style={{ fontSize: '0.75rem', maxWidth: '200px' }}>Integrazione TikTok Business API in arrivo — followers, views e completion rate reali</div>
+                         </div>
+                      </div>
 
                   </div>
                 </div>
