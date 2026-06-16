@@ -846,23 +846,11 @@ export default function ClientDetailPage() {
                {/* DISPLAY & AI BUDGET RIPARTITION */}
                <div style={{ background: 'rgba(251, 191, 36, 0.05)', border: '1px solid rgba(251, 191, 36, 0.2)', padding: '1.25rem', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
                   <h4 style={{ fontSize: '1rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontWeight: 700 }}><MonitorPlay size={18}/> Insights & Allocazione</h4>
-                  
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><span>Frequenza (30g):</span> <strong>4.2 per utente</strong></div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Viewability:</span> <strong>68%</strong></div>
-                  </div>
-
-                  <div style={{ marginTop: 'auto', background: 'rgba(255,255,255,0.4)', padding: '1rem', borderRadius: '12px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8)' }}>
-                     <div style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><PieChart size={14}/> Consigli Allocazione AI</div>
-                     <div style={{ width: '100%', height: '8px', display: 'flex', borderRadius: '50px', overflow: 'hidden' }}>
-                       <div style={{ width: '60%', background: '#1877f2', height: '100%' }}></div>
-                       <div style={{ width: '30%', background: '#ea4335', height: '100%' }}></div>
-                       <div style={{ width: '10%', background: '#f59e0b', height: '100%' }}></div>
-                     </div>
-                     <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: 'var(--text-tertiary)', lineHeight: 1.4 }}>
-                       L\'AI suggerisce di spostare il <strong>10%</strong> del budget Meta su Google Search per abbassare il CPA del 4.2%.
-                     </div>
-                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📊</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.25rem' }}>Display non configurato</div>
+                      <div style={{ fontSize: '0.72rem' }}>Collega le campagne Display/DV360 per vedere frequenza e viewability reali</div>
+                   </div>
                </div>
             </div>
           </div>
@@ -878,48 +866,12 @@ export default function ClientDetailPage() {
                   <Search size={20} color="var(--brand-blue)" /> SEO & Keyword View (GSC)
                 </h3>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                  {/* Posizionamento nel tempo */}
-                  <div style={{ background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.8)', padding: '1rem', borderRadius: '12px', backdropFilter: 'blur(10px)', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8)' }}>
-                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 600 }}>Ranking Medio (Ultimi 3 mesi)</div>
-                     <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>14.2 <span style={{fontSize:'0.9rem', color:'#10b981'}}>↑ 3.1 pos.</span></div>
-                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem', fontSize: '0.75rem' }}>
-                       <div><span style={{color:'#10b981', fontWeight:800}}>+12</span> pag in Top 10</div>
-                       <div><span style={{color:'#ef4444', fontWeight:800}}>-2</span> in drop</div>
-                     </div>
-                  </div>
-                  
-                  {/* Backlink Acquisiti */}
-                  <div style={{ background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.8)', padding: '1rem', borderRadius: '12px', backdropFilter: 'blur(10px)', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8)' }}>
-                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><LinkIcon size={14}/> Backlink Acquisiti</div>
-                     <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>14 <span style={{fontSize:'0.9rem', color:'var(--text-tertiary)'}}>nel periodo</span></div>
-                     <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--brand-blue)' }}>Miglior link: <strong>Forbes.it (DA 88)</strong></div>
-                  </div>
-                </div>
-
-                {/* Query Opportunities */}
-                <div>
-                   <h4 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Opportunità Immediate (Basso CTR / Alto Vol)</h4>
-                   <div style={{ background: 'rgba(59,130,246,0.03)', borderRadius: '12px', padding: '1rem' }}>
-                      {[
-                        { query: 'agenzia marketing milano', pos: '8.4', vol: '4.5k', ctr: '1.2%' },
-                        { query: 'costo sito e-commerce', pos: '11.2', vol: '12k', ctr: '0.4%' },
-                        { query: 'come fare lead generation b2b', pos: '4.1', vol: '2.1k', ctr: '2.4%' }
-                      ].map((q, i) => (
-                         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0', borderBottom: i === 2 ? 'none' : '1px solid rgba(0,0,0,0.05)' }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{q.query}</div>
-                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', textAlign: 'right' }}>
-                               <div><span style={{color:'var(--text-tertiary)'}}>Pos.</span> {q.pos}</div>
-                               <div><span style={{color:'var(--text-tertiary)'}}>Vol.</span> {q.vol}</div>
-                               <div style={{ fontWeight: 800, color: '#ef4444' }}>CTR {q.ctr}</div>
-                            </div>
-                         </div>
-                      ))}
-                      <div style={{ marginTop: '1rem', background: '#3b82f6', color: '#fff', padding: '0.5rem', borderRadius: '8px', fontSize: '0.75rem', textAlign: 'center', cursor: 'pointer', fontWeight: 600 }}>
-                        <Sparkles size={12} style={{marginRight: '4px'}}/> Chiedi all\'AI di ottimizzare i Title Tag
-                      </div>
-                   </div>
-                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', background: 'rgba(59,130,246,0.03)', borderRadius: '12px', border: '1px dashed rgba(59,130,246,0.2)' }}>
+                   <Search size={32} style={{ opacity: 0.2, marginBottom: '0.75rem' }} />
+                   <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem', color: 'var(--text-primary)' }}>Google Search Console non collegato</div>
+                   <div style={{ fontSize: '0.8rem', maxWidth: '320px', lineHeight: 1.5 }}>Collega GSC in Setup API per vedere ranking reali, keyword opportunities e backlink del cliente</div>
+                   <button onClick={() => setActiveTab('settings')} style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--brand-blue)', background: 'none', border: '1px solid var(--brand-blue)', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600 }}>Collega in Setup API →</button>
+                 </div>
              </div>
 
              {/* QUALITATIVE FEEDBACK (Reviews) */}
@@ -928,37 +880,12 @@ export default function ClientDetailPage() {
                   <Star size={20} color="#f59e0b" fill="#f59e0b" /> Reputation & UX
                 </h3>
                 
-                <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                   <div style={{ fontSize: '3rem', fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1 }}>4.8</div>
-                   <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', color: '#f59e0b', margin: '0.5rem 0' }}>
-                     <Star size={16} fill="#f59e0b" /><Star size={16} fill="#f59e0b" /><Star size={16} fill="#f59e0b" /><Star size={16} fill="#f59e0b" /><Star size={16} fill="#f59e0b" opacity={0.5} />
-                   </div>
-                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Basato su <strong>124 Recensioni</strong> (Google, Trustpilot)</div>
-                </div>
-
-                <div style={{ background: 'rgba(255,255,255,0.4)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.8)', marginBottom: '1rem', backdropFilter: 'blur(10px)' }}>
-                   <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>UX Sentiment (Qualitativo)</div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                     <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Positivo / Eccellente</span>
-                     <span style={{ color: '#10b981', fontWeight: 800 }}>88%</span>
-                   </div>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem' }}>
-                     <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Lamentele / Bug</span>
-                     <span style={{ color: '#ef4444', fontWeight: 800 }}>4%</span>
-                   </div>
-                </div>
-
-                <div style={{ marginTop: 'auto', background: 'rgba(245, 158, 11, 0.05)', padding: '1rem', borderRadius: '12px' }}>
-                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                     <MessageSquare size={16} color="#f59e0b" />
-                     <div style={{ fontSize: '0.75rem', fontWeight: 700 }}>Topic Ricorrenti:</div>
-                   </div>
-                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                     {['Velocità (Pos)', 'Assistenza (Pos)', 'Prezzo Pieno (Neg)'].map(t => (
-                       <span key={t} style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.4)', padding: '4px 8px', borderRadius: '50px', border: '1px solid rgba(255,255,255,0.8)' }}>{t}</span>
-                     ))}
-                   </div>
-                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    <Star size={32} style={{ opacity: 0.2, marginBottom: '0.75rem' }} color="#f59e0b" />
+                    <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem', color: 'var(--text-primary)' }}>Nessuna recensione collegata</div>
+                    <div style={{ fontSize: '0.8rem', maxWidth: '220px', lineHeight: 1.5 }}>Collega Google Business Profile o Trustpilot per vedere recensioni e sentiment reali</div>
+                    <button onClick={() => setActiveTab('settings')} style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#f59e0b', background: 'none', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '5px 14px', cursor: 'pointer', fontWeight: 600 }}>Collega in Setup API →</button>
+                 </div>
              </div>
 
           </div>
