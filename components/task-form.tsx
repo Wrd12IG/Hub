@@ -85,7 +85,7 @@ interface TaskFormProps {
 }
 
 export default function TaskForm({ task, defaultClientId, initialDate, onSuccess, onCancel }: TaskFormProps) {
-    const { clients, allProjects: projects, users, currentUser, activityTypes, allTasks, taskPrioritySettings } = useLayoutData()
+    const { clients, allProjects: projects, users, currentUser, activityTypes, allTasks, calendarActivities, taskPrioritySettings } = useLayoutData()
     const { toast } = useToast()
     const router = useRouter()
     const [isLoading, setIsLoading] = React.useState(false)
@@ -741,6 +741,23 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                         t.id !== task?.id
                                     );
 
+                                    // Calendar activities for this user (startTime/endTime → seconds → hours)
+                                    // Same logic as reports page and admin dashboard activityHours
+                                    const userActivities = (calendarActivities || []).filter((a: any) =>
+                                        a.userId === field.value && a.startTime && a.endTime
+                                    );
+
+                                    const activityHoursInRange = (start: Date, end: Date): number =>
+                                        userActivities
+                                            .filter((a: any) => {
+                                                const d = new Date(a.startTime);
+                                                return d >= start && d <= end;
+                                            })
+                                            .reduce((acc: number, a: any) => {
+                                                const dur = (new Date(a.endTime).getTime() - new Date(a.startTime).getTime()) / 1000; // seconds
+                                                return acc + dur / 3600;
+                                            }, 0);
+
                                     // Helper: resolve the reference date of a task (same as reports page)
                                     const taskRefDate = (t: typeof activeTasks[0]): Date => {
                                         if (t.dueDate) return new Date(t.dueDate);
@@ -750,23 +767,25 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
 
                                     const inRange = (d: Date, start: Date, end: Date) => d >= start && d <= end;
 
-                                    // TODAY: tasks whose reference date = today
-                                    const dayHours = activeTasks
+                                    // TODAY: tasks + activities with refDate = today
+                                    const dayTaskHours = activeTasks
                                         .filter(t => inRange(taskRefDate(t), startOfDay, endOfDay))
                                         .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+                                    const dayHours = dayTaskHours + activityHoursInRange(startOfDay, endOfDay);
 
-                                    // THIS WEEK: tasks due this week + all tasks without any date
-                                    // (backlog items without deadline still occupy working time)
+                                    // THIS WEEK: tasks due this week + undated tasks + activities this week
                                     const weekTasksWithDate = activeTasks.filter(t => t.dueDate && inRange(new Date(t.dueDate), startOfWeek, endOfWeek));
                                     const weekTasksNoDate   = activeTasks.filter(t => !t.dueDate);
-                                    const weekHours = [...weekTasksWithDate, ...weekTasksNoDate]
+                                    const weekTaskHours = [...weekTasksWithDate, ...weekTasksNoDate]
                                         .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+                                    const weekHours = weekTaskHours + activityHoursInRange(startOfWeek, endOfWeek);
 
-                                    // THIS MONTH: all active tasks with dueDate in month + undated tasks
+                                    // THIS MONTH: tasks in month + undated tasks + activities this month
                                     const monthTasksWithDate = activeTasks.filter(t => t.dueDate && inRange(new Date(t.dueDate), startOfMonth, endOfMonth));
                                     const monthTasksNoDate   = activeTasks.filter(t => !t.dueDate);
-                                    const monthHours = [...monthTasksWithDate, ...monthTasksNoDate]
+                                    const monthTaskHours = [...monthTasksWithDate, ...monthTasksNoDate]
                                         .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
+                                    const monthHours = monthTaskHours + activityHoursInRange(startOfMonth, endOfMonth);
 
                                     // ── Live preview from current form fields ──
                                     const previewH = Math.max(0, parseFloat(watchedDuration) || 0);
