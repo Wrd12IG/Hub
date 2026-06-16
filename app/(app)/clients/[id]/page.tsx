@@ -125,39 +125,51 @@ export default function ClientDetailPage() {
         const res = await fetch(`${API_URL}/api/clients/${id}/audit/status`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         })
+        if (!res.ok) return;
         const data = await res.json()
         if (data.status === 'running') {
           setLoadingAudit(true)
           setAuditProgress(data.progress)
         }
-      } catch (e) {}
+      } catch (e) {
+        console.error('[audit] Error checking audit status:', e)
+      }
     }
     checkAuditStatus()
   }, [id])
 
   useEffect(() => {
     let interval: NodeJS.Timeout
+    let isMounted = true
     if (loadingAudit) {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`${API_URL}/api/clients/${id}/audit/status`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           })
+          if (!res.ok || !isMounted) return;
           const data = await res.json()
+          if (!isMounted) return;
           if (data.status === 'running') {
             setAuditProgress(data.progress)
           } else if (data.status === 'error') {
             clearInterval(interval)
             setLoadingAudit(false)
+            console.error('[audit] Background operation failed:', data.error)
             alert('L\'operazione in background è fallita:\n\n' + data.error)
           } else if (data.status === 'completed') {
             clearInterval(interval)
             window.location.reload()
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('[audit] Error polling audit status:', e)
+        }
       }, 2000)
     }
-    return () => clearInterval(interval)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [loadingAudit, id])
 
   useEffect(() => {
@@ -219,24 +231,35 @@ export default function ClientDetailPage() {
   const handleAddCompetitor = async () => {
     if (!newCompetitorName.trim() || !client) return
     const token = localStorage.getItem('token')
-    await fetch(`${API_URL}/api/clients/${client.id}/intelligence/competitors`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newCompetitorName })
-    })
-    setNewCompetitorName('')
-    // Ricaricamento soft
-    window.location.reload()
+    try {
+      const res = await fetch(`${API_URL}/api/clients/${client.id}/intelligence/competitors`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCompetitorName })
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      setNewCompetitorName('')
+      window.location.reload()
+    } catch (e) {
+      console.error('[competitor] Error adding competitor:', e)
+      alert('Impossibile aggiungere il competitor. Riprova.')
+    }
   }
 
   const handleDeleteCompetitor = async (index: number) => {
     if (!client) return
     const token = localStorage.getItem('token')
-    await fetch(`${API_URL}/api/clients/${client.id}/intelligence/competitors/${index}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    window.location.reload()
+    try {
+      const res = await fetch(`${API_URL}/api/clients/${client.id}/intelligence/competitors/${index}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      window.location.reload()
+    } catch (e) {
+      console.error('[competitor] Error deleting competitor:', e)
+      alert('Impossibile eliminare il competitor. Riprova.')
+    }
   }
 
   const handleScreenshotUpload = async (index: number, file: File) => {
@@ -248,15 +271,20 @@ export default function ClientDetailPage() {
     reader.onloadend = async () => {
       const base64Image = reader.result as string
       const token = localStorage.getItem('token')
-      
-      await fetch(`${API_URL}/api/clients/${client.id}/intelligence/competitors/${index}/vision`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64Image })
-      })
-      
-      setUploadingVisionIndex(null)
-      window.location.reload()
+      try {
+        const res = await fetch(`${API_URL}/api/clients/${client.id}/intelligence/competitors/${index}/vision`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Image })
+        })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        window.location.reload()
+      } catch (e) {
+        console.error('[vision] Error uploading screenshot:', e)
+        alert('Impossibile caricare lo screenshot. Riprova.')
+      } finally {
+        setUploadingVisionIndex(null)
+      }
     }
     reader.readAsDataURL(file)
   }
@@ -592,7 +620,8 @@ export default function ClientDetailPage() {
                     <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Traffico & Acquisizione</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.75rem' }}>
                       {[
-                        { label: 'Sessioni Tolali', metric: ga4Data.traffic?.sessions, format: (v: number) => v.toLocaleString() },
+                        { label: 'Sessioni Totali', metric: ga4Data.traffic?.sessions, format: (v: number) => v.toLocaleString() },
+
                         { label: 'Utenti Unici', metric: ga4Data.traffic?.users, format: (v: number) => v.toLocaleString() },
                         { label: 'Nuovi Utenti', metric: ga4Data.traffic?.newUsers, format: (v: number) => v.toLocaleString() },
                         { label: 'Utenti di Ritorno', metric: ga4Data.traffic?.returningUsers, format: (v: number) => v.toLocaleString() },

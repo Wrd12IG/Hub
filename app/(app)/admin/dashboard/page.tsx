@@ -271,21 +271,9 @@ export default function Dashboard() {
     const { users, usersById, clients, clientsById, allTasks, allProjects, activityTypes, absences, calendarActivities, calendarActivityPresets, isLoadingLayout, currentUser } = useLayoutData();
 
     // Protezione accesso: solo Amministratore può vedere la dashboard
-    if (!isLoadingLayout && currentUser && currentUser.role !== 'Amministratore') {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Card className="w-full max-w-md">
-                    <CardHeader>
-                        <CardTitle className="text-destructive">Accesso Negato</CardTitle>
-                        <CardDescription>
-                            Non hai i permessi per accedere a questa pagina.
-                            Solo gli Amministratori possono visualizzare la dashboard.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
-        );
-    }
+    // NOTA: non usare early return qui — violerebbe le Rules of Hooks.
+    // Il check viene applicato nel JSX sottostante.
+    const isAccessDenied = !isLoadingLayout && currentUser && currentUser.role !== 'Amministratore';
 
     const [filters, setFilters] = useState({
         startDate: null as Date | null,
@@ -1532,7 +1520,20 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-6">
-            {/* Header con titolo, badge KPI e Quick Actions */}
+            {/* Protezione accesso */}
+            {isAccessDenied ? (
+                <div className="flex items-center justify-center min-h-screen">
+                    <Card className="w-full max-w-md">
+                        <CardHeader>
+                            <CardTitle className="text-destructive">Accesso Negato</CardTitle>
+                            <CardDescription>
+                                Non hai i permessi per accedere a questa pagina.
+                                Solo gli Amministratori possono visualizzare la dashboard.
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                </div>
+            ) : (<>
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-2xl font-bold">Dashboard Admin</h1>
@@ -2940,6 +2941,9 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
             )}
-        </div >
+            </>)}
+
+        </div>
     );
 }
+

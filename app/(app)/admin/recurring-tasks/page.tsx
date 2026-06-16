@@ -391,7 +391,7 @@ export default function RecurringTasksPage() {
           <DialogHeader>
             <DialogTitle>Genera task per data specifica</DialogTitle>
             <DialogDescription>
-              Seleziona la data di scadenza per il task "{taskForDatePicker?.title}".
+              Seleziona la data di scadenza per il task &quot;{taskForDatePicker?.title}&quot;.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 flex flex-col items-center">

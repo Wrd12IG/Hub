@@ -1009,7 +1009,7 @@ export default function CalendarPage() {
                             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                                 <CalendarDays className="h-12 w-12 mb-4 opacity-20" />
                                 <p className="text-lg font-medium">Nessun evento questo mese</p>
-                                <p className="text-sm">Clicca "Crea Evento" per aggiungere il primo</p>
+                                <p className="text-sm">Clicca &quot;Crea Evento&quot; per aggiungere il primo</p>
                             </div>
                         )}
                     </div>
@@ -1216,7 +1216,7 @@ export default function CalendarPage() {
                 <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:rounded-2xl p-6">
                     <DialogHeader>
                         <DialogTitle className="sr-only">Modifica o Crea Attività</DialogTitle>
-                        <DialogDescription className="sr-only">Modulo per creare o modificare un'attività del calendario</DialogDescription>
+                        <DialogDescription className="sr-only">Modulo per creare o modificare un&apos;attività del calendario</DialogDescription>
                     </DialogHeader>
                     <CalendarActivityForm
                         initialDate={creationDate || new Date()}

@@ -63,9 +63,13 @@ function getEncryptionKey(): Buffer | null {
 export function encryptToken(token: string): string {
   const key = getEncryptionKey();
   if (!key) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[api-auth] ENCRYPTION_KEY is not configured — refusing to store token in plain text in production. Set ENCRYPTION_KEY as a 64-char hex string in your environment variables.');
+    }
     console.warn('[api-auth] ENCRYPTION_KEY not set — storing token in plain text (DEV only)');
     return token;
   }
+
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   const encrypted = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);

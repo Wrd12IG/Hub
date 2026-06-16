@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
-    console.log('>>> API CALL: /api/social-strategy/media-brief');
+    // API call: /api/social-strategy/media-brief
     try {
         const { topic, platform, mediaType, caption, clientName, toneOfVoice } = await req.json();
 

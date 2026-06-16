@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { saveClientToken } from '@/lib/api-auth';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await verifyAuth(request as import('next/server').NextRequest);
+  if (!auth) return unauthorizedResponse();
+
   try {
     const id = params.id;
     const docRef = adminDb.collection('clients').doc(id);
@@ -28,6 +33,9 @@ export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await verifyAuth(request as import('next/server').NextRequest);
+  if (!auth) return unauthorizedResponse();
+
   try {
     const id = params.id;
     const body = await request.json();
@@ -63,6 +71,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await verifyAuth(request as import('next/server').NextRequest);
+  if (!auth) return unauthorizedResponse();
+
   try {
     const id = params.id;
     const docRef = adminDb.collection('clients').doc(id);
@@ -81,7 +92,7 @@ export async function DELETE(
   }
 }
 
-import { saveClientToken } from '@/lib/api-auth';
+
 
 export async function PATCH(
   request: Request,

@@ -73,7 +73,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
           <BukowskiConfetti />
           <BirthdayCelebration users={users} />
-          <IdleBreakPopup idleMinutes={5} onBreakLogged={(log) => console.log('Break logged:', log)} />
+          <IdleBreakPopup idleMinutes={5} onBreakLogged={(_log) => {}} />
+
         </div>
       </CommandMenuProvider>
     </TranslationProvider>

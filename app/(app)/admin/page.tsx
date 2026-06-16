@@ -1605,7 +1605,7 @@ function AdminPageContent() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Questa azione non può essere annullata. Questo eliminerà permanentemente l'utente
+                            Questa azione non può essere annullata. Questo eliminerà permanentemente l&apos;utente
                             <span className="font-bold"> {userToDelete?.name}</span>.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -1677,7 +1677,7 @@ function AdminPageContent() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Questa azione non può essere annullata. Questo eliminerà permanentemente l'attività
+                            Questa azione non può essere annullata. Questo eliminerà permanentemente l&apos;attività
                             <span className="font-bold"> {activityToDelete?.name}</span>.
                         </AlertDialogDescription>
                     </AlertDialogHeader>

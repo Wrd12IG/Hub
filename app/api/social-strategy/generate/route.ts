@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Set to 60 seconds (max for Vercel Pro, default is 10s on Hobby)
 
 export async function POST(req: NextRequest) {
-    console.log('>>> API CALL: /api/social-strategy/generate');
+    // API call: /api/social-strategy/generate
     try {
         const { prompt, systemPrompt } = await req.json();
 
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Fallback or old Anthropic logic
-        console.log('Falling back to Anthropic API...');
+        console.error('[social-strategy] Falling back to Anthropic API');
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {

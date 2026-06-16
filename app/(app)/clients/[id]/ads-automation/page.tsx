@@ -210,7 +210,7 @@ export default function AdsAutomationPage({ params }: { params: { id: string } }
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', marginTop: 6 }}></div>
                 <div>
                   <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>Shopping Bid Optimizer</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Aumentato CPC del +15% per "iPhone 15" causa alto ROAS odierno.</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Aumentato CPC del +15% per &quot;iPhone 15&quot; causa alto ROAS odierno.</p>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Oggi, 14:30</span>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export default function AdsAutomationPage({ params }: { params: { id: string } }
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', marginTop: 6 }}></div>
                 <div>
                   <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>Budget Pacing Guardian</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Ridotto budget "Campagna Retargeting" da 50€ a 42€/gg.</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Ridotto budget &quot;Campagna Retargeting&quot; da 50€ a 42€/gg.</p>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Oggi, 09:00</span>
                 </div>
               </div>
@@ -228,7 +228,7 @@ export default function AdsAutomationPage({ params }: { params: { id: string } }
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', marginTop: 6 }}></div>
                 <div>
                   <p style={{ fontSize: '0.85rem', fontWeight: 600 }}>CPA Stop-Loss</p>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Pausato Ad Set "Broad Audience". CPA oltre soglia (52€).</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Pausato Ad Set &quot;Broad Audience&quot;. CPA oltre soglia (52€).</p>
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Ieri, 23:45</span>
                 </div>
               </div>

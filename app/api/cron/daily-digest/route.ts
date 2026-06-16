@@ -80,7 +80,7 @@ async function sendDigestEmail(subject: string, htmlContent: string): Promise<{ 
       html: htmlContent,
     });
 
-    console.log('[daily-digest] Email inviata:', info.messageId);
+    console.error('[daily-digest] Email inviata:', info.messageId);
     return { success: true };
   } catch (error) {
     console.error('[daily-digest] Errore invio email:', error);
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
   }
 
   // ── Step 2: Raccoglie i dati da Firestore ────────────────────────────────
-  console.log('[daily-digest] Avvio raccolta dati Firestore...');
+  // daily-digest: raccolta dati Firestore
   
   let digest;
   try {

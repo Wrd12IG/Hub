@@ -8,7 +8,10 @@ import {
 } from '@/lib/automation-engine';
 
 // Secret key to protect the endpoint (set in environment variables)
-const AUTOMATION_SECRET = process.env.AUTOMATION_SECRET || 'default-automation-key';
+const AUTOMATION_SECRET = process.env.AUTOMATION_SECRET;
+if (!AUTOMATION_SECRET) {
+    console.error('[automations] AUTOMATION_SECRET env var is not set — endpoint is disabled');
+}
 
 /**
  * POST /api/automations/run
@@ -28,12 +31,10 @@ export async function POST(request: NextRequest) {
     try {
         // Verify secret
         const secret = request.headers.get('x-automation-secret');
-        if (secret !== AUTOMATION_SECRET) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+        if (!AUTOMATION_SECRET || secret !== AUTOMATION_SECRET) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+
 
         const searchParams = request.nextUrl.searchParams;
         const type = searchParams.get('type') || 'all';
