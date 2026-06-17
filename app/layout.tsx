@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, DM_Sans, DM_Mono } from "next/font/google";
+import { Space_Grotesk, DM_Sans, DM_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import React, { Suspense } from 'react';
 import { Providers } from './providers';
@@ -19,6 +19,12 @@ const dmMono = DM_Mono({
   subsets: ["latin"], 
   variable: "--font-dm-mono",
   weight: ["400", "500"]
+});
+const jakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const viewport: Viewport = {
@@ -83,7 +89,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmMono.variable} font-body antialiased`}>
+      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmMono.variable} ${jakartaSans.variable} font-body antialiased`}>
         <Providers>
           <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><p>Loading...</p></div>}>
             {children}

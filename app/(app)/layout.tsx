@@ -16,6 +16,8 @@ import { useKonamiCodeToggle } from '@/hooks/useKonamiCode';
 import { BukowskiMode, BukowskiConfetti } from '@/components/easter-eggs/bukowski-mode';
 import { BirthdayCelebration } from '@/components/birthday-celebration';
 import { IdleBreakPopup } from '@/components/idle-break-popup';
+import FloatingNetworkBackground from '@/components/FloatingNetworkBackground';
+import { PageTransition } from '@/components/PageTransition';
 
 
 
@@ -41,8 +43,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isMounted || isLoadingLayout || !currentUser) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Caricamento in corso...</p>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-primary/10 animate-pulse" />
+            </div>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-sm font-semibold tracking-widest text-foreground/80 uppercase animate-pulse">W[r]Digital</span>
+            <span className="text-xs text-muted-foreground">Caricamento HUB…</span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -51,16 +63,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <TranslationProvider>
       <CommandMenuProvider>
         <div className="flex h-screen w-full bg-transparent">
+          <FloatingNetworkBackground />
 
           <SidebarNav />
           <SidebarInset className="relative isolate">
             <Header />
             <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6">
-              {children}
+              <PageTransition>
+                {children}
+              </PageTransition>
             </main>
             <CommandMenu />
           </SidebarInset>
-          <Toaster richColors />
+          <Toaster richColors position="top-right" />
           {pomodoroTask && (
             <PomodoroWidget
               task={pomodoroTask}

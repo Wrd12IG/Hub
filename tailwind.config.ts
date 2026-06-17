@@ -22,7 +22,9 @@ const config = {
     extend: {
       fontFamily: {
         headline: ["var(--font-space-grotesk)", ...fontFamily.sans],
-        body: ["var(--font-inter)", ...fontFamily.sans],
+        body: ["var(--font-jakarta)", "var(--font-dm-sans)", ...fontFamily.sans],
+        jakarta: ["var(--font-jakarta)", ...fontFamily.sans],
+        mono: ["var(--font-dm-mono)", ...fontFamily.mono],
       },
       colors: {
         border: "hsl(var(--border))",

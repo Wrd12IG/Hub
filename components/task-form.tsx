@@ -49,6 +49,7 @@ import DatePickerDialog from "@/components/ui/date-picker-dialog"
 import { Task, User, allTaskStatuses, allTaskPriorities } from "@/lib/data"
 import { addTask, updateTask, uploadFilesAndGetAttachments } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
+import { WorkloadSphere } from "@/components/WorkloadSphere"
 
 const formSchema = z.object({
     title: z.string().min(2, {
@@ -870,6 +871,12 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                                     </span>
                                                 )}
                                             </p>
+                                            {/* Sphere visual summary */}
+                                            <div className="flex gap-4 justify-around mb-3 py-1">
+                                                <WorkloadSphere load={pct(dayHours + previewDay, maxDay)} label="Oggi" size={44} />
+                                                <WorkloadSphere load={pct(weekHours + previewWeek, maxWeek)} label="Settimana" size={44} />
+                                                <WorkloadSphere load={pct(monthHours + previewMonth, maxMonth)} label="Mese" size={44} />
+                                            </div>
                                             <WorkloadBar hours={dayHours}   preview={previewDay}   max={maxDay}   label="Oggi" />
                                             <WorkloadBar hours={weekHours}  preview={previewWeek}  max={maxWeek}  label="Questa settimana" />
                                             <WorkloadBar hours={monthHours} preview={previewMonth} max={maxMonth} label="Questo mese" />
