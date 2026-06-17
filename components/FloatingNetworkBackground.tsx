@@ -1,64 +1,152 @@
-"use client"
+"use client";
 
-import React from 'react'
+import { useEffect, useRef } from "react";
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  radius: number;
+  opacity: number;
+}
+
+/**
+ * Animated canvas network background.
+ * Particelle che si connettono tra loro e reagiscono al mouse.
+ * Performance: requestAnimationFrame, max 60fps, ~50 particelle.
+ */
 export default function FloatingNetworkBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -1000, y: -1000 });
+  const particlesRef = useRef<Particle[]>([]);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const PARTICLE_COUNT = 55;
+    const CONNECT_DISTANCE = 130;
+    const MOUSE_REPEL_DISTANCE = 90;
+    const SPEED = 0.35;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const onMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseleave", () => {
+      mouseRef.current = { x: -1000, y: -1000 };
+    });
+
+    // Init particles
+    particlesRef.current = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * SPEED,
+      vy: (Math.random() - 0.5) * SPEED,
+      radius: Math.random() * 1.8 + 0.8,
+      opacity: Math.random() * 0.4 + 0.2,
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const particles = particlesRef.current;
+      const mouse = mouseRef.current;
+
+      // Update positions
+      for (const p of particles) {
+        // Mouse repulsion
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MOUSE_REPEL_DISTANCE) {
+          const force = (MOUSE_REPEL_DISTANCE - dist) / MOUSE_REPEL_DISTANCE;
+          p.vx += (dx / dist) * force * 0.3;
+          p.vy += (dy / dist) * force * 0.3;
+        }
+
+        // Speed cap
+        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        if (speed > SPEED * 3) {
+          p.vx = (p.vx / speed) * SPEED * 3;
+          p.vy = (p.vy / speed) * SPEED * 3;
+        }
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Bounce off edges
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        p.x = Math.max(0, Math.min(canvas.width, p.x));
+        p.y = Math.max(0, Math.min(canvas.height, p.y));
+      }
+
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const a = particles[i];
+          const b = particles[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < CONNECT_DISTANCE) {
+            const opacity = (1 - dist / CONNECT_DISTANCE) * 0.15;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(102, 126, 234, ${opacity})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw particles
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(102, 126, 234, ${p.opacity})`;
+        ctx.fill();
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", onMouseMove);
+    };
+  }, []);
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: -2, // Behind the body orbs
-      overflow: 'hidden',
-      pointerEvents: 'none'
-    }}>
-      {/* Meta Infinity Logo */}
-      <svg 
-        viewBox="0 0 400 400"
-        style={{
-          position: 'absolute',
-          top: '-15%', left: '-8%',
-          width: '800px', height: '800px',
-          opacity: 0.05,
-          color: '#1877F2',
-          transform: 'rotate(-15deg)'
-        }}
-      >
-        <path fill="currentColor" d="M294.6,99c-36,0-63.5,18.7-83.3,47.8C191.5,117.7,164,99,128,99C57.3,99,0,156.3,0,227s57.3,128,128,128 c36,0,63.5-18.7,83.3-47.8c19.8,29.1,47.3,47.8,83.3,47.8c70.7,0,128-57.3,128-128S365.3,99,294.6,99z M128,298 c-39.2,0-71-31.8-71-71s31.8-71,71-71c26.3,0,49.9,14.6,61.8,36.5l-17,17c-8-12.7-22.9-20.9-39.8-20.9c-24.8,0-45,20.2-45,45 s20.2,45,45,45c16.9,0,31.7-8.2,39.8-20.9 l17.4,15.8C202.4,286.3,178.5,298,128,298z M294.6,298c-22.6,0-44.5-14.7-56.5-35.3 l17.4-15.8c8,12.7,22.9,20.5,39.8,20.5c24.8,0,45-20.2,45-45s-20.2-45-45-45c-16.9,0-31.8,8.2-39.8,20.9l-17-17 c11.9-21.9,34.5-36.5,61.8-36.5c39.2,0,71,31.8,71,71S333.8,298,294.6,298z"/>
-      </svg>
-
-      {/* Google G Logo */}
-      <svg
-        viewBox="0 0 512 512"
-        style={{
-          position: 'absolute',
-          bottom: '-15%', right: '-5%',
-          width: '900px', height: '900px',
-          opacity: 0.05,
-          color: '#DB4437',
-          transform: 'rotate(5deg)'
-        }}
-      >
-        <path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"/>
-      </svg>
-      
-      {/* Instagram Camera Logo abstract */}
-      <svg
-        viewBox="0 0 448 512"
-         style={{
-          position: 'absolute',
-          top: '15%', right: '35%',
-          width: '450px', height: '450px',
-          opacity: 0.03,
-          color: '#E1306C',
-          transform: 'rotate(-10deg)'
-        }}
-      >
-        <path fill="currentColor" d="M224.1 141c-63.6 0-114.9 51.3-114.9 114.9s51.3 114.9 114.9 114.9S339 319.5 339 255.9 287.7 141 224.1 141zm0 189.6c-41.1 0-74.7-33.5-74.7-74.7s33.5-74.7 74.7-74.7 74.7 33.5 74.7 74.7-33.6 74.7-74.7 74.7zm146.4-194.3c0 14.9-12 26.8-26.8 26.8-14.9 0-26.8-12-26.8-26.8s12-26.8 26.8-26.8 26.8 12 26.8 26.8zm76.1 27.2c-1.7-35.9-9.9-67.7-36.2-93.9-26.2-26.2-58-34.4-93.9-36.2-37-2.1-147.9-2.1-184.9 0-35.8 1.7-67.6 9.9-93.9 36.1s-34.4 58-36.2 93.9c-2.1 37-2.1 147.9 0 184.9 1.7 35.9 9.9 67.7 36.2 93.9s58 34.4 93.9 36.2c37 2.1 147.9 2.1 184.9 0 35.9-1.7 67.7-9.9 93.9-36.2 26.2-26.2 34.4-58 36.2-93.9 2.1-37 2.1-147.8 0-184.8zM398.8 388c-7.8 19.6-22.9 34.7-42.6 42.6-29.5 11.7-99.5 9-132.1 9s-102.7 2.6-132.1-9c-19.6-7.8-34.7-22.9-42.6-42.6-11.7-29.5-9-99.5-9-132.1s-2.6-102.7 9-132.1c7.8-19.6 22.9-34.7 42.6-42.6 29.5-11.7 99.5-9 132.1-9s102.7-2.6 132.1 9c19.6 7.8 34.7 22.9 42.6 42.6 11.7 29.5 9 99.5 9 132.1s2.7 102.7-9 132.1z"/>
-      </svg>
-
-      <style>{`
-        /* Animazioni disabilitate per problemi di performance con i filtri Glass (backdrop-filter) */
-      `}</style>
-    </div>
-  )
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        zIndex: -2,
+        pointerEvents: "none",
+        opacity: 0.6,
+      }}
+    />
+  );
 }

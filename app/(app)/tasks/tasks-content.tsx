@@ -48,6 +48,7 @@ import { EmptyTasksState, EmptySearchState } from '@/components/ui/empty-state';
 import { SkeletonTaskBoard, SkeletonTaskList } from '@/components/ui/skeleton-card';
 import TaskGanttChart from '@/components/task-gantt-chart';
 import { GanttChart } from 'lucide-react';
+import { TaskApprovedCelebration } from '@/components/TaskApprovedCelebration';
 
 
 
@@ -614,6 +615,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     const [dependencyError, setDependencyError] = useState<string[] | null>(null);
     const [rejectionReasonToShow, setRejectionReasonToShow] = useState<string | null>(null);
     const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+    const [celebrationTrigger, setCelebrationTrigger] = useState(0);
 
 
     const [view, setView] = useState<View>('board');
@@ -915,7 +917,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             await updateTask(task.id, { status: 'Approvato', rejectionReason: '' }, currentUser.id, canApprove, sendEmail);
             playSound('task_approval');
             window.dispatchEvent(new Event('taskCompleted'));
-            toast.success("Task Approvato", { description: `"${task.title}" è stato approvato.` });
+            // 🎉 Trigger sparkle celebration
+            setCelebrationTrigger(prev => prev + 1);
+            toast.success("Task Approvato 🎉", { description: `"${task.title}" è stato approvato.` });
         } catch (error: any) {
             console.error("Failed to approve task:", error);
             if (error.message.startsWith('Impossibile completare.')) {
@@ -1429,6 +1433,8 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     return (
         <div className="p-4 sm:p-6 h-full flex flex-col">
+            {/* 🎉 Sparkle celebration — fires on task approval */}
+            <TaskApprovedCelebration trigger={celebrationTrigger > 0} />
             <div className="flex-shrink-0">
                 <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-4">
                     <div>
