@@ -46,7 +46,6 @@ import Link from 'next/link';
 import { playSound } from '@/lib/sounds';
 import { EmptyTasksState, EmptySearchState } from '@/components/ui/empty-state';
 import { SkeletonTaskBoard, SkeletonTaskList } from '@/components/ui/skeleton-card';
-import { AnimatedList, AnimatedListItem } from '@/components/AnimatedGrid';
 import TaskGanttChart from '@/components/task-gantt-chart';
 import { GanttChart } from 'lucide-react';
 import { TaskApprovedCelebration } from '@/components/TaskApprovedCelebration';
@@ -1343,7 +1342,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                        <AnimatedList>
+                        <div>
                             {sortedListTasks.map(task => {
                                 const client = clients.find(c => c.id === task.clientId);
                                 const project = allProjects.find(p => p.id === task.projectId);
@@ -1353,7 +1352,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 const isTaskInApproval = task.status === 'In Approvazione';
 
                                 return (
-                                    <AnimatedListItem key={task.id}>
+                            <div key={task.id}>
                                         <TableRow key={task.id} className={cn(task.id === highlightedTaskId ? 'bg-primary/10' : '')}>
                                             <TableCell>
                                                 <div className="font-medium">{task.title}</div>
@@ -1425,10 +1424,10 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                 </div>
                                             </TableCell>
                                         </TableRow>
-                                    </AnimatedListItem>
+                            </div>
                                 );
                             })}
-                        </AnimatedList>
+                        </div>
                         </TableBody>
                     </Table>
                 </CardContent>
@@ -1608,7 +1607,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             </div>
 
             <Dialog open={modalState.isOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
-                <DialogContent className="max-w-2xl glass-card">
+                <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>
                             {modalState.mode === 'create' ? 'Crea Nuovo Task' : `Modifica Task: ${modalState.task?.title}`}
