@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
-import { CalendarIcon, PlusCircle, Link as LinkIcon, FileText, Check, X, Upload, File as FileIcon, Zap, Trash2, AlertCircle, Plus } from "lucide-react"
+import { CalendarIcon, PlusCircle, Link as LinkIcon, FileText, Check, X, Upload, File as FileIcon, Zap, Trash2, AlertCircle, Plus, Loader2 } from "lucide-react"
 import { useRouter } from 'next/navigation';
 
 import { Button } from "@/components/ui/button"
@@ -1070,7 +1070,8 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                             Annulla
                         </Button>
                     )}
-                    <Button type="submit" disabled={isLoading || isUploading} className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Button type="submit" disabled={isLoading || isUploading} className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
+                        {(isLoading || isUploading) && <Loader2 className="h-4 w-4 animate-spin" />}
                         {isUploading ? "Caricamento file..." : isLoading ? "Salvataggio..." : (task ? "Salva Modifiche" : "Crea Task")}
                     </Button>
                 </div>

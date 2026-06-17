@@ -72,7 +72,7 @@ import { updateTask, updateProject, updateCalendarActivity } from '@/lib/actions
 import { useToast } from '@/hooks/use-toast';
 
 export default function CalendarPage() {
-    const { users, clients, allProjects, allTasks, absences, calendarActivities, currentUser, refetchData } = useLayoutData();
+    const { users, clients, allProjects, allTasks, absences, calendarActivities, currentUser, refetchData, isLoadingLayout } = useLayoutData();
     const { toast } = useToast();
     const [date, setDate] = useState<Date>(new Date());
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -89,6 +89,29 @@ export default function CalendarPage() {
     const [expandedDayItems, setExpandedDayItems] = useState<{ day: Date; items: any[] } | null>(null);
 
     const MAX_ITEMS_PER_DAY = 3;
+
+    // Loading skeleton mentre Firebase carica
+    if (isLoadingLayout) {
+        return (
+            <div className="flex flex-col h-full gap-4 p-1 animate-pulse">
+                <div className="flex gap-3 justify-between items-center mb-2">
+                    <div className="h-8 w-40 rounded-lg bg-muted" />
+                    <div className="flex gap-2">
+                        <div className="h-8 w-20 rounded-lg bg-muted" />
+                        <div className="h-8 w-20 rounded-lg bg-muted" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-7 gap-1 flex-1">
+                    {[...Array(7)].map((_, i) => (
+                        <div key={i} className="h-6 rounded bg-muted text-center" />
+                    ))}
+                    {[...Array(35)].map((_, i) => (
+                        <div key={i} className="h-24 rounded-lg bg-muted/40" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     // ... (Filter states remain same)
     const [selectedUser, setSelectedUser] = useState<string>('all');

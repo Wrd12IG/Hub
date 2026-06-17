@@ -145,6 +145,23 @@ export default function AnalyticsPage() {
         </p>
       </div>
 
+      {/* Banner dati demo */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '0.75rem',
+        padding: '0.75rem 1rem',
+        borderRadius: '10px',
+        background: 'rgba(245,158,11,0.1)',
+        border: '1px solid rgba(245,158,11,0.3)',
+        marginBottom: '1.5rem',
+        fontSize: '0.85rem',
+        color: '#b45309',
+      }}>
+        <AlertTriangle size={16} />
+        <span>
+          <strong>Dati dimostrativi.</strong> I grafici mostrano dati simulati in attesa dell&apos;integrazione con Firebase.
+        </span>
+      </div>
+
       {/* Tab Bar */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', borderBottom: '1px solid var(--border-color, rgba(0,0,0,0.08))', paddingBottom: '0' }}>
         {TABS.map((t) => (

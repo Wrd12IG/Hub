@@ -488,8 +488,30 @@ export default function ReportsPage() {
 
     if (isLoadingLayout) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="space-y-6 animate-pulse">
+                {/* Header skeleton */}
+                <div className="flex justify-between items-center">
+                    <div className="h-8 w-48 rounded-lg bg-muted" />
+                    <div className="flex gap-2">
+                        <div className="h-9 w-28 rounded-lg bg-muted" />
+                        <div className="h-9 w-28 rounded-lg bg-muted" />
+                    </div>
+                </div>
+                {/* KPI cards skeleton */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-28 rounded-xl bg-muted" />
+                    ))}
+                </div>
+                {/* Chart skeleton */}
+                <div className="h-72 rounded-xl bg-muted" />
+                {/* Table skeleton */}
+                <div className="space-y-2">
+                    <div className="h-10 rounded-lg bg-muted" />
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-12 rounded-lg bg-muted/60" />
+                    ))}
+                </div>
             </div>
         );
     }

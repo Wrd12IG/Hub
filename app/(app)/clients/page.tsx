@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Building2, Globe, Search, ArrowRight, Users } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Building2, Globe, Search, ArrowRight, Users, PlusCircle } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 
 export default function ClientsPage() {
@@ -63,12 +64,26 @@ export default function ClientsPage() {
           ))}
         </div>
       ) : filteredClients.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl border-dashed">
-          <Building2 className="h-12 w-12 text-muted-foreground/40 mb-4" />
-          <h3 className="text-lg font-semibold">Nessun cliente trovato</h3>
-          <p className="text-muted-foreground text-sm mt-1">
-            {search ? 'Modifica la ricerca per trovare altri clienti.' : 'Nessun cliente disponibile.'}
-          </p>
+        <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl border-dashed gap-3">
+          <Building2 className="h-12 w-12 text-muted-foreground/40" />
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold">
+              {search ? 'Nessun risultato' : 'Nessun cliente ancora'}
+            </h3>
+            <p className="text-muted-foreground text-sm max-w-xs">
+              {search
+                ? `Nessun cliente corrisponde a "${search}". Prova con un altro termine.`
+                : 'Aggiungi il primo cliente per iniziare a gestire i tuoi progetti e task.'}
+            </p>
+          </div>
+          {!search && (
+            <Link href="/clients/new">
+              <Button size="sm" className="gap-1.5 mt-1">
+                <PlusCircle className="h-4 w-4" />
+                Aggiungi cliente
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

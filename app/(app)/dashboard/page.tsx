@@ -2,14 +2,38 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLayoutData } from '@/app/(app)/layout-context';
-import { Loader2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
+// Skeleton condiviso per il caricamento del dashboard
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse p-1">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-28 rounded-xl bg-muted" />
+        ))}
+      </div>
+      {/* Chart row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 h-56 rounded-xl bg-muted" />
+        <div className="h-56 rounded-xl bg-muted" />
+      </div>
+      {/* Task list */}
+      <div className="space-y-2">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="h-14 rounded-lg bg-muted/70" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const AdminDashboard = dynamic(() => import('@/app/(app)/admin/dashboard/page'), {
-  loading: () => <div className="flex h-64 w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>,
+  loading: () => <DashboardSkeleton />,
 });
 const UserDashboard = dynamic(() => import('@/components/user-dashboard'), {
-  loading: () => <div className="flex h-64 w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>,
+  loading: () => <DashboardSkeleton />,
 });
 
 
@@ -29,14 +53,9 @@ export default function DashboardPage() {
   }, [currentUser, isLoadingLayout, router, isMounted]);
 
   if (!isMounted || isLoadingLayout || !currentUser) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Caricamento dashboard...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
-  
+
   if (currentUser.role === 'Amministratore') {
     return <AdminDashboard />;
   }

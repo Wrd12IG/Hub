@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useLayoutData } from '@/app/(app)/layout-context';
-import { Bell, Check, CheckCheck, Trash2, ExternalLink, Filter, X, Clock, Briefcase, MessageSquare, Calendar, FileText, AlertCircle } from 'lucide-react';
+import { Bell, Check, CheckCheck, Trash2, ExternalLink, Filter, X, Clock, Briefcase, MessageSquare, Calendar, FileText, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { markNotificationAsRead, markAllNotificationsAsRead, deleteNotification } from '@/lib/actions';
 import type { Notification } from '@/lib/data';
+import { toast } from 'sonner';
 
 // Category configuration with icons and colors
 const CATEGORY_CONFIG = {
@@ -235,21 +236,42 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
         return counts;
     }, [notifications]);
 
+    const [isProcessing, setIsProcessing] = useState(false);
+
     const handleMarkRead = async (id: string) => {
-        if (currentUser) {
+        if (!currentUser || isProcessing) return;
+        setIsProcessing(true);
+        try {
             await markNotificationAsRead(currentUser.id, id);
+        } catch {
+            toast.error('Errore nel segnare la notifica come letta');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     const handleMarkAllRead = async () => {
-        if (currentUser) {
+        if (!currentUser || isProcessing) return;
+        setIsProcessing(true);
+        try {
             await markAllNotificationsAsRead(currentUser.id);
+            toast.success('Tutte le notifiche segnate come lette');
+        } catch {
+            toast.error('Errore nel segnare le notifiche come lette');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (currentUser) {
+        if (!currentUser || isProcessing) return;
+        setIsProcessing(true);
+        try {
             await deleteNotification(currentUser.id, id);
+        } catch {
+            toast.error('Errore nell\'eliminazione della notifica');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -282,8 +304,11 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
                             )}
                         </SheetTitle>
                         {unreadCount > 0 && (
-                            <Button variant="ghost" size="sm" onClick={handleMarkAllRead} className="gap-1">
-                                <CheckCheck className="h-4 w-4" />
+                            <Button variant="ghost" size="sm" onClick={handleMarkAllRead} disabled={isProcessing} className="gap-1">
+                                {isProcessing
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <CheckCheck className="h-4 w-4" />
+                                }
                                 Leggi tutte
                             </Button>
                         )}
