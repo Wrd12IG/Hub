@@ -409,11 +409,6 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 max-h-[80vh] overflow-y-auto pr-4">
-                <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                >
                 {task && (
                     <div className="flex justify-end mb-2">
                         <Button
@@ -440,7 +435,6 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                         </FormItem>
                     )}
                 />
-                </motion.div>
 
                 <FormField
                     control={form.control}
