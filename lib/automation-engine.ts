@@ -1,21 +1,13 @@
 'use server';
 
-import { db } from '@/lib/firebase';
-import {
-    collection,
-    doc,
-    getDocs,
-    getDoc,
-    updateDoc,
-    addDoc,
-    query,
-    where,
-    Timestamp,
-    writeBatch
-} from 'firebase/firestore';
+// ─── MIGRAZIONE: usa Firebase Admin SDK invece del client SDK ─────────────────
+// Il client SDK richiede un utente autenticato — non funziona nei cron job.
+// L'Admin SDK bypassa le security rules e funziona in qualsiasi contesto server.
+import { adminDb } from '@/lib/firebase-admin';
+import { Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { differenceInHours, differenceInDays, parseISO, format, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 import { it } from 'date-fns/locale';
-import type { Task, Project, Brief, User, Notification } from '@/lib/data';
+import type { Task, Project, Brief, User } from '@/lib/data';
 import { sendEmailServerAction } from '@/lib/email-server';
 
 // Helper to send automation emails
@@ -37,9 +29,23 @@ async function sendAutomationEmail(params: { to: string; toName?: string; subjec
     }
 }
 
-// Types are imported from automation-types.ts to avoid "use server" restrictions
-// Re-export for convenience (only the async functions are actually from this module)
+// Re-export types
 export type { AutomationRule, AutomationLog } from './automation-types';
+
+// ─── Helper: converti doc Firestore Admin in oggetto con id ──────────────────
+function docToObj<T>(doc: FirebaseFirestore.DocumentSnapshot): T {
+    const data = doc.data() || {};
+    // Converti Timestamp → ISO string per compatibilità con i tipi esistenti
+    const converted: Record<string, any> = {};
+    for (const [key, val] of Object.entries(data)) {
+        if (val && typeof val === 'object' && typeof (val as any).toDate === 'function') {
+            converted[key] = (val as any).toDate().toISOString();
+        } else {
+            converted[key] = val;
+        }
+    }
+    return { id: doc.id, ...converted } as T;
+}
 
 // ============================================
 // AUTOMATION ENGINE
@@ -54,41 +60,38 @@ export async function checkDueSoonTasks(): Promise<{ processed: number; notifica
     let notifications = 0;
 
     try {
-        const tasksSnapshot = await getDocs(collection(db, 'tasks'));
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const users = usersSnapshot.docs.reduce((acc, doc) => {
-            acc[doc.id] = { id: doc.id, ...doc.data() } as User;
+        const [tasksSnap, usersSnap] = await Promise.all([
+            adminDb.collection('tasks').get(),
+            adminDb.collection('users').get(),
+        ]);
+
+        const users = usersSnap.docs.reduce((acc, doc) => {
+            acc[doc.id] = docToObj<User>(doc);
             return acc;
         }, {} as Record<string, User>);
 
-        const batch = writeBatch(db);
+        const batch = adminDb.batch();
 
-        for (const taskDoc of tasksSnapshot.docs) {
-            const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
+        for (const taskDoc of tasksSnap.docs) {
+            const task = docToObj<Task>(taskDoc);
 
-            // Skip completed/cancelled tasks
             if (task.status === 'Approvato' || task.status === 'Annullato' || task.status === 'In Approvazione Cliente') continue;
             if (!task.dueDate) continue;
 
             const dueDate = parseISO(task.dueDate);
             const hoursUntilDue = differenceInHours(dueDate, now);
 
-            // Task due within 24 hours but not yet notified
             if (hoursUntilDue > 0 && hoursUntilDue <= 24) {
-                // Check if we already sent a notification for this
-                const notifQuery = query(
-                    collection(db, 'notifications'),
-                    where('taskId', '==', task.id),
-                    where('type', '==', 'task_due_soon')
-                );
-                const existingNotifs = await getDocs(notifQuery);
+                const existingSnap = await adminDb.collection('notifications')
+                    .where('taskId', '==', task.id)
+                    .where('type', '==', 'task_due_soon')
+                    .limit(1).get();
 
-                if (existingNotifs.empty && task.assignedUserId) {
+                if (existingSnap.empty && task.assignedUserId) {
                     const user = users[task.assignedUserId];
                     if (user) {
-                        // Create notification
-                        const notificationRef = doc(collection(db, 'notifications'));
-                        batch.set(notificationRef, {
+                        const notifRef = adminDb.collection('notifications').doc();
+                        batch.set(notifRef, {
                             userId: task.assignedUserId,
                             title: '⏰ Task in scadenza!',
                             message: `Il task "${task.title}" scade tra ${hoursUntilDue} ore`,
@@ -96,17 +99,16 @@ export async function checkDueSoonTasks(): Promise<{ processed: number; notifica
                             taskId: task.id,
                             link: `/tasks?taskId=${task.id}`,
                             isRead: false,
-                            createdAt: new Date().toISOString()
+                            createdAt: new Date().toISOString(),
                         });
                         notifications++;
 
-                        // Send email
                         if (user.email) {
                             await sendAutomationEmail({
                                 to: user.email,
                                 toName: user.name,
                                 subject: `⏰ Task in scadenza: ${task.title}`,
-                                body: `Il task "${task.title}" scade tra ${hoursUntilDue} ore. Accedi per completarlo.`
+                                body: `Il task "${task.title}" scade tra ${hoursUntilDue} ore. Accedi per completarlo.`,
                             });
                         }
                     }
@@ -132,25 +134,27 @@ export async function checkOverdueTasks(): Promise<{ processed: number; notifica
     let notifications = 0;
 
     try {
-        const tasksSnapshot = await getDocs(collection(db, 'tasks'));
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const projectsSnapshot = await getDocs(collection(db, 'projects'));
+        const [tasksSnap, usersSnap, projectsSnap] = await Promise.all([
+            adminDb.collection('tasks').get(),
+            adminDb.collection('users').get(),
+            adminDb.collection('projects').get(),
+        ]);
 
-        const users = usersSnapshot.docs.reduce((acc, doc) => {
-            acc[doc.id] = { id: doc.id, ...doc.data() } as User;
+        const users = usersSnap.docs.reduce((acc, doc) => {
+            acc[doc.id] = docToObj<User>(doc);
             return acc;
         }, {} as Record<string, User>);
 
-        const projects = projectsSnapshot.docs.reduce((acc, doc) => {
-            acc[doc.id] = { id: doc.id, ...doc.data() } as Project;
+        const projects = projectsSnap.docs.reduce((acc, doc) => {
+            acc[doc.id] = docToObj<Project>(doc);
             return acc;
         }, {} as Record<string, Project>);
 
         const admins = Object.values(users).filter(u => u.role === 'Amministratore');
-        const batch = writeBatch(db);
+        const batch = adminDb.batch();
 
-        for (const taskDoc of tasksSnapshot.docs) {
-            const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
+        for (const taskDoc of tasksSnap.docs) {
+            const task = docToObj<Task>(taskDoc);
 
             if (task.status === 'Approvato' || task.status === 'Annullato' || task.status === 'In Approvazione Cliente') continue;
             if (!task.dueDate) continue;
@@ -159,19 +163,15 @@ export async function checkOverdueTasks(): Promise<{ processed: number; notifica
             const daysOverdue = differenceInDays(now, dueDate);
 
             if (daysOverdue > 0 && daysOverdue <= 1) {
-                // Just became overdue - notify once
-                const notifQuery = query(
-                    collection(db, 'notifications'),
-                    where('taskId', '==', task.id),
-                    where('type', '==', 'task_overdue')
-                );
-                const existingNotifs = await getDocs(notifQuery);
+                const existingSnap = await adminDb.collection('notifications')
+                    .where('taskId', '==', task.id)
+                    .where('type', '==', 'task_overdue')
+                    .limit(1).get();
 
-                if (existingNotifs.empty) {
-                    // Notify admins
+                if (existingSnap.empty) {
                     for (const admin of admins) {
-                        const notificationRef = doc(collection(db, 'notifications'));
-                        batch.set(notificationRef, {
+                        const notifRef = adminDb.collection('notifications').doc();
+                        batch.set(notifRef, {
                             userId: admin.id,
                             title: '🚨 Task scaduto!',
                             message: `Il task "${task.title}" è scaduto da ${daysOverdue} giorno/i`,
@@ -179,17 +179,16 @@ export async function checkOverdueTasks(): Promise<{ processed: number; notifica
                             taskId: task.id,
                             link: `/tasks?taskId=${task.id}`,
                             isRead: false,
-                            createdAt: new Date().toISOString()
+                            createdAt: new Date().toISOString(),
                         });
                         notifications++;
                     }
 
-                    // Notify team leader of project
                     if (task.projectId) {
                         const project = projects[task.projectId];
                         if (project?.teamLeaderId && !admins.find(a => a.id === project.teamLeaderId)) {
-                            const notificationRef = doc(collection(db, 'notifications'));
-                            batch.set(notificationRef, {
+                            const notifRef = adminDb.collection('notifications').doc();
+                            batch.set(notifRef, {
                                 userId: project.teamLeaderId,
                                 title: '🚨 Task scaduto nel tuo progetto',
                                 message: `Il task "${task.title}" è scaduto`,
@@ -197,7 +196,7 @@ export async function checkOverdueTasks(): Promise<{ processed: number; notifica
                                 taskId: task.id,
                                 link: `/tasks?taskId=${task.id}`,
                                 isRead: false,
-                                createdAt: new Date().toISOString()
+                                createdAt: new Date().toISOString(),
                             });
                             notifications++;
                         }
@@ -224,22 +223,24 @@ export async function checkStuckTasks(): Promise<{ processed: number; notificati
     const now = new Date();
 
     try {
-        const tasksSnapshot = await getDocs(
-            query(collection(db, 'tasks'), where('status', 'in', ['In Approvazione', 'In Approvazione Cliente']))
-        );
+        const [tasksSnap, usersSnap] = await Promise.all([
+            adminDb.collection('tasks')
+                .where('status', 'in', ['In Approvazione', 'In Approvazione Cliente'])
+                .get(),
+            adminDb.collection('users').get(),
+        ]);
 
-        const usersSnapshot = await getDocs(collection(db, 'users'));
-        const admins = usersSnapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as User))
+        const admins = usersSnap.docs
+            .map(doc => docToObj<User>(doc))
             .filter(u => u.role === 'Amministratore');
 
-        const batch = writeBatch(db);
+        const batch = adminDb.batch();
 
-        for (const taskDoc of tasksSnapshot.docs) {
-            const task = { id: taskDoc.id, ...taskDoc.data() } as Task;
+        for (const taskDoc of tasksSnap.docs) {
+            const task = docToObj<Task>(taskDoc);
 
-            const updatedAt = task.updatedAt ?
-                (typeof task.updatedAt === 'string' ? parseISO(task.updatedAt) : (task.updatedAt as any).toDate())
+            const updatedAt = task.updatedAt
+                ? (typeof task.updatedAt === 'string' ? parseISO(task.updatedAt) : (task.updatedAt as any).toDate?.() ?? null)
                 : null;
 
             if (!updatedAt) continue;
@@ -249,34 +250,31 @@ export async function checkStuckTasks(): Promise<{ processed: number; notificati
             if (daysSinceUpdate >= 2) {
                 const isClientApproval = task.status === 'In Approvazione Cliente';
                 const notificationType = isClientApproval ? 'client_approval_reminder' : 'approval_reminder';
-                const notificationTitle = isClientApproval ? '⏳ Task in attesa di approvazione cliente' : '⏳ Task in attesa di approvazione';
 
-                // Check if already notified recently
-                const notifQuery = query(
-                    collection(db, 'notifications'),
-                    where('taskId', '==', task.id),
-                    where('type', '==', notificationType)
-                );
-                const existingNotifs = await getDocs(notifQuery);
+                const existingSnap = await adminDb.collection('notifications')
+                    .where('taskId', '==', task.id)
+                    .where('type', '==', notificationType)
+                    .get();
 
-                // Only notify once every 2 days
-                const recentNotif = existingNotifs.docs.find(n => {
-                    const notifDate = typeof n.data().createdAt === 'string' ? parseISO(n.data().createdAt) : n.data().createdAt?.toDate?.() || new Date();
+                const recentNotif = existingSnap.docs.find(n => {
+                    const notifDate = typeof n.data().createdAt === 'string'
+                        ? parseISO(n.data().createdAt)
+                        : n.data().createdAt?.toDate?.() || new Date();
                     return differenceInDays(now, notifDate) < 2;
                 });
 
                 if (!recentNotif) {
                     for (const admin of admins) {
-                        const notificationRef = doc(collection(db, 'notifications'));
-                        batch.set(notificationRef, {
+                        const notifRef = adminDb.collection('notifications').doc();
+                        batch.set(notifRef, {
                             userId: admin.id,
-                            title: notificationTitle,
-                            message: `"${task.title}" è in approvazione ${isClientApproval ? 'client' : ''} da ${daysSinceUpdate} giorni`,
+                            title: isClientApproval ? '⏳ Task in attesa di approvazione cliente' : '⏳ Task in attesa di approvazione',
+                            message: `"${task.title}" è in approvazione ${isClientApproval ? 'cliente ' : ''}da ${daysSinceUpdate} giorni`,
                             type: notificationType,
                             taskId: task.id,
                             link: `/tasks?taskId=${task.id}`,
                             isRead: false,
-                            createdAt: new Date().toISOString()
+                            createdAt: new Date().toISOString(),
                         });
                         notifications++;
                     }
@@ -298,50 +296,42 @@ export async function checkStuckTasks(): Promise<{ processed: number; notificati
  */
 export async function updateProjectStatusAutomatically(projectId: string): Promise<boolean> {
     try {
-        const projectDoc = await getDoc(doc(db, 'projects', projectId));
-        if (!projectDoc.exists()) return false;
+        const projectDoc = await adminDb.collection('projects').doc(projectId).get();
+        if (!projectDoc.exists) return false;
 
-        const project = { id: projectDoc.id, ...projectDoc.data() } as Project;
+        const project = docToObj<Project>(projectDoc);
 
-        // Skip if already completed or cancelled
         if (project.status === 'Completato' || project.status === 'Annullato') return false;
 
-        // Get all tasks for this project
-        const tasksSnapshot = await getDocs(
-            query(collection(db, 'tasks'), where('projectId', '==', projectId))
-        );
+        const tasksSnap = await adminDb.collection('tasks')
+            .where('projectId', '==', projectId).get();
 
-        if (tasksSnapshot.empty) return false;
+        if (tasksSnap.empty) return false;
 
-        const tasks = tasksSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Task));
+        const tasks = tasksSnap.docs.map(d => docToObj<Task>(d));
         const activeTasks = tasks.filter(t => t.status !== 'Annullato');
-
         if (activeTasks.length === 0) return false;
 
         const completedTasks = activeTasks.filter(t => t.status === 'Approvato');
-        const inProgressTasks = activeTasks.filter(t => t.status === 'In Lavorazione' || t.status === 'In Approvazione' || t.status === 'In Approvazione Cliente');
+        const inProgressTasks = activeTasks.filter(t =>
+            t.status === 'In Lavorazione' || t.status === 'In Approvazione' || t.status === 'In Approvazione Cliente'
+        );
 
         let newStatus: Project['status'] = project.status;
 
-        // All tasks completed -> project completed
         if (completedTasks.length === activeTasks.length) {
-            // Note: If 'Completato' isn't in the Project status type, this may need data model update
-            // For now we cast it
-            newStatus = 'In Corso'; // or handle differently based on your Project type
-        }
-        // At least one task in progress -> project in progress
-        else if (inProgressTasks.length > 0 && project.status === 'Pianificazione') {
+            newStatus = 'In Corso';
+        } else if (inProgressTasks.length > 0 && project.status === 'Pianificazione') {
             newStatus = 'In Corso';
         }
 
         if (newStatus !== project.status) {
-            await updateDoc(doc(db, 'projects', projectId), {
+            await adminDb.collection('projects').doc(projectId).update({
                 status: newStatus,
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
             });
 
-            // Log the automation
-            await addDoc(collection(db, 'automation_logs'), {
+            await adminDb.collection('automation_logs').add({
                 ruleId: 'auto_project_status',
                 ruleName: 'Aggiornamento Stato Progetto Automatico',
                 triggerType: 'task_updated',
@@ -349,7 +339,7 @@ export async function updateProjectStatusAutomatically(projectId: string): Promi
                 entityId: projectId,
                 actionsExecuted: [`Status cambiato da "${project.status}" a "${newStatus}"`],
                 status: 'success',
-                executedAt: new Date().toISOString()
+                executedAt: new Date().toISOString(),
             });
 
             return true;
@@ -367,40 +357,24 @@ export async function updateProjectStatusAutomatically(projectId: string): Promi
  */
 export async function createTasksFromBrief(briefId: string): Promise<{ created: number; taskIds: string[] }> {
     try {
-        const briefDoc = await getDoc(doc(db, 'briefs', briefId));
-        if (!briefDoc.exists()) return { created: 0, taskIds: [] };
+        const briefDoc = await adminDb.collection('briefs').doc(briefId).get();
+        if (!briefDoc.exists) return { created: 0, taskIds: [] };
 
-        const brief = { id: briefDoc.id, ...briefDoc.data() } as Brief;
+        const brief = docToObj<Brief>(briefDoc);
         const taskIds: string[] = [];
 
-        // Default tasks to create from an approved brief
         const tasksToCreate = [
-            {
-                title: `Produzione: ${brief.title}`,
-                description: brief.description || '',
-                status: 'Da Fare' as const,
-                priority: 'Media' as const,
-            },
-            {
-                title: `Revisione: ${brief.title}`,
-                description: `Revisione del contenuto per: ${brief.title}`,
-                status: 'Da Fare' as const,
-                priority: 'Media' as const,
-            },
-            {
-                title: `Pubblicazione: ${brief.title}`,
-                description: `Pubblicazione finale di: ${brief.title}`,
-                status: 'Da Fare' as const,
-                priority: 'Bassa' as const,
-            }
+            { title: `Produzione: ${brief.title}`, description: brief.description || '', status: 'Da Fare' as const, priority: 'Media' as const },
+            { title: `Revisione: ${brief.title}`,  description: `Revisione del contenuto per: ${brief.title}`, status: 'Da Fare' as const, priority: 'Media' as const },
+            { title: `Pubblicazione: ${brief.title}`, description: `Pubblicazione finale di: ${brief.title}`, status: 'Da Fare' as const, priority: 'Bassa' as const },
         ];
 
         for (const taskData of tasksToCreate) {
-            const newTaskRef = await addDoc(collection(db, 'tasks'), {
+            const ref = await adminDb.collection('tasks').add({
                 ...taskData,
                 clientId: brief.clientId,
                 projectId: '',
-                briefId: briefId,
+                briefId,
                 assignedUserId: '',
                 dueDate: '',
                 estimatedDuration: 60,
@@ -410,11 +384,10 @@ export async function createTasksFromBrief(briefId: string): Promise<{ created: 
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
             });
-            taskIds.push(newTaskRef.id);
+            taskIds.push(ref.id);
         }
 
-        // Log the automation
-        await addDoc(collection(db, 'automation_logs'), {
+        await adminDb.collection('automation_logs').add({
             ruleId: 'brief_to_tasks',
             ruleName: 'Crea Task da Brief Approvato',
             triggerType: 'brief_approved',
@@ -422,7 +395,7 @@ export async function createTasksFromBrief(briefId: string): Promise<{ created: 
             entityId: briefId,
             actionsExecuted: taskIds.map(id => `Task creato: ${id}`),
             status: 'success',
-            executedAt: new Date().toISOString()
+            executedAt: new Date().toISOString(),
         });
 
         return { created: taskIds.length, taskIds };
@@ -441,36 +414,30 @@ export async function generateWeeklyReport(): Promise<{ sent: number; users: str
         const weekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
         const weekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
-        const [tasksSnap, usersSnap, projectsSnap] = await Promise.all([
-            getDocs(collection(db, 'tasks')),
-            getDocs(collection(db, 'users')),
-            getDocs(collection(db, 'projects'))
+        const [tasksSnap, usersSnap] = await Promise.all([
+            adminDb.collection('tasks').get(),
+            adminDb.collection('users').get(),
         ]);
 
-        const users = usersSnap.docs.map(d => ({ id: d.id, ...d.data() } as User));
-        const tasks = tasksSnap.docs.map(d => ({ id: d.id, ...d.data() } as Task));
-
+        const users = usersSnap.docs.map(d => docToObj<User>(d));
+        const tasks = tasksSnap.docs.map(d => docToObj<Task>(d));
         const sentTo: string[] = [];
 
         for (const user of users) {
             if (user.role === 'Cliente' || !user.email) continue;
 
-            // Calculate user's weekly stats
             const userTasks = tasks.filter(t => t.assignedUserId === user.id);
             const completedThisWeek = userTasks.filter(t => {
                 if (t.status !== 'Approvato' || !t.updatedAt) return false;
-                const updatedDate = typeof t.updatedAt === 'string' ? parseISO(t.updatedAt) : (t.updatedAt as any).toDate();
+                const updatedDate = typeof t.updatedAt === 'string' ? parseISO(t.updatedAt) : (t.updatedAt as any).toDate?.() ?? null;
+                if (!updatedDate) return false;
                 return updatedDate >= weekStart && updatedDate <= weekEnd;
             });
 
             const pendingTasks = userTasks.filter(t =>
                 t.status !== 'Approvato' && t.status !== 'Annullato' && t.status !== 'In Approvazione Cliente'
             );
-
-            const overdueTasks = pendingTasks.filter(t =>
-                t.dueDate && parseISO(t.dueDate) < now
-            );
-
+            const overdueTasks = pendingTasks.filter(t => t.dueDate && parseISO(t.dueDate) < now);
             const upcomingTasks = pendingTasks.filter(t => {
                 if (!t.dueDate) return false;
                 const due = parseISO(t.dueDate);
@@ -479,7 +446,6 @@ export async function generateWeeklyReport(): Promise<{ sent: number; users: str
 
             const totalHours = userTasks.reduce((sum, t) => sum + (t.timeSpent || 0), 0) / 3600;
 
-            // Generate email
             const emailBody = `
 Ciao ${user.name.split(' ')[0]}!
 
@@ -493,11 +459,7 @@ Ecco il tuo riepilogo settimanale (${format(weekStart, 'dd/MM')} - ${format(week
 
 ⏰ PROSSIME SCADENZE
 ${upcomingTasks.slice(0, 5).map(t => `• ${t.title} - ${format(parseISO(t.dueDate!), 'dd/MM')}`).join('\n') || 'Nessuna scadenza imminente!'}
-
-${overdueTasks.length > 0 ? `
-🚨 ATTENZIONE - TASK IN RITARDO
-${overdueTasks.slice(0, 3).map(t => `• ${t.title}`).join('\n')}
-` : ''}
+${overdueTasks.length > 0 ? `\n🚨 ATTENZIONE - TASK IN RITARDO\n${overdueTasks.slice(0, 3).map(t => `• ${t.title}`).join('\n')}` : ''}
 
 Buon lavoro! 💪
 
@@ -510,7 +472,7 @@ W[r]Digital Marketing HUB
                     to: user.email,
                     toName: user.name,
                     subject: `📊 Riepilogo Settimanale - ${format(weekStart, 'dd/MM')} - ${format(weekEnd, 'dd/MM')}`,
-                    body: emailBody
+                    body: emailBody,
                 });
                 sentTo.push(user.email);
             } catch (e) {
@@ -526,7 +488,7 @@ W[r]Digital Marketing HUB
 }
 
 /**
- * Run all scheduled automations (call this from a cron job or API route)
+ * Run all scheduled automations
  */
 export async function runScheduledAutomations(): Promise<{
     dueSoon: { processed: number; notifications: number };
@@ -536,23 +498,22 @@ export async function runScheduledAutomations(): Promise<{
     const [dueSoon, overdue, stuck] = await Promise.all([
         checkDueSoonTasks(),
         checkOverdueTasks(),
-        checkStuckTasks()
+        checkStuckTasks(),
     ]);
 
-    // Log automation run
-    await addDoc(collection(db, 'automation_logs'), {
+    await adminDb.collection('automation_logs').add({
         ruleId: 'scheduled_run',
         ruleName: 'Esecuzione Automazioni Pianificate',
         triggerType: 'time_based',
-        entityType: 'system' as any,
+        entityType: 'system',
         entityId: 'scheduler',
         actionsExecuted: [
             `Task in scadenza: ${dueSoon.notifications} notifiche`,
             `Task scaduti: ${overdue.notifications} notifiche`,
-            `Task bloccati: ${stuck.notifications} notifiche`
+            `Task bloccati: ${stuck.notifications} notifiche`,
         ],
         status: 'success',
-        executedAt: new Date().toISOString()
+        executedAt: new Date().toISOString(),
     });
 
     return { dueSoon, overdue, stuck };

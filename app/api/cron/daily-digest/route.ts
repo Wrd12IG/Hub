@@ -80,7 +80,7 @@ async function sendDigestEmail(subject: string, htmlContent: string): Promise<{ 
       html: htmlContent,
     });
 
-    console.error('[daily-digest] Email inviata:', info.messageId);
+    console.log('[daily-digest] Email inviata:', info.messageId);
     return { success: true };
   } catch (error) {
     console.error('[daily-digest] Errore invio email:', error);
