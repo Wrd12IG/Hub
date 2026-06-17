@@ -46,6 +46,7 @@ import Link from 'next/link';
 import { playSound } from '@/lib/sounds';
 import { EmptyTasksState, EmptySearchState } from '@/components/ui/empty-state';
 import { SkeletonTaskBoard, SkeletonTaskList } from '@/components/ui/skeleton-card';
+import { AnimatedList, AnimatedListItem } from '@/components/AnimatedGrid';
 import TaskGanttChart from '@/components/task-gantt-chart';
 import { GanttChart } from 'lucide-react';
 import { TaskApprovedCelebration } from '@/components/TaskApprovedCelebration';
@@ -1342,6 +1343,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                             </TableRow>
                         </TableHeader>
                         <TableBody>
+                        <AnimatedList>
                             {sortedListTasks.map(task => {
                                 const client = clients.find(c => c.id === task.clientId);
                                 const project = allProjects.find(p => p.id === task.projectId);
@@ -1351,79 +1353,82 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 const isTaskInApproval = task.status === 'In Approvazione';
 
                                 return (
-                                    <TableRow key={task.id} className={cn(task.id === highlightedTaskId ? 'bg-primary/10' : '')}>
-                                        <TableCell>
-                                            <div className="font-medium">{task.title}</div>
-                                            <div className="text-sm text-muted-foreground">{client?.name}</div>
-                                        </TableCell>
-                                        <TableCell className="hidden sm:table-cell">{project?.name || '-'}</TableCell>
-                                        <TableCell className="hidden md:table-cell">
-                                            {assignedUser ? (
-                                                <div className="flex items-center gap-2">
-                                                    <Avatar className="h-6 w-6">
-                                                        <AvatarFallback className="text-xs" style={{ backgroundColor: assignedUser.color, color: 'white' }}>
-                                                            {getInitials(assignedUser.name)}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <span>{assignedUser.name.split(' ')[0]}</span>
-                                                </div>
-                                            ) : '-'}
-                                        </TableCell>
-                                        <TableCell className="hidden lg:table-cell">{creator?.name || '-'}</TableCell>
-                                        <TableCell>{isClient && task.dueDate ? format(new Date(task.dueDate), 'PPP p', { locale: it }) : '...'}</TableCell>
-                                        <TableCell>
-                                            <Badge className={`${priorityColors[task.priority]} text-white`}>{task.priority}</Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className={`${statusColors[task.status].bg} ${statusColors[task.status].text}`}>{task.status}</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex gap-1 justify-end items-center">
-                                                {isTaskInApproval && canApprove ? (
-                                                    <>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700" onClick={() => setApprovalState({ isOpen: true, task, sendEmail: true })}>
-                                                            <ThumbsUp />
+                                    <AnimatedListItem key={task.id}>
+                                        <TableRow key={task.id} className={cn(task.id === highlightedTaskId ? 'bg-primary/10' : '')}>
+                                            <TableCell>
+                                                <div className="font-medium">{task.title}</div>
+                                                <div className="text-sm text-muted-foreground">{client?.name}</div>
+                                            </TableCell>
+                                            <TableCell className="hidden sm:table-cell">{project?.name || '-'}</TableCell>
+                                            <TableCell className="hidden md:table-cell">
+                                                {assignedUser ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar className="h-6 w-6">
+                                                            <AvatarFallback className="text-xs" style={{ backgroundColor: assignedUser.color, color: 'white' }}>
+                                                                {getInitials(assignedUser.name)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span>{assignedUser.name.split(' ')[0]}</span>
+                                                    </div>
+                                                ) : '-'}
+                                            </TableCell>
+                                            <TableCell className="hidden lg:table-cell">{creator?.name || '-'}</TableCell>
+                                            <TableCell>{isClient && task.dueDate ? format(new Date(task.dueDate), 'PPP p', { locale: it }) : '...'}</TableCell>
+                                            <TableCell>
+                                                <Badge className={`${priorityColors[task.priority]} text-white`}>{task.priority}</Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className={`${statusColors[task.status].bg} ${statusColors[task.status].text}`}>{task.status}</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex gap-1 justify-end items-center">
+                                                    {isTaskInApproval && canApprove ? (
+                                                        <>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700" onClick={() => setApprovalState({ isOpen: true, task, sendEmail: true })}>
+                                                                <ThumbsUp />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
+                                                                <ThumbsDown />
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handlePlay(task)} disabled={['Annullato', 'In Approvazione', 'Approvato'].includes(task.status)}>
+                                                            <Play />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
-                                                            <ThumbsDown />
-                                                        </Button>
-                                                    </>
-                                                ) : (
-                                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handlePlay(task)} disabled={['Annullato', 'In Approvazione', 'Approvato'].includes(task.status)}>
-                                                        <Play />
+                                                    )}
+                                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setPreviewTask(task)}>
+                                                        <Eye />
                                                     </Button>
-                                                )}
-                                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setPreviewTask(task)}>
-                                                    <Eye />
-                                                </Button>
-                                                <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleChatOpen(task)}><MessageSquare /></Button>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                                                            <MoreVertical />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent>
-                                                        <DropdownMenuItem onClick={() => handleOpenModal('edit', task)} disabled={task.status === 'Approvato' && !canApprove}>
-                                                            <Pencil className="mr-2 h-4 w-4" />
-                                                            Modifica
-                                                        </DropdownMenuItem>
-                                                        {canApprove && (
-                                                            <>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-destructive" onClick={() => setTaskToDelete(task)}>
-                                                                    <Trash2 className="mr-2 h-4 w-4" />
-                                                                    Elimina
-                                                                </DropdownMenuItem>
-                                                            </>
-                                                        )}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
+                                                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleChatOpen(task)}><MessageSquare /></Button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                                <MoreVertical />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent>
+                                                            <DropdownMenuItem onClick={() => handleOpenModal('edit', task)} disabled={task.status === 'Approvato' && !canApprove}>
+                                                                <Pencil className="mr-2 h-4 w-4" />
+                                                                Modifica
+                                                            </DropdownMenuItem>
+                                                            {canApprove && (
+                                                                <>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuItem className="text-destructive" onClick={() => setTaskToDelete(task)}>
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Elimina
+                                                                    </DropdownMenuItem>
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    </AnimatedListItem>
                                 );
                             })}
+                        </AnimatedList>
                         </TableBody>
                     </Table>
                 </CardContent>

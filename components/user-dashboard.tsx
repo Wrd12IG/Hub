@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AnimatedCard, AnimatedKPICard } from '@/components/ui/animated-card';
+import { AnimatedGrid, AnimatedGridItem, AnimatedList, AnimatedListItem } from '@/components/AnimatedGrid';
 import { AnimatedCounter, AnimatedPercentage, AnimatedHours } from '@/components/ui/animated-counter';
 import { DashboardSkeleton, SkeletonKPICard, SkeletonChartCard, SkeletonTableCard, SkeletonCalendarCard, SkeletonQuickActionsCard } from '@/components/ui/skeleton-card';
 import { DeadlineCountdownWidget } from '@/components/dashboard/deadline-countdown';
@@ -334,84 +335,96 @@ export default function UserDashboard() {
       </div>
 
       {/* KPI Section with Animated Cards */}
-      <div className="flex flex-wrap gap-4">
+      <AnimatedGrid className="flex flex-wrap gap-4">
         {isWidgetVisible('kpi_active_tasks') && (
-          <AnimatedKPICard
-            title="Task Attivi"
-            value={kpis.activeTasks}
-            icon={<Clock className="h-4 w-4" />}
-            delay={0}
-            className="flex-1 min-w-[200px]"
-          />
+          <AnimatedGridItem>
+            <AnimatedKPICard
+              title="Task Attivi"
+              value={kpis.activeTasks}
+              icon={<Clock className="h-4 w-4" />}
+              delay={0}
+              className="flex-1 min-w-[200px]"
+            />
+          </AnimatedGridItem>
         )}
 
         {isWidgetVisible('kpi_overdue_tasks') && (
-          <AnimatedKPICard
-            title="Task Scaduti"
-            value={kpis.overdueTasks}
-            icon={<AlertTriangle className="h-4 w-4" />}
-            delay={50}
-            variant={kpis.overdueTasks > 0 ? "danger" : "default"}
-            className="flex-1 min-w-[200px]"
-          />
+          <AnimatedGridItem>
+            <AnimatedKPICard
+              title="Task Scaduti"
+              value={kpis.overdueTasks}
+              icon={<AlertTriangle className="h-4 w-4" />}
+              delay={50}
+              variant={kpis.overdueTasks > 0 ? "danger" : "default"}
+              className="flex-1 min-w-[200px]"
+            />
+          </AnimatedGridItem>
         )}
 
         {isWidgetVisible('kpi_active_projects') && (
-          <AnimatedKPICard
-            title="Progetti Attivi"
-            value={kpis.activeProjects}
-            icon={<Briefcase className="h-4 w-4" />}
-            delay={100}
-            className="flex-1 min-w-[200px]"
-          />
+          <AnimatedGridItem>
+            <AnimatedKPICard
+              title="Progetti Attivi"
+              value={kpis.activeProjects}
+              icon={<Briefcase className="h-4 w-4" />}
+              delay={100}
+              className="flex-1 min-w-[200px]"
+            />
+          </AnimatedGridItem>
         )}
 
         {isWidgetVisible('kpi_completed_tasks') && (
-          <AnimatedKPICard
-            title="Task Completati"
-            value={kpis.completedTasks}
-            icon={<CheckCircle className="h-4 w-4" />}
-            delay={150}
-            variant="success"
-            className="flex-1 min-w-[200px]"
-          />
+          <AnimatedGridItem>
+            <AnimatedKPICard
+              title="Task Completati"
+              value={kpis.completedTasks}
+              icon={<CheckCircle className="h-4 w-4" />}
+              delay={150}
+              variant="success"
+              className="flex-1 min-w-[200px]"
+            />
+          </AnimatedGridItem>
         )}
 
         {isWidgetVisible('kpi_hours_this_week') && (
-          <AnimatedKPICard
-            title="Ore Questa Settimana"
-            value={kpis.hoursThisWeek}
-            suffix="h"
-            formatValue={(v) => v.toFixed(1)}
-            icon={<TrendingUp className="h-4 w-4" />}
-            description="Ultimi 7 giorni"
-            delay={200}
-            variant="primary"
-            className="flex-1 min-w-[200px]"
-          />
+          <AnimatedGridItem>
+            <AnimatedKPICard
+              title="Ore Questa Settimana"
+              value={kpis.hoursThisWeek}
+              suffix="h"
+              formatValue={(v) => v.toFixed(1)}
+              icon={<TrendingUp className="h-4 w-4" />}
+              description="Ultimi 7 giorni"
+              delay={200}
+              variant="primary"
+              className="flex-1 min-w-[200px]"
+            />
+          </AnimatedGridItem>
         )}
 
         {isWidgetVisible('kpi_efficiency') && (
-          <AnimatedKPICard
-            title="Efficienza Tempo"
-            value={kpis.efficiency}
-            suffix="%"
-            icon={<BarChart3 className="h-4 w-4" />}
-            description={
-              kpis.efficiency >= 100 ? "🎯 Sotto budget" :
-                kpis.efficiency >= 80 ? "⚠️ Nella media" :
-                  "⏰ Sopra budget"
-            }
-            delay={250}
-            variant={
-              kpis.efficiency >= 100 ? "success" :
-                kpis.efficiency >= 80 ? "warning" :
-                  "danger"
-            }
-            className="flex-1 min-w-[200px]"
-          />
+          <AnimatedGridItem>
+            <AnimatedKPICard
+              title="Efficienza Tempo"
+              value={kpis.efficiency}
+              suffix="%"
+              icon={<BarChart3 className="h-4 w-4" />}
+              description={
+                kpis.efficiency >= 100 ? "🎯 Sotto budget" :
+                  kpis.efficiency >= 80 ? "⚠️ Nella media" :
+                    "⏰ Sopra budget"
+              }
+              delay={250}
+              variant={
+                kpis.efficiency >= 100 ? "success" :
+                  kpis.efficiency >= 80 ? "warning" :
+                    "danger"
+              }
+              className="flex-1 min-w-[200px]"
+            />
+          </AnimatedGridItem>
         )}
-      </div>
+      </AnimatedGrid>
 
       {/* Charts and Deadlines with Animated Cards */}
       <div className={cn(
@@ -447,22 +460,25 @@ export default function UserDashboard() {
             <CardContent>
               <Table>
                 <TableBody>
-                  {upcomingDeadlines.map((task, index) => (
-                    <TableRow
-                      key={task.id}
-                      className="group transition-colors hover:bg-muted/50"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <TableCell>
-                        <Link href={`/tasks?taskId=${task.id}`} className="font-medium hover:underline block truncate group-hover:text-primary transition-colors">
-                          {task.title}
-                        </Link>
-                        <span className="text-xs text-muted-foreground">
-                          {task.dueDate && formatDistanceToNow(parseISO(task.dueDate), { addSuffix: true, locale: it })}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  <AnimatedList>
+                    {upcomingDeadlines.map((task, index) => (
+                      <AnimatedListItem key={task.id}>
+                        <TableRow
+                          className="group transition-colors hover:bg-muted/50"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          <TableCell>
+                            <Link href={`/tasks?taskId=${task.id}`} className="font-medium hover:underline block truncate group-hover:text-primary transition-colors">
+                              {task.title}
+                            </Link>
+                            <span className="text-xs text-muted-foreground">
+                              {task.dueDate && formatDistanceToNow(parseISO(task.dueDate), { addSuffix: true, locale: it })}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      </AnimatedListItem>
+                    ))}
+                  </AnimatedList>
                   {upcomingDeadlines.length === 0 && (
                     <TableRow>
                       <TableCell className="h-24 text-center">

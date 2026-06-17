@@ -111,6 +111,7 @@ import { getLevelFromXp } from '@/lib/gamification';
 import { DeadlineCountdownWidget } from '@/components/dashboard/deadline-countdown';
 import { WeatherWidget } from '@/components/dashboard/weather-widget';
 import { UpcomingBirthdaysWidget } from '@/components/birthday-celebration';
+import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
 
 const ADMIN_WIDGETS = [
     { id: 'kpi_global', label: 'KPI Globali' },
@@ -1572,7 +1573,7 @@ export default function Dashboard() {
             </div>
 
             {/* Nuovi Widget Dashboard */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <AnimatedGrid className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {isLoadingLayout ? (
                     <>
                         <Skeleton className="h-[200px] w-full rounded-lg" />
@@ -1581,46 +1582,54 @@ export default function Dashboard() {
                     </>
                 ) : (
                     <>
-                        <DeadlineCountdownWidget
-                            tasks={allTasks}
-                            onTaskClick={(taskId) => window.location.href = `/tasks?taskId=${taskId}`}
-                        />
+                        <AnimatedGridItem>
+                            <DeadlineCountdownWidget
+                                tasks={allTasks}
+                                onTaskClick={(taskId) => window.location.href = `/tasks?taskId=${taskId}`}
+                            />
+                        </AnimatedGridItem>
 
-                        <UpcomingBirthdaysWidget users={users} />
+                        <AnimatedGridItem>
+                            <UpcomingBirthdaysWidget users={users} />
+                        </AnimatedGridItem>
 
-                        <WeatherWidget city="Milano" />
+                        <AnimatedGridItem>
+                            <WeatherWidget city="Milano" />
+                        </AnimatedGridItem>
                     </>
                 )}
-            </div>
+            </AnimatedGrid>
 
             {/* Smart Alerts Section */}
             {smartAlerts.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <AnimatedGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {smartAlerts.map((alert, index) => (
-                        <Card key={index} className={`glass-card border-l-4 ${alert.type === 'critical' ? 'border-l-red-500 bg-red-500/5' :
-                            alert.type === 'warning' ? 'border-l-amber-500 bg-amber-500/5' :
-                                'border-l-primary bg-primary/5'
-                            }`}>
-                            <CardContent className="p-3 flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${alert.type === 'critical' ? 'bg-red-500/20' :
-                                    alert.type === 'warning' ? 'bg-amber-500/20' :
-                                        'bg-primary/20'
-                                    }`}>
-                                    {alert.type === 'critical' ? <AlertTriangle className="h-4 w-4 text-red-500" /> :
-                                        alert.type === 'warning' ? <Clock className="h-4 w-4 text-amber-500" /> :
-                                            <Bell className="h-4 w-4 text-primary" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{alert.message}</p>
-                                    <p className="text-xs text-muted-foreground">Richiede attenzione</p>
-                                </div>
-                                <Badge variant={alert.type === 'critical' ? 'destructive' : 'secondary'} className="shrink-0">
-                                    {alert.count}
-                                </Badge>
-                            </CardContent>
-                        </Card>
+                        <AnimatedGridItem key={index}>
+                            <Card className={`glass-card border-l-4 ${alert.type === 'critical' ? 'border-l-red-500 bg-red-500/5' :
+                                alert.type === 'warning' ? 'border-l-amber-500 bg-amber-500/5' :
+                                    'border-l-primary bg-primary/5'
+                                }`}>
+                                <CardContent className="p-3 flex items-center gap-3">
+                                    <div className={`p-2 rounded-full ${alert.type === 'critical' ? 'bg-red-500/20' :
+                                        alert.type === 'warning' ? 'bg-amber-500/20' :
+                                            'bg-primary/20'
+                                        }`}>
+                                        {alert.type === 'critical' ? <AlertTriangle className="h-4 w-4 text-red-500" /> :
+                                            alert.type === 'warning' ? <Clock className="h-4 w-4 text-amber-500" /> :
+                                                <Bell className="h-4 w-4 text-primary" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium truncate">{alert.message}</p>
+                                        <p className="text-xs text-muted-foreground">Richiede attenzione</p>
+                                    </div>
+                                    <Badge variant={alert.type === 'critical' ? 'destructive' : 'secondary'} className="shrink-0">
+                                        {alert.count}
+                                    </Badge>
+                                </CardContent>
+                            </Card>
+                        </AnimatedGridItem>
                     ))}
-                </div>
+                </AnimatedGrid>
             )}
 
             {/* Active Tasks - Chi sta lavorando su cosa */}

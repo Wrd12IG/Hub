@@ -50,6 +50,7 @@ import { Task, User, allTaskStatuses, allTaskPriorities } from "@/lib/data"
 import { addTask, updateTask, uploadFilesAndGetAttachments } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { WorkloadSphere } from "@/components/WorkloadSphere"
+import { motion } from "framer-motion"
 
 const formSchema = z.object({
     title: z.string().min(2, {
@@ -408,6 +409,11 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 max-h-[80vh] overflow-y-auto pr-4">
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                >
                 {task && (
                     <div className="flex justify-end mb-2">
                         <Button

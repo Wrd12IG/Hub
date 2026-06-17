@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { formatDistanceToNow, parseISO, isToday, isYesterday, isThisWeek } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { AnimatedList, AnimatedListItem } from '@/components/AnimatedGrid';
 import Link from 'next/link';
 import { markNotificationAsRead, markAllNotificationsAsRead, deleteNotification } from '@/lib/actions';
 import type { Notification } from '@/lib/data';
@@ -354,16 +355,17 @@ export function NotificationCenter({ trigger }: NotificationCenterProps) {
                                         <h3 className="text-xs font-medium text-muted-foreground mb-2 sticky top-0 bg-background/95 backdrop-blur-sm py-1">
                                             {date}
                                         </h3>
-                                        <div className="space-y-1">
+                                        <AnimatedList className="space-y-1">
                                             {items.map((notification) => (
-                                                <NotificationItem
-                                                    key={notification.id}
-                                                    notification={notification}
-                                                    onMarkRead={handleMarkRead}
-                                                    onDelete={handleDelete}
-                                                />
+                                                <AnimatedListItem key={notification.id}>
+                                                    <NotificationItem
+                                                        notification={notification}
+                                                        onMarkRead={handleMarkRead}
+                                                        onDelete={handleDelete}
+                                                    />
+                                                </AnimatedListItem>
                                             ))}
-                                        </div>
+                                        </AnimatedList>
                                     </div>
                                 );
                             })}
