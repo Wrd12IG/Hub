@@ -45,6 +45,7 @@ import { addProject, updateProject, updateTask } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import TaskForm from "@/components/task-form"
 import DatePickerDialog from "@/components/ui/date-picker-dialog"
+import { motion } from "framer-motion"
 
 const formSchema = z.object({
     name: z.string().min(2, {
@@ -195,6 +196,11 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 max-h-[80vh] overflow-y-auto pr-4">
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                >
                 <FormField
                     control={form.control}
                     name="name"
@@ -208,6 +214,7 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
                         </FormItem>
                     )}
                 />
+                </motion.div>
 
                 <FormField
                     control={form.control}
@@ -498,7 +505,7 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
             </form>
 
             <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-                <DialogContent>
+                <DialogContent className="glass-card">
                     <DialogHeader>
                         <DialogTitle>Nuovo Task</DialogTitle>
                     </DialogHeader>

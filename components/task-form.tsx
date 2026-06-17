@@ -440,6 +440,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                         </FormItem>
                     )}
                 />
+                </motion.div>
 
                 <FormField
                     control={form.control}

@@ -1608,7 +1608,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             </div>
 
             <Dialog open={modalState.isOpen} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl glass-card">
                     <DialogHeader>
                         <DialogTitle>
                             {modalState.mode === 'create' ? 'Crea Nuovo Task' : `Modifica Task: ${modalState.task?.title}`}
