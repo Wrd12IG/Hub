@@ -2857,3 +2857,63 @@ button, a, [role="button"] {
     transform: none;
   }
 }
+
+/* ── Antigravity Design System — Glass Enhancements ────────────────────── */
+
+.dark .glass-card {
+  background: rgba(22, 26, 38, 0.62) !important;
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
+    0 8px 32px rgba(0, 0, 0, 0.40),
+    0 2px 8px rgba(0, 0, 0, 0.24) !important;
+}
+
+.dark .glass-card:hover {
+  background: rgba(28, 33, 48, 0.72) !important;
+  border-color: rgba(255, 255, 255, 0.13) !important;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 16px 48px rgba(0, 0, 0, 0.50),
+    0 4px 12px rgba(0, 0, 0, 0.28) !important;
+}
+
+.glass-panel {
+  background: rgba(22, 26, 38, 0.78);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card-accent {
+  border-color: hsl(45 93% 47% / 0.22) !important;
+  background: rgba(245, 197, 24, 0.05) !important;
+}
+
+.glass-card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.glass-card-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 40%;
+  height: 200%;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 60%
+  );
+  transform: skewX(-20deg);
+  transition: left 0.55s ease;
+  pointer-events: none;
+}
+.glass-card-shine:hover::after {
+  left: 120%;
+}

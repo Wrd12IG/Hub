@@ -91,7 +91,8 @@ import { useRouter } from 'next/navigation';
 import { autoCompleteAllProjects, deleteProject, deleteTask } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
-import { TimelineView } from '@/components/timeline-view'; // Import aggiunto
+import { TimelineView } from '@/components/timeline-view';
+import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
 
 export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: string } = {}) {
     const { allProjects: projects, clients, allTasks: tasks, usersById, currentUser } = useLayoutData();
@@ -504,15 +505,15 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
 
             {/* Vista Grid */}
             {viewMode === 'grid' && (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <AnimatedGrid className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {filteredProjects.map((project: Project) => {
                         const projectTasks = tasks.filter((t: { projectId?: string }) => t.projectId === project.id);
                         const completedTasks = projectTasks.filter((t: { status: string }) => t.status === 'Approvato').length;
                         const progress = projectTasks.length > 0 ? Math.round((completedTasks / projectTasks.length) * 100) : 0;
 
                         return (
+                            <AnimatedGridItem key={project.id}>
                             <Card
-                                key={project.id}
                                 className="rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer glass-card bg-transparent"
                                 onClick={() => setPreviewProject(project)}
                             >
@@ -584,6 +585,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                     </div>
                                 </CardContent>
                             </Card>
+                        </AnimatedGridItem>
                         );
                     })}
                     {filteredProjects.length === 0 && (
@@ -591,7 +593,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                             Nessun progetto trovato.
                         </div>
                     )}
-                </div>
+                </AnimatedGrid>
             )}
 
             {/* Vista Lista */}

@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 interface ProjectCardProps {
     project: Project;
@@ -89,7 +90,12 @@ export function ProjectCard({ project, client, tasks, teamLeader, onEdit, onDele
     }
 
     return (
-        <Card className="flex flex-col rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-card text-card-foreground border">
+        <motion.div
+            whileHover={{ y: -4, scale: 1.01 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+            style={{ willChange: 'transform' }}
+        >
+        <Card className="flex flex-col rounded-xl overflow-hidden glass-card glass-card-shine text-card-foreground">
             <div className="flex flex-col space-y-1.5 p-6">
                 <div className="flex items-start justify-between">
                     <div>
@@ -209,5 +215,6 @@ export function ProjectCard({ project, client, tasks, teamLeader, onEdit, onDele
                 </div>
             </div>
         </Card>
+        </motion.div>
     );
 }
