@@ -32,6 +32,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import PomodoroWidget from '@/components/pomodoro-timer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useAuthToken } from '@/hooks/use-auth-token';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { collection, onSnapshot, query } from 'firebase/firestore';
@@ -599,6 +600,21 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         pomodoroTask,
         setPomodoroTask,
     } = useLayoutData();
+
+    const { token: authToken } = useAuthToken();
+
+    /** Proxy URL per allegati Firebase Storage — accessibile a tutti gli utenti autenticati */
+    const getAttachmentHref = useCallback((url: string): string => {
+        if (!url) return '#';
+        // Link esterno (URL manuali) — passa diretto
+        if (!url.includes('firebasestorage.googleapis.com') && !url.startsWith('gs://')) {
+            return url;
+        }
+        // File Firebase Storage → proxy con signed URL (15 min)
+        const params = new URLSearchParams({ url });
+        if (authToken) params.set('token', authToken);
+        return `/api/tasks/attachment?${params.toString()}`;
+    }, [authToken]);
 
     const [allTasks, setAllTasks] = useState<Task[]>([]);
     const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -1664,7 +1680,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                         {disapprovalModalState.task?.attachments?.filter(att => att.documentType === 'Approvazione').slice(-1).map((att, i) => (
                             <div key={i}>
                                 <Label>Link da revisionare</Label>
-                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
+                                <a href={getAttachmentHref(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
                                     <FileText className="h-4 w-4 flex-shrink-0" />
                                     <span className="truncate">{att.filename || 'Link allegato'}</span>
                                 </a>
@@ -1709,7 +1725,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                         {approvalState.task?.attachments?.filter(att => att.documentType === 'Approvazione').slice(-1).map((att, i) => (
                             <div key={i}>
                                 <Label>Link da approvare</Label>
-                                <a href={att.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
+                                <a href={getAttachmentHref(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
                                     <FileText className="h-4 w-4 flex-shrink-0" />
                                     <span className="truncate">{att.filename || 'Link allegato'}</span>
                                 </a>
@@ -2065,7 +2081,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             <div className="space-y-2 max-h-[120px] overflow-y-auto">
                                                 {(previewTask.attachments || []).map((att: { url: string; filename?: string }, index: number) => (
                                                     <a
-                                                        href={att.url}
+                                                        href={getAttachmentHref(att.url)}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         key={index}
