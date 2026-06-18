@@ -303,13 +303,10 @@ const TaskCard = ({
                         <span className="text-sm font-bold text-muted-foreground/50 uppercase tracking-wide">Nessun cliente</span>
                     )}
                     {project && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); setPreviewProject(project); }}
-                            className="flex items-center gap-1 w-fit text-[10px] text-primary/80 hover:text-primary transition-colors"
-                        >
+                        <span className="flex items-center gap-1 text-[10px] text-primary/70 uppercase font-medium tracking-wide">
                             <FolderKanban className="h-2.5 w-2.5 shrink-0" />
                             <span className="truncate max-w-[140px]">{project.name}</span>
-                        </button>
+                        </span>
                     )}
                 </div>
                 <DropdownMenu>
