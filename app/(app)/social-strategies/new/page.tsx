@@ -15,8 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bot, Sparkles, ArrowLeft, Loader2, AlertTriangle, Save, Send } from 'lucide-react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-const SocialStrategyResults = dynamic(
+import nextDynamic from 'next/dynamic';
+const SocialStrategyResults = nextDynamic(
   () => import('@/components/social-strategy-results').then(m => ({ default: m.SocialStrategyResults })),
   { ssr: false }
 );
