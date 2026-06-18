@@ -99,6 +99,7 @@ export function InstagramGridPreview({ newMediaUrl, postType, igAccountId, token
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                     muted playsInline />
                 ) : (
+                  // TODO: usare next/image quando URL è da dominio noto (attualmente API_URL può essere localhost o server arbitrario)
                   <img src={cell.url} alt=""
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 )}

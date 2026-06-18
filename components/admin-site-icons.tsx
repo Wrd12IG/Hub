@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import NextImage from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -258,12 +259,14 @@ export default function AdminSiteIcons() {
                     <div className="flex items-start gap-6">
                         {/* Preview */}
                         <div className="flex-shrink-0">
-                            <div className="w-32 h-32 rounded-xl border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/30 overflow-hidden">
+                            <div className="relative w-32 h-32 rounded-xl border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/30 overflow-hidden">
                                 {settings.mainIcon ? (
-                                    <img
+                                    <NextImage
                                         src={settings.mainIcon}
                                         alt="Main Icon"
-                                        className="w-full h-full object-contain"
+                                        fill
+                                        className="object-contain"
+                                        sizes="128px"
                                     />
                                 ) : (
                                     <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
@@ -334,12 +337,14 @@ export default function AdminSiteIcons() {
                     <div className="flex items-start gap-6">
                         {/* Preview */}
                         <div className="flex-shrink-0">
-                            <div className="w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/30 overflow-hidden">
+                            <div className="relative w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center bg-muted/30 overflow-hidden">
                                 {settings.favicon ? (
-                                    <img
+                                    <NextImage
                                         src={settings.favicon}
                                         alt="Favicon"
-                                        className="w-full h-full object-contain"
+                                        fill
+                                        className="object-contain"
+                                        sizes="64px"
                                     />
                                 ) : (
                                     <Globe className="h-8 w-8 text-muted-foreground/50" />
@@ -415,13 +420,15 @@ export default function AdminSiteIcons() {
                                         <div className="relative">
                                             <div
                                                 className="rounded-lg border border-muted overflow-hidden flex items-center justify-center bg-muted/20"
-                                                style={{ width: Math.min(iconConfig.size, 96), height: Math.min(iconConfig.size, 96) }}
+                                                style={{ position: 'relative', width: Math.min(iconConfig.size, 96), height: Math.min(iconConfig.size, 96) }}
                                             >
                                                 {iconUrl ? (
-                                                    <img
+                                                    <NextImage
                                                         src={iconUrl}
                                                         alt={`Icon ${iconConfig.label}`}
-                                                        className="w-full h-full object-contain"
+                                                        fill
+                                                        className="object-contain"
+                                                        sizes="96px"
                                                     />
                                                 ) : (
                                                     <ImageIcon className="h-8 w-8 text-muted-foreground/50" />

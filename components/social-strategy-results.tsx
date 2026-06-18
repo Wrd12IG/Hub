@@ -486,6 +486,7 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
 
                                             {moodboards[i] && (
                                                 <div className="mt-2 rounded-lg overflow-hidden border bg-black/5 relative group/moodboard">
+                                                    {/* TODO: usare next/image quando URL è da dominio noto (attualmente URL generato da API AI esterna, dominio variabile) */}
                                                     <img src={moodboards[i]} alt="Moodboard" className="w-full h-24 object-cover opacity-80 group-hover/moodboard:opacity-100 transition-opacity" />
                                                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/moodboard:opacity-100 bg-black/40 transition-opacity">
                                                         <Button variant="secondary" size="sm" className="h-6 text-[9px] px-2" onClick={() => window.open(moodboards[i], '_blank')}>Vedi Full</Button>

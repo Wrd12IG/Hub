@@ -42,6 +42,7 @@ function MediaThumb({ url, onRemove, videoBlobUrls }: {
     <div style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, border: '2px solid rgba(167,139,250,0.3)' }}>
       {showAsVideo
         ? <video src={fullUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted playsInline />
+        // TODO: usare next/image quando URL è da dominio noto (API_URL arbitrario + onError non compatibile con fill in next/image)
         : <img src={fullUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             onError={() => setShowAsVideo(true)} />
       }
@@ -88,6 +89,7 @@ function AssetCard({ asset, selected, onSelect, onDelete }: {
             </div>
           </>
         ) : !previewFailed ? (
+          // TODO: usare next/image quando URL è da dominio noto (API_URL arbitrario + onError non compatibile con fill in next/image)
           <img src={fullUrl} alt=""
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
             onError={() => setPreviewFailed(true)}
