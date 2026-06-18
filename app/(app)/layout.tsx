@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useLayoutData } from "@/app/(app)/layout-context";
+import { usePathname } from 'next/navigation';
 import { Header } from "@/components/header";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Loader2 } from "lucide-react";
@@ -26,6 +27,7 @@ import { TranslationProvider } from '@/hooks/useTranslation';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isLoadingLayout, pomodoroTask, setPomodoroTask, users } = useLayoutData();
   const router = useRouter();
+  const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const [bukowskiMode, toggleBukowskiMode] = useKonamiCodeToggle();
 
@@ -69,7 +71,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarInset className="relative isolate">
             <Header />
             <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6">
-              <PageTransition>
+              <PageTransition key={pathname}>
                 {children}
               </PageTransition>
             </main>
