@@ -476,6 +476,14 @@ const TaskCard = ({
                             {task.priority}
                         </Badge>
                     </div>
+                    {task.createdAt && (
+                        <div className="flex items-center gap-2 pt-0.5">
+                            <Clock className="h-3.5 w-3.5 text-muted-foreground/60" />
+                            <span className="text-xs text-muted-foreground/70">
+                                Creato {format(new Date(task.createdAt), 'dd MMM yyyy', { locale: it })}
+                            </span>
+                        </div>
+                    )}
                 </div>
             </CardContent>
             <CardFooter className="flex items-center justify-between gap-2 pt-3 border-t overflow-hidden">
@@ -2025,6 +2033,13 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                 <span className="text-sm text-muted-foreground">Scadenza</span>
                                                 <span className="font-medium">
                                                     {isClient && previewTask.dueDate ? format(new Date(previewTask.dueDate), 'dd MMM yyyy HH:mm', { locale: it }) : 'N/D'}
+                                                </span>
+                                            </div>
+                                            <Separator />
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-muted-foreground">Data Creazione</span>
+                                                <span className="font-medium">
+                                                    {isClient && previewTask.createdAt ? format(new Date(previewTask.createdAt), 'dd MMM yyyy HH:mm', { locale: it }) : 'N/D'}
                                                 </span>
                                             </div>
                                             <Separator />
