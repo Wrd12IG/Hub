@@ -1,6 +1,7 @@
 
 'use client';
 import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react';
+import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1436,7 +1437,12 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     };
 
     return (
-        <div className="p-4 sm:p-6 h-full flex flex-col animate-fade-in-up">
+        <motion.div
+            className="p-4 sm:p-6 h-full flex flex-col"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+        >
             {/* 🎉 Sparkle celebration — fires on task approval */}
             <TaskApprovedCelebration trigger={celebrationTrigger > 0} />
             <div className="flex-shrink-0">
@@ -2293,7 +2299,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                     </SheetContent>
                 </Sheet>
             )}
-        </div>
+        </motion.div>
     );
 }
 
