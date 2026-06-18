@@ -1078,7 +1078,7 @@ async function getTaskRelatedData(task: Task): Promise<{
             projectName = (projectSnap.data() as Project).name || '';
         }
         if (activitySnap?.exists()) {
-            activityTypeName = (activitySnap.data() as ActivityType).name || task.activityType;
+            activityTypeName = (activitySnap.data() as ActivityType).name || task.activityType || '';
         } else if (task.activityType) {
             activityTypeName = task.activityType;
         }
