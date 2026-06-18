@@ -285,8 +285,8 @@ const TaskCard = ({
                 (!isApprovalOverdue && isOverdue) && 'border-l-4 border-l-red-500',
                 // 5. Highlighted (Selezione URL) → Ring Blu statico
                 isHighlighted && 'ring-2 ring-primary shadow-lg',
-                // 6. Card normale → sfondo solido per contrasto
-                !isTimerActiveForThisTask && !isTaskInApproval && 'bg-card/80'
+                // 6. Card normale → bg trasparente (gestito da glass-card)
+                !isTimerActiveForThisTask && !isTaskInApproval && 'bg-transparent'
             )}
         >
             {/* ── HEADER: cliente · progetto · azioni ── */}
@@ -404,7 +404,7 @@ const TaskCard = ({
             </div>
 
             {/* ── SEZIONE DETTAGLI: 2 colonne ── */}
-            <div className="mx-3 mb-2 rounded-lg border border-border/30 bg-secondary/30 overflow-hidden">
+            <div className="mx-3 mb-2 rounded-lg border border-border/30 bg-white/5 dark:bg-white/[0.03] overflow-hidden">
                 <div className="grid grid-cols-2 divide-x divide-border/30">
                     {/* Colonna sinistra: Tempi */}
                     <div className="px-2.5 py-2 space-y-1.5">
