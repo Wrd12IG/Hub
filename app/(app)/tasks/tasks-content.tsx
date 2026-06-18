@@ -289,43 +289,32 @@ const TaskCard = ({
                 !isTimerActiveForThisTask && !isTaskInApproval && 'bg-transparent'
             )}
         >
-            {/* ── HEADER: cliente · progetto · azioni ── */}
-            <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-0">
-                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                    {/* Dot priorità + nome cliente */}
-                    <span
-                        className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: priorityColors[task.priority] }}
-                        title={`Priorità: ${task.priority}`}
-                    />
-                    {client && (
+            {/* ── HEADER: cliente grande · menu ── */}
+            <div className="flex items-start justify-between gap-2 px-3 pt-3 pb-0">
+                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    {client ? (
                         <span
-                            className="text-[11px] font-semibold truncate max-w-[110px]"
+                            className="text-sm font-bold uppercase tracking-wide truncate"
                             style={{ color: client.color || 'inherit' }}
                         >
                             {client.name}
                         </span>
+                    ) : (
+                        <span className="text-sm font-bold text-muted-foreground/50 uppercase tracking-wide">Nessun cliente</span>
                     )}
                     {project && (
                         <button
                             onClick={(e) => { e.stopPropagation(); setPreviewProject(project); }}
-                            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors text-[10px] font-medium"
+                            className="flex items-center gap-1 w-fit text-[10px] text-primary/80 hover:text-primary transition-colors"
                         >
-                            <FolderKanban className="h-2.5 w-2.5" />
-                            <span className="max-w-[60px] truncate">{project.name}</span>
+                            <FolderKanban className="h-2.5 w-2.5 shrink-0" />
+                            <span className="truncate max-w-[140px]">{project.name}</span>
                         </button>
-                    )}
-                    {/* Badge giorni in approvazione */}
-                    {isTaskInApproval && approvalDaysPending >= 1 && (
-                        <span className="text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-breathing-custom">
-                            <Timer className="h-2.5 w-2.5" />
-                            {approvalDaysPending}gg
-                        </span>
                     )}
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity -mt-0.5">
                             <MoreVertical className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
@@ -341,328 +330,229 @@ const TaskCard = ({
                 </DropdownMenu>
             </div>
 
-            {/* ── TITOLO ── */}
-            <div className="px-3 pt-2 pb-1">
+            {/* ── BODY: titolo · descrizione · scadenza ── */}
+            <div className="px-3 pt-2 pb-2 flex-1">
                 <h3 className="font-bold text-sm text-foreground leading-snug break-words">
                     {task.title}
                 </h3>
-                {/* Descrizione — max 2 righe */}
                 {task.description && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                         {task.description}
                     </p>
                 )}
-            </div>
-
-            {/* ── META ROW: scadenza · timer · allegati ── */}
-            <div className="flex items-center gap-2 px-3 py-1.5 flex-wrap">
-                {/* Scadenza */}
-                {task.dueDate && daysRemaining !== null ? (
-                    <Badge
-                        variant={daysRemaining < 0 && task.status !== 'Approvato' ? 'destructive' :
-                            daysRemaining <= 3 && task.status !== 'Approvato' ? 'default' : 'secondary'}
-                        className={cn(
-                            "text-[11px] px-1.5 py-0 h-5 flex items-center gap-0.5",
-                            daysRemaining < 0 && task.status !== 'Approvato' && "animate-breathing-custom"
-                        )}
-                    >
-                        <Calendar className="h-3 w-3" />
-                        <span>
-                            {daysRemaining === 0 ? 'Oggi' :
-                             daysRemaining === 1 ? 'Domani' :
-                             daysRemaining < 0 ? 'Scaduto' :
-                             `${daysRemaining}gg`}
+                {/* Data richiesta di completamento */}
+                <div className="mt-2.5 flex items-center gap-1.5">
+                    <Calendar className={cn(
+                        "h-3.5 w-3.5 shrink-0",
+                        daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' ? "text-red-500" :
+                        daysRemaining !== null && daysRemaining <= 3 && task.status !== 'Approvato' ? "text-amber-500" :
+                        "text-muted-foreground/60"
+                    )} />
+                    {task.dueDate ? (
+                        <span className={cn(
+                            "text-xs font-semibold",
+                            daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' ? "text-red-500 animate-breathing-custom" :
+                            daysRemaining !== null && daysRemaining <= 3 && task.status !== 'Approvato' ? "text-amber-500" :
+                            "text-foreground/80"
+                        )}>
+                            {format(new Date(task.dueDate), 'dd MMM yyyy', { locale: it })}
+                            {daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' && ' · Scaduto'}
+                            {daysRemaining === 0 && task.status !== 'Approvato' && ' · Oggi'}
+                            {daysRemaining === 1 && task.status !== 'Approvato' && ' · Domani'}
                         </span>
-                    </Badge>
-                ) : (
-                    <span className="text-[11px] text-muted-foreground/60 italic">Nessuna scad.</span>
-                )}
-
-                {/* Timer registrato */}
-                {((task.timeSpent && task.timeSpent > 0) || isTimerActiveForThisTask) && (
-                    <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded border border-border/20">
-                        <Clock className={cn("h-3 w-3", isTimerActiveForThisTask && "text-green-500")} />
-                        <span>{timeSpentFormatted}</span>
-                    </div>
-                )}
-
-                {/* Allegati */}
-                {task.attachments && task.attachments.length > 0 && (
-                    <div className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
-                        <Paperclip className="h-3 w-3" />
-                        <span>{task.attachments.length}</span>
-                    </div>
-                )}
-
-                {/* Commenti */}
-                {task.comments && task.comments.length > 0 && (
-                    <div className="flex items-center gap-0.5 text-[11px] text-purple-500">
-                        <MessageSquare className="h-3 w-3" />
-                        <span>{task.comments.length}</span>
-                    </div>
-                )}
-            </div>
-
-            {/* ── SEZIONE DETTAGLI: 2 colonne ── */}
-            <div className="mx-3 mb-2 rounded-lg border border-white/20 overflow-hidden">
-                <div className="grid grid-cols-2 divide-x divide-border/30">
-                    {/* Colonna sinistra: Tempi */}
-                    <div className="px-2.5 py-2 space-y-1.5">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Tempi</p>
-
-                        {/* Scadenza */}
-                        <div className="flex items-start gap-1.5">
-                            <Calendar className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
-                            <div>
-                                <p className="text-[10px] text-muted-foreground/70 leading-none">Scadenza</p>
-                                {task.dueDate ? (
-                                    <p className={cn(
-                                        "text-[11px] font-medium leading-snug mt-0.5",
-                                        daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato'
-                                            ? "text-red-500"
-                                            : daysRemaining !== null && daysRemaining <= 3 && task.status !== 'Approvato'
-                                            ? "text-amber-500"
-                                            : "text-foreground"
-                                    )}>
-                                        {format(new Date(task.dueDate), 'dd MMM yyyy HH:mm', { locale: it })}
-                                    </p>
-                                ) : (
-                                    <p className="text-[11px] text-muted-foreground/50 italic mt-0.5">Non impostata</p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Data Creazione */}
-                        {(() => { const d = safeToDate(task.createdAt); return d ? (
-                            <div className="flex items-start gap-1.5">
-                                <Clock className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground/70 leading-none">Creazione</p>
-                                    <p className="text-[11px] font-medium text-foreground leading-snug mt-0.5">
-                                        {format(d, 'dd MMM yyyy HH:mm', { locale: it })}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : null; })()}
-
-                        {/* Tempo Registrato */}
-                        <div className="flex items-start gap-1.5">
-                            <Timer className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
-                            <div>
-                                <p className="text-[10px] text-muted-foreground/70 leading-none">Tempo registrato</p>
-                                <p className={cn(
-                                    "text-[11px] font-mono font-medium leading-snug mt-0.5",
-                                    isTimerActiveForThisTask ? "text-green-500" : "text-foreground"
-                                )}>
-                                    {timeSpentFormatted}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Colonna destra: Stato e Priorità */}
-                    <div className="px-2.5 py-2 space-y-1.5">
-                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Stato e Priorità</p>
-
-                        {/* Stato */}
-                        <div className="flex items-start gap-1.5">
-                            <CheckCircle className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
-                            <div>
-                                <p className="text-[10px] text-muted-foreground/70 leading-none">Stato</p>
-                                <span
-                                    className="inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
-                                    style={{
-                                        backgroundColor: statusColors[task.status]?.bg + '20',
-                                        color: statusColors[task.status]?.bg,
-                                    }}
-                                >
-                                    {task.status}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Priorità */}
-                        <div className="flex items-start gap-1.5">
-                            <Target className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
-                            <div>
-                                <p className="text-[10px] text-muted-foreground/70 leading-none">Priorità</p>
-                                <span
-                                    className="inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border"
-                                    style={{
-                                        backgroundColor: priorityColors[task.priority] + '18',
-                                        color: priorityColors[task.priority],
-                                        borderColor: priorityColors[task.priority] + '40',
-                                    }}
-                                >
-                                    {task.priority}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Tipo Attività */}
-                        {task.activityType && (
-                            <div className="flex items-start gap-1.5">
-                                <ListChecks className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground/70 leading-none">Tipo attività</p>
-                                    <p className="text-[11px] font-medium text-foreground leading-snug mt-0.5 break-words">
-                                        {task.activityType}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    ) : (
+                        <span className="text-xs text-muted-foreground/50 italic">Nessuna scadenza</span>
+                    )}
                 </div>
             </div>
 
-            {/* ── PROGRESS BAR (solo se c'è stima) ── */}
-            {task.estimatedDuration > 0 && (
-                <div className="px-3 pb-1.5 flex items-center gap-2">
-                    <span className={cn(
-                        "text-[11px] font-mono font-semibold shrink-0 w-8",
-                        timeExceeded && "text-red-500",
-                        timeWarning && "text-amber-500",
-                        !timeExceeded && !timeWarning && "text-muted-foreground"
-                    )}>
-                        {timeProgress.toFixed(0)}%
+            {/* ── FOOTER: tutti i dati ── */}
+            <div className="border-t border-border/30 px-3 pt-2 pb-2.5 space-y-2">
+
+                {/* Riga 1: Stato · Priorità · Tipo attività */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                    <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{
+                            backgroundColor: (statusColors[task.status]?.bg ?? '#6b7280') + '22',
+                            color: statusColors[task.status]?.bg ?? '#6b7280',
+                        }}
+                    >
+                        {task.status}
                     </span>
-                    <Progress
-                        value={Math.min(timeProgress, 100)}
-                        className={cn(
-                            "h-1.5 flex-grow",
-                            timeExceeded && "[&>div]:bg-red-500",
-                            timeWarning && "[&>div]:bg-amber-500",
-                            !timeExceeded && !timeWarning && "[&>div]:bg-primary"
-                        )}
-                    />
+                    <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                        style={{
+                            backgroundColor: (priorityColors[task.priority] ?? '#6b7280') + '18',
+                            color: priorityColors[task.priority] ?? '#6b7280',
+                            borderColor: (priorityColors[task.priority] ?? '#6b7280') + '40',
+                        }}
+                    >
+                        {task.priority}
+                    </span>
+                    {task.activityType && (
+                        <span className="text-[10px] text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <ListChecks className="h-2.5 w-2.5" />
+                            {task.activityType}
+                        </span>
+                    )}
+                    {isTaskInApproval && approvalDaysPending >= 1 && (
+                        <span className="text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5 animate-breathing-custom">
+                            <Timer className="h-2.5 w-2.5" />
+                            {approvalDaysPending}gg
+                        </span>
+                    )}
                 </div>
-            )}
 
-            {/* ── APPROVAZIONE: data richiesta ── */}
-            {isTaskInApproval && (() => {
-                const dateSource = task.updatedAt || task.createdAt;
-                const dateLabel = task.updatedAt ? 'Richiesta' : 'Creato';
-                return (
-                    <div className="mx-3 mb-1.5 text-[11px] text-purple-600 dark:text-purple-400 flex items-center gap-1 font-medium bg-purple-500/8 rounded px-2 py-1">
-                        <Clock className="h-3 w-3 shrink-0" />
-                        {dateSource ? (
-                            <span>
-                                {dateLabel}: {format(
-                                    typeof dateSource === 'string'
-                                        ? new Date(dateSource)
-                                        : (dateSource as any).toDate ? (dateSource as any).toDate() : new Date(),
-                                    'dd MMM yyyy HH:mm',
-                                    { locale: it }
+                {/* Riga 2: Creazione · Tempo · Progress% · Allegati · Commenti · Data approv. */}
+                <div className="flex items-center gap-2 flex-wrap">
+                    {(() => { const d = safeToDate(task.createdAt); return d ? (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5" />
+                            {format(d, 'dd MMM yyyy HH:mm', { locale: it })}
+                        </span>
+                    ) : null; })()}
+                    {((task.timeSpent && task.timeSpent > 0) || isTimerActiveForThisTask) && (
+                        <span className={cn(
+                            "text-[10px] font-mono flex items-center gap-1",
+                            isTimerActiveForThisTask ? "text-green-500 font-bold" : "text-muted-foreground"
+                        )}>
+                            <Timer className="h-2.5 w-2.5" />
+                            {timeSpentFormatted}
+                        </span>
+                    )}
+                    {task.estimatedDuration > 0 && (
+                        <span className={cn(
+                            "text-[10px] font-mono font-semibold",
+                            timeExceeded ? "text-red-500" : timeWarning ? "text-amber-500" : "text-muted-foreground"
+                        )}>
+                            {timeProgress.toFixed(0)}%
+                        </span>
+                    )}
+                    {task.attachments && task.attachments.length > 0 && (
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Paperclip className="h-2.5 w-2.5" />
+                            {task.attachments.length}
+                        </span>
+                    )}
+                    {task.comments && task.comments.length > 0 && (
+                        <span className="text-[10px] text-purple-500 flex items-center gap-0.5">
+                            <MessageSquare className="h-2.5 w-2.5" />
+                            {task.comments.length}
+                        </span>
+                    )}
+                    {isTaskInApproval && (() => {
+                        const ds = task.updatedAt || task.createdAt;
+                        return ds ? (
+                            <span className="text-[10px] text-purple-500 flex items-center gap-1">
+                                <Send className="h-2.5 w-2.5" />
+                                {format(
+                                    typeof ds === 'string' ? new Date(ds) : (ds as any).toDate ? (ds as any).toDate() : new Date(),
+                                    'dd MMM HH:mm', { locale: it }
                                 )}
                             </span>
-                        ) : (
-                            <span>In attesa di approvazione</span>
-                        )}
-                    </div>
-                );
-            })()}
-
-            {/* ── FOOTER: avatar · azioni hover ── */}
-            <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-2.5 border-t border-border/30 mt-auto">
-                {/* Avatar assegnati */}
-                <div className="flex items-center gap-1.5">
-                    {creator && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <Avatar className="h-6 w-6 border-2 border-background">
-                                        <AvatarFallback style={{ backgroundColor: creator.color, color: 'white' }} className="text-[10px]">
-                                            {getInitials(creator.name)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Creato da {creator.name}</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-                    {assignedUser && creator?.id !== assignedUser.id && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <div className="flex items-center gap-1 pl-0.5">
-                                        <Avatar className="h-6 w-6 border-2 border-primary/30">
-                                            <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }} className="text-[10px]">
-                                                {getInitials(assignedUser.name)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <span className="text-xs font-medium text-muted-foreground">{assignedUser.name.split(' ')[0]}</span>
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Assegnato a {assignedUser.name}</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
+                        ) : null;
+                    })()}
                 </div>
 
-                {/* Azioni hover */}
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    {isTaskInApproval && canApprove ? (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant="ghost" size="icon"
-                                        className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700"
-                                        onClick={() => unapprovedDependencies.length === 0 && setApprovalState({ isOpen: true, task, sendEmail: true })}
-                                        disabled={unapprovedDependencies.length > 0}
-                                    >
-                                        <ThumbsUp className="h-3.5 w-3.5" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Approva</p></TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
-                                        <ThumbsDown className="h-3.5 w-3.5" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Rifiuta</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    ) : canBeSentForApproval ? (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSendForApproval(task)}>
-                                        <Send className="h-3.5 w-3.5" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Invia in Approvazione</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    ) : null}
+                {/* Riga 3: Avatar · Azioni */}
+                <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="flex items-center gap-1.5">
+                        {creator && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Avatar className="h-6 w-6 border-2 border-background">
+                                            <AvatarFallback style={{ backgroundColor: creator.color, color: 'white' }} className="text-[10px]">
+                                                {getInitials(creator.name)}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Creato da {creator.name}</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                        {assignedUser && creator?.id !== assignedUser.id && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <div className="flex items-center gap-1">
+                                            <Avatar className="h-6 w-6 border-2 border-primary/30">
+                                                <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }} className="text-[10px]">
+                                                    {getInitials(assignedUser.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="text-xs font-medium text-muted-foreground">{assignedUser.name.split(' ')[0]}</span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Assegnato a {assignedUser.name}</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                    </div>
 
-                    {isTimerActiveForThisTask ? (
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handlePlay(task)}>
-                            <Square className="h-3.5 w-3.5 fill-current" />
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        {isTaskInApproval && canApprove ? (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700"
+                                            onClick={() => unapprovedDependencies.length === 0 && setApprovalState({ isOpen: true, task, sendEmail: true })}
+                                            disabled={unapprovedDependencies.length > 0}>
+                                            <ThumbsUp className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Approva</p></TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700"
+                                            onClick={() => setDisapprovalModalState({ isOpen: true, task, reason: '', sendEmail: true })}>
+                                            <ThumbsDown className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Rifiuta</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ) : canBeSentForApproval ? (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7"
+                                            onClick={() => handleSendForApproval(task)}>
+                                            <Send className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>Invia in Approvazione</p></TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        ) : null}
+
+                        {isTimerActiveForThisTask ? (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handlePlay(task)}>
+                                <Square className="h-3.5 w-3.5 fill-current" />
+                            </Button>
+                        ) : (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100"
+                                onClick={() => handlePlay(task)}
+                                disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}>
+                                <Play className="h-3.5 w-3.5 fill-current" />
+                            </Button>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => setPreviewTask(task)}>
+                            <Eye className="h-3.5 w-3.5" />
                         </Button>
-                    ) : (
-                        <Button
-                            variant="ghost" size="icon"
-                            className="h-7 w-7 text-green-600 hover:bg-green-100"
-                            onClick={() => handlePlay(task)}
-                            disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}
-                        >
-                            <Play className="h-3.5 w-3.5 fill-current" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-600 hover:bg-purple-100" onClick={() => handleChatOpen(task)}>
+                            <MessageSquare className="h-3.5 w-3.5" />
                         </Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => setPreviewTask(task)}>
-                        <Eye className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-600 hover:bg-purple-100" onClick={() => handleChatOpen(task)}>
-                        <MessageSquare className="h-3.5 w-3.5" />
-                    </Button>
+                    </div>
                 </div>
             </div>
         </Card>
     );
 };
+
+
 
 export function TasksPageContent({ forcedClientId }: { forcedClientId?: string } = {}) {
     const {
