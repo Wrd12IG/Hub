@@ -265,13 +265,11 @@ const TaskCard = ({
             );
         }
         return <p>{task.status}</p>;
-    };
-
-    return (
+    };    return (
         <Card
             ref={cardRef}
             className={cn(
-                'flex flex-col rounded-xl transition-all duration-300 relative overflow-hidden outline-none ring-0 focus:ring-0',
+                'flex flex-col rounded-xl transition-all duration-300 relative overflow-hidden outline-none ring-0 focus:ring-0 group',
                 'glass-card',
                 // 1. Timer Attivo → Glow Verde
                 isTimerActiveForThisTask && '!bg-green-500/10 dark:!bg-green-900/20 border-green-500/50 animate-pulse',
@@ -286,88 +284,37 @@ const TaskCard = ({
                 !isTimerActiveForThisTask && !isTaskInApproval && 'bg-transparent'
             )}
         >
-            {project && (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                        {client && (
+                            <span className="text-[10px] font-bold text-muted-foreground bg-secondary/80 px-2 py-0.5 rounded border border-border/40 uppercase tracking-wider">
+                                {client.name}
+                            </span>
+                        )}
+                        {project && (
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     setPreviewProject(project);
                                 }}
-                                className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-primary/10 hover:bg-primary/20 text-primary transition-colors z-10"
+                                className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors text-[10px] font-medium"
                             >
-                                <FolderKanban className="h-3 w-3" />
-                                <span className="max-w-[80px] truncate">{project.name}</span>
+                                <FolderKanban className="h-2.5 w-2.5" />
+                                <span className="max-w-[70px] truncate">{project.name}</span>
                             </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Visualizza progetto: {project.name}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            )}
-            <CardHeader>
-                <div className="flex items-start justify-between">
-                    <div>
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Badge
-                                        style={{ backgroundColor: statusColors[task.status as keyof typeof statusColors].bg.replace('100', '500'), color: 'white' }}
-                                        className="mb-2"
-                                    >
-                                        {task.status}
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {renderTooltipContent()}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-
-                        {isTaskInApproval && approvalDaysPending >= 1 && (
-                            <Badge
-                                variant="destructive"
-                                className="mb-2 ml-2 text-xs font-bold shadow-md flex items-center gap-1 animate-breathing-custom bg-red-600 hover:bg-red-700"
-                            >
-                                <Timer className="h-3 w-3" />
-                                ⚠️ In attesa da {approvalDaysPending} giorn{approvalDaysPending === 1 ? 'o' : 'i'}
-                            </Badge>
                         )}
-
-                        {isTaskInApproval && (() => {
-                            const dateSource = task.updatedAt || task.createdAt;
-                            const dateLabel = task.updatedAt ? 'Richiesta' : 'Creato';
-                            return (
-                                <div className="text-xs text-purple-600 dark:text-purple-400 mb-1 flex items-center gap-1 font-medium">
-                                    <Clock className="h-3 w-3" />
-                                    {dateSource ? (
-                                        <>
-                                            {dateLabel}: {format(
-                                                typeof dateSource === 'string'
-                                                    ? new Date(dateSource)
-                                                    : (dateSource as any).toDate ? (dateSource as any).toDate() : new Date(),
-                                                'dd MMM yyyy HH:mm',
-                                                { locale: it }
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>In attesa di approvazione</>
-                                    )}
-                                </div>
-                            );
-                        })()}
-
-                        <p className="font-bold text-sm" style={{ color: client?.color }}>{client?.name}</p>
-                        <CardTitle className="font-headline text-lg -mt-1">
-                            {task.title}
-                        </CardTitle>
+                        {isTaskInApproval && approvalDaysPending >= 1 && (
+                            <span className="text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-breathing-custom">
+                                <Timer className="h-2.5 w-2.5" />
+                                {approvalDaysPending}gg
+                            </span>
+                        )}
                     </div>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                                <MoreVertical />
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                                <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
@@ -381,122 +328,85 @@ const TaskCard = ({
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
+                
+                <CardTitle className="font-headline text-base font-bold text-foreground leading-snug flex items-center gap-2 mt-2">
+                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: priorityColors[task.priority] }} title={`Priorità: ${task.priority}`} />
+                    <span className="break-words">{task.title}</span>
+                </CardTitle>
             </CardHeader>
-            <CardContent className="flex-grow">
+            <CardContent className="flex-grow pb-3">
                 <div className="flex gap-2 mb-2">
                     {task.attachments && task.attachments.length > 0 && (
-                        <Badge variant="secondary" className="text-xs px-1 py-0 h-5 gap-1" title={`${task.attachments.length} Allegati`}>
-                            <Paperclip className="h-3 w-3" /> {task.attachments.length}
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4.5 gap-1" title={`${task.attachments.length} Allegati`}>
+                            <Paperclip className="h-2.5 w-2.5" /> {task.attachments.length}
                         </Badge>
                     )}
                     {task.dependencies && task.dependencies.length > 0 && (
-                        <Badge variant="secondary" className="text-xs px-1 py-0 h-5 gap-1" title={`${task.dependencies.length} Dipendenze`}>
-                            <LinkIcon className="h-3 w-3" /> {task.dependencies.length}
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4.5 gap-1" title={`${task.dependencies.length} Dipendenze`}>
+                            <LinkIcon className="h-2.5 w-2.5" /> {task.dependencies.length}
                         </Badge>
                     )}
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{task.description}</p>
-                {task.estimatedDuration > 0 ? (
-                    <div className="mb-4">
-                        <div className="flex flex-col gap-1.5 mb-2">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="text-muted-foreground">Progresso</span>
-                                <span className={cn(
-                                    "font-semibold text-xs",
-                                    timeExceeded && "text-red-600",
-                                    timeWarning && "text-amber-600"
-                                )}>{timeProgress.toFixed(0)}%</span>
-                            </div>
-                            {(timeExceeded || timeWarning) && (
-                                <div className="flex items-center justify-between">
-                                    {timeExceeded && (
-                                        <Badge variant="destructive" className="text-xs px-2 py-0.5 gap-1">
-                                            ⚠️ Tempo superato
-                                        </Badge>
-                                    )}
-                                    {timeWarning && !timeExceeded && (
-                                        <Badge variant="outline" className="text-xs px-2 py-0.5 border-amber-400 text-amber-600 gap-1">
-                                            ⏰ Quasi al limite
-                                        </Badge>
-                                    )}
-                                    <span className={cn(
-                                        "text-xs font-mono",
-                                        timeExceeded ? "text-red-600" : "text-amber-600"
-                                    )}>{timeSpentFormatted}</span>
-                                </div>
-                            )}
-                            {!timeExceeded && !timeWarning && task.timeSpent && task.timeSpent > 0 && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <Clock className="h-3 w-3" />
-                                    <span>{timeSpentFormatted}</span>
-                                </div>
-                            )}
-                        </div>
-                        <Progress
-                            value={Math.min(timeProgress, 100)}
-                            className={cn(
-                                "h-2",
-                                timeExceeded && "[&>div]:bg-red-500",
-                                timeWarning && "[&>div]:bg-amber-500"
-                            )}
-                        />
-                    </div>
-                ) : task.timeSpent && task.timeSpent > 0 ? (
-                    <div className="mb-4">
-                        <div className="flex items-center gap-2 text-sm">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-muted-foreground">Tempo registrato:</span>
-                            <Badge variant="secondary" className="font-semibold">{timeSpentFormatted}</Badge>
-                        </div>
-                    </div>
-                ) : null}
-                <div className="text-sm space-y-2 text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        {task.dueDate ? (
-                            <Badge
-                                variant={daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' ? 'destructive' :
-                                    daysRemaining !== null && daysRemaining <= 3 && task.status !== 'Approvato' ? 'default' : 'secondary'}
-                                className={cn(
-                                    "text-xs",
-                                    daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' && "animate-breathing-custom"
-                                )}
-                            >
-                                {format(new Date(task.dueDate), 'EEE dd MMM', { locale: it })}
-                                {daysRemaining !== null && task.status !== 'Approvato' && (
-                                    <span className="ml-1">
-                                        {daysRemaining < 0 ? '(Scaduto!)' :
-                                            daysRemaining === 0 ? '(Oggi!)' :
-                                                daysRemaining === 1 ? '(Domani)' :
-                                                    daysRemaining <= 3 ? `(${daysRemaining}gg)` : ''}
-                                    </span>
-                                )}
-                            </Badge>
-                        ) : (
-                            <span className="text-muted-foreground italic">Nessuna scadenza</span>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Target className="h-4 w-4" />
-                        <span>Priorità: </span>
-                        <Badge
-                            variant="outline"
-                            className={cn(priorityClasses[task.priority])}
-                        >
-                            {task.priority}
-                        </Badge>
-                    </div>
-                    {task.createdAt && (() => { const d = safeToDate(task.createdAt); return d ? (
-                        <div className="flex items-center gap-2 pt-0.5">
-                            <Clock className="h-3.5 w-3.5 text-muted-foreground/60" />
-                            <span className="text-xs text-muted-foreground/70">
-                                Creato {format(d, 'dd MMM yyyy', { locale: it })}
+                <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
+                
+                <div className="flex items-center justify-between gap-2.5 mt-3 pt-2.5 border-t border-border/40">
+                    {/* Progress / percentage */}
+                    {task.estimatedDuration > 0 ? (
+                        <div className="flex items-center gap-1.5 flex-grow min-w-0">
+                            <span className={cn(
+                                "text-[10px] font-bold font-mono shrink-0",
+                                timeExceeded && "text-red-500",
+                                timeWarning && "text-amber-500",
+                                !timeExceeded && !timeWarning && "text-foreground/80"
+                            )}>
+                                {timeProgress.toFixed(0)}%
                             </span>
+                            <Progress
+                                value={Math.min(timeProgress, 100)}
+                                className={cn(
+                                    "h-1.5 flex-grow",
+                                    timeExceeded && "[&>div]:bg-red-500",
+                                    timeWarning && "[&>div]:bg-amber-500",
+                                    !timeExceeded && !timeWarning && "[&>div]:bg-yellow-500"
+                                )}
+                            />
                         </div>
-                    ) : null; })()}
+                    ) : (
+                        <div className="flex-grow" />
+                    )}
+                    
+                    {/* Timer/Recorded time */}
+                    {((task.timeSpent && task.timeSpent > 0) || isTimerActiveForThisTask) ? (
+                        <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground shrink-0 bg-secondary/50 px-1.5 py-0.5 rounded border border-border/20">
+                            <Clock className={cn("h-3 w-3", isTimerActiveForThisTask && "text-green-500 animate-pulse")} />
+                            <span>{timeSpentFormatted}</span>
+                        </div>
+                    ) : null}
+
+                    {/* Due date */}
+                    {task.dueDate && daysRemaining !== null ? (
+                        <Badge
+                            variant={daysRemaining < 0 && task.status !== 'Approvato' ? 'destructive' :
+                                daysRemaining <= 3 && task.status !== 'Approvato' ? 'default' : 'secondary'}
+                            className={cn(
+                                "text-[10px] px-1.5 py-0 h-5 flex items-center gap-0.5 shrink-0",
+                                daysRemaining < 0 && task.status !== 'Approvato' && "animate-breathing-custom"
+                            )}
+                        >
+                            <Calendar className="h-2.5 w-2.5" />
+                            <span>
+                                {daysRemaining === 0 ? 'Oggi' :
+                                 daysRemaining === 1 ? 'Domani' :
+                                 daysRemaining < 0 ? 'Scaduto' :
+                                 format(new Date(task.dueDate), 'dd MMM', { locale: it })}
+                            </span>
+                        </Badge>
+                    ) : (
+                        <span className="text-[10px] text-muted-foreground italic shrink-0">Nessuna scadenza</span>
+                    )}
                 </div>
             </CardContent>
-            <CardFooter className="flex items-center justify-between gap-2 pt-3 border-t overflow-hidden">
+            <CardFooter className="flex items-center justify-between gap-2 pt-2 pb-2.5 border-t border-border/40 overflow-hidden min-h-[44px]">
                 <div className="flex items-center -space-x-1.5 flex-shrink-0">
                     {creator && (
                         <TooltipProvider>
@@ -530,77 +440,82 @@ const TaskCard = ({
                         </TooltipProvider>
                     )}
                 </div>
-                <div className="flex items-center gap-0.5 flex-shrink-0">
-                    {isTaskInApproval && canApprove ? (
-                        <>
+                
+                <div className="relative flex items-center justify-end flex-grow min-h-[32px]">
+                    {/* Default: comment count indicator */}
+                    {task.comments && task.comments.length > 0 && (
+                        <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400 text-xs font-semibold bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 group-hover:opacity-0 transition-opacity duration-200">
+                            <MessageSquare className="h-3.5 w-3.5" />
+                            <span>{task.comments.length}</span>
+                        </div>
+                    )}
+                    
+                    {/* Hover action bar */}
+                    <div className="absolute right-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto bg-card/95 backdrop-blur-md px-1 py-0.5 rounded-md border border-border/30 shadow-sm z-20">
+                        {isTaskInApproval && canApprove ? (
+                            <>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div className="relative">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700" onClick={() => unapprovedDependencies.length === 0 && setApprovalState({ isOpen: true, task, sendEmail: true })} disabled={unapprovedDependencies.length > 0}>
+                                                    <ThumbsUp className="h-3.5 w-3.5" />
+                                                </Button>
+                                                {unapprovedDependencies.length > 0 && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <AlertTriangle className="absolute -top-0.5 -right-0.5 h-3 w-3 text-orange-500 bg-white rounded-full" />
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Impossibile approvare. Dipendenze non completate:</p>
+                                                            <ul className="list-disc pl-4">
+                                                                {unapprovedDependencies.map(t => t && <li key={t.id}>{t.title}</li>)}
+                                                            </ul>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                )}
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Approva</p></TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
+                                                <ThumbsDown className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>Rifiuta</p></TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </>
+                        ) : canBeSentForApproval ? (
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <div className="relative">
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100 hover:text-green-700" onClick={() => unapprovedDependencies.length === 0 && setApprovalState({ isOpen: true, task, sendEmail: true })} disabled={unapprovedDependencies.length > 0}>
-                                                <ThumbsUp className="h-4 w-4" />
-                                            </Button>
-                                            {unapprovedDependencies.length > 0 && (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <AlertTriangle className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 text-orange-500 bg-white rounded-full" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Impossibile approvare. Dipendenze non completate:</p>
-                                                        <ul className="list-disc pl-4">
-                                                            {unapprovedDependencies.map(t => t && <li key={t.id}>{t.title}</li>)}
-                                                        </ul>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Approva</p></TooltipContent>
-                                </Tooltip>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
-                                            <ThumbsDown className="h-4 w-4" />
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSendForApproval(task)}>
+                                            <Send className="h-3.5 w-3.5" />
                                         </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent><p>Rifiuta</p></TooltipContent>
+                                    <TooltipContent><p>Invia in Approvazione</p></TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
-                        </>
-                    ) : canBeSentForApproval ? (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleSendForApproval(task)}>
-                                        <Send className="h-4 w-4" />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent><p>Invia in Approvazione</p></TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    ) : null}
+                        ) : null}
 
-                    {isTimerActiveForThisTask ? (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handlePlay(task)}>
-                            <Square className="h-4 w-4 fill-current" />
-                        </Button>
-                    ) : (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-100" onClick={() => handlePlay(task)} disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}>
-                            <Play className="h-4 w-4 fill-current" />
-                        </Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => setPreviewTask(task)}>
-                        <Eye className="h-4 w-4" />
-                    </Button>
-                    <div className="relative">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:bg-purple-100" onClick={() => handleChatOpen(task)}>
-                            <MessageSquare className="h-4 w-4" />
-                        </Button>
-                        {task.comments && task.comments.length > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center h-4 min-w-4 px-0.5 text-[10px] font-bold text-white bg-purple-600 rounded-full shadow-sm">
-                                {task.comments.length}
-                            </span>
+                        {isTimerActiveForThisTask ? (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handlePlay(task)}>
+                                <Square className="h-3.5 w-3.5 fill-current" />
+                            </Button>
+                        ) : (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100" onClick={() => handlePlay(task)} disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}>
+                                <Play className="h-3.5 w-3.5 fill-current" />
+                            </Button>
                         )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => setPreviewTask(task)}>
+                            <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-600 hover:bg-purple-100" onClick={() => handleChatOpen(task)}>
+                            <MessageSquare className="h-3.5 w-3.5" />
+                        </Button>
                     </div>
                 </div>
             </CardFooter>
@@ -1119,8 +1034,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
 
 
-    const { tasksByStatus, overdueTasks } = useMemo(() => {
-        const overdue: Task[] = [];
+    const { tasksByStatus } = useMemo(() => {
         const byStatus: Record<Task['status'], Task[]> = {
             'Da Fare': [],
             'In Lavorazione': [],
@@ -1131,18 +1045,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         };
 
         filteredTasks.forEach(task => {
-            if (!task.dueDate) {
-                if (byStatus[task.status]) {
-                    byStatus[task.status].push(task);
-                }
-                return;
-            };
-
-            const isTaskOverdue = isBefore(parseISO(task.dueDate), startOfToday()) && !['Approvato', 'Annullato', 'In Approvazione', 'In Approvazione Cliente'].includes(task.status);
-
-            if (isTaskOverdue) {
-                overdue.push(task);
-            } else if (byStatus[task.status]) {
+            if (byStatus[task.status]) {
                 byStatus[task.status].push(task);
             }
         });
@@ -1179,11 +1082,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             };
             return getUpdateDate(b).getTime() - getUpdateDate(a).getTime();
         });
-        overdue.sort(sortFn);
 
         return {
             tasksByStatus: byStatus,
-            overdueTasks: overdue,
         };
     }, [filteredTasks, sortBy]);
 
@@ -1286,15 +1187,11 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     const renderBoardView = () => {
         const boardColumns = [...visibleStatuses];
-        if (filters.status === 'active') {
-            boardColumns.unshift('Scaduti');
-        }
 
         return (
             <div className="flex flex-col md:flex-row gap-6 md:overflow-x-auto pb-4">
                 {boardColumns.map(status => {
-                    const tasksForColumn = status === 'Scaduti' ? overdueTasks : tasksByStatus[status as Task['status']];
-                    const isOverdueColumn = status === 'Scaduti';
+                    const tasksForColumn = tasksByStatus[status as Task['status']];
 
                     if (!tasksForColumn) return null;
 
@@ -1302,14 +1199,10 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                         <div key={status} className="w-full md:w-80 md:flex-shrink-0">
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex items-center gap-2">
-                                    {isOverdueColumn ? (
-                                        <AlertTriangle className="w-4 h-4 text-destructive" />
-                                    ) : (
-                                        <span className={`w-3 h-3 rounded-full ${statusColors[status as Task['status']].bg.replace('100', '500')}`}></span>
-                                    )}
-                                    <h2 className={cn("font-semibold text-lg", isOverdueColumn && "text-destructive")}>{status}</h2>
+                                    <span className={`w-3 h-3 rounded-full ${statusColors[status as Task['status']].bg.replace('100', '500')}`}></span>
+                                    <h2 className="font-semibold text-lg">{status}</h2>
                                 </div>
-                                <Badge variant={isOverdueColumn ? 'destructive' : 'secondary'} className="px-3 py-1 text-sm">{tasksForColumn.length}</Badge>
+                                <Badge variant="secondary" className="px-3 py-1 text-sm">{tasksForColumn.length}</Badge>
                             </div>
                             <div className="p-2 rounded-lg min-h-[500px] space-y-4 bg-secondary/50">
                                 {tasksForColumn.map(task => (
