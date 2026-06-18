@@ -139,6 +139,7 @@ const TaskCard = ({
     allProjects,
     allTasks,
     usersById,
+    activityTypes,
     canApprove,
     handlePlay,
     handleSendForApproval,
@@ -157,6 +158,7 @@ const TaskCard = ({
     allProjects: Project[];
     allTasks: Task[];
     usersById: Record<string, User>;
+    activityTypes: ActivityType[];
     canApprove: boolean;
     handlePlay: (task: Task) => void;
     handleSendForApproval: (task: Task) => void;
@@ -399,6 +401,118 @@ const TaskCard = ({
                         <span>{task.comments.length}</span>
                     </div>
                 )}
+            </div>
+
+            {/* ── SEZIONE DETTAGLI: 2 colonne ── */}
+            <div className="mx-3 mb-2 rounded-lg border border-border/30 bg-secondary/30 overflow-hidden">
+                <div className="grid grid-cols-2 divide-x divide-border/30">
+                    {/* Colonna sinistra: Tempi */}
+                    <div className="px-2.5 py-2 space-y-1.5">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Tempi</p>
+
+                        {/* Scadenza */}
+                        <div className="flex items-start gap-1.5">
+                            <Calendar className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-[10px] text-muted-foreground/70 leading-none">Scadenza</p>
+                                {task.dueDate ? (
+                                    <p className={cn(
+                                        "text-[11px] font-medium leading-snug mt-0.5",
+                                        daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato'
+                                            ? "text-red-500"
+                                            : daysRemaining !== null && daysRemaining <= 3 && task.status !== 'Approvato'
+                                            ? "text-amber-500"
+                                            : "text-foreground"
+                                    )}>
+                                        {format(new Date(task.dueDate), 'dd MMM yyyy HH:mm', { locale: it })}
+                                    </p>
+                                ) : (
+                                    <p className="text-[11px] text-muted-foreground/50 italic mt-0.5">Non impostata</p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Data Creazione */}
+                        {(() => { const d = safeToDate(task.createdAt); return d ? (
+                            <div className="flex items-start gap-1.5">
+                                <Clock className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground/70 leading-none">Creazione</p>
+                                    <p className="text-[11px] font-medium text-foreground leading-snug mt-0.5">
+                                        {format(d, 'dd MMM yyyy HH:mm', { locale: it })}
+                                    </p>
+                                </div>
+                            </div>
+                        ) : null; })()}
+
+                        {/* Tempo Registrato */}
+                        <div className="flex items-start gap-1.5">
+                            <Timer className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-[10px] text-muted-foreground/70 leading-none">Tempo registrato</p>
+                                <p className={cn(
+                                    "text-[11px] font-mono font-medium leading-snug mt-0.5",
+                                    isTimerActiveForThisTask ? "text-green-500" : "text-foreground"
+                                )}>
+                                    {timeSpentFormatted}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Colonna destra: Stato e Priorità */}
+                    <div className="px-2.5 py-2 space-y-1.5">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Stato e Priorità</p>
+
+                        {/* Stato */}
+                        <div className="flex items-start gap-1.5">
+                            <CheckCircle className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-[10px] text-muted-foreground/70 leading-none">Stato</p>
+                                <span
+                                    className="inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
+                                    style={{
+                                        backgroundColor: statusColors[task.status]?.bg + '20',
+                                        color: statusColors[task.status]?.bg,
+                                    }}
+                                >
+                                    {task.status}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Priorità */}
+                        <div className="flex items-start gap-1.5">
+                            <Target className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
+                            <div>
+                                <p className="text-[10px] text-muted-foreground/70 leading-none">Priorità</p>
+                                <span
+                                    className="inline-block mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md border"
+                                    style={{
+                                        backgroundColor: priorityColors[task.priority] + '18',
+                                        color: priorityColors[task.priority],
+                                        borderColor: priorityColors[task.priority] + '40',
+                                    }}
+                                >
+                                    {task.priority}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Tipo Attività */}
+                        {task.activityType && (
+                            <div className="flex items-start gap-1.5">
+                                <ListChecks className="h-3 w-3 text-muted-foreground/70 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground/70 leading-none">Tipo attività</p>
+                                    <p className="text-[11px] font-medium text-foreground leading-snug mt-0.5 break-words">
+                                        {task.activityType}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* ── PROGRESS BAR (solo se c'è stima) ── */}
@@ -1240,6 +1354,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                         allProjects={allProjects}
                                         allTasks={allTasks}
                                         usersById={usersById}
+                                        activityTypes={activityTypes}
                                         canApprove={canApprove}
                                         handlePlay={handlePlay}
                                         handleSendForApproval={handleSendForApproval}
