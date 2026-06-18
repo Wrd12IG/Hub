@@ -1,21 +1,25 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ReactNode } from "react";
 
 /**
  * Avvolge ogni pagina con un fade-in + leggero slide-up.
- * Durata 200ms — abbastanza veloce da non essere percepito come lento,
- * abbastanza lungo da sembrare fluido.
- * Rispetta prefers-reduced-motion tramite framer-motion built-in.
+ * Durata 220ms — fluido e reattivo.
+ * Rispetta prefers-reduced-motion tramite il hook useReducedMotion.
  */
 export function PageTransition({ children }: { children: ReactNode }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 6 }}
-      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
+      transition={{ 
+        duration: shouldReduceMotion ? 0.12 : 0.22, 
+        ease: [0.22, 1, 0.36, 1] 
+      }}
       style={{ height: "100%" }}
     >
       {children}

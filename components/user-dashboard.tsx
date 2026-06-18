@@ -296,7 +296,7 @@ export default function UserDashboard() {
                 Scegli quali elementi visualizzare nella tua dashboard.
                 {currentUser?.visibleDashboardWidgets && currentUser.visibleDashboardWidgets.length > 0 && (
                   <span className="block mt-1 text-xs text-muted-foreground">
-                    ℹ️ Alcuni widget sono stati configurati dall'amministratore.
+                    ℹ️ Alcuni widget sono stati configurati dall&apos;amministratore.
                   </span>
                 )}
               </DialogDescription>

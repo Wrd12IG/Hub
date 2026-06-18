@@ -108,9 +108,7 @@ export function PresenceAvatarGroup({
 }: PresenceAvatarGroupProps) {
     // Use either provided list or fetch based on resource
     const allPresence = usePresenceList();
-    const resourceViewers = resourceType && resourceId
-        ? useResourceViewers(resourceType, resourceId)
-        : [];
+    const resourceViewers = useResourceViewers(resourceType || '', resourceId || '');
 
     const presenceList = externalList || (resourceType && resourceId ? resourceViewers : allPresence);
 

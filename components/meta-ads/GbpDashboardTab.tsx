@@ -212,7 +212,7 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
                 ))}
               </div>
             </div>
-            <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>"{rev.text}"</p>
+            <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>&ldquo;{rev.text}&rdquo;</p>
             
             <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
               <button className="primary-btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }}>
@@ -310,7 +310,7 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
             <Sparkles size={16} color="#8b5cf6" /> Sintesi AI del Mese (Anteprima per il Report)
           </h4>
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
-            "Nel mese di Maggio, la scheda Google Business Profile ha registrato un <strong>incremento del 15% nelle impressioni totali</strong> rispetto ad Aprile. Particolarmente positiva la crescita delle ricerche su Google Maps (+22%), che si è tradotta in <strong>475 richieste di indicazioni stradali</strong>. La reputazione online si mantiene eccellente (4.8/5) grazie a 14 nuove recensioni ricevute."
+            &ldquo;Nel mese di Maggio, la scheda Google Business Profile ha registrato un <strong>incremento del 15% nelle impressioni totali</strong> rispetto ad Aprile. Particolarmente positiva la crescita delle ricerche su Google Maps (+22%), che si è tradotta in <strong>475 richieste di indicazioni stradali</strong>. La reputazione online si mantiene eccellente (4.8/5) grazie a 14 nuove recensioni ricevute.&rdquo;
           </p>
         </div>
 
@@ -324,7 +324,7 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
             </div>
             <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Invio automatico attivo</span>
           </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Il report verrà inviato automaticamente all'email del cliente ogni 1° del mese alle 09:00 AM.</p>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Il report verrà inviato automaticamente all&apos;email del cliente ogni 1° del mese alle 09:00 AM.</p>
         </div>
       </div>
     </div>

@@ -194,7 +194,7 @@ export function HashtagManager({ clientId, currentHashtags, onApply }: HashtagMa
       console.error('[InstagramTools] request failed:', error)
       toast({ title: 'Errore', description: 'Richiesta non completata', variant: 'destructive' })
     } finally { setLoading(false) }
-  }, [clientId])
+  }, [clientId, toast])
 
   useEffect(() => { fetchGroups() }, [fetchGroups])
 

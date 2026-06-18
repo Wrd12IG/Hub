@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
+import { getAuthHeader } from '@/hooks/use-auth-token'
 import {
   Brain, AlertTriangle, Zap, Terminal, X, FileSearch, TrendingUp,
   Globe, Link2, MapPin, Map, ChevronDown, ChevronUp, CheckCircle2,
@@ -194,12 +196,11 @@ export default function SeoGodModeReportModal({ isOpen, onClose, clientId, clien
   const handleGenerate = async () => {
     setIsSaving(true)
     try {
-      const token = localStorage.getItem('token')
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
       const res = await fetch(`${API_URL}/api/clients/${clientId}/seo-reports/generate-document`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({})
       })
 
@@ -214,7 +215,7 @@ export default function SeoGodModeReportModal({ isOpen, onClose, clientId, clien
       }
     } catch (err: any) {
       console.error(err)
-      alert(`API Error: ${err.message || 'Errore durante la generazione'}`)
+      toast.error(`Errore API: ${err.message || 'Errore durante la generazione'}`)
     } finally {
       setIsSaving(false)
       onClose()

@@ -8,7 +8,7 @@ import {
   ArrowLeft, Brain, Globe, Plus, FileText, TrendingDown, Target, Zap, AlertTriangle, 
   CheckCircle2, Download, TrendingUp, Image as ImageIcon, Trash2, BarChart2,
   Share2, Youtube, Instagram, Music, Linkedin, Facebook, Video, Lightbulb, Filter, Users, Eye, LayoutDashboard, Activity, PlayCircle, MapPin, Calendar, Sparkles, Heart, MousePointerClick, GripVertical, Clock,
-  Search, Link as LinkIcon, Star, MessageSquare, MonitorPlay, MousePointer2, PieChart, LayoutGrid, CalendarDays
+  Search, Link as LinkIcon, Star, MessageSquare, MonitorPlay, MousePointer2, PieChart, LayoutGrid, CalendarDays, Settings
 } from 'lucide-react'
 import MetaCampaignReportModal from '@/components/MetaCampaignReportModal'
 import dynamic from 'next/dynamic';
@@ -54,7 +54,7 @@ const statusColors: Record<string, { color: string; bg: string; label: string }>
   DRAFT: { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', label: 'Bozza' },
   PENDING_REVIEW: { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', label: 'In Review' },
   APPROVED: { color: '#60a5fa', bg: 'rgba(96,165,250,0.1)', label: 'Approvata' },
-  LIVE: { color: '#34d399', bg: 'rgba(52,211,153,0.1)', label: '🟢 Live' },
+  LIVE: { color: '#34d399', bg: 'rgba(52,211,153,0.1)', label: 'Live' },
   PAUSED: { color: '#f87171', bg: 'rgba(248,113,113,0.1)', label: 'In Pausa' },
   COMPLETED: { color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', label: 'Completata' },
   FAILED: { color: '#f87171', bg: 'rgba(248,113,113,0.1)', label: 'Fallita' },
@@ -434,13 +434,13 @@ export default function ClientDetailPage() {
   )
 
   const tabs = [
-    { id: 'overview', label: 'Overview & Audit' },
-    { id: 'intelligence', label: 'AI Intelligence' },
-    { id: 'campaigns', label: `Campagne (${client.campaigns?.length || 0})` },
-    { id: 'assets', label: `Brand Assets (${client.brandAssets?.length || 0})` },
-    { id: 'heatmaps', label: 'Heatmaps & Registrazioni' },
-    { id: 'gbp', label: '🏪 Profilo GBP' },
-    { id: 'settings', label: '⚙️ Setup API' },
+    { id: 'overview', label: 'Overview & Audit', icon: LayoutDashboard },
+    { id: 'intelligence', label: 'AI Intelligence', icon: Brain },
+    { id: 'campaigns', label: `Campagne (${client.campaigns?.length || 0})`, icon: Target },
+    { id: 'assets', label: `Brand Assets (${client.brandAssets?.length || 0})`, icon: ImageIcon },
+    { id: 'heatmaps', label: 'Heatmaps & Registrazioni', icon: Eye },
+    { id: 'gbp', label: 'Profilo GBP', icon: MapPin },
+    { id: 'settings', label: 'Setup API', icon: Settings },
   ]
 
   const growthHref = `/clients/${id}/growth`
@@ -473,17 +473,17 @@ export default function ClientDetailPage() {
                   href={client.websiteUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline"
+                  className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
                 >
                   <Globe className="h-3.5 w-3.5" />
                   {client.websiteUrl.replace(/^https?:\/\//, '')}
                 </a>
               )}
               {client.industry && (
-                <Badge variant="secondary">{client.industry}</Badge>
+                <Badge variant="secondary" className="font-semibold">{client.industry}</Badge>
               )}
               {client.creativeMode && (
-                <Badge variant="outline">Modalità: {client.creativeMode}</Badge>
+                <Badge variant="outline" className="font-medium">Modalità: {client.creativeMode}</Badge>
               )}
             </div>
           </div>
@@ -506,7 +506,7 @@ export default function ClientDetailPage() {
               </Select>
             </div>
           )}
-          <Button asChild size="sm">
+          <Button asChild size="sm" className="active:scale-[0.97] transition-transform">
             <Link href={`/clients/${id}/campaigns/new`}>
               <Plus className="h-4 w-4 mr-2" /> Nuova Campagna
             </Link>
@@ -530,7 +530,7 @@ export default function ClientDetailPage() {
             key={href}
             href={href}
             className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-colors',
+              'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all duration-200 active:scale-[0.97]',
               color
             )}
           >
@@ -540,41 +540,45 @@ export default function ClientDetailPage() {
       </div>
 
       {/* ── TAB BAR ── */}
-      <div className="border-b">
-        <div className="flex gap-1 overflow-x-auto">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={cn(
-                'px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-colors',
-                'border-b-2 -mb-px',
-                activeTab === tab.id
-                  ? 'border-primary text-foreground bg-muted/50'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="border-b border-border">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hidden">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={cn(
+                  'px-4 py-2.5 text-sm font-medium whitespace-nowrap rounded-t-lg transition-all duration-200 flex items-center gap-2',
+                  'border-b-2 -mb-px active:scale-[0.98]',
+                  activeTab === tab.id
+                    ? 'border-primary text-foreground bg-primary/5'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       {/* TAB: OVERVIEW */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="flex flex-col gap-8">
 
           {/* CONTROL BAR: Date Filter & Comparazione */}
-          <div className="glass-panel" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderRadius: '16px', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)' }}>
-                 <Calendar size={18} />
-                 <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Periodo:</span>
+          <div className="glass-panel flex flex-col md:flex-row md:justify-between md:items-center p-4 rounded-2xl gap-4">
+            <div className="flex items-center gap-3">
+               <div className="flex items-center gap-1.5 text-muted-foreground">
+                 <Calendar className="h-4 w-4 text-primary" />
+                 <span className="text-sm font-semibold">Periodo:</span>
                </div>
                <select 
                  value={overviewDaysBack} 
                  onChange={(e) => setOverviewDaysBack(Number(e.target.value))} 
-                 style={{ padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', fontWeight: 500, outline: 'none', cursor: 'pointer' }}
+                 className="px-3 py-1.5 rounded-lg border border-border bg-background text-sm font-medium outline-none cursor-pointer hover:border-primary/50 transition-colors"
                >
                  <option value={7}>Ultimi 7 Giorni</option>
                  <option value={30}>Ultimi 30 Giorni</option>
@@ -584,57 +588,90 @@ export default function ClientDetailPage() {
                </select>
             </div>
             
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-               <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Compara con:</div>
-               <div style={{ display: 'flex', background: 'rgba(0,0,0,0.03)', borderRadius: '8px', padding: '0.2rem', border: '1px solid rgba(0,0,0,0.05)' }}>
-                  <button onClick={() => setCompareMode('prev_period')} style={{ border: 'none', background: compareMode === 'prev_period' ? '#3b82f6' : 'transparent', color: compareMode === 'prev_period' ? '#fff' : 'var(--text-secondary)', padding: '0.4rem 1rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', boxShadow: compareMode === 'prev_period' ? '0 2px 4px rgba(59,130,246,0.2)' : 'none' }}>Periodo Prec.</button>
-                  <button onClick={() => setCompareMode('prev_year')} style={{ border: 'none', background: compareMode === 'prev_year' ? '#3b82f6' : 'transparent', color: compareMode === 'prev_year' ? '#fff' : 'var(--text-secondary)', padding: '0.4rem 1rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', boxShadow: compareMode === 'prev_year' ? '0 2px 4px rgba(59,130,246,0.2)' : 'none' }}>Anno Prec.</button>
-                  <button onClick={() => setCompareMode('none')} style={{ border: 'none', background: compareMode === 'none' ? '#3b82f6' : 'transparent', color: compareMode === 'none' ? '#fff' : 'var(--text-secondary)', padding: '0.4rem 1rem', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', boxShadow: compareMode === 'none' ? '0 2px 4px rgba(59,130,246,0.2)' : 'none' }}>Nessuno</button>
+            <div className="flex items-center gap-3">
+               <div className="text-sm font-semibold text-muted-foreground">Compara con:</div>
+               <div className="flex bg-muted/50 rounded-lg p-0.5 border border-border">
+                  <button 
+                    onClick={() => setCompareMode('prev_period')} 
+                    className={cn(
+                      "px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-all duration-200 active:scale-[0.96]",
+                      compareMode === 'prev_period' 
+                        ? 'bg-primary text-primary-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Periodo Prec.
+                  </button>
+                  <button 
+                    onClick={() => setCompareMode('prev_year')} 
+                    className={cn(
+                      "px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-all duration-200 active:scale-[0.96]",
+                      compareMode === 'prev_year' 
+                        ? 'bg-primary text-primary-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Anno Prec.
+                  </button>
+                  <button 
+                    onClick={() => setCompareMode('none')} 
+                    className={cn(
+                      "px-3 py-1 rounded-md text-xs font-semibold cursor-pointer transition-all duration-200 active:scale-[0.96]",
+                      compareMode === 'none' 
+                        ? 'bg-primary text-primary-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    Nessuno
+                  </button>
                </div>
             </div>
           </div>
           
           {/* TOP ROW: Mini-KPIs & Alerts */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '1.5rem' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* LATO SX: Traffico & Funnel Cliente */}
-            <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                <Globe size={20} color="#3b82f6" />
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Performance Dominio: {client.websiteUrl?.replace('https://', '') || 'Nessun dominio'}</h3>
+            <div className="glass-panel p-6 rounded-2xl lg:col-span-2 space-y-6">
+              <div className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-bold font-headline">Performance Dominio: {client.websiteUrl?.replace('https://', '') || 'Nessun dominio'}</h3>
               </div>
               
               {/* WEB ANALYTICS COMPLETO */}
               {loadingGa4 ? (
-                <div style={{ background: 'rgba(0,0,0,0.03)', padding: '2rem', borderRadius: '12px', textAlign: 'center', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', animation: 'pulse 1.5s infinite' }}>Elaborazione Report Godmode GA4 e calcolo deltas storici...</span>
+                <div className="bg-muted/30 p-8 rounded-xl text-center flex flex-col items-center justify-center min-h-[120px] gap-2 border border-border">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground animate-pulse">Elaborazione Report Godmode GA4 e calcolo deltas storici...</span>
                 </div>
               ) : !client.ga4PropertyId ? (
-                <div style={{ background: 'rgba(59,130,246,0.05)', border: '1px dashed rgba(59,130,246,0.3)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.85rem', color: '#2563eb', fontWeight: 600, marginBottom: '0.5rem' }}>Google Analytics Non Collegato</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Collega il Property ID di GA4 in "Setup API" per sbloccare l'intelligenza contestuale avanzata sul traffico.</div>
-                  <button onClick={() => setActiveTab('settings')} className="btn-gorgeous" style={{ padding: '0.4rem 1rem', fontSize: '0.75rem' }}>Configura Analytics</button>
+                <div className="bg-primary/5 border border-dashed border-primary/20 p-6 rounded-xl text-center space-y-3">
+                  <div className="text-sm font-semibold text-primary">Google Analytics Non Collegato</div>
+                  <div className="text-xs text-muted-foreground max-w-md mx-auto">Collega il Property ID di GA4 in "Setup API" per sbloccare l'intelligenza contestuale avanzata sul traffico.</div>
+                  <Button onClick={() => setActiveTab('settings')} size="sm">Configura Analytics</Button>
                 </div>
               ) : ga4Data ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                <div className="space-y-6">
                   
                   {/* Traffic Category */}
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Traffico & Acquisizione</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.75rem' }}>
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Traffico & Acquisizione</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
-                        { label: 'Sessioni Totali', metric: ga4Data.traffic?.sessions, format: (v: number) => v.toLocaleString() },
-
-                        { label: 'Utenti Unici', metric: ga4Data.traffic?.users, format: (v: number) => v.toLocaleString() },
-                        { label: 'Nuovi Utenti', metric: ga4Data.traffic?.newUsers, format: (v: number) => v.toLocaleString() },
-                        { label: 'Utenti di Ritorno', metric: ga4Data.traffic?.returningUsers, format: (v: number) => v.toLocaleString() },
+                        { label: 'Sessioni Totali', metric: ga4Data.traffic?.sessions, format: (v: number) => v.toLocaleString(), colorClass: 'bg-blue-500/5 border-blue-500/15 text-blue-600 dark:text-blue-400' },
+                        { label: 'Utenti Unici', metric: ga4Data.traffic?.users, format: (v: number) => v.toLocaleString(), colorClass: 'bg-blue-500/5 border-blue-500/15 text-blue-600 dark:text-blue-400' },
+                        { label: 'Nuovi Utenti', metric: ga4Data.traffic?.newUsers, format: (v: number) => v.toLocaleString(), colorClass: 'bg-blue-500/5 border-blue-500/15 text-blue-600 dark:text-blue-400' },
+                        { label: 'Utenti di Ritorno', metric: ga4Data.traffic?.returningUsers, format: (v: number) => v.toLocaleString(), colorClass: 'bg-blue-500/5 border-blue-500/15 text-blue-600 dark:text-blue-400' },
                       ].map((item, i) => (
-                        <div key={i} style={{ background: 'rgba(59,130,246,0.05)', border: '1px solid rgba(59,130,246,0.2)', padding: '1rem', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>{item.label}</div>
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>{item.metric ? item.format(item.metric.val) : '0'}</span>
+                        <div key={i} className={cn("p-3.5 rounded-xl border flex flex-col justify-between min-h-[90px]", item.colorClass)}>
+                          <div className="text-[11px] font-semibold text-muted-foreground truncate">{item.label}</div>
+                          <div className="flex items-baseline justify-between mt-1">
+                            <span className="text-lg font-bold text-foreground">{item.metric ? item.format(item.metric.val) : '0'}</span>
                             {item.metric && (
-                              <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: item.metric.chg > 0 ? 'rgba(16,185,129,0.1)' : item.metric.chg < 0 ? 'rgba(239,68,68,0.1)' : 'rgba(0,0,0,0.05)', color: item.metric.chg > 0 ? '#10b981' : item.metric.chg < 0 ? '#ef4444' : 'var(--text-tertiary)' }}>
+                              <span className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                item.metric.chg > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : item.metric.chg < 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'
+                              )}>
                                 {item.metric.chg > 0 ? '+' : ''}{item.metric.chg}%
                               </span>
                             )}
@@ -645,21 +682,24 @@ export default function ClientDetailPage() {
                   </div>
 
                   {/* Behavior Category */}
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Comportamento On-Site</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.75rem' }}>
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Comportamento On-Site</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
-                        { label: 'Bounce Rate', metric: ga4Data.behavior?.bounceRate, format: (v: number) => `${v.toFixed(1)}%` },
-                        { label: 'Engagement Rate', metric: ga4Data.behavior?.engagementRate, format: (v: number) => `${v.toFixed(1)}%` },
-                        { label: 'Pagine / Sessione', metric: ga4Data.behavior?.pagesPerSession, format: (v: number) => v.toFixed(2) },
-                        { label: 'Tempo Medio (s)', metric: ga4Data.behavior?.avgSessionDuration, format: (v: number) => `${v.toFixed(0)} s` },
+                        { label: 'Bounce Rate', metric: ga4Data.behavior?.bounceRate, format: (v: number) => `${v.toFixed(1)}%`, colorClass: 'bg-amber-500/5 border-amber-500/15 text-amber-600 dark:text-amber-400' },
+                        { label: 'Engagement Rate', metric: ga4Data.behavior?.engagementRate, format: (v: number) => `${v.toFixed(1)}%`, colorClass: 'bg-amber-500/5 border-amber-500/15 text-amber-600 dark:text-amber-400' },
+                        { label: 'Pagine / Sessione', metric: ga4Data.behavior?.pagesPerSession, format: (v: number) => v.toFixed(2), colorClass: 'bg-amber-500/5 border-amber-500/15 text-amber-600 dark:text-amber-400' },
+                        { label: 'Tempo Medio (s)', metric: ga4Data.behavior?.avgSessionDuration, format: (v: number) => `${v.toFixed(0)} s`, colorClass: 'bg-amber-500/5 border-amber-500/15 text-amber-600 dark:text-amber-400' },
                       ].map((item, i) => (
-                        <div key={i} style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', padding: '1rem', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>{item.label}</div>
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>{item.metric ? item.format(item.metric.val) : '0'}</span>
+                        <div key={i} className={cn("p-3.5 rounded-xl border flex flex-col justify-between min-h-[90px]", item.colorClass)}>
+                          <div className="text-[11px] font-semibold text-muted-foreground truncate">{item.label}</div>
+                          <div className="flex items-baseline justify-between mt-1">
+                            <span className="text-lg font-bold text-foreground">{item.metric ? item.format(item.metric.val) : '0'}</span>
                             {item.metric && (
-                              <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: item.metric.chg > 0 ? 'rgba(16,185,129,0.1)' : item.metric.chg < 0 ? 'rgba(239,68,68,0.1)' : 'rgba(0,0,0,0.05)', color: item.metric.chg > 0 ? '#10b981' : item.metric.chg < 0 ? '#ef4444' : 'var(--text-tertiary)' }}>
+                              <span className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                item.metric.chg > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : item.metric.chg < 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'
+                              )}>
                                 {item.metric.chg > 0 ? '+' : ''}{item.metric.chg}%
                               </span>
                             )}
@@ -670,22 +710,24 @@ export default function ClientDetailPage() {
                   </div>
 
                   {/* Conversions Category */}
-                  <div>
-                    <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Conversioni (Ultimi {overviewDaysBack}gg vs prec.)</h4>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '0.75rem' }}>
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Conversioni (Ultimi {overviewDaysBack}gg vs prec.)</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
-                        { label: 'Conversioni Totali', metric: ga4Data.conversions?.totalConversions, format: (v: number) => v.toLocaleString() },
-                        { label: 'Tasso di Conversione', metric: ga4Data.conversions?.conversionRate, format: (v: number) => `${v.toFixed(2)}%` },
-                        { label: 'Acquisti (Transazioni)', metric: ga4Data.conversions?.transactions, format: (v: number) => v.toLocaleString() },
-                        { label: 'Revenue Generato', metric: ga4Data.conversions?.revenue, format: (v: number) => `€${v.toLocaleString()}` },
+                        { label: 'Conversioni Totali', metric: ga4Data.conversions?.totalConversions, format: (v: number) => v.toLocaleString(), colorClass: 'bg-purple-500/5 border-purple-500/15 text-purple-600 dark:text-purple-400' },
+                        { label: 'Tasso di Conversione', metric: ga4Data.conversions?.conversionRate, format: (v: number) => `${v.toFixed(2)}%`, colorClass: 'bg-purple-500/5 border-purple-500/15 text-purple-600 dark:text-purple-400' },
+                        { label: 'Acquisti (Transazioni)', metric: ga4Data.conversions?.transactions, format: (v: number) => v.toLocaleString(), colorClass: 'bg-purple-500/5 border-purple-500/15 text-purple-600 dark:text-purple-400' },
+                        { label: 'Revenue Generato', metric: ga4Data.conversions?.revenue, format: (v: number) => `€${v.toLocaleString()}`, colorClass: 'bg-purple-500/5 border-purple-500/15 text-purple-600 dark:text-purple-400' },
                       ].map((item, i) => (
-                        <div key={i} style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.2)', padding: '1rem', borderRadius: '12px' }}>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>{item.label}</div>
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>{item.metric ? item.format(item.metric.val) : '0'}</span>
+                        <div key={i} className={cn("p-3.5 rounded-xl border flex flex-col justify-between min-h-[90px]", item.colorClass)}>
+                          <div className="text-[11px] font-semibold text-muted-foreground truncate">{item.label}</div>
+                          <div className="flex items-baseline justify-between mt-1">
+                            <span className="text-lg font-bold text-foreground">{item.metric ? item.format(item.metric.val) : '0'}</span>
                             {item.metric && (
-                              <span style={{ marginLeft: 'auto', fontSize: '0.75rem', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: item.metric.chg > 0 ? 'rgba(16,185,129,0.1)' : item.metric.chg < 0 ? 'rgba(239,68,68,0.1)' : 'rgba(0,0,0,0.05)', color: item.metric.chg > 0 ? '#10b981' : item.metric.chg < 0 ? '#ef4444' : 'var(--text-tertiary)' }}>
+                              <span className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                item.metric.chg > 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : item.metric.chg < 0 ? 'bg-destructive/10 text-destructive' : 'bg-muted text-muted-foreground'
+                              )}>
                                 {item.metric.chg > 0 ? '+' : ''}{item.metric.chg}%
                               </span>
                             )}
@@ -699,41 +741,39 @@ export default function ClientDetailPage() {
               ) : null}
 
               {/* SEO GODMODE GENERATOR */}
-              <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '20px', marginTop: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <Target size={20} color="#8b5cf6" />
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Intelligenza Artificiale: Audit Godmode SEO</h3>
+              <div className="glass-panel p-6 rounded-2xl border border-border mt-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-indigo-500" />
+                  <h3 className="text-lg font-bold font-headline">Intelligenza Artificiale: Audit Godmode SEO</h3>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Genera un report tecnico omnicomprensivo che scansiona il sito simulando i crawler Google e l'entità LLM.</p>
+                <p className="text-xs text-muted-foreground">Genera un report tecnico omnicomprensivo che scansiona il sito simulando i crawler Google e l'entità LLM.</p>
 
-                <button 
+                <Button 
                   onClick={() => setSeoReportOpen(true)}
-                  style={{ width: '100%', background: 'linear-gradient(135deg, #1e1b4b 0%, #3b0764 100%)', color: '#fff', border: '1px solid rgba(139, 92, 246, 0.4)', padding: '1rem', borderRadius: '12px', fontSize: '1.05rem', fontWeight: 800, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', boxShadow: '0 4px 20px rgba(139, 92, 246, 0.2)', transition: 'all 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                  className="w-full bg-gradient-to-r from-indigo-950 to-purple-950 hover:from-indigo-900 hover:to-purple-900 text-white border border-indigo-500/30 py-5 rounded-xl font-bold shadow-lg shadow-indigo-500/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
-                  <Sparkles size={20} color="#a78bfa" /> Genera Report SEO (GODMODE)
-                </button>
+                  <Sparkles className="h-4 w-4 text-purple-400" /> Genera Report SEO (GODMODE)
+                </Button>
 
                 {/* SAVED REPORTS HISTORICAL LIST */}
                 {seoReportsList.length > 0 && (
-                  <div style={{ marginTop: '1.5rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', overflow: 'hidden' }}>
+                  <div className="mt-4 border border-border rounded-xl overflow-hidden bg-muted/20">
                     <div
                       onClick={() => setIsReportsOpen(!isReportsOpen)}
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', cursor: 'pointer', background: 'rgba(255,255,255,0.03)' }}
+                      className="flex justify-between items-center p-3 cursor-pointer hover:bg-muted/40 transition-colors"
                     >
-                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Archivio Report ({seoReportsList.length})</span>
-                      <span style={{ transition: 'transform 0.2s', transform: isReportsOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                      <span className="text-xs font-semibold">Archivio Report ({seoReportsList.length})</span>
+                      <span className={cn("text-[10px] transition-transform duration-200", isReportsOpen && "transform rotate-180")}>▼</span>
                     </div>
                     {isReportsOpen && (
-                      <div style={{ padding: '0 1rem 1rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div className="p-3 pt-0 flex flex-col gap-2">
                         {seoReportsList.map((report) => (
-                          <div key={report.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', fontSize: '0.85rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <FileText size={16} color="var(--text-secondary)" />
+                          <div key={report.id} className="flex justify-between items-center p-2 bg-muted/65 rounded-lg text-xs">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                               <span>Report del {new Date(report.createdAt).toLocaleDateString()}</span>
                             </div>
-                            <span style={{ fontWeight: 600, color: '#10b981' }}>Score: {report.overallScore}/100</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">Score: {report.overallScore}/100</span>
                           </div>
                         ))}
                       </div>
@@ -744,61 +784,64 @@ export default function ClientDetailPage() {
             </div>
 
             {/* LATO DX: Alert & Health Score */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="flex flex-col gap-6">
               
               {/* ALERTS */}
-              <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '20px', background: 'linear-gradient(180deg, rgba(254,226,226,0.2) 0%, rgba(255,255,255,1) 100%)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <AlertTriangle size={20} color="#ef4444" />
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Anomalie Cliente (Alerts)</h3>
+              <div className="glass-panel p-6 rounded-2xl border border-destructive/20 bg-gradient-to-b from-destructive/10 to-background/50">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="h-5 w-5 text-destructive animate-pulse" />
+                  <h3 className="text-sm font-bold font-headline">Anomalie Cliente (Alerts)</h3>
                 </div>
                 {!client.hasMetaToken ? (
-                  <div style={{ background: 'rgba(239,68,68,0.05)', borderLeft: '3px solid #ef4444', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="bg-destructive/5 border-l-4 border-destructive p-3.5 rounded-lg text-xs flex justify-between items-center gap-2">
                     <div>
-                      <div style={{ fontWeight: 700, color: '#ef4444' }}>Token Meta Mancante / Scaduto</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Le campagne non possono sincronizzarsi.</div>
+                      <div className="font-bold text-destructive">Token Meta Mancante / Scaduto</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Le campagne non possono sincronizzarsi.</div>
                     </div>
-                    <button onClick={() => setActiveTab('settings')} style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}>Correggi</button>
+                    <Button onClick={() => setActiveTab('settings')} size="sm" variant="outline" className="h-7 border-destructive text-destructive hover:bg-destructive/10 text-[10px]">Correggi</Button>
                   </div>
                 ) : (
-                   <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Nessuna anomalia grave rilevata. Operatività fluida.</div>
+                   <div className="text-xs text-muted-foreground">Nessuna anomalia grave rilevata. Operatività fluida.</div>
                 )}
+                
                 {/* Alert reali — visibili solo quando GA4 o Meta sono collegati */}
                 {client.hasMetaToken && client.ga4PropertyId ? null : (
-                  <div style={{ marginTop: '0.75rem', background: 'rgba(59,130,246,0.05)', borderLeft: '3px solid rgba(59,130,246,0.4)', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>
-                    <div style={{ fontWeight: 600, color: '#3b82f6', marginBottom: '0.25rem' }}>Collega i servizi per gli alert automatici</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Connetti Meta Ads e Google Analytics in "⚙️ Setup API" per ricevere anomalie in tempo reale.</div>
+                  <div className="mt-3 bg-primary/5 border-l-4 border-primary/40 p-3.5 rounded-lg text-xs">
+                    <div className="font-semibold text-primary">Collega i servizi per gli alert automatici</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">Connetti Meta Ads e Google Analytics in "Setup API" per ricevere anomalie in tempo reale.</div>
                   </div>
                 )}
               </div>
 
               {/* HEALTH SCORE COMPACT */}
-              <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', flex: 1 }}>
-                 <div style={{ flex: 1 }}>
-                   <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Health Score Ads</h3>
-                   <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{client.lastAuditAt ? `Aggiornato il ${new Date(client.lastAuditAt).toLocaleDateString()}` : 'Mai analizzato'}</div>
+              <div className="glass-panel p-6 rounded-2xl flex items-center justify-between gap-4 flex-1">
+                 <div className="space-y-1">
+                   <h3 className="text-sm font-bold text-muted-foreground">Health Score Ads</h3>
+                   <div className="text-[10px] text-muted-foreground">{client.lastAuditAt ? `Aggiornato il ${new Date(client.lastAuditAt).toLocaleDateString()}` : 'Mai analizzato'}</div>
                    {client.lastAuditPdfUrl && (
-                      <a href={client.lastAuditPdfUrl} target="_blank" style={{ display: 'inline-block', marginTop: '0.5rem', fontSize: '0.75rem', color: '#8b5cf6', textDecoration: 'none', fontWeight: 600 }}>⬇️ PDF Report</a>
+                      <a href={client.lastAuditPdfUrl} target="_blank" className="inline-flex items-center gap-1 mt-2 text-xs text-primary font-semibold hover:underline">
+                        <Download className="h-3.5 w-3.5" /> PDF Report
+                      </a>
                    )}
                  </div>
                  {client.lastAuditScore !== null ? (
-                    <div style={{ transform: 'scale(0.8)', transformOrigin: 'right center' }}>
+                    <div className="scale-90 origin-right">
                        <AuditMeter score={client.lastAuditScore} />
                     </div>
                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', minWidth: '150px' }}>
+                    <div className="flex items-center min-w-[150px]">
                        {loadingAudit ? (
-                         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 700, color: 'var(--brand-fuchsia)' }}>
-                               <span>Analisi AI in corso...</span>
-                               <span>{auditProgress}%</span>
-                            </div>
-                            <div style={{ width: '100%', height: '8px', borderRadius: '50px', background: 'rgba(0,0,0,0.05)', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
-                               <div style={{ height: '100%', width: `${auditProgress}%`, background: 'var(--candy-violet)', borderRadius: '50px', transition: 'width 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }} />
-                            </div>
-                         </div>
+                          <div className="w-full flex flex-col gap-1.5">
+                             <div className="flex justify-between text-[11px] font-bold text-primary">
+                                <span>Analisi AI in corso...</span>
+                                <span>{auditProgress}%</span>
+                             </div>
+                             <div className="w-full h-2 rounded-full bg-muted overflow-hidden border border-border">
+                                <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${auditProgress}%` }} />
+                             </div>
+                          </div>
                        ) : (
-                         <button onClick={handleTriggerAudit} className="btn-gorgeous" style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', letterSpacing: '0', whiteSpace: 'nowrap' }}>🔄 Richiedi Audit AI</button>
+                          <Button onClick={handleTriggerAudit} size="sm" className="w-full active:scale-[0.97] transition-all">🔄 Richiedi Audit AI</Button>
                        )}
                     </div>
                  )}
@@ -807,82 +850,81 @@ export default function ClientDetailPage() {
             </div>
           </div>
 
-
-
           {/* ==================================================== */}
           {/* OMNICHANNEL ADVERTISING (META + GOOGLE ADS)          */}
           {/* ==================================================== */}
-          <div className="glass-panel" style={{ padding: '2rem', borderRadius: '20px', marginTop: '1rem', borderTop: '4px solid var(--brand-fuchsia)', position: 'relative' }}>
+          <div className="glass-panel p-6 rounded-2xl border-t-4 border-primary relative overflow-hidden">
             
             {loadingPerformance && (
-              <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(2px)', zIndex: 10, borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <div style={{ padding: '1rem 2rem', background: '#fff', borderRadius: '50px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', color: 'var(--brand-fuchsia)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                   Aggiornamento metriche in corso...
-                 </div>
+              <div className="absolute inset-0 bg-background/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+                  <div className="px-5 py-2.5 bg-background border border-border rounded-full shadow-lg text-primary font-bold flex items-center gap-2 text-sm animate-bounce">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Aggiornamento metriche in corso...
+                  </div>
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Target size={24} color="var(--brand-fuchsia)" /> 
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-6">
+              <h3 className="text-xl font-bold font-headline flex items-center gap-2">
+                <Target className="h-6 w-6 text-primary" /> 
                 Performance Advertising (Full Funnel)
               </h3>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Budget Omnicanale: <strong style={{color:'var(--text-primary)'}}>{
+              <div className="text-xs text-muted-foreground font-medium">Budget Omnicanale: <strong className="text-foreground text-sm font-bold">{
                  (performanceData?.meta?.spend != null || performanceData?.google?.spend != null) 
                  ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format((performanceData?.meta?.spend || 0) + (performanceData?.google?.spend || 0))
                  : 'N/D'
               }</strong></div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)', gap: '1.5rem' }}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                
                {/* META ADS */}
-               <div style={{ background: 'rgba(24, 119, 242, 0.05)', border: '1px solid rgba(24,119,242,0.2)', padding: '1.25rem', borderRadius: '16px' }}>
-                  <h4 style={{ fontSize: '1rem', color: '#1877f2', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontWeight: 700 }}><Facebook size={18}/> Meta Ads</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                    <div style={{ background: 'rgba(255,255,255,0.4)', padding: '0.75rem', borderRadius: '10px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8)' }}>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Spesa</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{performanceData?.meta?.spend != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.meta.spend) : 'N/D'}</div>
+               <div className="bg-blue-500/5 border border-blue-500/15 p-5 rounded-2xl space-y-4">
+                  <h4 className="text-sm font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2"><Facebook className="h-4.5 w-4.5"/> Meta Ads</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-background/60 p-3 rounded-xl border border-border shadow-sm">
+                      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Spesa</div>
+                      <div className="text-lg font-bold mt-0.5">{performanceData?.meta?.spend != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.meta.spend) : 'N/D'}</div>
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,0.4)', padding: '0.75rem', borderRadius: '10px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8)' }}>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>CPA (Acq.)</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{performanceData?.meta?.cpa != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.meta.cpa) : 'N/D'}</div>
+                    <div className="bg-background/60 p-3 rounded-xl border border-border shadow-sm">
+                      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CPA (Acq.)</div>
+                      <div className="text-lg font-bold mt-0.5">{performanceData?.meta?.cpa != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.meta.cpa) : 'N/D'}</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><span>Impression:</span> <strong>{performanceData?.meta?.impressions != null ? new Intl.NumberFormat('it-IT', { notation: 'compact' }).format(performanceData.meta.impressions) : 'N/D'}</strong></div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><span>Link Clicks:</span> <strong>{performanceData?.meta?.clicks != null ? new Intl.NumberFormat('it-IT').format(performanceData.meta.clicks) : 'N/D'}</strong></div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>CTR:</span> <strong>{performanceData?.meta?.ctr != null ? performanceData.meta.ctr.toFixed(2) + '%' : 'N/D'}</strong></div>
+                  <div className="text-xs text-muted-foreground space-y-2 border-t border-blue-500/10 pt-3">
+                     <div className="flex justify-between"><span>Impression:</span> <strong className="text-foreground">{performanceData?.meta?.impressions != null ? new Intl.NumberFormat('it-IT', { notation: 'compact' }).format(performanceData.meta.impressions) : 'N/D'}</strong></div>
+                     <div className="flex justify-between"><span>Link Clicks:</span> <strong className="text-foreground">{performanceData?.meta?.clicks != null ? new Intl.NumberFormat('it-IT').format(performanceData.meta.clicks) : 'N/D'}</strong></div>
+                     <div className="flex justify-between"><span>CTR:</span> <strong className="text-foreground">{performanceData?.meta?.ctr != null ? performanceData.meta.ctr.toFixed(2) + '%' : 'N/D'}</strong></div>
                   </div>
                </div>
 
                {/* GOOGLE ADS */}
-               <div style={{ background: 'rgba(234, 67, 53, 0.05)', border: '1px solid rgba(234, 67, 53, 0.2)', padding: '1.25rem', borderRadius: '16px' }}>
-                  <h4 style={{ fontSize: '1rem', color: '#ea4335', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontWeight: 700 }}><Search size={18}/> Google Ads (Search)</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                    <div style={{ background: 'rgba(255,255,255,0.4)', padding: '0.75rem', borderRadius: '10px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8)' }}>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Spesa</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>{performanceData?.google?.spend != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.google.spend) : 'N/D'}</div>
+               <div className="bg-red-500/5 border border-red-500/15 p-5 rounded-2xl space-y-4">
+                  <h4 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-2"><Search className="h-4.5 w-4.5"/> Google Ads (Search)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-background/60 p-3 rounded-xl border border-border shadow-sm">
+                      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Spesa</div>
+                      <div className="text-lg font-bold mt-0.5">{performanceData?.google?.spend != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.google.spend) : 'N/D'}</div>
                     </div>
-                    <div style={{ background: 'rgba(255,255,255,0.4)', padding: '0.75rem', borderRadius: '10px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.8)', boxShadow: 'inset 0 1px 2px rgba(255,255,255,0.8)' }}>
-                      <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>CPC Medio</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>{performanceData?.google?.cpc != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.google.cpc) : 'N/D'}</div>
+                    <div className="bg-background/60 p-3 rounded-xl border border-border shadow-sm">
+                      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">CPC Medio</div>
+                      <div className="text-lg font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">{performanceData?.google?.cpc != null ? new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(performanceData.google.cpc) : 'N/D'}</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><span>Impression:</span> <strong>{performanceData?.google?.impressions != null ? new Intl.NumberFormat('it-IT', {notation:'compact'}).format(performanceData.google.impressions) : 'N/D'}</strong></div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}><span>CTR (Search):</span> <strong>{performanceData?.google?.ctr != null ? performanceData.google.ctr.toFixed(2) + '%' : 'N/D'}</strong></div>
-                     <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Conversioni:</span> <strong>{performanceData?.google?.conversions != null ? new Intl.NumberFormat('it-IT').format(performanceData.google.conversions) : 'N/D'}</strong></div>
+                  <div className="text-xs text-muted-foreground space-y-2 border-t border-red-500/10 pt-3">
+                     <div className="flex justify-between"><span>Impression:</span> <strong className="text-foreground">{performanceData?.google?.impressions != null ? new Intl.NumberFormat('it-IT', {notation:'compact'}).format(performanceData.google.impressions) : 'N/D'}</strong></div>
+                     <div className="flex justify-between"><span>CTR (Search):</span> <strong className="text-foreground">{performanceData?.google?.ctr != null ? performanceData.google.ctr.toFixed(2) + '%' : 'N/D'}</strong></div>
+                     <div className="flex justify-between"><span>Conversioni:</span> <strong className="text-foreground">{performanceData?.google?.conversions != null ? new Intl.NumberFormat('it-IT').format(performanceData.google.conversions) : 'N/D'}</strong></div>
                   </div>
                </div>
 
                {/* DISPLAY & AI BUDGET RIPARTITION */}
-               <div style={{ background: 'rgba(251, 191, 36, 0.05)', border: '1px solid rgba(251, 191, 36, 0.2)', padding: '1.25rem', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
-                  <h4 style={{ fontSize: '1rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', fontWeight: 700 }}><MonitorPlay size={18}/> Insights & Allocazione</h4>
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                      <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📊</div>
-                      <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.25rem' }}>Display non configurato</div>
-                      <div style={{ fontSize: '0.72rem' }}>Collega le campagne Display/DV360 per vedere frequenza e viewability reali</div>
+               <div className="bg-amber-500/5 border border-amber-500/15 p-5 rounded-2xl flex flex-col justify-between">
+                  <h4 className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2"><MonitorPlay className="h-4.5 w-4.5"/> Insights & Allocazione</h4>
+                  <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+                      <PieChart className="h-8 w-8 mb-2 opacity-30 text-amber-500" />
+                      <div className="font-bold text-xs text-foreground mb-1">Display non configurato</div>
+                      <div className="text-[11px] leading-relaxed max-w-[180px]">Collega le campagne Display/DV360 per vedere frequenza e viewability reali</div>
                    </div>
                </div>
             </div>
@@ -890,35 +932,37 @@ export default function ClientDetailPage() {
 
           {/* ==================================================== */}
           {/* SEO & REPUTATION (GSC + REVIEWS)                     */}
+          {/* ============          {/* ==================================================== */}
+          {/* SEO & REPUTATION (GSC + REVIEWS)                     */}
           {/* ==================================================== */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: '1.5rem', marginTop: '1.5rem' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
              
              {/* SEO (Search Console + Backlinks) */}
-             <div className="glass-panel" style={{ padding: '2rem', borderRadius: '20px', borderTop: '4px solid var(--brand-blue)' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                  <Search size={20} color="var(--brand-blue)" /> SEO & Keyword View (GSC)
+             <div className="glass-panel p-8 rounded-[20px] border-t-4 border-blue-500 lg:col-span-3">
+                <h3 className="text-lg font-extrabold flex items-center gap-3 mb-6">
+                  <Search size={20} className="text-blue-500" /> SEO & Keyword View (GSC)
                 </h3>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--text-secondary)', background: 'rgba(59,130,246,0.03)', borderRadius: '12px', border: '1px dashed rgba(59,130,246,0.2)' }}>
-                   <Search size={32} style={{ opacity: 0.2, marginBottom: '0.75rem' }} />
-                   <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem', color: 'var(--text-primary)' }}>Google Search Console non collegato</div>
-                   <div style={{ fontSize: '0.8rem', maxWidth: '320px', lineHeight: 1.5 }}>Collega GSC in Setup API per vedere ranking reali, keyword opportunities e backlink del cliente</div>
-                   <button onClick={() => setActiveTab('settings')} style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--brand-blue)', background: 'none', border: '1px solid var(--brand-blue)', borderRadius: '8px', padding: '6px 16px', cursor: 'pointer', fontWeight: 600 }}>Collega in Setup API →</button>
+                <div className="flex flex-col items-center justify-center py-10 px-4 text-center text-muted-foreground bg-blue-500/5 rounded-xl border border-dashed border-blue-500/20">
+                   <Search size={32} className="opacity-20 mb-3 text-blue-500" />
+                   <div className="font-bold text-base mb-1 text-foreground">Google Search Console non collegato</div>
+                   <div className="text-xs max-w-[320px] leading-relaxed">Collega GSC in Setup API per vedere ranking reali, keyword opportunities e backlink del cliente</div>
+                   <button onClick={() => setActiveTab('settings')} className="mt-4 text-xs text-blue-500 bg-transparent border border-blue-500/40 hover:bg-blue-500/10 active:scale-95 transition-all rounded-lg px-4 py-1.5 font-semibold">Collega in Setup API →</button>
                  </div>
              </div>
 
              {/* QUALITATIVE FEEDBACK (Reviews) */}
-             <div className="glass-panel" style={{ padding: '2rem', borderRadius: '20px', borderTop: '4px solid #f59e0b', display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                  <Star size={20} color="#f59e0b" fill="#f59e0b" /> Reputation & UX
+             <div className="glass-panel p-8 rounded-[20px] border-t-4 border-amber-500 lg:col-span-2 flex flex-col">
+                <h3 className="text-lg font-extrabold flex items-center gap-3 mb-6">
+                  <Star size={20} className="text-amber-500 fill-amber-500" /> Reputation & UX
                 </h3>
                 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    <Star size={32} style={{ opacity: 0.2, marginBottom: '0.75rem' }} color="#f59e0b" />
-                    <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.35rem', color: 'var(--text-primary)' }}>Nessuna recensione collegata</div>
-                    <div style={{ fontSize: '0.8rem', maxWidth: '220px', lineHeight: 1.5 }}>Collega Google Business Profile o Trustpilot per vedere recensioni e sentiment reali</div>
-                    <button onClick={() => setActiveTab('settings')} style={{ marginTop: '1rem', fontSize: '0.75rem', color: '#f59e0b', background: 'none', border: '1px solid rgba(245,158,11,0.4)', borderRadius: '8px', padding: '5px 14px', cursor: 'pointer', fontWeight: 600 }}>Collega in Setup API →</button>
-                 </div>
+                <div className="flex-1 flex flex-col items-center justify-center py-8 px-4 text-center text-muted-foreground bg-amber-500/5 rounded-xl border border-dashed border-amber-500/20">
+                     <Star size={32} className="opacity-20 mb-3 text-amber-500 fill-amber-500" />
+                     <div className="font-bold text-base mb-1 text-foreground">Nessuna recensione collegata</div>
+                     <div className="text-xs max-w-[220px] leading-relaxed">Collega Google Business Profile o Trustpilot per vedere recensioni e sentiment reali</div>
+                     <button onClick={() => setActiveTab('settings')} className="mt-4 text-xs text-amber-500 bg-transparent border border-amber-500/40 hover:bg-amber-500/10 active:scale-95 transition-all rounded-lg px-4 py-1.5 font-semibold">Collega in Setup API →</button>
+                  </div>
              </div>
 
           </div>
@@ -926,117 +970,117 @@ export default function ClientDetailPage() {
           {/* ==================================================== */}
           {/* ATTRAZIONE & COMPETITOR INTELLIGENCE FULL WIDTH      */}
           {/* ==================================================== */}
-          <section className="glass-panel" style={{ padding: '1.75rem', borderRadius: '16px', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              <Share2 size={24} color="#f472b6" />
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Intelligenza di Attrazione (Content & Competitori)</h2>
+          <section className="glass-panel p-7 rounded-2xl border-t border-white/5 mt-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Share2 size={24} className="text-pink-400" />
+              <h2 className="text-xl font-bold text-foreground">Intelligenza di Attrazione (Content & Competitori)</h2>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr)', gap: '2rem' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-7 gap-8">
               
               {/* LATO SINISTRO: Metriche Organiche e Database Contenuti */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className="flex flex-col gap-6 lg:col-span-4">
                 
                 {/* Metriche Canali Deep Dive */}
                 <div>
-                  <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>Ecosistema Digitale (Deep Dive 30giorni)</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Ecosistema Digitale (Deep Dive 30giorni)</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                      
                      {/* 1. SITO WEB */}
-                     <div style={{ background: 'rgba(59,130,246,0.03)', border: '1px solid rgba(59,130,246,0.2)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Globe size={20} color="#3b82f6" />
-                            <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Sito Web (GA4)</span>
+                     <div className="bg-blue-500/5 border border-blue-500/20 p-5 rounded-xl flex flex-col">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="flex items-center gap-2">
+                            <Globe size={20} className="text-blue-500" />
+                            <span className="font-bold text-sm text-foreground">Sito Web (GA4)</span>
                           </div>
-                          {loadingGa4 ? <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Caricamento...</span> : ga4Data?.traffic?.users?.chg != null ? (
-                             <span style={{ fontSize: '0.7rem', color: ga4Data.traffic.users.chg >= 0 ? '#10b981' : '#ef4444', background: ga4Data.traffic.users.chg >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', padding: '2px 8px', borderRadius: '50px', fontWeight: 600 }}>
+                          {loadingGa4 ? <span className="text-[10px] text-muted-foreground">Caricamento...</span> : ga4Data?.traffic?.users?.chg != null ? (
+                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${ga4Data.traffic.users.chg >= 0 ? 'text-emerald-500 bg-emerald-500/10' : 'text-rose-500 bg-rose-500/10'}`}>
                                {ga4Data.traffic.users.chg > 0 ? '+' : ''}{ga4Data.traffic.users.chg}%
                              </span>
                           ) : null}
                         </div>
                         {!loadingGa4 && !ga4Data ? (
-                          <div style={{ textAlign: 'center', padding: '1rem 0', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📊</div>
-                            <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>GA4 non collegato</div>
-                            <button onClick={() => setActiveTab('settings')} style={{ fontSize: '0.75rem', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Collega in Setup API →</button>
+                          <div className="text-center py-4 text-muted-foreground text-xs flex-1 flex flex-col items-center justify-center">
+                            <div className="text-2xl mb-2">📊</div>
+                            <div className="font-semibold mb-1 text-foreground">GA4 non collegato</div>
+                            <button onClick={() => setActiveTab('settings')} className="text-xs text-blue-500 hover:underline bg-transparent border-none cursor-pointer">Collega in Setup API →</button>
                           </div>
                         ) : (
                           <>
-                            <div style={{ marginBottom: '1rem' }}>
-                              <div style={{ fontSize: '1.8rem', fontWeight: 800, lineHeight: 1 }}>{loadingGa4 ? '...' : ga4Data?.traffic?.users?.val != null ? ga4Data.traffic.users.val.toLocaleString() : '—'}</div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Utenti Unici nel Periodo</div>
+                            <div className="mb-4">
+                              <div className="text-2xl font-extrabold leading-none text-foreground">{loadingGa4 ? '...' : ga4Data?.traffic?.users?.val != null ? ga4Data.traffic.users.val.toLocaleString() : '—'}</div>
+                              <div className="text-[11px] text-muted-foreground mt-1">Utenti Unici nel Periodo</div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem' }}>
-                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Sessions Social</div>
-                                  <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : ga4Data ? totalSocialSessions.toLocaleString() : '—'}</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                               <div className="bg-white/5 p-2 rounded-lg border border-white/5">
+                                  <div className="text-muted-foreground mb-0.5 text-[10px]">Sessions Social</div>
+                                  <div className="font-bold text-foreground">{loadingGa4 ? '...' : ga4Data ? totalSocialSessions.toLocaleString() : '—'}</div>
                                </div>
-                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>CVR da Social</div>
-                                  <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : ga4Data ? `${socialCvr}%` : '—'}</div>
+                               <div className="bg-white/5 p-2 rounded-lg border border-white/5">
+                                  <div className="text-muted-foreground mb-0.5 text-[10px]">CVR da Social</div>
+                                  <div className="font-bold text-foreground">{loadingGa4 ? '...' : ga4Data ? `${socialCvr}%` : '—'}</div>
                                </div>
                             </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.75rem', marginTop: '0.5rem' }}>
-                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Bounce Rate</div>
-                                  <div style={{ fontWeight: 700 }}>{loadingGa4 ? '...' : ga4Data?.behavior?.bounceRate?.val != null ? `${ga4Data.behavior.bounceRate.val.toFixed(1)}%` : '—'}</div>
+                            <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                               <div className="bg-white/5 p-2 rounded-lg border border-white/5">
+                                  <div className="text-muted-foreground mb-0.5 text-[10px]">Bounce Rate</div>
+                                  <div className="font-bold text-foreground">{loadingGa4 ? '...' : ga4Data?.behavior?.bounceRate?.val != null ? `${ga4Data.behavior.bounceRate.val.toFixed(1)}%` : '—'}</div>
                                </div>
-                               <div style={{ background: 'rgba(0,0,0,0.03)', padding: '0.5rem', borderRadius: '8px' }}>
-                                  <div style={{ color: 'var(--text-tertiary)', marginBottom: '0.2rem' }}>Channel Top</div>
-                                  <div style={{ fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{loadingGa4 ? '...' : (ga4Data?.traffic?.channels?.[0]?.channel || '—')}</div>
+                               <div className="bg-white/5 p-2 rounded-lg border border-white/5">
+                                  <div className="text-muted-foreground mb-0.5 text-[10px]">Channel Top</div>
+                                  <div className="font-bold text-foreground truncate">{loadingGa4 ? '...' : (ga4Data?.traffic?.channels?.[0]?.channel || '—')}</div>
                                </div>
                             </div>
                           </>
                         )}
-                        <div style={{ marginTop: 'auto', paddingTop: '1rem', borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', fontStyle: 'italic' }}>
+                        <div className="mt-4 pt-3 border-t border-white/5">
+                            <div className="text-muted-foreground text-[10px] italic">
                               {ga4Data ? 'Dati demografici disponibili nel report GA4 completo' : 'Collega GA4 per vedere le demografiche reali del sito'}
                             </div>
                          </div>
                       </div>
 
                      {/* 2. INSTAGRAM */}
-                      <div style={{ background: 'rgba(225,48,108,0.03)', border: '1px solid rgba(225,48,108,0.2)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                             <Instagram size={20} color="#e1306c" />
-                             <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Instagram</span>
+                      <div className="bg-pink-500/5 border border-pink-500/20 p-5 rounded-xl flex flex-col">
+                         <div className="flex justify-between items-start mb-4">
+                           <div className="flex items-center gap-2">
+                             <Instagram size={20} className="text-pink-500" />
+                             <span className="font-bold text-sm text-foreground">Instagram</span>
                            </div>
                          </div>
-                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📱</div>
-                           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>Instagram non collegato</div>
-                           <div style={{ fontSize: '0.75rem', maxWidth: '200px' }}>Collega il Page ID Meta in Setup API per vedere follower, reach ed engagement reali</div>
-                           <button onClick={() => setActiveTab('settings')} style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: '#e1306c', background: 'none', border: '1px solid rgba(225,48,108,0.3)', borderRadius: '6px', padding: '4px 12px', cursor: 'pointer' }}>Collega in Setup API →</button>
+                         <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+                           <div className="text-2xl mb-2">📱</div>
+                           <div className="font-semibold text-xs mb-1 text-foreground">Instagram non collegato</div>
+                           <div className="text-[10px] max-w-[200px] leading-relaxed">Collega il Page ID Meta in Setup API per vedere follower, reach ed engagement reali</div>
+                           <button onClick={() => setActiveTab('settings')} className="mt-3 text-[10px] text-pink-500 bg-transparent border border-pink-500/30 hover:bg-pink-500/10 active:scale-95 transition-all rounded-lg px-3 py-1 font-semibold">Collega in Setup API →</button>
                          </div>
                       </div>
 
                      {/* 3. YOUTUBE */}
-                      <div style={{ background: 'rgba(239,68,68,0.03)', border: '1px solid rgba(239,68,68,0.2)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                             <Youtube size={20} color="#ef4444" />
-                             <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>YouTube</span>
+                      <div className="bg-red-500/5 border border-red-500/20 p-5 rounded-xl flex flex-col">
+                         <div className="flex justify-between items-start mb-4">
+                           <div className="flex items-center gap-2">
+                             <Youtube size={20} className="text-red-500" />
+                             <span className="font-bold text-sm text-foreground">YouTube</span>
                            </div>
                          </div>
-                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>▶️</div>
-                           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>YouTube non collegato</div>
-                           <div style={{ fontSize: '0.75rem', maxWidth: '200px' }}>Integrazione YouTube Analytics in arrivo — iscritti, views e watch time reali</div>
+                         <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+                           <div className="text-2xl mb-2">▶️</div>
+                           <div className="font-semibold text-xs mb-1 text-foreground">YouTube non collegato</div>
+                           <div className="text-[10px] max-w-[200px] leading-relaxed">Integrazione YouTube Analytics in arrivo — iscritti, views e watch time reali</div>
                          </div>
                       </div>
 
                      {/* 4. TIKTOK */}
-                      <div style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.1)', padding: '1.25rem', borderRadius: '12px', display: 'flex', flexDirection: 'column' }}>
-                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                           <Music size={20} color="#000000" />
-                           <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>TikTok</span>
+                      <div className="bg-foreground/5 border border-foreground/10 p-5 rounded-xl flex flex-col">
+                         <div className="flex items-center gap-2 mb-4">
+                           <Music size={20} className="text-foreground" />
+                           <span className="font-bold text-sm text-foreground">TikTok</span>
                          </div>
-                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1.5rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎵</div>
-                           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '0.25rem' }}>TikTok non collegato</div>
-                           <div style={{ fontSize: '0.75rem', maxWidth: '200px' }}>Integrazione TikTok Business API in arrivo — followers, views e completion rate reali</div>
+                         <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
+                           <div className="text-2xl mb-2">🎵</div>
+                           <div className="font-semibold text-xs mb-1 text-foreground">TikTok non collegato</div>
+                           <div className="text-[10px] max-w-[200px] leading-relaxed">Integrazione TikTok Business API in arrivo — followers, views e completion rate reali</div>
                          </div>
                       </div>
 
@@ -1044,78 +1088,77 @@ export default function ClientDetailPage() {
                 </div>
 
                 {/* Contenuti Top Performance — visibili quando i canali social sono collegati */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2.5rem 1rem', gap: '0.75rem', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.1)' }}>
-                  <PlayCircle size={32} style={{ opacity: 0.2 }} />
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nessun contenuto tracciato</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', textAlign: 'center', maxWidth: 320 }}>Collega i canali social del cliente per visualizzare automaticamente i contenuti con le migliori performance.</div>
-                  <button onClick={() => setActiveTab('settings')} style={{ marginTop: '0.5rem', fontSize: '0.8rem', background: 'var(--brand-cyan, #06b6d4)', color: '#fff', border: 'none', padding: '6px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>⚙️ Setup API</button>
+                <div className="flex flex-col items-center justify-center py-8 px-4 gap-3 bg-white/5 rounded-xl border border-dashed border-white/10">
+                  <PlayCircle size={32} className="opacity-20 text-foreground" />
+                  <div className="font-semibold text-sm text-foreground">Nessun contenuto tracciato</div>
+                  <div className="text-xs text-muted-foreground text-center max-w-[320px]">Collega i canali social del cliente per visualizzare automaticamente i contenuti con le migliori performance.</div>
+                  <button onClick={() => setActiveTab('settings')} className="mt-2 text-xs bg-cyan-600 hover:bg-cyan-500 text-white border-none py-1.5 px-4 rounded-lg cursor-pointer font-semibold active:scale-95 transition-all">⚙️ Setup API</button>
                 </div>
 
               </div>
 
               {/* LATO DESTRO: Competitor e Trends */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderLeft: '1px solid rgba(0,0,0,0.05)', paddingLeft: '2rem' }}>
+              <div className="flex flex-col gap-6 lg:col-span-3 border-t lg:border-t-0 lg:border-l border-white/5 pt-6 lg:pt-0 lg:pl-8">
                 
                 {/* Competitor Intelligence Gallery */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mappa Competitors Locali/Diretti</h3>
-                    <button style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--brand-cyan)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>
-                       <Plus size={14}/> Aggiungi Profilo
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mappa Competitors Locali/Diretti</h3>
+                    <button onClick={() => setActiveTab('intelligence')} className="text-xs flex items-center gap-1 bg-cyan-600 hover:bg-cyan-500 text-white border-none py-1.5 px-3 rounded-lg cursor-pointer font-semibold active:scale-95 transition-all">
+                       <Plus size={14}/> Gestisci
                     </button>
                   </div>
                   
                   {/* Competitor reali — aggiunti dalla tab AI Intelligence */}
                   {client.intelligence?.competitors && client.intelligence.competitors.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="flex flex-col gap-3">
                       {client.intelligence.competitors.map((c: any, i: number) => (
-                        <div key={i} style={{ background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', padding: '1rem', borderRadius: '12px', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                          <div style={{ width: 48, height: 48, borderRadius: '8px', background: 'rgba(99,102,241,0.15)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1', fontWeight: 700, fontSize: '1.1rem' }}>
+                        <div key={i} className="bg-white/5 border border-white/5 p-4 rounded-xl flex gap-3 items-center">
+                          <div className="w-10 h-10 rounded-lg bg-indigo-500/10 flex-shrink-0 flex items-center justify-center text-indigo-400 font-bold text-base">
                             {c.name?.charAt(0) || '?'}
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '0.25rem' }}>{c.name}</div>
-                            {c.insight && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{c.insight}</div>}
+                          <div className="flex-1">
+                            <div className="fontWeight-600 text-sm text-foreground font-bold mb-0.5">{c.name}</div>
+                            {c.insight && <div className="text-xs text-muted-foreground">{c.insight}</div>}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', gap: '0.5rem', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.1)' }}>
-                      <Users size={28} style={{ opacity: 0.2 }} />
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Nessun competitor aggiunto</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>Vai nella tab "AI Intelligence" per aggiungere i competitor del cliente.</div>
+                    <div className="flex flex-col items-center justify-center py-6 px-4 gap-2 bg-white/5 rounded-xl border border-dashed border-white/10">
+                      <Users size={28} className="opacity-20 text-foreground" />
+                      <div className="text-xs font-semibold text-muted-foreground">Nessun competitor aggiunto</div>
+                      <div className="text-[10px] text-muted-foreground text-center">Vai nella tab "AI Intelligence" per aggiungere i competitor del cliente.</div>
                     </div>
                   )}
                 </div>
 
                 {/* Trend Analysis */}
                 <div>
-                  <h3 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>Integrazione Trend Locali</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', gap: '0.5rem', background: 'rgba(0,0,0,0.02)', borderRadius: '10px', border: '1px dashed rgba(0,0,0,0.1)' }}>
-                    <TrendingUp size={28} style={{ opacity: 0.2 }} />
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Trend non disponibili</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>I trend di settore vengono generati automaticamente dall'analisi AI Intelligence del cliente.</div>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">Integrazione Trend Locali</h3>
+                  <div className="flex flex-col items-center justify-center py-6 px-4 gap-2 bg-white/5 rounded-xl border border-dashed border-white/10">
+                    <TrendingUp size={28} className="opacity-20 text-foreground" />
+                    <div className="text-xs font-semibold text-muted-foreground">Trend non disponibili</div>
+                    <div className="text-[10px] text-muted-foreground text-center">I trend di settore vengono generati automaticamente dall'analisi AI Intelligence.</div>
                   </div>
                 </div>
 
               </div>
             </div>
           </section>
-
         </div>
       )}
 
       
       {/* TAB: INTELLIGENCE */}
       {activeTab === 'intelligence' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-          <div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 flex flex-col gap-6">
             {!client.intelligence ? (
-              <div className="glass-table" style={{ padding: '3rem', textAlign: 'center', borderRadius: '20px' }}>
-                <Brain size={48} style={{ opacity: 0.2, margin: '0 auto 1rem' }} />
-                <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>Nessuna Analisi AI Disponibile</h3>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', maxWidth: '400px', margin: '0 auto 1.5rem' }}>
+              <div className="glass-panel p-10 text-center rounded-[20px]">
+                <Brain size={48} className="opacity-20 mx-auto mb-4 text-cyan-400" />
+                <h3 className="text-lg font-bold mb-2">Nessuna Analisi AI Disponibile</h3>
+                <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                   L'AI non ha ancora analizzato il sito web di questo cliente per estrarre target, competitor e interessi.
                 </p>
                 <button
@@ -1131,59 +1174,59 @@ export default function ClientDetailPage() {
                     });
                     window.location.reload();
                   }}
-                  className="btn-gorgeous"
+                  className="btn-gorgeous px-6 py-2.5 text-sm font-semibold active:scale-95 transition-all"
                 >
                   Esegui Analisi Sito
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div className="flex flex-col gap-5">
                 {/* USP e Prodotto */}
-                <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                    <Target color="#fbbf24" size={20} />
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Prodotto & USP</h3>
+                <div className="glass-panel p-6 rounded-xl flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <Target className="text-amber-500" size={20} />
+                    <h3 className="text-base font-bold text-foreground">Prodotto & USP</h3>
                     {client.intelligence.websiteScraped && (
-                      <span style={{ fontSize: '0.7rem', background: 'rgba(52,211,153,0.1)', color: '#34d399', padding: '2px 8px', borderRadius: '50px' }}>✓ Sito Analizzato</span>
+                      <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2.5 py-0.5 rounded-full font-semibold">✓ Sito Analizzato</span>
                     )}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1rem' }}>
+                  <div className="text-sm text-muted-foreground leading-relaxed">
                     <strong>Prodotto:</strong> {client.intelligence.productDescription}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1rem' }}>
+                  <div className="text-sm text-muted-foreground leading-relaxed">
                     <strong>USP:</strong> {client.intelligence.uniqueValueProp}
                   </div>
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                    <div style={{ background: 'rgba(0, 0, 0,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.8rem' }}>
-                      <span style={{ color: 'var(--text-tertiary)' }}>Tipo: </span>
-                      <strong style={{ color: '#fbbf24' }}>{client.intelligence.businessType}</strong>
+                  <div className="flex gap-3 mt-2">
+                    <div className="bg-white/5 px-3 py-1.5 rounded-lg text-xs border border-white/5">
+                      <span className="text-muted-foreground">Tipo: </span>
+                      <strong className="text-amber-500">{client.intelligence.businessType}</strong>
                     </div>
-                    <div style={{ background: 'rgba(0, 0, 0,0.05)', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.8rem' }}>
-                      <span style={{ color: 'var(--text-tertiary)' }}>Ticket: </span>
-                      <strong style={{ color: '#34d399' }}>{client.intelligence.priceRange || 'Sconosciuto'}</strong>
+                    <div className="bg-white/5 px-3 py-1.5 rounded-lg text-xs border border-white/5">
+                      <span className="text-muted-foreground">Ticket: </span>
+                      <strong className="text-emerald-500">{client.intelligence.priceRange || 'Sconosciuto'}</strong>
                     </div>
                   </div>
                 </div>
 
                 {/* Target Avatar */}
-                <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                    <span style={{ fontSize: '1.2rem' }}>👤</span>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Target Avatar</h3>
+                <div className="glass-panel p-6 rounded-xl">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Users className="text-cyan-500" size={20} />
+                    <h3 className="text-base font-bold text-foreground">Target Avatar</h3>
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-6">
                     {client.intelligence.targetDescription}
                   </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                      <h4 style={{ fontSize: '0.8rem', color: '#f87171', marginBottom: '0.5rem', textTransform: 'uppercase' }}>I loro problemi (Pain Points)</h4>
-                      <ul style={{ paddingLeft: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <h4 className="text-[11px] font-bold text-rose-500 mb-2 uppercase tracking-wider">I loro problemi (Pain Points)</h4>
+                      <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
                         {client.intelligence.targetPainPoints.map((p: string, i: number) => <li key={i}>{p}</li>)}
                       </ul>
                     </div>
                     <div>
-                      <h4 style={{ fontSize: '0.8rem', color: '#34d399', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Leve Acquisto (Triggers)</h4>
-                      <ul style={{ paddingLeft: '1rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      <h4 className="text-[11px] font-bold text-emerald-500 mb-2 uppercase tracking-wider">Leve Acquisto (Triggers)</h4>
+                      <ul className="list-disc pl-4 space-y-1 text-xs text-muted-foreground">
                         {client.intelligence.targetTriggers.map((t: string, i: number) => <li key={i}>{t}</li>)}
                       </ul>
                     </div>
@@ -1191,43 +1234,43 @@ export default function ClientDetailPage() {
                 </div>
 
                 {/* Competitor */}
-                <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <span style={{ fontSize: '1.2rem' }}>⚔️</span>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Competitor & Ads Library (Vision AI)</h3>
+                <div className="glass-panel p-6 rounded-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Target className="text-pink-500" size={20} />
+                      <h3 className="text-base font-bold text-foreground">Competitor & Ads Library (Vision AI)</h3>
                     </div>
                   </div>
                   
                   {/* Lista Competitor */}
                   {(!client.intelligence.competitors || client.intelligence.competitors.length === 0) ? (
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>Nessun competitor rilevato o aggiunto.</p>
+                    <p className="color-muted-foreground text-xs mb-4">Nessun competitor rilevato o aggiunto.</p>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div className="flex flex-col gap-4 mb-6">
                       {client.intelligence.competitors.map((c: any, i: number) => (
-                        <div key={i} style={{ padding: '1rem', background: 'rgba(0, 0, 0,0.03)', borderRadius: '12px', border: '1px solid rgba(0, 0, 0,0.06)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                            <h4 style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1.05rem' }}>{c.name}</h4>
-                            <button onClick={() => handleDeleteCompetitor(i)} style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        <div key={i} className="p-5 bg-white/5 rounded-xl border border-white/5 flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
+                            <h4 className="font-bold text-foreground text-base">{c.name}</h4>
+                            <button onClick={() => handleDeleteCompetitor(i)} className="bg-transparent border-none text-rose-500 hover:text-rose-400 cursor-pointer p-1 text-xs font-semibold hover:scale-95 transition-all">
                               Rimuovi
                             </button>
                           </div>
                           
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.8rem', marginBottom: '0.75rem' }}>
-                            <div><span style={{ color: '#34d399', fontWeight: 600 }}>Punti di forza:</span> {c.strength || '—'}</div>
-                            <div><span style={{ color: '#f87171', fontWeight: 600 }}>Punti deboli:</span> {c.weakness || '—'}</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <div className="text-muted-foreground"><span className="text-emerald-500 font-semibold">Punti di forza:</span> {c.strength || '—'}</div>
+                            <div className="text-muted-foreground"><span className="text-rose-500 font-semibold">Punti deboli:</span> {c.weakness || '—'}</div>
                           </div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                            <span style={{ color: '#94a3b8', fontWeight: 600 }}>Stile Ads:</span> {c.adStyle || 'Non ancora analizzato.'}
-                            {c.estimatedBudget && <span style={{ marginLeft: '10px' }}>[Stima spend: {c.estimatedBudget}]</span>}
+                          <div className="text-xs text-muted-foreground">
+                            <span className="text-muted-foreground/60 font-semibold">Stile Ads:</span> {c.adStyle || 'Non ancora analizzato.'}
+                            {c.estimatedBudget && <span className="ml-2 text-cyan-400 font-semibold">({c.estimatedBudget})</span>}
                           </div>
 
                           {/* Vision Upload Box */}
-                          <div style={{ padding: '0.75rem', background: 'rgba(139,92,246,0.05)', borderRadius: '8px', border: '1px dashed rgba(139,92,246,0.3)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#8b5cf6', fontSize: '0.8rem', fontWeight: 600 }}>
+                          <div className="p-4 bg-indigo-500/5 rounded-lg border border-dashed border-indigo-500/20 flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold">
                               Analisi Ads (Screenshot AI)
                             </div>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed m-0">
                               Incolla uno screenshot della FB Ads Library qui, o clicca per caricare. Gemini capirà le inserzioni attive!
                             </p>
                             <input 
@@ -1236,10 +1279,12 @@ export default function ClientDetailPage() {
                               onChange={(e) => {
                                 if (e.target.files?.[0]) handleScreenshotUpload(i, e.target.files[0])
                               }}
-                              style={{ fontSize: '0.75rem', cursor: 'pointer', marginTop: '0.25rem' }}
+                              className="text-xs text-muted-foreground cursor-pointer mt-1 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-indigo-500/10 file:text-indigo-400 hover:file:bg-indigo-500/20"
                             />
                             {uploadingVisionIndex === i && (
-                              <div style={{ color: '#8b5cf6', fontSize: '0.75rem', fontWeight: 600 }}>🤖 Lettura Vision in corso... (10s)</div>
+                              <div className="text-indigo-400 text-xs font-semibold flex items-center gap-1.5 mt-1 animate-pulse">
+                                🤖 Lettura Vision in corso... (10s)
+                              </div>
                             )}
                           </div>
 
@@ -1249,16 +1294,16 @@ export default function ClientDetailPage() {
                   )}
 
                   {/* Add Manual Competitor */}
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', background: 'rgba(0,0,0,0.02)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
+                  <div className="flex gap-2 items-center bg-white/5 p-3 rounded-xl border border-white/5">
                     <input 
                       type="text" 
                       placeholder="Aggiungi nome concorrente (es. Sephora)" 
                       value={newCompetitorName}
                       onChange={e => setNewCompetitorName(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleAddCompetitor()}
-                      style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid rgba(0,0,0,0.1)', fontSize: '0.85rem' }}
+                      className="flex-1 bg-background/50 border border-white/10 hover:border-white/20 focus:border-cyan-500/50 text-foreground px-3 py-2 rounded-lg text-xs outline-none transition-all placeholder:text-muted-foreground/60"
                     />
-                    <button onClick={handleAddCompetitor} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+                    <button onClick={handleAddCompetitor} className="bg-cyan-600 hover:bg-cyan-500 text-white border-none py-2 px-4 rounded-lg cursor-pointer text-xs font-semibold active:scale-95 transition-all">
                       Aggiungi
                     </button>
                   </div>
@@ -1268,46 +1313,45 @@ export default function ClientDetailPage() {
           </div>
 
           {/* Sidebar Right */}
-          <div>
+          <div className="flex flex-col gap-6">
             {client.intelligence && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                
+              <>
                 {/* Meta Targeting */}
-                <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-                  <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', color: 'var(--text-secondary)' }}>Input per Algoritmo Meta</h3>
+                <div className="glass-panel p-6 rounded-xl flex flex-col gap-4">
+                  <h3 className="text-sm font-bold text-muted-foreground tracking-wide">Input per Algoritmo Meta</h3>
                   
-                  <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Interessi Seed (Broad)</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                  <div>
+                    <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">Interessi Seed (Broad)</div>
+                    <div className="flex flex-wrap gap-1.5">
                       {client.intelligence.metaInterests.map((interest: string, i: number) => (
-                        <span key={i} style={{ fontSize: '0.75rem', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)', padding: '2px 8px', borderRadius: '50px', color: '#a78bfa' }}>
+                        <span key={i} className="text-[11px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-indigo-400 font-medium">
                           {interest}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>Dati Demografici Estesi</div>
-                    <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                      Età: {client.intelligence.targetAgeMin} - {client.intelligence.targetAgeMax}<br />
-                      Genere: {client.intelligence.targetGender}<br />
-                      Territorio: <strong>{client.intelligence.territoryType}</strong> 
-                      {client.intelligence.territoryCities && client.intelligence.territoryCities.length > 0 ? ` (${client.intelligence.territoryCities.join(', ')})` : ''}
+                  <div>
+                    <div className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">Dati Demografici Estesi</div>
+                    <div className="text-xs text-muted-foreground leading-relaxed space-y-1 bg-white/5 p-3 rounded-lg border border-white/5">
+                      <div>Età: <strong className="text-foreground">{client.intelligence.targetAgeMin} - {client.intelligence.targetAgeMax}</strong></div>
+                      <div>Genere: <strong className="text-foreground">{client.intelligence.targetGender}</strong></div>
+                      <div>Territorio: <strong className="text-foreground">{client.intelligence.territoryType}</strong> 
+                      {client.intelligence.territoryCities && client.intelligence.territoryCities.length > 0 ? ` (${client.intelligence.territoryCities.join(', ')})` : ''}</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Ultra Senior Notes */}
                 {client.intelligence.analysisNotes && (
-                  <div style={{ padding: '1.25rem', background: 'linear-gradient(45deg, rgba(236,72,153,0.1), rgba(139,92,246,0.1))', borderRadius: '16px', border: '1px solid rgba(236,72,153,0.2)' }}>
-                    <h3 style={{ fontSize: '0.85rem', marginBottom: '0.75rem', color: '#ec4899', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ultra Senior Insight</h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <div className="p-5 bg-gradient-to-r from-pink-500/10 to-indigo-500/10 rounded-xl border border-pink-500/20">
+                    <h3 className="text-xs font-bold text-pink-500 uppercase tracking-wider mb-2">Ultra Senior Insight</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
                       {client.intelligence.analysisNotes}
                     </p>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>
@@ -1315,74 +1359,72 @@ export default function ClientDetailPage() {
 
       {/* TAB: CAMPAGNE */}
       {activeTab === 'campaigns' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Campagne in Piattaforma</h2>
-            <Link href={`/clients/${id}/campaigns/new`} className="btn-gorgeous" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Plus size={18} /> Nuova Campagna
+        <div className="space-y-6">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-xl font-extrabold text-foreground">Campagne in Piattaforma</h2>
+            <Link href={`/clients/${id}/campaigns/new`} className="btn-gorgeous inline-flex items-center gap-2 no-underline text-xs font-semibold px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all">
+              <Plus size={16} /> Nuova Campagna
             </Link>
           </div>
           {(client.campaigns?.length || 0) === 0 ? (
-            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>
-              <Zap size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-              <h3>Nessuna campagna ancora</h3>
-              <p style={{ color: 'var(--text-tertiary)', marginTop: '0.5rem' }}>Crea la prima campagna per questo cliente</p>
+            <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+              <Zap size={40} className="opacity-20 text-muted-foreground" />
+              <h3 className="font-bold text-foreground">Nessuna campagna ancora</h3>
+              <p className="text-xs text-muted-foreground/60">Crea la prima campagna per questo cliente</p>
             </div>
           ) : (
-            <table className="glass-table" style={{ width: '100%' }}>
-              <thead>
-                <tr>
-                  <th>Nome Campagna</th>
-                  <th>Stato</th>
-                  <th>Obiettivo</th>
-                  <th>Budget/Giorno</th>
-                  <th>Varianti</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(client.campaigns || []).map(c => {
-                  const s = statusColors[c.status] ?? { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', label: c.status }
-                  return (
-                    <tr key={c.id}>
-                      <td style={{ fontWeight: 600 }}>{c.name}</td>
-                      <td>
-                        <span style={{ color: s.color, background: s.bg, padding: '4px 10px', borderRadius: '50px', fontSize: '0.8rem', fontWeight: 600 }}>
-                          {s.label}
-                        </span>
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>{c.objective}</td>
-                      <td>€{c.dailyBudget}/gg</td>
-                      <td>{c._count.adVariants} varianti</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <Link href={`/clients/${id}/campaigns/${c.id}/preview`} style={{
-                            padding: '5px 12px', borderRadius: '8px', fontSize: '0.8rem',
-                            background: 'rgba(139,92,246,0.15)', color: '#a78bfa',
-                            textDecoration: 'none', border: '1px solid rgba(139,92,246,0.3)', fontWeight: 600,
-                          }}>
-                            Preview →
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+            <div className="border border-white/10 rounded-xl overflow-hidden glass-panel">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/[0.02] text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="p-4">Nome Campagna</th>
+                    <th className="p-4">Stato</th>
+                    <th className="p-4">Obiettivo</th>
+                    <th className="p-4">Budget/Giorno</th>
+                    <th className="p-4">Varianti</th>
+                    <th className="p-4">Azioni</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs text-muted-foreground">
+                  {(client.campaigns || []).map(c => {
+                    const s = statusColors[c.status] ?? { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', label: c.status }
+                    return (
+                      <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="p-4 font-semibold text-foreground">{c.name}</td>
+                        <td className="p-4">
+                          <span style={{ color: s.color, backgroundColor: s.bg }} className="px-2.5 py-0.5 rounded-full font-bold text-[10px]">
+                            {s.label}
+                          </span>
+                        </td>
+                        <td className="p-4">{c.objective}</td>
+                        <td className="p-4 font-medium text-foreground">€{c.dailyBudget}/gg</td>
+                        <td className="p-4">{c._count.adVariants} varianti</td>
+                        <td className="p-4">
+                          <div className="flex gap-2">
+                            <Link href={`/clients/${id}/campaigns/${c.id}/preview`} className="px-3 py-1 rounded-lg text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30 transition-all no-underline inline-block">
+                              Preview →
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Sezione Campagne Meta Sincronizzate */}
-          <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid rgba(0,0,0,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div className="mt-12 pt-8 border-t border-white/5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <h2 className="text-xl font-extrabold flex items-center gap-2 text-foreground">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <Image src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg" alt="Meta" width={42} height={14} style={{ height: '14px', width: 'auto' }} unoptimized /> Sincronizzate da Meta
+                  <Image src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg" alt="Meta" width={42} height={14} className="h-3.5 w-auto" unoptimized /> Sincronizzate da Meta
                 </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Campagne attualmente attive sull'Ad Account configurato</p>
+                <p className="text-xs text-muted-foreground mt-1">Campagne attualmente attive sull'Ad Account configurato</p>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
                 <input 
                    type="text" 
                    placeholder="Filtra campagne (es. ODC)..." 
@@ -1391,59 +1433,60 @@ export default function ClientDetailPage() {
                      setCampaignFilter(e.target.value)
                      localStorage.setItem(`meta_filter_${id}`, e.target.value)
                    }}
-                   style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', width: '250px', outline: 'none' }}
+                   className="px-3 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-cyan-500/50 text-xs w-full sm:w-64 outline-none transition-all placeholder:text-muted-foreground/50 text-foreground"
                 />
-                {loadingMeta && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Sincronizzazione in corso...</span>}
+                {loadingMeta && <span className="text-xs text-muted-foreground/60 animate-pulse shrink-0">Sincronizzazione...</span>}
               </div>
             </div>
 
             {!loadingMeta && metaCampaigns.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem', background: 'rgba(0,0,0,0.02)', borderRadius: '16px', color: 'var(--text-tertiary)' }}>
+              <div className="text-center py-12 bg-background/20 rounded-2xl border border-white/5 text-muted-foreground/60 text-sm">
                 Nessuna campagna trovata sull'account Meta corrente.
               </div>
             ) : (
-              <div style={{ maxHeight: '500px', overflowY: 'auto', border: '1px solid rgba(0,0,0,0.08)', borderRadius: '12px' }}>
-                <table className="glass-table" style={{ width: '100%', border: 'none' }}>
-                  <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 10, boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+              <div className="max-h-[500px] overflow-y-auto border border-white/10 rounded-xl glass-panel scrollbar-thin">
+                <table className="w-full border-collapse text-left">
+                  <thead className="sticky top-0 bg-background/95 backdrop-blur-md border-b border-white/10 z-10 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <tr>
-                      <th>Nome (Meta)</th>
-                      <th>Stato</th>
-                      <th>Obiettivo</th>
-                      <th>Budget G. / Tot.</th>
-                      <th>Azioni</th>
+                      <th className="p-4">Nome (Meta)</th>
+                      <th className="p-4">Stato</th>
+                      <th className="p-4">Obiettivo</th>
+                      <th className="p-4">Budget G. / Tot.</th>
+                      <th className="p-4">Azioni</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-white/5 text-xs text-muted-foreground">
                     {metaCampaigns.filter((mc: any) => mc.name.toLowerCase().includes(campaignFilter.toLowerCase())).map((mc: any) => {
                       const isActive = mc.status === 'ACTIVE'
                       return (
-                        <tr key={mc.id}>
-                          <td style={{ fontWeight: 600, fontSize: '0.85rem' }}>{mc.name}</td>
-                          <td>
-                            <span style={{ 
-                              color: isActive ? '#34d399' : '#94a3b8', 
-                              background: isActive ? 'rgba(52,211,153,0.1)' : 'rgba(148,163,184,0.1)', 
-                              padding: '2px 8px', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 700 
-                            }}>
+                        <tr key={mc.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="p-4 font-semibold text-foreground">{mc.name}</td>
+                          <td className="p-4">
+                            <span className={cn(
+                              "px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide",
+                              isActive ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20" : "text-muted-foreground bg-white/5 border border-white/10"
+                            )}>
                               {mc.status}
                             </span>
                           </td>
-                          <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{mc.objective?.replace('OUTCOME_', '')}</td>
-                          <td style={{ fontSize: '0.85rem' }}>
+                          <td className="p-4">{mc.objective?.replace('OUTCOME_', '')}</td>
+                          <td className="p-4 font-medium text-foreground">
                             {mc.daily_budget ? `€${(parseInt(mc.daily_budget) / 100).toFixed(2)}/gg` : 
                              mc.lifetime_budget ? `€${(parseInt(mc.lifetime_budget) / 100).toFixed(2)} Tot` : '-'}
                           </td>
-                          <td>
+                          <td className="p-4">
                             <button
                               onClick={() => handleOpenReport(mc.id, mc.objective, mc.name)}
                               disabled={loadingReportId === mc.id}
-                              style={{ 
-                                padding: '4px 10px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700,
-                                background: 'white', color: '#1877f2', border: '1px solid #1877f2', cursor: 'pointer',
-                                display: 'inline-flex', alignItems: 'center', gap: '0.3rem', opacity: loadingReportId === mc.id ? 0.5 : 1
-                              }}
+                              className={cn(
+                                "py-1.5 px-3 rounded-lg text-[10px] font-bold transition-all inline-flex items-center gap-1.5 active:scale-95 cursor-pointer",
+                                loadingReportId === mc.id 
+                                  ? "bg-white/5 text-muted-foreground cursor-not-allowed" 
+                                  : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 hover:border-cyan-500/30"
+                              )}
                             >
-                              <BarChart2 size={12} /> {loadingReportId === mc.id ? 'Caricamento...' : 'Report KPI'}
+                              {loadingReportId === mc.id ? <Loader2 size={10} className="animate-spin" /> : <BarChart2 size={10} />}
+                              {loadingReportId === mc.id ? 'Caricamento...' : 'Report KPI'}
                             </button>
                           </td>
                         </tr>
@@ -1481,26 +1524,26 @@ export default function ClientDetailPage() {
 
       {/* TAB: BRAND ASSETS */}
       {activeTab === 'assets' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <p style={{ color: 'var(--text-secondary)' }}>Libreria creativa del cliente</p>
-            <Link href={`/clients/${id}/brand-assets`} className="btn-gorgeous" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Plus size={18} /> Gestisci Assets
+        <div className="space-y-6">
+          <div className="flex justify-between items-center mb-6">
+            <p className="text-sm text-muted-foreground">Libreria creativa del cliente</p>
+            <Link href={`/clients/${id}/brand-assets`} className="btn-gorgeous inline-flex items-center gap-2 no-underline text-xs font-semibold px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all">
+              <Plus size={16} /> Gestisci Assets
             </Link>
           </div>
           {(client.brandAssets?.length || 0) === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+            <div className="text-center py-16 text-muted-foreground bg-background/20 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-3">
               Nessun asset caricato. Vai su "Gestisci Assets" per caricare immagini e video del cliente.
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {(client.brandAssets || []).map(a => (
-                <div key={a.id} className="glass-table" style={{ padding: '1.25rem', borderRadius: '14px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', background: 'rgba(0, 0, 0,0.05)', padding: '2px 8px', borderRadius: '50px' }}>{a.type} · {a.format}</span>
-                    {a.isActive ? <CheckCircle2 size={14} color="#34d399" /> : <AlertTriangle size={14} color="#f87171" />}
+                <div key={a.id} className="glass-card card-hover p-5 rounded-2xl border border-white/10 bg-white/[0.03] transition-all duration-300 flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground bg-white/5 border border-white/10 px-2.5 py-0.5 rounded-full">{a.type} · {a.format}</span>
+                    {a.isActive ? <CheckCircle2 size={16} className="text-emerald-400" /> : <AlertTriangle size={16} className="text-rose-400" />}
                   </div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{a.label}</div>
+                  <div className="font-bold text-sm text-foreground">{a.label}</div>
                 </div>
               ))}
             </div>
@@ -1510,33 +1553,33 @@ export default function ClientDetailPage() {
 
       {/* TAB: HEATMAPS */}
       {activeTab === 'heatmaps' && (
-        <div className="glass-panel" style={{ padding: '2rem', borderRadius: '20px', minHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <MousePointerClick size={24} color="#8b5cf6" />
-              <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Mappe di Calore & Sessioni (Clarity)</h3>
+        <div className="glass-panel p-6 sm:p-8 rounded-2xl min-h-[80vh] flex flex-col gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <MousePointerClick size={24} className="text-violet-400" />
+              <h3 className="text-lg font-extrabold text-foreground">Mappe di Calore & Sessioni (Clarity)</h3>
             </div>
             {client.clarityProjectId && (
-              <a href={`https://clarity.microsoft.com/projects/view/${client.clarityProjectId}/dashboard?date=Last%2030%20days`} target="_blank" rel="noreferrer" style={{ fontSize: '0.85rem', color: '#8b5cf6', textDecoration: 'none', fontWeight: 600, padding: '0.4rem 1rem', background: 'rgba(139,92,246,0.1)', borderRadius: '8px' }}>
+              <a href={`https://clarity.microsoft.com/projects/view/${client.clarityProjectId}/dashboard?date=Last%2030%20days`} target="_blank" rel="noreferrer" className="text-xs text-violet-400 hover:text-violet-300 font-semibold px-4 py-2 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 rounded-lg no-underline transition-all inline-flex items-center justify-center">
                 Apri a tutto schermo ↗
               </a>
             )}
           </div>
           
           {!client.clarityProjectId ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed rgba(139,92,246,0.2)', borderRadius: '16px', background: 'rgba(139,92,246,0.02)' }}>
-              <Eye size={40} color="#8b5cf6" style={{ marginBottom: '1rem', opacity: 0.5 }} />
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.5rem' }}>Clarity Non Connesso</h4>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', textAlign: 'center', maxWidth: '400px' }}>
+            <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-violet-500/20 rounded-2xl bg-violet-500/5 p-8 text-center min-h-[400px]">
+              <Eye size={40} className="text-violet-400 mb-4 opacity-50" />
+              <h4 className="text-base font-bold text-foreground mb-2">Clarity Non Connesso</h4>
+              <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto leading-relaxed">
                 Inserisci il Project ID di Microsoft Clarity nelle impostazioni API per sbloccare le mappe di calore live e le registrazioni degli utenti sul sito {client.websiteUrl?.replace('https://', '') || 'selezionato'}.
               </p>
-              <button onClick={() => setActiveTab('settings')} className="btn-gorgeous" style={{ padding: '0.5rem 1.5rem' }}>Vai a Setup API</button>
+              <button onClick={() => setActiveTab('settings')} className="btn-gorgeous px-6 py-2.5 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-500 text-white cursor-pointer transition-all">Vai a Setup API</button>
             </div>
           ) : (
-             <div style={{ flex: 1, position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)', background: '#fff' }}>
+             <div className="flex-1 relative w-full aspect-video min-h-[600px] rounded-xl overflow-hidden border border-white/10 bg-white">
                 <iframe 
                    src={`https://clarity.microsoft.com/embed/${client.clarityProjectId}`}
-                   style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                   className="absolute inset-0 w-full h-full border-0"
                    title="Microsoft Clarity Dashboard"
                 />
              </div>
@@ -1551,18 +1594,20 @@ export default function ClientDetailPage() {
 
       {/* TAB: API SETTINGS */}
       {activeTab === 'settings' && (
-        <div style={{ maxWidth: '680px' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.5rem' }}>Configurazione <span style={{ color: '#06b6d4' }}>Integrazioni API</span></h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-            Collega Meta Ads e l’ecosistema Google per sincronizzare dati reali in automatico.
-          </p>
+        <div className="max-w-2xl space-y-6">
+          <div>
+            <h2 className="text-xl font-extrabold text-foreground">Configurazione <span className="text-cyan-400">Integrazioni API</span></h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Collega Meta Ads e l’ecosistema Google per sincronizzare dati reali in automatico.
+            </p>
+          </div>
 
-          {/* ── Stato Token Meta (live) ── */}
-          <div style={{ marginBottom: '2rem' }}>
+          {/* Stato Token Meta (live) */}
+          <div className="glass-panel p-5 rounded-2xl border border-white/10">
             <MetaTokenManager clientId={id as string} />
           </div>
 
-          <form className="glass-table" style={{ padding: '2rem', borderRadius: '16px' }} onSubmit={async (e) => {
+          <form className="glass-panel p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.02] flex flex-col gap-6 sm:gap-8" onSubmit={async (e) => {
             e.preventDefault();
             const form = e.currentTarget;
 
@@ -1602,7 +1647,6 @@ export default function ClientDetailPage() {
             
             if (rawData.clarityProjectId) data.clarityProjectId = rawData.clarityProjectId
 
-
             try {
               const token = localStorage.getItem('token');
               const res = await fetch(`${API_URL}/api/clients/${id}`, {
@@ -1622,9 +1666,9 @@ export default function ClientDetailPage() {
             }
           }}>
             {/* ─── META ADS INTEGRATION ─── */}
-            <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#06b6d4' }}>Meta Ads & Facebook</h3>
+            <div className="space-y-6 pb-6 border-b border-white/5">
+              <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+                <h3 className="text-base font-bold text-cyan-400">Meta Ads & Facebook</h3>
                 <button
                   type="button"
                   disabled={loadingMetaAccounts}
@@ -1645,24 +1689,28 @@ export default function ClientDetailPage() {
                     } catch(e) { console.error(e) }
                     finally { setLoadingMetaAccounts(false) }
                   }}
-                  style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: loadingMetaAccounts ? 'rgba(6,182,212,0.3)' : '#06b6d4', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                  className={cn(
+                    "text-xs font-semibold px-4 py-2 rounded-lg transition-all active:scale-95 inline-flex items-center gap-1.5 cursor-pointer",
+                    loadingMetaAccounts ? "bg-cyan-500/20 text-cyan-400/60 cursor-not-allowed border border-cyan-500/10" : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20"
+                  )}
                 >
-                  {loadingMetaAccounts ? '⏳ Caricamento...' : '🔗 Carica Account Meta'}
+                  {loadingMetaAccounts ? <Loader2 className="h-3 w-3 animate-spin" /> : <Settings size={12} />}
+                  {loadingMetaAccounts ? 'Caricamento...' : 'Carica Account Meta'}
                 </button>
               </div>
 
               {/* Dropdown Meta Ad Account */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Ad Account ID</label>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground">Ad Account ID</label>
                 {metaAdAccounts.length > 0 ? (
                   <select
                     name="metaAdAccountId"
                     defaultValue={client.metaAdAccountId}
-                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(6,182,212,0.4)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                    className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-cyan-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all cursor-pointer"
                   >
                     <option value="">-- Seleziona account --</option>
                     {metaAdAccounts.map(a => (
-                      <option key={a.id} value={a.id}>
+                      <option key={a.id} value={a.id} className="bg-neutral-900 text-foreground">
                         {a.name} ({a.id}) — {a.currency} {a.account_status === 1 ? '✅' : '⚠️'}
                       </option>
                     ))}
@@ -1672,32 +1720,32 @@ export default function ClientDetailPage() {
                     name="metaAdAccountId"
                     defaultValue={client.metaAdAccountId}
                     placeholder="es. act_123456789 — oppure clicca Carica Account Meta"
-                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }}
+                    className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-cyan-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40"
                   />
                 )}
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem' }}>Clicca "Carica Account Meta" per vedere gli account accessibili dall\'agenzia.</p>
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">Clicca "Carica Account Meta" per vedere gli account accessibili dall'agenzia.</p>
               </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Page ID (Opzionale)</label>
-                <input name="metaPageId" defaultValue={client.metaPageId} placeholder="es. 104345345345" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground">Page ID (Opzionale)</label>
+                <input name="metaPageId" defaultValue={client.metaPageId} placeholder="es. 104345345345" className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-cyan-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+              <div className="space-y-2">
+                <label className="flex items-center text-xs font-bold text-muted-foreground">
                   System User Token (Meta)
-                  {!client.hasMetaToken && <span style={{ marginLeft: '0.5rem', color: '#ef4444', fontSize: '0.75rem' }}>MANCANTE</span>}
-                  {client.hasMetaToken && <span style={{ marginLeft: '0.5rem', color: '#10b981', fontSize: '0.75rem' }}>Configurato ✅ (lascia vuoto per mantenere)</span>}
+                  {!client.hasMetaToken && <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wide bg-rose-500/10 text-rose-400 border border-rose-500/20">MANCANTE</span>}
+                  {client.hasMetaToken && <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wide bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Configurato ✅ (lascia vuoto per mantenere)</span>}
                 </label>
-                <input name="metaAccessToken" placeholder="EAAB... (System User Token permanente da Meta Business)" type="password" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem' }}>Per il caricamento automatico degli account, aggiungi <code>META_SYSTEM_USER_TOKEN</code> nelle variabili Vercel.</p>
+                <input name="metaAccessToken" placeholder="EAAB... (System User Token permanente da Meta Business)" type="password" className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-cyan-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">Per il caricamento automatico degli account, aggiungi <code className="bg-white/5 border border-white/10 px-1 py-0.5 rounded text-[11px] font-mono text-cyan-300">META_SYSTEM_USER_TOKEN</code> nelle variabili Vercel.</p>
               </div>
             </div>
 
             {/* ─── GOOGLE INTEGRATION ─── */}
-            <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#3b82f6' }}>Ecosistema Google</h3>
+            <div className="space-y-6 pb-6 border-b border-white/5">
+              <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+                <h3 className="text-base font-bold text-blue-400">Ecosistema Google</h3>
                 <button
                   type="button"
                   disabled={loadingGoogleAdsAccounts}
@@ -1718,24 +1766,28 @@ export default function ClientDetailPage() {
                     } catch(e) { console.error(e) }
                     finally { setLoadingGoogleAdsAccounts(false) }
                   }}
-                  style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', background: loadingGoogleAdsAccounts ? 'rgba(59,130,246,0.3)' : '#3b82f6', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+                  className={cn(
+                    "text-xs font-semibold px-4 py-2 rounded-lg transition-all active:scale-95 inline-flex items-center gap-1.5 cursor-pointer",
+                    loadingGoogleAdsAccounts ? "bg-blue-500/20 text-blue-400/60 cursor-not-allowed border border-blue-500/10" : "bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20"
+                  )}
                 >
-                  {loadingGoogleAdsAccounts ? '⏳ Caricamento...' : '🔗 Carica Account Google Ads'}
+                  {loadingGoogleAdsAccounts ? <Loader2 className="h-3 w-3 animate-spin" /> : <Settings size={12} />}
+                  {loadingGoogleAdsAccounts ? 'Caricamento...' : 'Carica Account Google Ads'}
                 </button>
               </div>
 
               {/* Google Ads Customer ID */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Google Ads Customer ID</label>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground">Google Ads Customer ID</label>
                 {googleAdsAccounts.length > 0 ? (
                   <select
                     name="googleAdAccountId"
                     defaultValue={client.googleAdAccountId || ''}
-                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(59,130,246,0.4)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                    className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all cursor-pointer"
                   >
                     <option value="">-- Seleziona account --</option>
                     {googleAdsAccounts.map((a: any) => (
-                      <option key={a.id} value={a.formattedId || a.id}>
+                      <option key={a.id} value={a.formattedId || a.id} className="bg-neutral-900 text-foreground">
                         {a.name} — {a.formattedId || a.id}
                       </option>
                     ))}
@@ -1745,58 +1797,56 @@ export default function ClientDetailPage() {
                     name="googleAdAccountId"
                     defaultValue={client.googleAdAccountId || ''}
                     placeholder="es. 123-456-7890 — oppure clicca Carica Account Google Ads"
-                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }}
+                    className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40"
                   />
                 )}
               </div>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>GA4 Property ID (Analytics)</label>
-                <input name="ga4PropertyId" defaultValue={client.ga4PropertyId || ''} placeholder="es. 345678901" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground">GA4 Property ID (Analytics)</label>
+                <input name="ga4PropertyId" defaultValue={client.ga4PropertyId || ''} placeholder="es. 345678901" className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                  Google Refresh Token (OAuth)
-                </label>
-                <input name="googleRefreshToken" placeholder="1//04ABCD..." type="password" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem' }}>Richiesto per sbloccare le statistiche di Google Ads.</p>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground">Google Refresh Token (OAuth)</label>
+                <input name="googleRefreshToken" placeholder="1//04ABCD..." type="password" className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">Richiesto per sbloccare le statistiche di Google Ads.</p>
               </div>
             </div>
 
-            {/* ─── GOOGLE BUSINESS PROFILE ─── */}
-            <div style={{ marginBottom: '2.5rem', paddingBottom: '2.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#f59e0b', marginBottom: '1rem' }}>Google Business Profile (Maps)</h3>
+            {/* ─── Google Business Profile ─── */}
+            <div className="space-y-6 pb-6 border-b border-white/5">
+              <h3 className="text-base font-bold text-amber-400">Google Business Profile (Maps)</h3>
 
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>ID Account GBP (Account Name)</label>
-                <input name="gbpAccountId" defaultValue={client.gbpAccountId || ''} placeholder="es. accounts/123456789" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground">ID Account GBP (Account Name)</label>
+                <input name="gbpAccountId" defaultValue={client.gbpAccountId || ''} placeholder="es. accounts/123456789" className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-amber-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                  GBP Refresh Token (OAuth)
-                </label>
-                <input name="gbpRefreshToken" placeholder="1//04ABCD..." type="password" style={{ width: '100%', padding: '0.75rem', background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '10px', color: 'var(--text-primary)' }} />
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.4rem' }}>Spesso uguale a quello di Google Ads se gestiti dalla stessa email.</p>
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-muted-foreground">GBP Refresh Token (OAuth)</label>
+                <input name="gbpRefreshToken" placeholder="1//04ABCD..." type="password" className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-amber-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
+                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">Spesso uguale a quello di Google Ads se gestiti dalla stessa email.</p>
               </div>
             </div>
 
             {/* ─── MICROSOFT CLARITY ─── */}
-            <div style={{ marginBottom: '2rem', padding: '1.25rem', border: '1px solid rgba(139, 92, 246, 0.2)', backgroundColor: 'rgba(139, 92, 246, 0.05)', borderRadius: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontWeight: 700, color: '#8b5cf6', marginBottom: '0.2rem' }}>
-                 Microsoft Clarity (Heatmaps)
-              </label>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>Sblocca le mappe di calore sulla dashboard inserendo il Project ID.</p>
-              <input name="clarityProjectId" defaultValue={client.clarityProjectId || ''} placeholder="es. 8abc123" style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.8)', border: '1px solid rgba(139, 92, 246, 0.2)', borderRadius: '10px', color: 'var(--text-primary)' }} />
+            <div className="p-5 border border-violet-500/20 bg-violet-500/5 rounded-2xl space-y-4">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-bold text-violet-400">
+                  Microsoft Clarity (Heatmaps)
+                </label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Sblocca le mappe di calore sulla dashboard inserendo il Project ID.</p>
+              </div>
+              <input name="clarityProjectId" defaultValue={client.clarityProjectId || ''} placeholder="es. 8abc123" className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-violet-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
             </div>
 
-            <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid rgba(59, 130, 246, 0.2)', backgroundColor: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#2563eb', marginBottom: '0.75rem' }}>
-                Google Analytics 4 — Collega Proprieta'
+            {/* GA4 Property selection */}
+            <div className="p-5 border border-blue-500/20 bg-blue-500/5 rounded-2xl space-y-4">
+              <label className="block text-xs font-bold text-blue-400">
+                Google Analytics 4 — Collega Proprietà
               </label>
 
-              {/* Trigger: carica lista proprieta' al click */}
               {ga4Properties.length === 0 && !loadingGa4Props && (
                 <button
                   type="button"
@@ -1817,38 +1867,37 @@ export default function ClientDetailPage() {
                     } catch(e) { console.error(e) }
                     finally { setLoadingGa4Props(false) }
                   }}
-                  style={{ width: '100%', padding: '0.75rem', background: 'rgba(37,99,235,0.08)', border: '1px dashed rgba(37,99,235,0.4)', borderRadius: '10px', color: '#2563eb', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+                  className="w-full py-2.5 px-4 text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 rounded-lg cursor-pointer transition-all text-center"
                 >
-                  Carica Proprieta' da Google Analytics
+                  Carica Proprietà da Google Analytics
                 </button>
               )}
 
               {loadingGa4Props && (
-                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Connessione a Google Analytics...</div>
+                <div className="py-2 text-center text-xs text-muted-foreground/60 animate-pulse">Connessione a Google Analytics...</div>
               )}
 
               {ga4Properties.length > 0 && (
-                <div>
+                <div className="space-y-1.5">
                   <select
                     name="ga4PropertyId"
                     defaultValue={client.ga4PropertyId || ''}
-                    style={{ width: '100%', padding: '0.75rem', background: '#fff', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}
+                    className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-blue-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all cursor-pointer"
                   >
                     <option value="">— Nessuna proprietà selezionata —</option>
                     {ga4Properties.map(p => (
-                      <option key={p.propertyId} value={p.propertyId}>
+                      <option key={p.propertyId} value={p.propertyId} className="bg-neutral-900 text-foreground">
                         {p.displayName} ({p.websiteUrl}) · ID: {p.propertyId}
                       </option>
                     ))}
                   </select>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Account: {ga4Properties[0]?.accountName} · {ga4Properties.length} proprietà trovate</p>
+                  <p className="text-[10px] text-muted-foreground/60">Account: {ga4Properties[0]?.accountName} · {ga4Properties.length} proprietà trovate</p>
                 </div>
               )}
 
-              {/* Campo nascosto con valore corrente se non ancora caricato il picker */}
               {ga4Properties.length === 0 && !loadingGa4Props && client.ga4PropertyId && (
-                <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#2563eb', padding: '0.4rem 0.75rem', background: 'rgba(37,99,235,0.05)', borderRadius: '6px' }}>
-                  ✅ Già collegato: Property ID <strong>{client.ga4PropertyId}</strong>
+                <div className="text-xs text-blue-400 py-2 px-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-between">
+                  <span>Collega attivo: Property ID <strong>{client.ga4PropertyId}</strong></span>
                   <input type="hidden" name="ga4PropertyId" value={client.ga4PropertyId} />
                 </div>
               )}
@@ -1858,37 +1907,33 @@ export default function ClientDetailPage() {
             </div>
 
             {/* GOOGLE ADS BLOCK */}
-            <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid rgba(16, 185, 129, 0.2)', backgroundColor: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#10b981', marginBottom: '0.75rem' }}>
+            <div className="p-5 border border-emerald-500/20 bg-emerald-500/5 rounded-2xl space-y-4">
+              <label className="block text-xs font-bold text-emerald-400">
                 Google Ads — Customer ID
               </label>
 
-              {/* Se gia collegato mostra lo stato */}
               {client.googleAdAccountId && (
-                <div style={{ marginBottom: '0.75rem', fontSize: '0.8rem', color: '#10b981', padding: '0.4rem 0.75rem', background: 'rgba(16,185,129,0.08)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Collegato: <strong>{client.googleAdAccountId}</strong></span>
+                <div className="text-xs text-emerald-400 py-2 px-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  Collegato: <strong>{client.googleAdAccountId}</strong>
                 </div>
               )}
 
-              {/* Input manuale Customer ID — il modo piu affidabile */}
               <input
                 type="text"
                 name="googleAdAccountId"
                 defaultValue={client.googleAdAccountId || ''}
                 placeholder="Es. 123-456-7890 oppure 1234567890"
-                style={{ width: '100%', padding: '0.75rem 1rem', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', fontSize: '0.9rem', background: '#fff', boxSizing: 'border-box', marginBottom: '0.5rem' }}
+                className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-emerald-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40"
               />
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginBottom: '0.75rem' }}>
+              <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
                 Trova il Customer ID su ads.google.com in alto a destra (formato: 123-456-7890). Rimuovi i trattini.
               </p>
 
-              {/* OAuth opzionale per caricare la lista account */}
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <div className="flex gap-4 items-center flex-wrap">
                 <a
                   href={`${API_URL}/api/clients/${id}/google-ads/auth`}
-                  style={{ fontSize: '0.8rem', color: '#10b981', textDecoration: 'underline', cursor: 'pointer' }}
+                  className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline"
                   onClick={() => {
-                    // Salva l'ID cliente in localStorage per usarlo dopo il redirect OAuth
                     if (typeof window !== 'undefined') {
                       localStorage.setItem('pendingGoogleAdsClientId', id as string)
                     }
@@ -1897,21 +1942,20 @@ export default function ClientDetailPage() {
                   Oppure accedi con Google per caricare la lista account automaticamente
                 </a>
                 {loadingGoogleAdsAccounts && (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Caricamento...</span>
+                  <span className="text-xs text-muted-foreground/60 animate-pulse">Caricamento...</span>
                 )}
               </div>
 
-              {/* Dropdown se l'OAuth e' andato a buon fine */}
               {googleAdsAccounts.length > 0 && (
-                <div style={{ marginTop: '0.75rem' }}>
+                <div className="mt-2">
                   <select
                     name="googleAdAccountId"
                     defaultValue={client.googleAdAccountId || ''}
-                    style={{ width: '100%', padding: '0.75rem', background: '#fff', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem' }}
+                    className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-emerald-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all cursor-pointer"
                   >
                     <option value="">— Seleziona Account —</option>
                     {googleAdsAccounts.map(a => (
-                      <option key={a.id} value={a.formattedId || a.id}>
+                      <option key={a.id} value={a.formattedId || a.id} className="bg-neutral-900 text-foreground">
                         {a.name} — {a.formattedId || a.id}
                       </option>
                     ))}
@@ -1919,22 +1963,21 @@ export default function ClientDetailPage() {
                 </div>
               )}
             </div>
+
             {/* GOOGLE BUSINESS PROFILE BLOCK */}
-            <div style={{ marginBottom: '2rem', padding: '1rem', border: '1px solid rgba(245, 158, 11, 0.2)', backgroundColor: 'rgba(245, 158, 11, 0.05)', borderRadius: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 700, color: '#f59e0b', marginBottom: '0.75rem' }}>
+            <div className="p-5 border border-amber-500/20 bg-amber-500/5 rounded-2xl space-y-4">
+              <label className="block text-xs font-bold text-amber-400">
                 Google Business Profile — Collega Location
               </label>
 
-              {/* Se gia collegato mostra lo stato */}
               {client.gbpLocationId && (
-                <div style={{ marginBottom: '0.75rem', fontSize: '0.8rem', color: '#d97706', padding: '0.4rem 0.75rem', background: 'rgba(245,158,11,0.08)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="text-xs text-amber-500 py-2 px-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center justify-between">
                   <span>Collegato: <strong>{client.gbpLocationId}</strong></span>
                   <input type="hidden" name="gbpLocationId" value={client.gbpLocationId} />
                   <input type="hidden" name="gbpAccountId" value={client.gbpAccountId || ''} />
                 </div>
               )}
 
-              {/* Trigger: carica lista location al click */}
               {gbpLocations.length === 0 && !loadingGbpLocations && (
                 <button
                   type="button"
@@ -1956,40 +1999,39 @@ export default function ClientDetailPage() {
                     } catch(e) { console.error(e) }
                     finally { setLoadingGbpLocations(false) }
                   }}
-                  style={{ width: '100%', padding: '0.75rem', background: 'rgba(245,158,11,0.08)', border: '1px dashed rgba(245,158,11,0.4)', borderRadius: '10px', color: '#d97706', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}
+                  className="w-full py-2.5 px-4 text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-lg cursor-pointer transition-all text-center"
                 >
                   Carica Location GBP collegate
                 </button>
               )}
 
               {loadingGbpLocations && (
-                <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Caricamento schede Google Business Profile...</div>
+                <div className="py-2 text-center text-xs text-muted-foreground/60 animate-pulse">Caricamento schede Google Business Profile...</div>
               )}
 
               {gbpLocations.length > 0 && (
-                <div>
+                <div className="space-y-2">
                   <select
                     name="gbpLocationId"
                     defaultValue={client.gbpLocationId || ''}
-                    style={{ width: '100%', padding: '0.75rem', background: '#fff', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}
+                    className="w-full text-sm bg-background/50 border border-white/10 hover:border-white/20 focus:border-amber-500/50 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all cursor-pointer"
                   >
                     <option value="">— Nessuna location selezionata —</option>
                     {gbpLocations.map(l => (
-                      <option key={l.name} value={l.name}>
+                      <option key={l.name} value={l.name} className="bg-neutral-900 text-foreground">
                         {l.title} ({l.address}) {l.isVerified ? '✅' : '❌'}
                       </option>
                     ))}
                   </select>
-                  {/* Salviamo anche l'Account ID se disponibile */}
                   {gbpAccounts.length > 0 && (
                     <input type="hidden" name="gbpAccountId" value={gbpAccounts[0].name} />
                   )}
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{gbpLocations.length} location trovate in questo account.</p>
+                  <p className="text-[10px] text-muted-foreground/60">{gbpLocations.length} location trovate in questo account.</p>
                 </div>
               )}
             </div>
 
-            <button type="submit" className="btn-gorgeous" style={{ width: '100%', padding: '0.8rem' }}>Salva Configurazione</button>
+            <button type="submit" className="btn-gorgeous w-full py-3 text-sm font-extrabold uppercase tracking-wide bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white rounded-xl cursor-pointer shadow-lg active:scale-98 transition-all">Salva Configurazione</button>
           </form>
         </div>
       )}

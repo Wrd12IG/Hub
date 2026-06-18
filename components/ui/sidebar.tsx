@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 
 interface SidebarContextType {
     isOpen: boolean
@@ -186,7 +187,7 @@ export const SidebarMenuButton = React.forwardRef<
                     else if (ref) ref.current = node
                 }}
                 className={cn(
-                    "w-full text-left rounded-xl flex items-center gap-3 relative",
+                    "w-full text-left rounded-xl flex items-center gap-3 relative overflow-hidden group/menu-btn",
                     "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
                     isOpen ? 'px-3 py-2.5' : 'p-2.5 justify-center',
                     isActive
@@ -198,6 +199,13 @@ export const SidebarMenuButton = React.forwardRef<
                 onMouseLeave={() => setShowTooltip(false)}
                 {...props}
             >
+                {isActive && (
+                    <motion.div
+                        layoutId="sidebar-active-indicator"
+                        className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                )}
                 {children}
             </button>
 

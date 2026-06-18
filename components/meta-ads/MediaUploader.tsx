@@ -150,7 +150,7 @@ function ArchiveModal({ selectedUrls, onConfirm, onClose, multiple }: {
       console.error('[MediaUploader] request failed:', error)
       toast({ title: 'Errore', description: 'Richiesta non completata', variant: 'destructive' })
     } finally { setLoading(false) }
-  }, [])
+  }, [toast])
 
   useEffect(() => { fetchAssets() }, [fetchAssets])
 

@@ -66,7 +66,7 @@ export function MetricoolDatePicker({
               <Button variant="ghost" className="justify-start text-sm h-8" onClick={() => setDate({ from: startOfMonth(new Date()), to: new Date() })}>Questo mese</Button>
               <Button variant="ghost" className="justify-start text-sm h-8" onClick={() => setDate({ from: startOfMonth(subMonths(new Date(), 1)), to: endOfMonth(subMonths(new Date(), 1)) })}>Mese scorso</Button>
               <Button variant="ghost" className="justify-start text-sm h-8" onClick={() => setDate({ from: startOfQuarter(new Date()), to: new Date() })}>Questo trimestre</Button>
-              <Button variant="ghost" className="justify-start text-sm h-8" onClick={() => setDate({ from: startOfYear(new Date()), to: new Date() })}>Quest'anno</Button>
+              <Button variant="ghost" className="justify-start text-sm h-8" onClick={() => setDate({ from: startOfYear(new Date()), to: new Date() })}>Quest&apos;anno</Button>
               <Button variant="ghost" className="justify-start text-sm h-8" onClick={() => setDate({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)) })}>Anno scorso</Button>
             </div>
             <div className="p-3">

@@ -265,155 +265,199 @@ const TaskCard = ({
             );
         }
         return <p>{task.status}</p>;
-    };    return (
+    };
+
+    return (
         <Card
             ref={cardRef}
             className={cn(
-                'flex flex-col rounded-xl transition-all duration-300 relative overflow-hidden outline-none ring-0 focus:ring-0 group',
+                'flex flex-col rounded-xl transition-all duration-300 relative overflow-hidden outline-none ring-0 focus:ring-0 group cursor-pointer',
                 'glass-card',
-                // 1. Timer Attivo → Glow Verde
-                isTimerActiveForThisTask && '!bg-green-500/10 dark:!bg-green-900/20 border-green-500/50 animate-pulse',
+                // 1. Timer Attivo → bordo verde + bg
+                isTimerActiveForThisTask && '!bg-green-500/10 dark:!bg-green-900/20 border-green-500 border-2',
                 // 2. In Approvazione SCADUTO → Lampeggio Viola URGENTE (priorità su tutto)
                 isApprovalOverdue && 'animate-glow-approval-overdue',
                 // 3. In Approvazione RECENTE (<24h) → Glow Viola lento
                 (!isApprovalOverdue && isTaskInApproval && approvalDaysPending < 1) && 'animate-glow-custom',
-                // 4. Scaduto (non in approvazione) → Bordo Rosso fisso
-                (!isApprovalOverdue && isOverdue) && 'border-red-500 border-2',
+                // 4. Scaduto (non in approvazione) → solo bordo sinistro rosso
+                (!isApprovalOverdue && isOverdue) && 'border-l-4 border-l-red-500',
                 // 5. Highlighted (Selezione URL) → Ring Blu statico
                 isHighlighted && 'ring-2 ring-primary shadow-lg',
-                !isTimerActiveForThisTask && !isTaskInApproval && 'bg-transparent'
+                // 6. Card normale → sfondo solido per contrasto
+                !isTimerActiveForThisTask && !isTaskInApproval && 'bg-card/80'
             )}
         >
-            <CardHeader className="pb-2">
-                <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-                        {client && (
-                            <span className="text-[10px] font-bold text-muted-foreground bg-secondary/80 px-2 py-0.5 rounded border border-border/40 uppercase tracking-wider">
-                                {client.name}
-                            </span>
+            {/* ── HEADER: cliente · progetto · azioni ── */}
+            <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-0">
+                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                    {/* Dot priorità + nome cliente */}
+                    <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: priorityColors[task.priority] }}
+                        title={`Priorità: ${task.priority}`}
+                    />
+                    {client && (
+                        <span
+                            className="text-[11px] font-semibold truncate max-w-[110px]"
+                            style={{ color: client.color || 'inherit' }}
+                        >
+                            {client.name}
+                        </span>
+                    )}
+                    {project && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setPreviewProject(project); }}
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors text-[10px] font-medium"
+                        >
+                            <FolderKanban className="h-2.5 w-2.5" />
+                            <span className="max-w-[60px] truncate">{project.name}</span>
+                        </button>
+                    )}
+                    {/* Badge giorni in approvazione */}
+                    {isTaskInApproval && approvalDaysPending >= 1 && (
+                        <span className="text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-breathing-custom">
+                            <Timer className="h-2.5 w-2.5" />
+                            {approvalDaysPending}gg
+                        </span>
+                    )}
+                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreVertical className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => handleOpenModal('edit', task)} disabled={task.status === 'Approvato' && !canApprove}>Modifica</DropdownMenuItem>
+                        {canApprove && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive" onClick={() => setTaskToDelete(task)}>Elimina</DropdownMenuItem>
+                            </>
                         )}
-                        {project && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPreviewProject(project);
-                                }}
-                                className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 hover:bg-primary/20 text-primary transition-colors text-[10px] font-medium"
-                            >
-                                <FolderKanban className="h-2.5 w-2.5" />
-                                <span className="max-w-[70px] truncate">{project.name}</span>
-                            </button>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            {/* ── TITOLO ── */}
+            <div className="px-3 pt-2 pb-1">
+                <h3 className="font-bold text-sm text-foreground leading-snug break-words">
+                    {task.title}
+                </h3>
+                {/* Descrizione — max 2 righe */}
+                {task.description && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                        {task.description}
+                    </p>
+                )}
+            </div>
+
+            {/* ── META ROW: scadenza · timer · allegati ── */}
+            <div className="flex items-center gap-2 px-3 py-1.5 flex-wrap">
+                {/* Scadenza */}
+                {task.dueDate && daysRemaining !== null ? (
+                    <Badge
+                        variant={daysRemaining < 0 && task.status !== 'Approvato' ? 'destructive' :
+                            daysRemaining <= 3 && task.status !== 'Approvato' ? 'default' : 'secondary'}
+                        className={cn(
+                            "text-[11px] px-1.5 py-0 h-5 flex items-center gap-0.5",
+                            daysRemaining < 0 && task.status !== 'Approvato' && "animate-breathing-custom"
                         )}
-                        {isTaskInApproval && approvalDaysPending >= 1 && (
-                            <span className="text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-1.5 py-0.5 rounded flex items-center gap-0.5 animate-breathing-custom">
-                                <Timer className="h-2.5 w-2.5" />
-                                {approvalDaysPending}gg
+                    >
+                        <Calendar className="h-3 w-3" />
+                        <span>
+                            {daysRemaining === 0 ? 'Oggi' :
+                             daysRemaining === 1 ? 'Domani' :
+                             daysRemaining < 0 ? 'Scaduto' :
+                             `${daysRemaining}gg`}
+                        </span>
+                    </Badge>
+                ) : (
+                    <span className="text-[11px] text-muted-foreground/60 italic">Nessuna scad.</span>
+                )}
+
+                {/* Timer registrato */}
+                {((task.timeSpent && task.timeSpent > 0) || isTimerActiveForThisTask) && (
+                    <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground bg-secondary/60 px-1.5 py-0.5 rounded border border-border/20">
+                        <Clock className={cn("h-3 w-3", isTimerActiveForThisTask && "text-green-500")} />
+                        <span>{timeSpentFormatted}</span>
+                    </div>
+                )}
+
+                {/* Allegati */}
+                {task.attachments && task.attachments.length > 0 && (
+                    <div className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
+                        <Paperclip className="h-3 w-3" />
+                        <span>{task.attachments.length}</span>
+                    </div>
+                )}
+
+                {/* Commenti */}
+                {task.comments && task.comments.length > 0 && (
+                    <div className="flex items-center gap-0.5 text-[11px] text-purple-500">
+                        <MessageSquare className="h-3 w-3" />
+                        <span>{task.comments.length}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* ── PROGRESS BAR (solo se c'è stima) ── */}
+            {task.estimatedDuration > 0 && (
+                <div className="px-3 pb-1.5 flex items-center gap-2">
+                    <span className={cn(
+                        "text-[11px] font-mono font-semibold shrink-0 w-8",
+                        timeExceeded && "text-red-500",
+                        timeWarning && "text-amber-500",
+                        !timeExceeded && !timeWarning && "text-muted-foreground"
+                    )}>
+                        {timeProgress.toFixed(0)}%
+                    </span>
+                    <Progress
+                        value={Math.min(timeProgress, 100)}
+                        className={cn(
+                            "h-1.5 flex-grow",
+                            timeExceeded && "[&>div]:bg-red-500",
+                            timeWarning && "[&>div]:bg-amber-500",
+                            !timeExceeded && !timeWarning && "[&>div]:bg-primary"
+                        )}
+                    />
+                </div>
+            )}
+
+            {/* ── APPROVAZIONE: data richiesta ── */}
+            {isTaskInApproval && (() => {
+                const dateSource = task.updatedAt || task.createdAt;
+                const dateLabel = task.updatedAt ? 'Richiesta' : 'Creato';
+                return (
+                    <div className="mx-3 mb-1.5 text-[11px] text-purple-600 dark:text-purple-400 flex items-center gap-1 font-medium bg-purple-500/8 rounded px-2 py-1">
+                        <Clock className="h-3 w-3 shrink-0" />
+                        {dateSource ? (
+                            <span>
+                                {dateLabel}: {format(
+                                    typeof dateSource === 'string'
+                                        ? new Date(dateSource)
+                                        : (dateSource as any).toDate ? (dateSource as any).toDate() : new Date(),
+                                    'dd MMM yyyy HH:mm',
+                                    { locale: it }
+                                )}
                             </span>
+                        ) : (
+                            <span>In attesa di approvazione</span>
                         )}
                     </div>
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-                                <MoreVertical className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => handleOpenModal('edit', task)} disabled={task.status === 'Approvato' && !canApprove}>Modifica</DropdownMenuItem>
-                            {canApprove && (
-                                <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive" onClick={() => setTaskToDelete(task)}>Elimina</DropdownMenuItem>
-                                </>
-                            )}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-                
-                <CardTitle className="font-headline text-base font-bold text-foreground leading-snug flex items-center gap-2 mt-2">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: priorityColors[task.priority] }} title={`Priorità: ${task.priority}`} />
-                    <span className="break-words">{task.title}</span>
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-grow pb-3">
-                <div className="flex gap-2 mb-2">
-                    {task.attachments && task.attachments.length > 0 && (
-                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4.5 gap-1" title={`${task.attachments.length} Allegati`}>
-                            <Paperclip className="h-2.5 w-2.5" /> {task.attachments.length}
-                        </Badge>
-                    )}
-                    {task.dependencies && task.dependencies.length > 0 && (
-                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4.5 gap-1" title={`${task.dependencies.length} Dipendenze`}>
-                            <LinkIcon className="h-2.5 w-2.5" /> {task.dependencies.length}
-                        </Badge>
-                    )}
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{task.description}</p>
-                
-                <div className="flex items-center justify-between gap-2.5 mt-3 pt-2.5 border-t border-border/40">
-                    {/* Progress / percentage */}
-                    {task.estimatedDuration > 0 ? (
-                        <div className="flex items-center gap-1.5 flex-grow min-w-0">
-                            <span className={cn(
-                                "text-[10px] font-bold font-mono shrink-0",
-                                timeExceeded && "text-red-500",
-                                timeWarning && "text-amber-500",
-                                !timeExceeded && !timeWarning && "text-foreground/80"
-                            )}>
-                                {timeProgress.toFixed(0)}%
-                            </span>
-                            <Progress
-                                value={Math.min(timeProgress, 100)}
-                                className={cn(
-                                    "h-1.5 flex-grow",
-                                    timeExceeded && "[&>div]:bg-red-500",
-                                    timeWarning && "[&>div]:bg-amber-500",
-                                    !timeExceeded && !timeWarning && "[&>div]:bg-yellow-500"
-                                )}
-                            />
-                        </div>
-                    ) : (
-                        <div className="flex-grow" />
-                    )}
-                    
-                    {/* Timer/Recorded time */}
-                    {((task.timeSpent && task.timeSpent > 0) || isTimerActiveForThisTask) ? (
-                        <div className="flex items-center gap-1 text-[10px] font-mono text-muted-foreground shrink-0 bg-secondary/50 px-1.5 py-0.5 rounded border border-border/20">
-                            <Clock className={cn("h-3 w-3", isTimerActiveForThisTask && "text-green-500 animate-pulse")} />
-                            <span>{timeSpentFormatted}</span>
-                        </div>
-                    ) : null}
+                );
+            })()}
 
-                    {/* Due date */}
-                    {task.dueDate && daysRemaining !== null ? (
-                        <Badge
-                            variant={daysRemaining < 0 && task.status !== 'Approvato' ? 'destructive' :
-                                daysRemaining <= 3 && task.status !== 'Approvato' ? 'default' : 'secondary'}
-                            className={cn(
-                                "text-[10px] px-1.5 py-0 h-5 flex items-center gap-0.5 shrink-0",
-                                daysRemaining < 0 && task.status !== 'Approvato' && "animate-breathing-custom"
-                            )}
-                        >
-                            <Calendar className="h-2.5 w-2.5" />
-                            <span>
-                                {daysRemaining === 0 ? 'Oggi' :
-                                 daysRemaining === 1 ? 'Domani' :
-                                 daysRemaining < 0 ? 'Scaduto' :
-                                 format(new Date(task.dueDate), 'dd MMM', { locale: it })}
-                            </span>
-                        </Badge>
-                    ) : (
-                        <span className="text-[10px] text-muted-foreground italic shrink-0">Nessuna scadenza</span>
-                    )}
-                </div>
-            </CardContent>
-            <CardFooter className="flex items-center justify-between gap-2 pt-2 pb-2.5 border-t border-border/40 overflow-hidden min-h-[44px]">
-                <div className="flex items-center -space-x-1.5 flex-shrink-0">
+            {/* ── FOOTER: avatar · azioni hover ── */}
+            <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-2.5 border-t border-border/30 mt-auto">
+                {/* Avatar assegnati */}
+                <div className="flex items-center gap-1.5">
                     {creator && (
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>
-                                    <Avatar className="h-7 w-7 border-2 border-background">
-                                        <AvatarFallback style={{ backgroundColor: creator.color, color: 'white' }} className="text-xs">
+                                    <Avatar className="h-6 w-6 border-2 border-background">
+                                        <AvatarFallback style={{ backgroundColor: creator.color, color: 'white' }} className="text-[10px]">
                                             {getInitials(creator.name)}
                                         </AvatarFallback>
                                     </Avatar>
@@ -426,13 +470,13 @@ const TaskCard = ({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger>
-                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-secondary/50 hover:bg-secondary transition-colors">
-                                        <Avatar className="h-5 w-5">
+                                    <div className="flex items-center gap-1 pl-0.5">
+                                        <Avatar className="h-6 w-6 border-2 border-primary/30">
                                             <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }} className="text-[10px]">
                                                 {getInitials(assignedUser.name)}
                                             </AvatarFallback>
                                         </Avatar>
-                                        <span className="text-[10px] font-medium max-w-[40px] truncate">{assignedUser.name.split(' ')[0]}</span>
+                                        <span className="text-xs font-medium text-muted-foreground">{assignedUser.name.split(' ')[0]}</span>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent><p>Assegnato a {assignedUser.name}</p></TooltipContent>
@@ -440,85 +484,68 @@ const TaskCard = ({
                         </TooltipProvider>
                     )}
                 </div>
-                
-                <div className="relative flex items-center justify-end flex-grow min-h-[32px]">
-                    {/* Default: comment count indicator */}
-                    {task.comments && task.comments.length > 0 && (
-                        <div className="flex items-center gap-1 text-purple-600 dark:text-purple-400 text-xs font-semibold bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 group-hover:opacity-0 transition-opacity duration-200">
-                            <MessageSquare className="h-3.5 w-3.5" />
-                            <span>{task.comments.length}</span>
-                        </div>
-                    )}
-                    
-                    {/* Hover action bar */}
-                    <div className="absolute right-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none group-hover:pointer-events-auto bg-card/95 backdrop-blur-md px-1 py-0.5 rounded-md border border-border/30 shadow-sm z-20">
-                        {isTaskInApproval && canApprove ? (
-                            <>
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <div className="relative">
-                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700" onClick={() => unapprovedDependencies.length === 0 && setApprovalState({ isOpen: true, task, sendEmail: true })} disabled={unapprovedDependencies.length > 0}>
-                                                    <ThumbsUp className="h-3.5 w-3.5" />
-                                                </Button>
-                                                {unapprovedDependencies.length > 0 && (
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <AlertTriangle className="absolute -top-0.5 -right-0.5 h-3 w-3 text-orange-500 bg-white rounded-full" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>Impossibile approvare. Dipendenze non completate:</p>
-                                                            <ul className="list-disc pl-4">
-                                                                {unapprovedDependencies.map(t => t && <li key={t.id}>{t.title}</li>)}
-                                                            </ul>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                )}
-                                            </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Approva</p></TooltipContent>
-                                    </Tooltip>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
-                                                <ThumbsDown className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>Rifiuta</p></TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            </>
-                        ) : canBeSentForApproval ? (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSendForApproval(task)}>
-                                            <Send className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Invia in Approvazione</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        ) : null}
 
-                        {isTimerActiveForThisTask ? (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handlePlay(task)}>
-                                <Square className="h-3.5 w-3.5 fill-current" />
-                            </Button>
-                        ) : (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100" onClick={() => handlePlay(task)} disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}>
-                                <Play className="h-3.5 w-3.5 fill-current" />
-                            </Button>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => setPreviewTask(task)}>
-                            <Eye className="h-3.5 w-3.5" />
+                {/* Azioni hover */}
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                    {isTaskInApproval && canApprove ? (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost" size="icon"
+                                        className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700"
+                                        onClick={() => unapprovedDependencies.length === 0 && setApprovalState({ isOpen: true, task, sendEmail: true })}
+                                        disabled={unapprovedDependencies.length > 0}
+                                    >
+                                        <ThumbsUp className="h-3.5 w-3.5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Approva</p></TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
+                                        <ThumbsDown className="h-3.5 w-3.5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Rifiuta</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    ) : canBeSentForApproval ? (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleSendForApproval(task)}>
+                                        <Send className="h-3.5 w-3.5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent><p>Invia in Approvazione</p></TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    ) : null}
+
+                    {isTimerActiveForThisTask ? (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => handlePlay(task)}>
+                            <Square className="h-3.5 w-3.5 fill-current" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-600 hover:bg-purple-100" onClick={() => handleChatOpen(task)}>
-                            <MessageSquare className="h-3.5 w-3.5" />
+                    ) : (
+                        <Button
+                            variant="ghost" size="icon"
+                            className="h-7 w-7 text-green-600 hover:bg-green-100"
+                            onClick={() => handlePlay(task)}
+                            disabled={['Annullato', 'In Approvazione', 'In Approvazione Cliente', 'Approvato'].includes(task.status)}
+                        >
+                            <Play className="h-3.5 w-3.5 fill-current" />
                         </Button>
-                    </div>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => setPreviewTask(task)}>
+                        <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-purple-600 hover:bg-purple-100" onClick={() => handleChatOpen(task)}>
+                        <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
                 </div>
-            </CardFooter>
+            </div>
         </Card>
     );
 };
@@ -1189,14 +1216,14 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         const boardColumns = [...visibleStatuses];
 
         return (
-            <div className="flex flex-col md:flex-row gap-6 md:overflow-x-auto pb-4">
+            <div className="flex flex-col md:flex-row gap-6 md:overflow-x-auto pb-4 w-full">
                 {boardColumns.map(status => {
                     const tasksForColumn = tasksByStatus[status as Task['status']];
 
                     if (!tasksForColumn) return null;
 
                     return (
-                        <div key={status} className="w-full md:w-80 md:flex-shrink-0">
+                        <div key={status} className="w-full md:flex-1 md:min-w-[300px]">
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex items-center gap-2">
                                     <span className={`w-3 h-3 rounded-full ${statusColors[status as Task['status']].bg.replace('100', '500')}`}></span>
@@ -1204,7 +1231,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 </div>
                                 <Badge variant="secondary" className="px-3 py-1 text-sm">{tasksForColumn.length}</Badge>
                             </div>
-                            <div className="p-2 rounded-lg min-h-[500px] space-y-4 bg-secondary/50">
+                            <div className="p-2 rounded-lg min-h-[200px] max-h-[calc(100vh-230px)] overflow-y-auto space-y-3 bg-secondary/50 scroll-smooth">
                                 {tasksForColumn.map(task => (
                                     <TaskCard
                                         key={task.id}
