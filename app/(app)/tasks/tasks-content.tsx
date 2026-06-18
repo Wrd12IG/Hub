@@ -1436,7 +1436,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     };
 
     return (
-        <div className="p-4 sm:p-6 h-full flex flex-col">
+        <div className="p-4 sm:p-6 h-full flex flex-col animate-fade-in-up">
             {/* 🎉 Sparkle celebration — fires on task approval */}
             <TaskApprovedCelebration trigger={celebrationTrigger > 0} />
             <div className="flex-shrink-0">
