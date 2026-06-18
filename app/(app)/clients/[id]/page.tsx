@@ -11,7 +11,8 @@ import {
   Search, Link as LinkIcon, Star, MessageSquare, MonitorPlay, MousePointer2, PieChart, LayoutGrid, CalendarDays
 } from 'lucide-react'
 import MetaCampaignReportModal from '@/components/MetaCampaignReportModal'
-import SeoGodModeReportModal from '@/components/SeoGodModeReportModal'
+import dynamic from 'next/dynamic';
+const SeoGodModeReportModal = dynamic(() => import('@/components/SeoGodModeReportModal'), { ssr: false });
 import GbpDashboardTab from '@/components/GbpDashboardTab'
 import { MetaTokenManager } from '@/components/MetaTokenManager'
 import { Button } from '@/components/ui/button'

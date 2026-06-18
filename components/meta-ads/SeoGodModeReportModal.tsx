@@ -6,6 +6,7 @@ import {
   Globe, Link2, MapPin, Map, ChevronDown, ChevronUp, CheckCircle2,
   BarChart2, Search, FileText, Bot, Award, Clock
 } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
 
 interface SeoGodModeReportModalProps {
   isOpen: boolean
@@ -169,6 +170,7 @@ const SECTIONS = [
 ]
 
 export default function SeoGodModeReportModal({ isOpen, onClose, clientId, clientName, websiteUrl }: SeoGodModeReportModalProps) {
+  const { toast } = useToast()
   const [scanStep, setScanStep] = useState(0)
   const [isScanning, setIsScanning] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -214,7 +216,7 @@ export default function SeoGodModeReportModal({ isOpen, onClose, clientId, clien
       }
     } catch (err: any) {
       console.error(err)
-      alert(`API Error: ${err.message || 'Errore durante la generazione'}`)
+      toast({ title: 'Errore', description: err.message || 'Errore durante la generazione', variant: 'destructive' })
     } finally {
       setIsSaving(false)
       onClose()

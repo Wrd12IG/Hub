@@ -65,7 +65,8 @@ import { it } from 'date-fns/locale';
 import { useLayoutData } from '../layout-context';
 import { Task, Project, CalendarActivity } from "@/lib/data"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import TaskForm from "@/components/task-form"
+import dynamic from 'next/dynamic';
+const TaskForm = dynamic(() => import('@/components/task-form'), { ssr: false });
 import ProjectForm from "@/components/project-form"
 import { CalendarActivityForm } from "@/components/calendar-activity-form"
 import { updateTask, updateProject, updateCalendarActivity } from '@/lib/actions';

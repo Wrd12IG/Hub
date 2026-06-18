@@ -15,7 +15,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Bot, Sparkles, ArrowLeft, Loader2, AlertTriangle, Save, Send } from 'lucide-react';
 import Link from 'next/link';
-import { SocialStrategyResults } from '@/components/social-strategy-results';
+import dynamic from 'next/dynamic';
+const SocialStrategyResults = dynamic(
+  () => import('@/components/social-strategy-results').then(m => ({ default: m.SocialStrategyResults })),
+  { ssr: false }
+);
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 

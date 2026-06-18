@@ -371,6 +371,11 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
   // MAIN RENDER
   return (
     <div style={{ maxWidth: '1200px' }}>
+      {/* TODO: rimuovere quando API Google Business Profile è approvata */}
+      <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
+        <span>⚠️</span>
+        <span>Dati dimostrativi — API Google Business Profile non ancora attiva</span>
+      </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Profilo <span style={{ color: '#f59e0b' }}>GBP</span></h2>

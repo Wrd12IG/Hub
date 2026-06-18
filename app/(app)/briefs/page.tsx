@@ -19,7 +19,8 @@ import { Brief, Project, Task } from '@/lib/data';
 import { getBriefs, deleteBrief } from '@/lib/actions';
 import BriefForm from '@/components/brief-form';
 import BriefToProjectForm from '@/components/brief-to-project-form';
-import TaskForm from '@/components/task-form';
+import dynamic from 'next/dynamic';
+const TaskForm = dynamic(() => import('@/components/task-form'), { ssr: false });
 
 export default function BriefsPage() {
     const { clients, currentUser, briefServices, briefServiceCategories, refetchData: refetchLayoutData } = useLayoutData();

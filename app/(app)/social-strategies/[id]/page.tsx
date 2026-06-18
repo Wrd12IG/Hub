@@ -26,7 +26,11 @@ import {
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { SocialStrategyResults } from '@/components/social-strategy-results';
+import dynamic from 'next/dynamic';
+const SocialStrategyResults = dynamic(
+  () => import('@/components/social-strategy-results').then(m => ({ default: m.SocialStrategyResults })),
+  { ssr: false }
+);
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 

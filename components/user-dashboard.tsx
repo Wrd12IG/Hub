@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -156,7 +156,7 @@ export default function UserDashboard() {
     setIsLoaded(true);
   }, [availableWidgets]);
 
-  const toggleWidget = (widgetId: string) => {
+  const toggleWidget = useCallback((widgetId: string) => {
     // Verifica che il widget sia tra quelli permessi dall'admin
     if (!availableWidgets.some(w => w.id === widgetId)) return;
 
@@ -167,9 +167,9 @@ export default function UserDashboard() {
       localStorage.setItem('user_dashboard_widgets', JSON.stringify(newWidgets));
       return newWidgets;
     });
-  };
+  }, [availableWidgets]);
 
-  const isWidgetVisible = (id: string) => visibleWidgets.includes(id) && availableWidgets.some(w => w.id === id);
+  const isWidgetVisible = useCallback((id: string) => visibleWidgets.includes(id) && availableWidgets.some(w => w.id === id), [visibleWidgets, availableWidgets]);
 
   const userTasks = useMemo(() => {
     if (!currentUser) return [];

@@ -28,76 +28,81 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchWeather();
-    }, [city]);
+        const controller = new AbortController();
 
-    const fetchWeather = async () => {
-        try {
-            setLoading(true);
-            setError(null);
+        const fetchWeather = async () => {
+            try {
+                setLoading(true);
+                setError(null);
 
-            // Se non c'è API key, usa dati mock
-            if (!apiKey) {
-                // Simula caricamento
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Se non c'è API key, usa dati mock
+                if (!apiKey) {
+                    // Simula caricamento
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
+                    setWeather({
+                        temperature: 18,
+                        feelsLike: 16,
+                        description: 'Parzialmente nuvoloso',
+                        humidity: 65,
+                        windSpeed: 12,
+                        pressure: 1013,
+                        visibility: 10,
+                        icon: '02d',
+                        city: city || 'Milano'
+                    });
+                    setLoading(false);
+                    return;
+                }
+
+                let url: string;
+
+                if (city) {
+                    // Usa città specificata
+                    url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=it`;
+                } else {
+                    // Usa geolocation
+                    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject);
+                    });
+
+                    const { latitude, longitude } = position.coords;
+                    url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric&lang=it`;
+                }
+
+                const response = await fetch(url, { signal: controller.signal });
+
+                if (!response.ok) {
+                    throw new Error('Impossibile recuperare i dati meteo');
+                }
+
+                const data = await response.json();
 
                 setWeather({
-                    temperature: 18,
-                    feelsLike: 16,
-                    description: 'Parzialmente nuvoloso',
-                    humidity: 65,
-                    windSpeed: 12,
-                    pressure: 1013,
-                    visibility: 10,
-                    icon: '02d',
-                    city: city || 'Milano'
+                    temperature: Math.round(data.main.temp),
+                    feelsLike: Math.round(data.main.feels_like),
+                    description: data.weather[0].description,
+                    humidity: data.main.humidity,
+                    windSpeed: Math.round(data.wind.speed * 3.6), // m/s to km/h
+                    pressure: data.main.pressure,
+                    visibility: Math.round(data.visibility / 1000), // m to km
+                    icon: data.weather[0].icon,
+                    city: data.name
                 });
+
                 setLoading(false);
-                return;
+            } catch (err: any) {
+                if (err instanceof Error && err.name === 'AbortError') return; // unmount cleanup
+                console.error('Weather fetch error:', err);
+                setError(err.message || 'Errore nel caricamento meteo');
+                setLoading(false);
             }
+        };
 
-            let url: string;
+        fetchWeather();
 
-            if (city) {
-                // Usa città specificata
-                url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=it`;
-            } else {
-                // Usa geolocation
-                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject);
-                });
-
-                const { latitude, longitude } = position.coords;
-                url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric&lang=it`;
-            }
-
-            const response = await fetch(url);
-
-            if (!response.ok) {
-                throw new Error('Impossibile recuperare i dati meteo');
-            }
-
-            const data = await response.json();
-
-            setWeather({
-                temperature: Math.round(data.main.temp),
-                feelsLike: Math.round(data.main.feels_like),
-                description: data.weather[0].description,
-                humidity: data.main.humidity,
-                windSpeed: Math.round(data.wind.speed * 3.6), // m/s to km/h
-                pressure: data.main.pressure,
-                visibility: Math.round(data.visibility / 1000), // m to km
-                icon: data.weather[0].icon,
-                city: data.name
-            });
-
-            setLoading(false);
-        } catch (err: any) {
-            console.error('Weather fetch error:', err);
-            setError(err.message || 'Errore nel caricamento meteo');
-            setLoading(false);
-        }
-    };
+        return () => controller.abort();
+    }, [city, apiKey]);
 
     const getWeatherIcon = (iconCode: string) => {
         const code = iconCode.substring(0, 2);
