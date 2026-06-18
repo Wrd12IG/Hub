@@ -122,6 +122,16 @@ type View = 'board' | 'list' | 'gantt';
 
 const STATUS_REQUIRING_ATTACHMENT: Task['status'][] = [];
 
+/** Converte qualsiasi valore Firestore date (Timestamp, string, Date) in Date | null */
+function safeToDate(val: any): Date | null {
+    if (!val) return null;
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    if (typeof val?.toDate === 'function') return val.toDate();      // Firestore Timestamp
+    if (typeof val?.seconds === 'number') return new Date(val.seconds * 1000); // plain obj
+    if (typeof val === 'string') { const d = new Date(val); return isNaN(d.getTime()) ? null : d; }
+    return null;
+}
+
 
 const TaskCard = ({
     task,
@@ -476,14 +486,14 @@ const TaskCard = ({
                             {task.priority}
                         </Badge>
                     </div>
-                    {task.createdAt && (
+                    {task.createdAt && (() => { const d = safeToDate(task.createdAt); return d ? (
                         <div className="flex items-center gap-2 pt-0.5">
                             <Clock className="h-3.5 w-3.5 text-muted-foreground/60" />
                             <span className="text-xs text-muted-foreground/70">
-                                Creato {format(new Date(task.createdAt), 'dd MMM yyyy', { locale: it })}
+                                Creato {format(d, 'dd MMM yyyy', { locale: it })}
                             </span>
                         </div>
-                    )}
+                    ) : null; })()}
                 </div>
             </CardContent>
             <CardFooter className="flex items-center justify-between gap-2 pt-3 border-t overflow-hidden">
@@ -2039,7 +2049,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             <div className="flex items-center justify-between">
                                                 <span className="text-sm text-muted-foreground">Data Creazione</span>
                                                 <span className="font-medium">
-                                                    {isClient && previewTask.createdAt ? format(new Date(previewTask.createdAt), 'dd MMM yyyy HH:mm', { locale: it }) : 'N/D'}
+                                                    {isClient && safeToDate(previewTask.createdAt)
+                                                        ? format(safeToDate(previewTask.createdAt)!, 'dd MMM yyyy HH:mm', { locale: it })
+                                                        : 'N/D'}
                                                 </span>
                                             </div>
                                             <Separator />
