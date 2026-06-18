@@ -601,7 +601,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         setPomodoroTask,
     } = useLayoutData();
 
-    const { token: authToken } = useAuthToken();
+    const authToken = useAuthToken();
 
     /** Proxy URL per allegati Firebase Storage — accessibile a tutti gli utenti autenticati */
     const getAttachmentHref = useCallback((url: string): string => {
