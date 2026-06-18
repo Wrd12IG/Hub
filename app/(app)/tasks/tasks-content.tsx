@@ -329,7 +329,7 @@ const TaskCard = ({
 
             {/* ── BODY: titolo · descrizione · scadenza ── */}
             <div className="px-3 pt-2 pb-2 flex-1">
-                <h3 className="font-bold text-sm text-foreground leading-snug break-words">
+                <h3 className="font-bold text-sm text-foreground leading-snug break-words uppercase">
                     {task.title}
                 </h3>
                 {task.description && (
