@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { Instagram, Grid, Plus, X, Trash2, Check, Hash, Sparkles, BookOpen } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { getAuthHeader } from '@/hooks/use-auth-token'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -172,6 +174,7 @@ interface HashtagManagerProps {
 }
 
 export function HashtagManager({ clientId, currentHashtags, onApply }: HashtagManagerProps) {
+  const { toast } = useToast()
   const [groups, setGroups] = useState<HashtagGroup[]>([])
   const [loading, setLoading] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -183,10 +186,13 @@ export function HashtagManager({ clientId, currentHashtags, onApply }: HashtagMa
     setLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/clients/${clientId}/hashtag-groups`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { ...getAuthHeader() }
       })
       if (res.ok) setGroups(await res.json())
-    } catch {} finally { setLoading(false) }
+    } catch (error) {
+      console.error('[InstagramTools] request failed:', error)
+      toast({ title: 'Errore', description: 'Richiesta non completata', variant: 'destructive' })
+    } finally { setLoading(false) }
   }, [clientId])
 
   useEffect(() => { fetchGroups() }, [fetchGroups])
@@ -198,20 +204,23 @@ export function HashtagManager({ clientId, currentHashtags, onApply }: HashtagMa
     try {
       await fetch(`${API_URL}/api/clients/${clientId}/hashtag-groups`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
+        headers: { ...getAuthHeader(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newGroupName, hashtags })
       })
       setNewGroupName('')
       setNewGroupTags('')
       setShowForm(false)
       await fetchGroups()
-    } catch {} finally { setSaving(false) }
+    } catch (error) {
+      console.error('[InstagramTools] request failed:', error)
+      toast({ title: 'Errore', description: 'Richiesta non completata', variant: 'destructive' })
+    } finally { setSaving(false) }
   }
 
   const handleDeleteGroup = async (id: string) => {
     await fetch(`${API_URL}/api/clients/${clientId}/hashtag-groups/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { ...getAuthHeader() }
     })
     await fetchGroups()
   }
@@ -224,7 +233,7 @@ export function HashtagManager({ clientId, currentHashtags, onApply }: HashtagMa
     // Track usage
     fetch(`${API_URL}/api/clients/${clientId}/hashtag-groups/${group.id}/use`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { ...getAuthHeader() }
     }).catch(() => {})
   }
 

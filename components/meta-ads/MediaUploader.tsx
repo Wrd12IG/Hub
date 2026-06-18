@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Upload, X, Image as ImageIcon, Video, Trash2, Check, FolderOpen, Plus } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { getAuthHeader } from '@/hooks/use-auth-token'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
 
@@ -128,6 +130,7 @@ function AssetCard({ asset, selected, onSelect, onDelete }: {
 function ArchiveModal({ selectedUrls, onConfirm, onClose, multiple }: {
   selectedUrls: string[]; onConfirm: (urls: string[]) => void; onClose: () => void; multiple: boolean
 }) {
+  const { toast } = useToast()
   const [assets, setAssets] = useState<UploadedAsset[]>([])
   const [loading, setLoading] = useState(true)
   const [picked, setPicked] = useState<string[]>(selectedUrls)
@@ -138,10 +141,13 @@ function ArchiveModal({ selectedUrls, onConfirm, onClose, multiple }: {
     setLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/assets`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { ...getAuthHeader() }
       })
       if (res.ok) setAssets(await res.json())
-    } catch {} finally { setLoading(false) }
+    } catch (error) {
+      console.error('[MediaUploader] request failed:', error)
+      toast({ title: 'Errore', description: 'Richiesta non completata', variant: 'destructive' })
+    } finally { setLoading(false) }
   }, [])
 
   useEffect(() => { fetchAssets() }, [fetchAssets])
@@ -156,14 +162,17 @@ function ArchiveModal({ selectedUrls, onConfirm, onClose, multiple }: {
       try {
         const res = await fetch(`${API_URL}/api/upload`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          headers: { ...getAuthHeader() },
           body: form,
         })
         if (res.ok) {
           const data = await res.json()
           uploaded.push(data.url)
         }
-      } catch {}
+      } catch (error) {
+        console.error('[MediaUploader] request failed:', error)
+        toast({ title: 'Errore', description: 'Richiesta non completata', variant: 'destructive' })
+      }
     }
     setUploading(false)
     await fetchAssets()
@@ -174,7 +183,7 @@ function ArchiveModal({ selectedUrls, onConfirm, onClose, multiple }: {
   const handleDelete = async (filename: string) => {
     await fetch(`${API_URL}/api/assets/${encodeURIComponent(filename)}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      headers: { ...getAuthHeader() }
     })
     setPicked(prev => prev.filter(u => !u.includes(filename)))
     await fetchAssets()
@@ -309,7 +318,7 @@ export default function MediaUploader({ value, onChange, multiple = false, label
       try {
         const res = await fetch(`${API_URL}/api/upload`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          headers: { ...getAuthHeader() },
           body: form,
         })
         if (res.ok) {
