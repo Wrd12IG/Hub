@@ -11,8 +11,8 @@ import {
   AlignLeft, ChevronDown, Monitor, Smartphone, Eye, Sparkles, Calendar,
   Youtube, FileImage, Globe, Tag, Lock, BookOpen, Film, Heart, MessageCircle, Bookmark, ThumbsUp, Share2
 } from 'lucide-react'
-import MediaUploader from '@/components/MediaUploader'
-import { InstagramGridPreview, HashtagManager, AspectRatioWarning } from '@/components/InstagramTools'
+import MediaUploader from '@/components/meta-ads/MediaUploader'
+import { InstagramGridPreview, HashtagManager, AspectRatioWarning } from '@/components/meta-ads/InstagramTools'
 import { LinkedinDwellTimeWarning, LinkedinSeeMorePreview, LinkedinMentionLookup } from '@/components/LinkedinTools'
 import { YoutubeTitleOptimizer, YoutubeAutoChapters, YoutubeFormatWarning } from '@/components/YoutubeTools'
 import { TiktokKeywordSuggestions, TiktokAntiShadowbanCheck, TiktokMusicWarning } from '@/components/TiktokTools'

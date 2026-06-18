@@ -132,6 +132,12 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   const prevNotificationCountRef = useRef<number>(0);
   const isInitialLoadRef = useRef<boolean>(true);
 
+  // Ref per sound settings (non deve causare remount dei listener Firestore)
+  const soundSettingsRef = useRef(soundSettings);
+  useEffect(() => {
+    soundSettingsRef.current = soundSettings;
+  }, [soundSettings]);
+
 
   const usersById = useMemo(() => users.reduce((acc, user) => ({ ...acc, [user.id]: user }), {} as Record<string, User>), [users]);
   const clientsById = useMemo(() => clients.reduce((acc, client) => ({ ...acc, [client.id]: client }), {} as Record<string, Client>), [clients]);
@@ -361,7 +367,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       const fetchedNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) }) as Notification);
 
       // Play sound and show browser notification for new notifications (not on initial load)
-      if (!isInitialLoadRef.current && soundSettings.enabled && soundSettings.notificationSound) {
+      if (!isInitialLoadRef.current && soundSettingsRef.current.enabled && soundSettingsRef.current.notificationSound) {
         const newCount = fetchedNotifications.filter(n => !n.isRead).length;
         const prevUnreadCount = prevNotificationCountRef.current;
 
@@ -382,7 +388,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
             }
 
             // Play audio notification with appropriate sound
-            playSound(soundType, soundSettings.volume);
+            playSound(soundType, soundSettingsRef.current.volume);
 
             // Show browser notification
             showBrowserNotification(newestUnread.title || 'Nuova notifica', {
@@ -406,7 +412,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       unsubConversations();
       unsubNotifications();
     };
-  }, [currentUser?.id, soundSettings.enabled, soundSettings.notificationSound, soundSettings.volume]);
+  }, [currentUser?.id]);
 
   // Persist sound settings to localStorage
   useEffect(() => {
