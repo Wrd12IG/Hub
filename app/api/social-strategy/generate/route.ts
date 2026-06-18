@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Set to 60 seconds (max for Vercel Pro, default is 10s on Hobby)
 
 export async function POST(req: NextRequest) {
     // API call: /api/social-strategy/generate
+    const auth = await verifyAuth(req);
+    if (!auth) return unauthorizedResponse();
+
     try {
         const { prompt, systemPrompt } = await req.json();
 

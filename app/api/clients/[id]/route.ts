@@ -98,6 +98,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const auth = await verifyAuth(request);
+  if (!auth) return unauthorizedResponse();
+
   try {
     const id = params.id;
     const body = await request.json();

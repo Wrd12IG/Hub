@@ -1065,27 +1065,22 @@ async function getTaskRelatedData(task: Task): Promise<{
     let activityTypeName = '';
 
     try {
-        if (task.clientId) {
-            const clientSnap = await getDoc(doc(db, 'clients', task.clientId));
-            if (clientSnap.exists()) {
-                clientName = (clientSnap.data() as Client).name || '';
-            }
-        }
+        const [clientSnap, projectSnap, activitySnap] = await Promise.all([
+            task.clientId ? getDoc(doc(db, 'clients', task.clientId)) : Promise.resolve(null),
+            task.projectId ? getDoc(doc(db, 'projects', task.projectId)) : Promise.resolve(null),
+            task.activityType ? getDoc(doc(db, 'activityTypes', task.activityType)) : Promise.resolve(null),
+        ]);
 
-        if (task.projectId) {
-            const projectSnap = await getDoc(doc(db, 'projects', task.projectId));
-            if (projectSnap.exists()) {
-                projectName = (projectSnap.data() as Project).name || '';
-            }
+        if (clientSnap?.exists()) {
+            clientName = (clientSnap.data() as Client).name || '';
         }
-
-        if (task.activityType) {
-            const activitySnap = await getDoc(doc(db, 'activityTypes', task.activityType));
-            if (activitySnap.exists()) {
-                activityTypeName = (activitySnap.data() as ActivityType).name || task.activityType;
-            } else {
-                activityTypeName = task.activityType;
-            }
+        if (projectSnap?.exists()) {
+            projectName = (projectSnap.data() as Project).name || '';
+        }
+        if (activitySnap?.exists()) {
+            activityTypeName = (activitySnap.data() as ActivityType).name || task.activityType;
+        } else if (task.activityType) {
+            activityTypeName = task.activityType;
         }
     } catch (error) {
         console.error('Error fetching task related data:', error);
