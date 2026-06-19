@@ -669,9 +669,13 @@ export default function ClientDetailPage() {
               <SelectTrigger>
                 <SelectValue placeholder="-- Scegli dal menu --" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-neutral-900 border border-white/15 rounded-xl shadow-2xl">
                 {allClients.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
+                  <SelectItem
+                    key={c.id}
+                    value={c.id}
+                    className="text-xs font-semibold text-neutral-200 rounded-lg focus:bg-white/10 focus:text-white cursor-pointer"
+                  >
                     {c.name}
                   </SelectItem>
                 ))}
@@ -790,12 +794,12 @@ export default function ClientDetailPage() {
                 <SelectTrigger className="h-8.5 text-xs font-bold w-[180px] bg-background/50 border-white/10 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="border-white/10 rounded-xl">
+                <SelectContent className="bg-neutral-900 border border-white/15 rounded-xl shadow-2xl">
                   {allClients.map((c) => (
                     <SelectItem
                       key={c.id}
                       value={c.id}
-                      className="text-xs font-semibold rounded-lg"
+                      className="text-xs font-semibold text-neutral-200 rounded-lg focus:bg-white/10 focus:text-white data-[state=checked]:text-primary data-[state=checked]:bg-primary/10 cursor-pointer"
                     >
                       {c.name}
                     </SelectItem>
