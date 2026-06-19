@@ -1,12 +1,16 @@
 /**
- * GET /api/clients/[id]/organic
- * Feed post organici aggregati (Facebook + Instagram)
+ * GET  /api/clients/[id]/organic?month=YYYY-MM
+ *   → Array<OrganicPost> per il mese specificato
  *
- * Se Meta non è configurato → { notConfigured: true } (NO dati finti).
+ * POST /api/clients/[id]/organic
+ *   → Crea nuovo post nel piano editoriale organico (Firestore)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse, getClientToken } from '@/lib/api-auth';
-import { getFacebookPageData, getInstagramPageData } from '@/lib/meta-client';
+import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { adminDb } from '@/lib/firebase-admin';
+import { FieldValue } from 'firebase-admin/firestore';
+
+const COLLECTION = 'organicPosts';
 
 export async function GET(
   request: NextRequest,
@@ -16,90 +20,83 @@ export async function GET(
   if (!user) return unauthorizedResponse();
 
   const { id: clientId } = params;
-  const platform = request.nextUrl.searchParams.get('platform') || 'all';
+  const month = request.nextUrl.searchParams.get('month'); // es. "2026-06"
 
   try {
-    const tokenData = await getClientToken(clientId, 'meta');
+    let query = adminDb
+      .collection(COLLECTION)
+      .where('clientId', '==', clientId);
 
-    if (!tokenData?.accessToken) {
-      return NextResponse.json(
-        {
-          posts: [],
-          notConfigured: true,
-          _meta: {
-            source: 'empty',
-            hint: 'Collega Meta nella scheda ⚙️ Setup API per vedere i post organici.',
-          },
-        },
-        { status: 503 }
-      );
+    // Filtra per mese se specificato
+    if (month) {
+      const [y, m] = month.split('-').map(Number);
+      const startDate = new Date(y, m - 1, 1).toISOString();
+      const endDate   = new Date(y, m, 1).toISOString();
+      query = query
+        .where('publishAt', '>=', startDate)
+        .where('publishAt', '<',  endDate);
     }
 
-    if (!tokenData?.extra?.pageId) {
-      return NextResponse.json(
-        {
-          posts: [],
-          notConfigured: true,
-          _meta: {
-            source: 'empty',
-            hint: 'Page ID mancante. Aggiungilo nella scheda ⚙️ Setup API.',
-          },
-        },
-        { status: 503 }
-      );
-    }
+    const snap = await query.orderBy('publishAt', 'asc').get();
+    const posts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Fetch reale dei post
-    let posts: any[] = [];
-
-    try {
-      if (platform === 'all' || platform === 'facebook') {
-        const fbData = await getFacebookPageData(clientId);
-        const fbPosts = (fbData?.posts?.data || []).map((p: any) => ({
-          id: p.id,
-          platform: 'facebook',
-          message: p.message || '',
-          createdTime: p.created_time,
-          permalink: p.permalink_url,
-          likes: p.reactions?.summary?.total_count || 0,
-          comments: p.comments?.summary?.total_count || 0,
-          shares: p.shares?.count || 0,
-          mediaType: p.attachments?.data?.[0]?.media_type,
-        }));
-        posts = [...posts, ...fbPosts];
-      }
-
-      if (platform === 'all' || platform === 'instagram') {
-        const igData = await getInstagramPageData(clientId);
-        const igPosts = (igData?.media?.data || []).map((p: any) => ({
-          id: p.id,
-          platform: 'instagram',
-          message: p.caption || '',
-          createdTime: p.timestamp,
-          permalink: p.permalink,
-          likes: p.like_count || 0,
-          comments: p.comments_count || 0,
-          shares: 0,
-          mediaType: p.media_type,
-          mediaUrl: p.media_url,
-        }));
-        posts = [...posts, ...igPosts];
-      }
-    } catch (fetchError: any) {
-      console.error(`[organic] Fetch error for client ${clientId}:`, fetchError.message);
-    }
-
-    // Ordina per data decrescente
-    posts.sort((a, b) => new Date(b.createdTime).getTime() - new Date(a.createdTime).getTime());
-
-    return NextResponse.json({
-      posts,
-      _meta: { source: 'live', count: posts.length },
-    });
+    return NextResponse.json(posts);
   } catch (error: any) {
-    console.error(`[organic] Error for client ${clientId}:`, error);
+    console.error('[organic GET]', error);
     return NextResponse.json(
-      { posts: [], error: String(error), notConfigured: false },
+      { error: 'Errore nel caricamento dei post', detail: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const user = await verifyAuth(request);
+  if (!user) return unauthorizedResponse();
+
+  const { id: clientId } = params;
+
+  try {
+    const body = await request.json();
+    const {
+      title, caption, content, platform, platforms, postType,
+      status, publishAt, mediaUrls, hashtags, linkUrl, metadata,
+    } = body;
+
+    const doc = {
+      clientId,
+      title:       title       || '',
+      caption:     caption     || null,
+      content:     content     || null,
+      platform:    platform    || (Array.isArray(platforms) ? platforms[0] : 'INSTAGRAM'),
+      platforms:   Array.isArray(platforms) ? platforms : (platform ? [platform] : ['INSTAGRAM']),
+      postType:    postType    || 'PHOTO',
+      status:      status      || 'DRAFT',
+      publishAt:   publishAt   || null,
+      mediaUrls:   Array.isArray(mediaUrls) ? mediaUrls : [],
+      hashtags:    Array.isArray(hashtags)  ? hashtags  : [],
+      linkUrl:     linkUrl     || null,
+      metadata:    metadata    || null,
+      metaPostId:  null,
+      metaPostUrl: null,
+      publishError: null,
+      externalSource: null,
+      importedAt:  null,
+      createdBy:   user.uid || null,
+      createdAt:   FieldValue.serverTimestamp(),
+      updatedAt:   FieldValue.serverTimestamp(),
+    };
+
+    const ref = await adminDb.collection(COLLECTION).add(doc);
+
+    return NextResponse.json({ id: ref.id, ...doc }, { status: 201 });
+  } catch (error: any) {
+    console.error('[organic POST]', error);
+    return NextResponse.json(
+      { error: 'Errore nella creazione del post', detail: error?.message },
       { status: 500 }
     );
   }
