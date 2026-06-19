@@ -419,14 +419,6 @@ const TaskCard = ({
                             {timeSpentFormatted}
                         </span>
                     )}
-                    {task.estimatedDuration > 0 && (
-                        <span className={cn(
-                            "text-[10px] font-mono font-semibold",
-                            timeExceeded ? "text-red-500" : timeWarning ? "text-amber-500" : "text-muted-foreground"
-                        )}>
-                            {timeProgress.toFixed(0)}%
-                        </span>
-                    )}
                     {task.attachments && task.attachments.length > 0 && (
                         <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                             <Paperclip className="h-2.5 w-2.5" />
@@ -452,6 +444,26 @@ const TaskCard = ({
                         ) : null;
                     })()}
                 </div>
+                {/* ── PROGRESS BAR (solo se c'è stima) ── */}
+                {task.estimatedDuration > 0 && (
+                    <div className="flex items-center gap-2 pt-1">
+                        <Progress
+                            value={Math.min(timeProgress, 100)}
+                            className={cn(
+                                "h-1.5 flex-grow",
+                                timeExceeded && "[&>div]:bg-red-500",
+                                timeWarning && "[&>div]:bg-amber-500",
+                                !timeExceeded && !timeWarning && "[&>div]:bg-primary"
+                            )}
+                        />
+                        <span className={cn(
+                            "text-[10px] font-mono font-semibold shrink-0",
+                            timeExceeded ? "text-red-500" : timeWarning ? "text-amber-500" : "text-muted-foreground"
+                        )}>
+                            {timeExceeded ? `+${(timeProgress - 100).toFixed(0)}%` : `${timeProgress.toFixed(0)}%`}
+                        </span>
+                    </div>
+                )}
 
                 {/* Riga 3: Avatar · Azioni */}
                 <div className="flex items-center justify-between gap-2 pt-0.5">
