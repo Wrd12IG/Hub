@@ -725,7 +725,7 @@ export default function ClientDetailPage() {
       : "0.0";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full min-w-0">
       {/* ── PAGE HEADER ── */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between bg-white/[0.01] border border-white/5 p-6 rounded-2xl shadow-sm">
         {/* LEFT: back + title */}

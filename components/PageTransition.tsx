@@ -20,7 +20,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
         duration: shouldReduceMotion ? 0.12 : 0.22, 
         ease: [0.22, 1, 0.36, 1] 
       }}
-      style={{ height: "100%" }}
+      style={{ height: "100%", width: "100%" }}
     >
       {children}
     </motion.div>
