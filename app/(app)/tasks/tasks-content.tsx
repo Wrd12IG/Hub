@@ -32,7 +32,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import PomodoroWidget from '@/components/pomodoro-timer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useAuthToken } from '@/hooks/use-auth-token';
+import { useAuthToken, getAuthToken } from '@/hooks/use-auth-token';
 import { getAttachmentUrl } from '@/lib/attachment-url';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -585,7 +585,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     /** Proxy URL per allegati Firebase Storage — accessibile a tutti gli utenti autenticati */
     const getAttachmentHref = useCallback((url: string): string => {
-        return getAttachmentUrl(url, authToken);
+        // Fallback a localStorage per il primo render quando authToken è ancora null
+        const token = authToken || getAuthToken();
+        return getAttachmentUrl(url, token);
     }, [authToken]);
 
     const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -2058,18 +2060,31 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                         </CardHeader>
                                         <CardContent>
                                             <div className="space-y-2 max-h-[120px] overflow-y-auto">
-                                                {(previewTask.attachments || []).map((att: { url: string; filename?: string }, index: number) => (
-                                                    <a
-                                                        href={getAttachmentHref(att.url)}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        key={index}
-                                                        className="flex items-center gap-2 p-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors"
-                                                    >
-                                                        <FileText className="h-4 w-4 flex-shrink-0" />
-                                                        <span className="text-sm truncate">{att.filename || 'File allegato'}</span>
-                                                    </a>
-                                                ))}
+                                                {(previewTask.attachments || []).map((att: { url: string; filename?: string }, index: number) => {
+                                                    const href = getAttachmentHref(att.url);
+                                                    const isBlob = att.url?.startsWith('blob:');
+                                                    if (isBlob) {
+                                                        return (
+                                                            <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-secondary">
+                                                                <FileText className="h-4 w-4 flex-shrink-0 text-amber-500" />
+                                                                <span className="text-sm text-amber-500 truncate">⚠️ File non disponibile</span>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <a
+                                                            key={index}
+                                                            href={href}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={e => e.stopPropagation()}
+                                                            className="flex items-center gap-2 p-2 rounded-md bg-secondary hover:bg-secondary/80 transition-colors"
+                                                        >
+                                                            <FileText className="h-4 w-4 flex-shrink-0" />
+                                                            <span className="text-sm truncate">{att.filename || 'File allegato'}</span>
+                                                        </a>
+                                                    );
+                                                })}
                                                 {(!previewTask.attachments || previewTask.attachments.length === 0) && (
                                                     <p className="text-sm text-muted-foreground text-center py-2">Nessun allegato</p>
                                                 )}
