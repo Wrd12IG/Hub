@@ -256,7 +256,7 @@ Genera un JSON con questa struttura esatta:
                                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                                     <SelectTrigger><SelectValue placeholder="Seleziona un cliente..." /></SelectTrigger>
                                     <SelectContent>
-                                        {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>

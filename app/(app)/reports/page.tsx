@@ -986,8 +986,9 @@ export default function ReportsPage() {
                                             <SelectValue placeholder="Seleziona progetto" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {allProjects
+                                            {[...allProjects]
                                                 .filter(p => p.status === 'In Corso')
+                                                .sort((a,b) => (a.name || '').localeCompare(b.name || ''))
                                                 .map(project => (
                                                     <SelectItem key={project.id} value={project.id}>
                                                         {project.name}

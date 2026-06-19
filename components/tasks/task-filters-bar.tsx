@@ -182,7 +182,7 @@ export const TaskFiltersBar = memo(function TaskFiltersBar({
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tutti i Clienti</SelectItem>
-                                        {clients.map((client) => (
+                                        {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((client) => (
                                             <SelectItem key={client.id} value={client.id}>
                                                 <div className="flex items-center gap-2">
                                                     <div
@@ -209,6 +209,7 @@ export const TaskFiltersBar = memo(function TaskFiltersBar({
                                         <SelectItem value="all">Tutti gli Utenti</SelectItem>
                                         {users
                                             .filter(u => u.role !== 'Amministratore' && u.role !== 'Cliente')
+                                            .sort((a,b) => (a.name || '').localeCompare(b.name || ''))
                                             .map((user) => (
                                                 <SelectItem key={user.id} value={user.id}>
                                                     <div className="flex items-center gap-2">
@@ -234,7 +235,7 @@ export const TaskFiltersBar = memo(function TaskFiltersBar({
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tutti i Progetti</SelectItem>
-                                        {projects.map((project) => (
+                                        {[...projects].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((project) => (
                                             <SelectItem key={project.id} value={project.id}>
                                                 {project.name}
                                             </SelectItem>
@@ -252,7 +253,7 @@ export const TaskFiltersBar = memo(function TaskFiltersBar({
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tutti i Tipi</SelectItem>
-                                        {activityTypes.map((type) => (
+                                        {[...activityTypes].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((type) => (
                                             <SelectItem key={type.id} value={type.name}>
                                                 {type.name}
                                             </SelectItem>

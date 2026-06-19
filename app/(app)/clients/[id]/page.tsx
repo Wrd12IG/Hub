@@ -671,7 +671,7 @@ export default function ClientDetailPage() {
                 <SelectValue placeholder="-- Scegli dal menu --" />
               </SelectTrigger>
               <SelectContent>
-                {allClients.map((c) => (
+                {[...allClients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((c) => (
                   <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
                     {c.name}
                   </SelectItem>
@@ -792,7 +792,7 @@ export default function ClientDetailPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {allClients.map((c) => (
+                  {[...allClients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
                       {c.name}
                     </SelectItem>

@@ -1270,7 +1270,7 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
                                                 <TableRow key={content.id}>
                                                     <TableCell className="font-bold text-muted-foreground">{pubDate ? format(pubDate, 'EEE', { locale: it }).toUpperCase() : '-'}</TableCell>
                                                     <TableCell className="whitespace-nowrap">{pubDate ? format(pubDate, 'dd/MM/yyyy', { locale: it }) : '-'}</TableCell>
-                                                    <TableCell className="font-medium hover:bg-muted/50 cursor-pointer" style={{ backgroundColor: `${client?.color}20` }} onClick={() => handleOpenFieldEditor(content.id, 'clientId', 'Cliente', content.clientId, 'select', clients.map(c => ({ value: c.id, label: c.name })))}>{client?.name || 'N/D'}</TableCell>
+                                                    <TableCell className="font-medium hover:bg-muted/50 cursor-pointer" style={{ backgroundColor: `${client?.color}20` }} onClick={() => handleOpenFieldEditor(content.id, 'clientId', 'Cliente', content.clientId, 'select', [...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => ({ value: c.id, label: c.name })))}>{client?.name || 'N/D'}</TableCell>
                                                     <TableCell className="font-medium max-w-[200px] truncate hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'topic', 'Topic', content.topic)}>{content.topic}</TableCell>
                                                     <TableCell className="hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'format', 'Formato', content.format, 'select', editorialFormats.map(f => ({ value: f.name, label: f.name })))}>{content.format}</TableCell>
                                                     <TableCell className="max-w-[150px] truncate hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'focus', 'Focus', content.focus)}>{content.focus}</TableCell>
@@ -1670,7 +1670,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                             <Select name="clientId" required defaultValue={editingContent?.clientId || forcedClientId} onValueChange={setSelectedClientId}>
                                 <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
                                 <SelectContent>
-                                    {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                    {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </>

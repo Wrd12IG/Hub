@@ -142,7 +142,7 @@ function SocialStrategiesList() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Tutti i Clienti</SelectItem>
-                                {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>

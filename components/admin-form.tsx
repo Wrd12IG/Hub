@@ -241,7 +241,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                         <Select name="categoryId" required defaultValue={editingService?.categoryId}>
                             <SelectTrigger><SelectValue placeholder="Seleziona una categoria" /></SelectTrigger>
                             <SelectContent>
-                                {briefServiceCategories.map(cat => (
+                                {[...briefServiceCategories].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(cat => (
                                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                                 ))}
                             </SelectContent>
