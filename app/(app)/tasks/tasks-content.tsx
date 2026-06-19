@@ -512,17 +512,23 @@ const TaskCard = ({
                                 </Tooltip>
                             </TooltipProvider>
                         ) : canBeSentForApproval ? (
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7"
-                                            onClick={() => handleSendForApproval(task)}>
-                                            <Send className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>Invia in Approvazione</p></TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-500 hover:bg-orange-100">
+                                        <Send className="h-3.5 w-3.5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="min-w-[200px]">
+                                    <DropdownMenuItem onClick={() => handleSendForApproval(task, 'In Approvazione')}>
+                                        <span className="w-2 h-2 rounded-full bg-orange-500 mr-2 flex-shrink-0" />
+                                        Invia in Approvazione
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleSendForApproval(task, 'In Approvazione Cliente')}>
+                                        <span className="w-2 h-2 rounded-full bg-purple-500 mr-2 flex-shrink-0" />
+                                        Invia al Cliente
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         ) : null}
 
                         {isTimerActiveForThisTask ? (
@@ -817,13 +823,14 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 };
             }
 
-            // Aggiorna il task con il nuovo allegato e cambia stato a "In Approvazione"
+            // Aggiorna il task con il nuovo allegato e cambia stato al target scelto
+            const targetStatus = (task as any)._approvalTarget || 'In Approvazione';
             const updatedAttachments = [...(task.attachments || []), newAttachment];
             await updateTask(
                 task.id,
                 {
                     attachments: updatedAttachments,
-                    status: 'In Approvazione'
+                    status: targetStatus
                 },
                 currentUser.id,
                 canApprove,
@@ -925,23 +932,21 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         }
     }
 
-    const handleSendForApproval = async (task: Task) => {
+    const handleSendForApproval = async (task: Task, targetStatus: 'In Approvazione' | 'In Approvazione Cliente' = 'In Approvazione') => {
         if (!currentUser) return;
 
         // Se il timer è attivo per questo task, fermalo prima di procedere
-        // Il cleanup del PomodoroWidget salverà il tempo automaticamente
         const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
         if (isTimerActiveForThisTask) {
             setPomodoroTask(null);
-            // Breve attesa per permettere al cleanup del widget di avviarsi
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         // Se skipAttachmentOnApproval è true, invia direttamente
         if (task.skipAttachmentOnApproval) {
             try {
-                await updateTask(task.id, { status: 'In Approvazione' }, currentUser.id, canApprove, true);
-                toast.info("Task inviato in approvazione.");
+                await updateTask(task.id, { status: targetStatus }, currentUser.id, canApprove, true);
+                toast.info(targetStatus === 'In Approvazione Cliente' ? "Task inviato al cliente 📤" : "Task inviato in approvazione.");
             } catch (error: any) {
                 console.error("Failed to send task for approval:", error);
                 toast.error("Impossibile inviare il task in approvazione.");
@@ -953,19 +958,18 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         const hasAttachments = task.attachments && task.attachments.length > 0;
 
         if (!hasAttachments) {
-            // Apri il modal per aggiungere allegati
+            // Apri il modal per aggiungere allegati — salva targetStatus nello state
             setFileAttachmentModalState({
                 isOpen: true,
-                task: task,
+                task: { ...task, _approvalTarget: targetStatus } as any,
                 attachmentUrl: '',
                 attachmentFilename: '',
                 attachmentFile: undefined
             });
         } else {
-            // Se ci sono già allegati, invia direttamente
             try {
-                await updateTask(task.id, { status: 'In Approvazione' }, currentUser.id, canApprove, true);
-                toast.info("Task inviato in approvazione.");
+                await updateTask(task.id, { status: targetStatus }, currentUser.id, canApprove, true);
+                toast.info(targetStatus === 'In Approvazione Cliente' ? "Task inviato al cliente 📤" : "Task inviato in approvazione.");
             } catch (error: any) {
                 console.error("Failed to send task for approval:", error);
                 toast.error("Impossibile inviare il task in approvazione.");
