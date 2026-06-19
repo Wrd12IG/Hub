@@ -18,6 +18,11 @@ export function BirthdayCelebration({ users }: BirthdayCelebrationProps) {
     useEffect(() => {
         // Trova utenti con compleanno oggi
         const today = new Date();
+        const todayKey = `birthday-shown-${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+
+        // Se abbiamo già mostrato il popup oggi, non rifarlo
+        if (typeof window !== 'undefined' && localStorage.getItem(todayKey)) return;
+
         const todayBirthdays = users.filter(user => {
             if (!user.birthDate) return false;
 
@@ -35,6 +40,11 @@ export function BirthdayCelebration({ users }: BirthdayCelebrationProps) {
         if (todayBirthdays.length > 0) {
             setBirthdayUsers(todayBirthdays);
             setShowCelebration(true);
+
+            // Segna come mostrato oggi
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(todayKey, '1');
+            }
 
             // Nascondi dopo 10 secondi
             const timer = setTimeout(() => {
