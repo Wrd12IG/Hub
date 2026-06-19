@@ -3180,9 +3180,10 @@ export default function ClientDetailPage() {
                   <input type="hidden" name="ga4PropertyId" value="" />
                 )}
             </div>
+            </div>{/* end grid 3col */}
 
             {/* GOOGLE ADS BLOCK */}
-            <div className="p-5 border border-emerald-500/10 bg-emerald-500/[0.01] rounded-2xl space-y-4">
+            <div className="glass-card p-5 rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.01] space-y-4 shadow-md">
               <label className="block text-xs font-bold text-emerald-400">
                 Google Ads — Customer ID
               </label>
