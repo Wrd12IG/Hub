@@ -1152,8 +1152,21 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             return getUpdateDate(b).getTime() - getUpdateDate(a).getTime();
         });
 
+        // Build overdue virtual column: tasks from active statuses with past dueDate
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const overdueStatuses: Task['status'][] = ['Da Fare', 'In Lavorazione', 'In Approvazione'];
+        const overdueTasks = filteredTasks.filter(task => {
+            if (!task.dueDate) return false;
+            if (!overdueStatuses.includes(task.status)) return false;
+            const due = new Date(task.dueDate);
+            due.setHours(0, 0, 0, 0);
+            return due < today;
+        }).sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+
         return {
             tasksByStatus: byStatus,
+            overdueTasks,
         };
     }, [filteredTasks, sortBy]);
 
@@ -1259,6 +1272,45 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
         return (
             <div className="flex flex-col md:flex-row gap-6 md:overflow-x-auto pb-4 w-full">
+
+                {/* ── COLONNA SCADUTI (appare solo se ci sono scaduti) ── */}
+                {overdueTasks.length > 0 && filters.status !== 'completed' && (
+                    <div className="w-full md:flex-1 md:min-w-[300px]">
+                        <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2">
+                                <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                                <h2 className="font-semibold text-lg text-red-500">⚠️ Scaduti</h2>
+                            </div>
+                            <Badge variant="destructive" className="px-3 py-1 text-sm">{overdueTasks.length}</Badge>
+                        </div>
+                        <div className="p-2 rounded-lg min-h-[200px] max-h-[calc(100vh-230px)] overflow-y-auto space-y-3 bg-red-500/5 border border-red-500/20 scroll-smooth">
+                            {overdueTasks.map(task => (
+                                <TaskCard
+                                    key={`overdue-${task.id}`}
+                                    task={task}
+                                    clients={clients}
+                                    allProjects={allProjects}
+                                    allTasks={allTasks}
+                                    usersById={usersById}
+                                    activityTypes={activityTypes}
+                                    canApprove={canApprove}
+                                    handlePlay={handlePlay}
+                                    handleSendForApproval={handleSendForApproval}
+                                    setApprovalState={setApprovalState}
+                                    setDisapprovalModalState={setDisapprovalModalState}
+                                    setRejectionReasonToShow={setRejectionReasonToShow}
+                                    setPreviewTask={setPreviewTask}
+                                    setPreviewProject={setPreviewProject}
+                                    handleChatOpen={handleChatOpen}
+                                    handleOpenModal={handleOpenModal}
+                                    setTaskToDelete={setTaskToDelete}
+                                    isHighlighted={task.id === highlightedTaskId}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {boardColumns.map(status => {
                     const tasksForColumn = tasksByStatus[status as Task['status']];
 
