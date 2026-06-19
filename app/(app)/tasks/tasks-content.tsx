@@ -161,7 +161,7 @@ const TaskCard = ({
     activityTypes: ActivityType[];
     canApprove: boolean;
     handlePlay: (task: Task) => void;
-    handleSendForApproval: (task: Task) => void;
+    handleSendForApproval: (task: Task, targetStatus?: 'In Approvazione' | 'In Approvazione Cliente') => void;
     setApprovalState: React.Dispatch<React.SetStateAction<ApprovalActionState>>;
     setDisapprovalModalState: React.Dispatch<React.SetStateAction<DisapprovalModalState>>;
     setRejectionReasonToShow: (reason: string) => void;
