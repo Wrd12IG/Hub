@@ -788,7 +788,7 @@ export default function ClientDetailPage() {
                 <SelectTrigger className="h-8.5 text-xs font-bold w-[180px] bg-background/50 border-white/10 rounded-xl">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-neutral-900 border-white/10 rounded-xl">
+                <SelectContent className="border-white/10 rounded-xl">
                   {allClients.map((c) => (
                     <SelectItem
                       key={c.id}
