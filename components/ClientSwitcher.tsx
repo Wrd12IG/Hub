@@ -39,7 +39,9 @@ export default function ClientSwitcher() {
     router.push(`/clients/${clientId}`)
   }
 
-  const filteredClients = clients.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredClients = [...clients]
+    .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 
   return (
     <div className="client-switcher-container" ref={dropdownRef} style={{ position: 'relative', width: '100%', marginBottom: '1.5rem', zIndex: 50 }}>
