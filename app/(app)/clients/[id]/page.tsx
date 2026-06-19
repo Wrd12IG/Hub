@@ -875,9 +875,9 @@ export default function ClientDetailPage() {
                 )}
               </div>
             </div>
-            
-          </div>}
-              </d          {/* ==================================================== */}
+            </div>
+
+            {/* ==================================================== */}
           {/* OMNICHANNEL ADVERTISING (META + GOOGLE ADS)          */}
           {/* ==================================================== */}
           <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg relative overflow-hidden">
