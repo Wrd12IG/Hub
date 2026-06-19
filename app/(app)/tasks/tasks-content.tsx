@@ -911,6 +911,20 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         }
     }
 
+    const handleSendToCliente = async () => {
+        if (!approvalState.task || !currentUser) return;
+        const { task, sendEmail } = approvalState;
+        try {
+            await updateTask(task.id, { status: 'In Approvazione Cliente', rejectionReason: '' }, currentUser.id, canApprove, sendEmail);
+            toast.success("Inviato al Cliente 📤", { description: `"${task.title}" è in attesa di approvazione cliente.` });
+        } catch (error: any) {
+            console.error("Failed to send to client:", error);
+            toast.error("Impossibile inviare al cliente.");
+        } finally {
+            setApprovalState({ isOpen: false, task: undefined, sendEmail: true });
+        }
+    }
+
     const handleSendForApproval = async (task: Task) => {
         if (!currentUser) return;
 
@@ -1682,7 +1696,14 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                     </div>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annulla</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleApprove}>Approva</AlertDialogAction>
+                        <button
+                            onClick={handleSendToCliente}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium border border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30 px-4 py-2 transition-colors"
+                        >
+                            <Send className="h-3.5 w-3.5" />
+                            Invia al Cliente
+                        </button>
+                        <AlertDialogAction onClick={handleApprove}>Approva ✓</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
