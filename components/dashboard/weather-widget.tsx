@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Cloud, CloudRain, Sun, CloudSnow, Wind, Droplets, Eye, Gauge } from 'lucide-react';
+import { Cloud, CloudRain, Sun, CloudSnow, Wind, Droplets, Eye, Gauge, Edit2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface WeatherData {
@@ -27,7 +27,21 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const [activeCity, setActiveCity] = useState<string>(city || 'Milano');
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValue, setEditValue] = useState('');
+    const [isClient, setIsClient] = useState(false);
+
     useEffect(() => {
+        setIsClient(true);
+        const saved = localStorage.getItem('weather_widget_city');
+        if (saved) {
+            setActiveCity(saved);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
         const controller = new AbortController();
 
     const fetchWeather = async () => {
@@ -36,7 +50,7 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
                 setError(null);
 
                 // Chiama il proxy server-side (nasconde la key e gestisce la cache)
-                const params = new URLSearchParams({ city: city || 'Milano' });
+                const params = new URLSearchParams({ city: activeCity });
                 const response = await fetch(`/api/weather?${params}`);
 
                 if (!response.ok) {
@@ -48,7 +62,7 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
                             description: 'Parzialmente nuvoloso',
                             humidity: 65, windSpeed: 12, pressure: 1013,
                             visibility: 10, icon: '02d',
-                            city: city || 'Milano'
+                            city: activeCity
                         });
                         setLoading(false);
                         return;
@@ -71,7 +85,15 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
         fetchWeather();
 
         return () => controller.abort();
-    }, [city, apiKey]);
+    }, [activeCity, apiKey, isClient]);
+
+    const handleSaveCity = () => {
+        if (editValue.trim()) {
+            setActiveCity(editValue.trim());
+            localStorage.setItem('weather_widget_city', editValue.trim());
+        }
+        setIsEditing(false);
+    };
 
     const getWeatherIcon = (iconCode: string) => {
         const code = iconCode.substring(0, 2);
@@ -176,7 +198,34 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div>
-                    <h3 className="font-semibold text-lg">{weather.city}</h3>
+                    {isEditing ? (
+                        <div className="flex items-center gap-2 mb-1">
+                            <input
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                className="text-sm font-semibold bg-white/50 dark:bg-black/50 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 w-32 focus:outline-none"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleSaveCity();
+                                    if (e.key === 'Escape') setIsEditing(false);
+                                }}
+                            />
+                            <button onClick={handleSaveCity} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
+                                <Check className="w-4 h-4 text-green-600" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 group mb-1">
+                            <h3 className="font-semibold text-lg">{weather.city}</h3>
+                            <button 
+                                onClick={() => { setEditValue(weather.city); setIsEditing(true); }} 
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 rounded"
+                            >
+                                <Edit2 className="w-3 h-3 text-muted-foreground" />
+                            </button>
+                        </div>
+                    )}
                     <p className="text-sm text-muted-foreground capitalize">
                         {weather.description}
                     </p>
