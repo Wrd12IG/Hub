@@ -191,8 +191,8 @@ export const SidebarMenuButton = React.forwardRef<
                     "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
                     isOpen ? 'px-3 py-2.5' : 'p-2.5 justify-center',
                     isActive
-                        ? 'bg-sidebar-primary/15 text-sidebar-primary font-medium shadow-sm'
-                        : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+                        ? 'bg-primary/15 text-primary font-bold shadow-sm'
+                        : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
                     className
                 )}
                 onMouseEnter={handleMouseEnter}
