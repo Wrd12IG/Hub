@@ -33,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import PomodoroWidget from '@/components/pomodoro-timer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuthToken } from '@/hooks/use-auth-token';
+import { getAttachmentUrl } from '@/lib/attachment-url';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { collection, onSnapshot, query } from 'firebase/firestore';
@@ -572,15 +573,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     /** Proxy URL per allegati Firebase Storage — accessibile a tutti gli utenti autenticati */
     const getAttachmentHref = useCallback((url: string): string => {
-        if (!url) return '#';
-        // Link esterno (URL manuali) — passa diretto
-        if (!url.includes('firebasestorage.googleapis.com') && !url.startsWith('gs://')) {
-            return url;
-        }
-        // File Firebase Storage → proxy con signed URL (15 min)
-        const params = new URLSearchParams({ url });
-        if (authToken) params.set('token', authToken);
-        return `/api/tasks/attachment?${params.toString()}`;
+        return getAttachmentUrl(url, authToken);
     }, [authToken]);
 
     const [allTasks, setAllTasks] = useState<Task[]>([]);

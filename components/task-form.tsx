@@ -51,6 +51,8 @@ import { addTask, updateTask, uploadFilesAndGetAttachments } from "@/lib/actions
 import { useToast } from "@/hooks/use-toast"
 import { WorkloadSphere } from "@/components/WorkloadSphere"
 import { motion } from "framer-motion"
+import { useAuthToken } from "@/hooks/use-auth-token"
+import { getAttachmentUrl } from "@/lib/attachment-url"
 
 const formSchema = z.object({
     title: z.string().min(2, {
@@ -90,6 +92,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
     const { clients, allProjects: projects, users, currentUser, activityTypes, allTasks, calendarActivities, taskPrioritySettings } = useLayoutData()
     const { toast } = useToast()
     const router = useRouter()
+    const authToken = useAuthToken()
     const [isLoading, setIsLoading] = React.useState(false)
     const [newAttachmentUrl, setNewAttachmentUrl] = React.useState("")
     const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -935,13 +938,13 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     <div className="flex items-center gap-3 overflow-hidden">
                                         {isImg ? (
                                             <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-background border">
-                                                <img src={attachment.url} alt="anteprima" className="h-full w-full object-cover" />
+                                                <img src={getAttachmentUrl(attachment.url, authToken)} alt="anteprima" className="h-full w-full object-cover" />
                                             </div>
                                         ) : (
                                             attachment.documentType === 'File' ? <FileIcon className="h-4 w-4 flex-shrink-0" /> : <LinkIcon className="h-4 w-4 flex-shrink-0" />
                                         )}
 
-                                        <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate hover:underline underline-offset-4 decoration-primary">
+                                        <a href={getAttachmentUrl(attachment.url, authToken)} target="_blank" rel="noopener noreferrer" className="text-sm truncate hover:underline underline-offset-4 decoration-primary">
                                             {attachment.filename || attachment.url}
                                         </a>
                                     </div>
