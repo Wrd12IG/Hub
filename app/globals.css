@@ -2935,8 +2935,8 @@ button, a, [role="button"] {
 
 /* Selection highlight amber */
 ::selection {
-  background-color: hsl(var(--primary) / 0.25);
-  color: hsl(var(--foreground));
+  background-color: hsl(var(--primary) / 0.9);
+  color: hsl(var(--primary-foreground));
 }
 
 /* Staggered card animations */
