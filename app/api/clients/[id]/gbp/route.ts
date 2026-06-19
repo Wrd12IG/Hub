@@ -8,7 +8,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, getClientToken } from '@/lib/api-auth';
-import { db } from '@/lib/firebase-admin';
+import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(
   request: NextRequest,
@@ -25,7 +25,7 @@ export async function GET(
   // Check if the client has GBP configured in Firestore
   let clientData: any = null;
   try {
-    const doc = await db.collection('clients').doc(clientId).get();
+    const doc = await adminDb.collection('clients').doc(clientId).get();
     clientData = doc.exists ? doc.data() : null;
   } catch {
     // If Firestore fails, proceed with token check only
