@@ -7,6 +7,10 @@ import { User } from '@/lib/data';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { it } from 'date-fns/locale';
 
+// Tracker a livello di modulo: persiste per tutta la sessione browser
+// anche se il componente si re-renderizza migliaia di volte
+const shownBirthdayDates = new Set<string>();
+
 interface BirthdayCelebrationProps {
     users: User[];
 }
@@ -20,37 +24,35 @@ export function BirthdayCelebration({ users }: BirthdayCelebrationProps) {
         const today = new Date();
         const todayKey = `birthday-shown-${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
 
-        // Se abbiamo già mostrato il popup oggi, non rifarlo
-        if (typeof window !== 'undefined' && localStorage.getItem(todayKey)) return;
+        // DOPPIA protezione: variabile di sessione + localStorage
+        // Evita che il popup si ripeta ad ogni aggiornamento dell'array users (Firestore onSnapshot)
+        if (shownBirthdayDates.has(todayKey)) return;
+        if (typeof window !== 'undefined' && localStorage.getItem(todayKey)) {
+            shownBirthdayDates.add(todayKey); // sincronizza il Set con localStorage
+            return;
+        }
 
         const todayBirthdays = users.filter(user => {
             if (!user.birthDate) return false;
-
             try {
                 const birthDate = parseISO(user.birthDate);
-                const birthMonth = birthDate.getMonth();
-                const birthDay = birthDate.getDate();
-
-                return birthMonth === today.getMonth() && birthDay === today.getDate();
+                return birthDate.getMonth() === today.getMonth() && birthDate.getDate() === today.getDate();
             } catch (e) {
                 return false;
             }
         });
 
         if (todayBirthdays.length > 0) {
-            setBirthdayUsers(todayBirthdays);
-            setShowCelebration(true);
-
-            // Segna come mostrato oggi
+            // Segna immediatamente come mostrato (PRIMA del setState per evitare race condition)
+            shownBirthdayDates.add(todayKey);
             if (typeof window !== 'undefined') {
                 localStorage.setItem(todayKey, '1');
             }
 
-            // Nascondi dopo 10 secondi
-            const timer = setTimeout(() => {
-                setShowCelebration(false);
-            }, 10000);
+            setBirthdayUsers(todayBirthdays);
+            setShowCelebration(true);
 
+            const timer = setTimeout(() => setShowCelebration(false), 10000);
             return () => clearTimeout(timer);
         }
     }, [users]);
