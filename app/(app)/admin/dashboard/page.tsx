@@ -1594,7 +1594,7 @@ export default function Dashboard() {
                         </AnimatedGridItem>
 
                         <AnimatedGridItem>
-                            <WeatherWidget city="Milano" />
+                            <WeatherWidget city="Milano" apiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY} />
                         </AnimatedGridItem>
                     </>
                 )}
