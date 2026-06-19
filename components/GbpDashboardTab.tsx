@@ -1,440 +1,661 @@
-import React, { useState, useEffect } from 'react'
+"use client"
+
+import React, { useState, useEffect, useCallback } from 'react'
 import {
-  LayoutDashboard,
-  MapPin,
-  MessageSquareHeart,
-  Search,
-  FileBarChart,
-  Megaphone,
-  Star,
-  Sparkles,
-  TrendingUp,
-  Download,
-  Calendar,
-  Settings
+  LayoutDashboard, MapPin, MessageSquareHeart, Search,
+  FileBarChart, Megaphone, Star, Sparkles, TrendingUp,
+  Download, Calendar, Settings, Loader2, AlertCircle,
+  Globe, Phone, Navigation, ChevronDown, Plus, Eye,
+  RefreshCw, CheckCircle, XCircle, Clock
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface GbpLocation {
+  id: string
+  name: string
+  address?: string
+}
+
+interface GbpInsights {
+  totalImpressions: number
+  totalActions: number
+  websiteClicks: number
+  phoneCalls: number
+  directionRequests: number
+  impressionChange?: number
+}
+
+interface GbpReview {
+  author: string
+  rating: number
+  text: string
+  date: string
+  replied?: boolean
+}
+
+interface GbpReviews {
+  totalReviews: number
+  unansweredCount: number
+  averageRating: number
+  recent: GbpReview[]
+}
+
+interface GbpKeyword {
+  keyword: string
+  impressions: number
+}
+
+interface GbpData {
+  insights?: GbpInsights
+  reviews?: GbpReviews
+  keywords?: GbpKeyword[]
+  healthScore?: number
+  healthChecks?: Array<{ label: string; ok: boolean }>
+}
+
 interface GbpDashboardProps {
   clientId: string
+  locations?: GbpLocation[]
+  activeLocationId?: string | null
 }
 
 type TabType = 'overview' | 'directories' | 'reviews' | 'seo' | 'reporting' | 'content'
 
-export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
+// ─── Helper: Star Rating ──────────────────────────────────────────────────────
+
+function StarRating({ rating, max = 5 }: { rating: number; max?: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: max }).map((_, i) => (
+        <Star
+          key={i}
+          size={14}
+          fill={i < rating ? '#f59e0b' : 'transparent'}
+          className={i < rating ? 'text-amber-400' : 'text-muted-foreground/30'}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ─── Empty / Not Configured State ────────────────────────────────────────────
+
+function NotConfiguredBanner({ onConfigure }: { onConfigure?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] gap-6 py-16">
+      <div className="w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+        <MapPin className="h-10 w-10 text-amber-400/60" />
+      </div>
+      <div className="text-center max-w-sm space-y-2">
+        <h3 className="text-lg font-bold text-foreground">Google Business Profile Non Configurato</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          Collega l'account GBP e seleziona le sedi in <strong>Setup API</strong> per sbloccare i dati di performance Local SEO in tempo reale.
+        </p>
+      </div>
+      <div className="flex gap-3">
+        <button
+          onClick={onConfigure}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white font-bold text-sm hover:bg-amber-400 transition-all active:scale-95"
+        >
+          <Settings size={15} /> Configura in Setup API
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Skeleton Cards ───────────────────────────────────────────────────────────
+
+function KpiSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="glass-card p-5 rounded-xl border border-white/5 animate-pulse">
+          <div className="h-3 w-20 bg-white/10 rounded mb-3" />
+          <div className="h-8 w-16 bg-white/10 rounded mb-2" />
+          <div className="h-2.5 w-24 bg-white/5 rounded" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+
+function KpiCard({
+  label, value, sub, color, icon: Icon, change
+}: {
+  label: string
+  value: string
+  sub?: string
+  color: string
+  icon: React.ElementType
+  change?: number
+}) {
+  return (
+    <div className="glass-card p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300 hover:-translate-y-0.5 shadow-sm flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-bold text-muted-foreground/75 uppercase tracking-wider">{label}</span>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${color}`}>
+          <Icon size={14} />
+        </div>
+      </div>
+      <div className="text-2xl font-extrabold tracking-tight text-foreground">{value}</div>
+      {sub && <div className="text-[11px] text-muted-foreground/60">{sub}</div>}
+      {change !== undefined && (
+        <div className={`text-[10px] font-bold inline-flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <TrendingUp size={10} className={change < 0 ? 'rotate-180' : ''} />
+          {change >= 0 ? '+' : ''}{change}% vs mese prec.
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function GbpDashboardTab({
+  clientId,
+  locations = [],
+  activeLocationId,
+}: GbpDashboardProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview')
   const [daysBack, setDaysBack] = useState(30)
-  
-  // Per ora usiamo questi mock per costruire la UI senza errori, 
-  // in attesa dell'approvazione delle API da parte di Google.
-  const insights = {
-    totalImpressions: 42560,
-    totalActions: 1245,
-    websiteClicks: 450,
-    phoneCalls: 320,
-    directionRequests: 475
-  }
-  
-  const reviews = {
-    totalReviews: 124,
-    unansweredCount: 12,
-    averageRating: 4.8,
-    recent: [
-      { author: "Maria R.", rating: 5, text: "Servizio eccellente e personale molto cordiale. Ci tornerò sicuramente!", date: "2 giorni fa" },
-      { author: "Luca B.", rating: 4, text: "Buona esperienza, prezzi onesti ma attesa un po' lunga.", date: "5 giorni fa" },
-      { author: "Giulia F.", rating: 5, text: "Siete fantastici! Consiglio a tutti.", date: "1 settimana fa" }
-    ]
-  }
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
+    activeLocationId || (locations[0]?.id ?? null)
+  )
+  const [gbpData, setGbpData] = useState<GbpData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [configured, setConfigured] = useState(!!selectedLocationId)
 
-  const keywords = [
-    { keyword: "ristorante vicino a me", impressions: 1240 },
-    { keyword: "pizza asporto", impressions: 980 },
-    { keyword: "cena aziendale", impressions: 450 }
-  ]
-  
-  const healthScore = 85
+  const fetchGbpData = useCallback(async (locationId: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(
+        `${API_URL}/api/clients/${clientId}/gbp?locationId=${locationId}&daysBack=${daysBack}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      const json = await res.json()
 
-  // Sotto-componenti per le singole TAB
-  const renderOverview = () => (
-    <div className="tab-content-animation">
-      {/* KPI CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-        <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Impressioni Totali</span>
-          <span style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: '#f59e0b' }}>
-            {insights.totalImpressions.toLocaleString()}
-          </span>
-          <span style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-            <TrendingUp size={12} /> +15% vs mese prec.
-          </span>
+      if (!res.ok) {
+        if (json?.notConfigured || res.status === 503) {
+          setConfigured(false)
+          setGbpData(null)
+          return
+        }
+        throw new Error(json?.error || `Errore ${res.status}`)
+      }
+
+      if (json?.configured === false) {
+        setConfigured(false)
+        setGbpData(null)
+        return
+      }
+
+      setConfigured(true)
+      setGbpData(json)
+    } catch (err: any) {
+      setError(err.message || 'Impossibile caricare i dati GBP')
+    } finally {
+      setLoading(false)
+    }
+  }, [clientId, daysBack])
+
+  useEffect(() => {
+    if (selectedLocationId) {
+      setConfigured(true)
+      fetchGbpData(selectedLocationId)
+    } else {
+      setConfigured(false)
+    }
+  }, [selectedLocationId, fetchGbpData])
+
+  // ─── Tab: Overview ────────────────────────────────────────────────────────
+
+  const renderOverview = () => {
+    if (loading) return <KpiSkeleton />
+    if (!configured) return <NotConfiguredBanner />
+    if (error) return (
+      <div className="flex flex-col items-center gap-4 py-16 text-center">
+        <AlertCircle className="h-10 w-10 text-rose-400/60" />
+        <div>
+          <p className="font-bold text-foreground">Errore nel caricamento</p>
+          <p className="text-sm text-muted-foreground mt-1">{error}</p>
         </div>
+        <button
+          onClick={() => selectedLocationId && fetchGbpData(selectedLocationId)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold hover:bg-white/10 transition-all"
+        >
+          <RefreshCw size={14} /> Riprova
+        </button>
+      </div>
+    )
 
-        <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Azioni Totali</span>
-          <span style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: '#10b981' }}>
-            {insights.totalActions.toLocaleString()}
-          </span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>
-            {insights.websiteClicks} Click Sito • {insights.phoneCalls} Chiamate
-          </span>
+    // API pending (configured but no data yet from Google)
+    if (configured && !gbpData) return (
+      <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+          <Clock className="h-8 w-8 text-amber-400/60" />
         </div>
-
-        <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Richieste Indicazioni</span>
-          <span style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: '#3b82f6' }}>
-            {insights.directionRequests.toLocaleString()}
-          </span>
+        <div className="max-w-sm space-y-2">
+          <h3 className="font-bold text-foreground">GBP Configurato — Dati in attesa</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            L'integrazione con Google Business Profile API è in corso di approvazione. I dati reali verranno mostrati non appena disponibili.
+          </p>
         </div>
-
-        <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Recensioni (Mese)</span>
-          <span style={{ fontSize: '2rem', fontWeight: 800, marginTop: '0.5rem', color: '#8b5cf6' }}>
-            +14
-          </span>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '0.2rem' }}>
-            Media: ⭐ {reviews.averageRating.toFixed(1)} su {reviews.totalReviews} totali
-          </span>
+        <div className="flex items-center gap-2 text-xs text-amber-400 font-bold">
+          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          Sede collegata: {selectedLocationId}
         </div>
       </div>
+    )
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-        {/* Timeline Chart Mockup */}
-        <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Timeline Impressioni (Ultimi {daysBack} gg)</h3>
-          <div style={{ height: '200px', display: 'flex', alignItems: 'flex-end', gap: '4px', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-            {/* Mock bars */}
-            {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} style={{ 
-                flex: 1, 
-                backgroundColor: i % 3 === 0 ? 'rgba(59, 130, 246, 0.4)' : 'rgba(245, 158, 11, 0.4)', 
-                height: `${Math.floor(Math.random() * 60) + 40}%`, 
-                borderRadius: '4px 4px 0 0' 
-              }}></div>
+    const ins = gbpData!.insights
+    return (
+      <div className="space-y-6 animate-in fade-in duration-300">
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard
+            label="Impressioni Totali"
+            value={ins?.totalImpressions?.toLocaleString('it-IT') ?? '—'}
+            icon={Eye}
+            color="bg-amber-500/10 text-amber-400"
+            change={ins?.impressionChange}
+          />
+          <KpiCard
+            label="Azioni Totali"
+            value={ins?.totalActions?.toLocaleString('it-IT') ?? '—'}
+            sub={ins ? `${ins.websiteClicks} Click · ${ins.phoneCalls} Chiamate` : undefined}
+            icon={TrendingUp}
+            color="bg-emerald-500/10 text-emerald-400"
+          />
+          <KpiCard
+            label="Richieste Indicazioni"
+            value={ins?.directionRequests?.toLocaleString('it-IT') ?? '—'}
+            icon={Navigation}
+            color="bg-blue-500/10 text-blue-400"
+          />
+          <KpiCard
+            label="Click Sito Web"
+            value={ins?.websiteClicks?.toLocaleString('it-IT') ?? '—'}
+            icon={Globe}
+            color="bg-violet-500/10 text-violet-400"
+          />
+        </div>
+
+        {/* Health Score */}
+        {gbpData!.healthScore != null && (
+          <div className="glass-card p-5 rounded-xl border border-white/5 bg-white/[0.02]">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-foreground">SEO Local Score</h3>
+              <span className="text-sm font-extrabold text-foreground">{gbpData!.healthScore}%</span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden border border-white/5 mb-3">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${gbpData!.healthScore}%`,
+                  background: gbpData!.healthScore! > 70 ? '#10b981' : '#f59e0b'
+                }}
+              />
+            </div>
+            {gbpData!.healthChecks && (
+              <ul className="flex flex-col gap-1.5">
+                {gbpData!.healthChecks.map((check, i) => (
+                  <li key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {check.ok
+                      ? <CheckCircle size={13} className="text-emerald-400 flex-shrink-0" />
+                      : <XCircle size={13} className="text-rose-400 flex-shrink-0" />
+                    }
+                    {check.label}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ─── Tab: Sedi & Directory ─────────────────────────────────────────────────
+
+  const renderDirectories = () => {
+    if (!configured) return <NotConfiguredBanner />
+    return (
+      <div className="glass-card p-6 rounded-2xl border border-white/5 bg-white/[0.02] space-y-6">
+        <div className="flex items-center gap-3">
+          <MapPin className="h-5 w-5 text-amber-400" />
+          <div>
+            <h3 className="font-bold text-foreground">Sedi Collegate</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Gestisci le informazioni NAP (Nome, Indirizzo, Telefono) su tutti i network locali.
+            </p>
+          </div>
+        </div>
+
+        {/* Locations list */}
+        <div className="space-y-3">
+          {locations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-white/10 rounded-xl">
+              Nessuna sede configurata. Vai in <strong>Setup API → GBP</strong> per aggiungere sedi.
+            </div>
+          ) : (
+            locations.map((loc) => (
+              <div
+                key={loc.id}
+                className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                  loc.id === selectedLocationId
+                    ? 'border-amber-500/30 bg-amber-500/[0.04]'
+                    : 'border-white/5 bg-white/[0.01]'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full ${loc.id === selectedLocationId ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                  <div>
+                    <div className="text-sm font-bold text-foreground">{loc.name}</div>
+                    {loc.address && <div className="text-xs text-muted-foreground">{loc.address}</div>}
+                    <div className="text-[10px] font-mono text-muted-foreground/50 mt-0.5">{loc.id}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {loc.id === selectedLocationId && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      ATTIVA
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setSelectedLocationId(loc.id)}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                  >
+                    Seleziona
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Directory network sync */}
+        <div>
+          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Stato Sincronizzazione Network</h4>
+          <div className="space-y-2">
+            {[
+              { name: 'Google Business Profile', status: configured ? 'sync' : 'pending' },
+              { name: 'Apple Maps', status: 'pending' },
+              { name: 'Bing Places', status: 'pending' },
+            ].map((net, i) => (
+              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                <span className="text-sm font-medium text-foreground">{net.name}</span>
+                {net.status === 'sync'
+                  ? <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">Sincronizzato</span>
+                  : <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">In sospeso</span>
+                }
+              </div>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', fontSize: '0.8rem' }}>
-             <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ width: 10, height: 10, background: 'rgba(245, 158, 11, 0.4)', borderRadius: '2px' }}></span> Google Maps</span>
-             <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}><span style={{ width: 10, height: 10, background: 'rgba(59, 130, 246, 0.4)', borderRadius: '2px' }}></span> Google Search</span>
-          </div>
-        </div>
-
-        {/* AI Visibility & Health Score */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.5rem' }}>SEO Local Score</h3>
-            <div style={{ width: '100%', height: '8px', background: 'rgba(0,0,0,0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.5rem' }}>
-               <div style={{ width: `${healthScore}%`, height: '100%', background: healthScore > 70 ? '#10b981' : '#f59e0b' }}></div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 600 }}>
-              <span>Profilo Ottimizzato al {healthScore}%</span>
-            </div>
-            <ul style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✅ NAP Sincronizzato</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>❌ Rispondi a {reviews.unansweredCount} recensioni</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✅ Prodotti/Servizi Aggiornati</li>
-            </ul>
-          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
-  const renderDirectories = () => (
-    <div className="tab-content-animation glass-table" style={{ padding: '2rem', borderRadius: '16px' }}>
-      <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <MapPin size={20} color="#f59e0b" /> Gestione Sedi & Directory
-      </h3>
-      <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.95rem' }}>
-        Mantieni le informazioni aziendali (NAP) sincronizzate su Google Maps e altri network locali.
-      </p>
+  // ─── Tab: Recensioni ──────────────────────────────────────────────────────
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-        <thead>
-          <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.1)', color: 'var(--text-secondary)', textAlign: 'left' }}>
-            <th style={{ padding: '1rem' }}>Network</th>
-            <th style={{ padding: '1rem' }}>Stato Sincronizzazione</th>
-            <th style={{ padding: '1rem' }}>Ultimo Aggiornamento</th>
-            <th style={{ padding: '1rem', textAlign: 'right' }}>Azione</th>
-          </tr>
-        </thead>
-        <tbody>
-          {['Google Business Profile', 'Apple Maps', 'Bing Places'].map((network, idx) => (
-            <tr key={idx} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-              <td style={{ padding: '1rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: idx === 0 ? '#10b981' : '#f59e0b' }}></div>
-                {network}
-              </td>
-              <td style={{ padding: '1rem' }}>
-                {idx === 0 ? <span style={{ color: '#10b981', background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>Sincronizzato</span> : <span style={{ color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '4px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 600 }}>In sospeso</span>}
-              </td>
-              <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>Oggi, 10:45</td>
-              <td style={{ padding: '1rem', textAlign: 'right' }}>
-                <button className="primary-btn" style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>Modifica Dati</button>
-              </td>
-            </tr>
+  const renderReviews = () => {
+    if (loading) return <KpiSkeleton />
+    if (!configured) return <NotConfiguredBanner />
+
+    const rev = gbpData?.reviews
+    if (!rev) return (
+      <div className="text-center py-16 text-muted-foreground text-sm">
+        <MessageSquareHeart className="h-10 w-10 mx-auto mb-3 opacity-20" />
+        Nessuna recensione disponibile — dati in attesa dall'API Google.
+      </div>
+    )
+
+    return (
+      <div className="space-y-5 animate-in fade-in duration-300">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="glass-card p-5 rounded-xl border border-white/5 text-center">
+            <div className="text-2xl font-extrabold text-foreground">{rev.totalReviews}</div>
+            <div className="text-xs text-muted-foreground mt-1">Totale Recensioni</div>
+          </div>
+          <div className="glass-card p-5 rounded-xl border border-white/5 text-center">
+            <div className="text-2xl font-extrabold text-amber-400">{rev.averageRating.toFixed(1)}</div>
+            <StarRating rating={Math.round(rev.averageRating)} />
+            <div className="text-xs text-muted-foreground mt-1">Media</div>
+          </div>
+          <div className="glass-card p-5 rounded-xl border border-rose-500/10 text-center">
+            <div className="text-2xl font-extrabold text-rose-400">{rev.unansweredCount}</div>
+            <div className="text-xs text-muted-foreground mt-1">Senza Risposta</div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {rev.recent.map((review, i) => (
+            <div key={i} className="glass-card p-5 rounded-xl border border-white/5 bg-white/[0.02] space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-500/20 text-blue-300 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {review.author.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-foreground">{review.author}</div>
+                    <div className="text-[11px] text-muted-foreground">{review.date}</div>
+                  </div>
+                </div>
+                <StarRating rating={review.rating} />
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">"{review.text}"</p>
+              <div className="flex justify-end pt-1 border-t border-white/5">
+                <button className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition-all">
+                  <Sparkles size={12} /> Genera Risposta AI
+                </button>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
-    </div>
-  )
-
-  const renderReviews = () => (
-    <div className="tab-content-animation">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <MessageSquareHeart size={20} color="#f59e0b" /> Reputation Management
-        </h3>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <select style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.05)', fontSize: '0.9rem' }}>
-            <option>Tutte le recensioni ({reviews.totalReviews})</option>
-            <option>Da rispondere ({reviews.unansweredCount})</option>
-          </select>
         </div>
       </div>
+    )
+  }
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {reviews.recent.map((rev, idx) => (
-          <div key={idx} className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  {rev.author.charAt(0)}
-                </div>
-                <div>
-                  <h4 style={{ fontWeight: 600 }}>{rev.author}</h4>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{rev.date} sulla sede principale</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} size={16} fill={i < rev.rating ? "#f59e0b" : "transparent"} color={i < rev.rating ? "#f59e0b" : "#ccc"} />
-                ))}
-              </div>
-            </div>
-            <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem', color: 'var(--text-primary)' }}>"{rev.text}"</p>
-            
-            <div style={{ borderTop: '1px solid rgba(0,0,0,0.05)', paddingTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="primary-btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }}>
-                <Sparkles size={16} /> Genera Risposta AI
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  // ─── Tab: Local SEO ───────────────────────────────────────────────────────
 
-  const renderSeo = () => (
-    <div className="tab-content-animation" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-        <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Search size={18} color="#f59e0b" /> Termini di Ricerca Top
+  const renderSeo = () => {
+    if (!configured) return <NotConfiguredBanner />
+    const kws = gbpData?.keywords || []
+    return (
+      <div className="space-y-5 animate-in fade-in duration-300">
+        <div className="glass-card p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4">
+            <Search className="h-4 w-4 text-amber-400" /> Termini di Ricerca Top
           </h3>
-          <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-                <th style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>Keyword</th>
-                <th style={{ padding: '0.75rem 0.5rem', color: 'var(--text-secondary)' }}>Impressioni</th>
-              </tr>
-            </thead>
-            <tbody>
-              {keywords.map((kw, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                  <td style={{ padding: '0.75rem 0.5rem', fontWeight: 600 }}>{kw.keyword}</td>
-                  <td style={{ padding: '0.75rem 0.5rem' }}>{kw.impressions.toLocaleString()}</td>
-                </tr>
+          {kws.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-white/10 rounded-xl">
+              Nessun dato keyword disponibile dall'API Google.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {kws.map((kw, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
+                  <span className="text-sm font-medium text-foreground">{kw.keyword}</span>
+                  <span className="text-sm font-bold text-amber-400">{kw.impressions.toLocaleString('it-IT')}</span>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
 
-        <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sparkles size={18} color="#8b5cf6" /> AI Visibility Tracker
+        <div className="glass-card p-6 rounded-2xl border border-white/5 bg-white/[0.02]">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-2">
+            <Sparkles className="h-4 w-4 text-violet-400" /> AI Visibility Tracker
           </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-            Come i motori di intelligenza artificiale raccomandano il tuo brand nelle ricerche locali.
+          <p className="text-xs text-muted-foreground mb-4">
+            Funzionalità in sviluppo — monitora la visibilità del brand nei motori AI (ChatGPT, Perplexity, Gemini).
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}>🤖</span> <strong>ChatGPT</strong></div>
-               <span style={{ color: '#10b981', fontWeight: 'bold' }}>Raccomandato (Score: 78/100)</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}>🧠</span> <strong>Perplexity</strong></div>
-               <span style={{ color: '#10b981', fontWeight: 'bold' }}>Raccomandato (Score: 82/100)</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}>✨</span> <strong>Google Gemini</strong></div>
-               <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Non Raccomandato (Score: 35/100)</span>
-            </div>
+          <div className="text-center py-8 border border-dashed border-violet-500/20 rounded-xl text-muted-foreground text-sm">
+            <Sparkles className="h-6 w-6 mx-auto mb-2 text-violet-400/40" />
+            Disponibile nella prossima release
           </div>
         </div>
       </div>
+    )
+  }
 
-      <div className="glass-table" style={{ padding: '1.5rem', borderRadius: '16px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <MapPin size={18} color="#f59e0b" /> Geo-Grid Local Rank Tracker (Anteprima)
-        </h3>
-        <div style={{ height: '250px', background: 'rgba(0,0,0,0.02)', border: '1px dashed rgba(0,0,0,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--text-tertiary)' }}>
-          <MapPin size={40} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-          <span>Mappa termica delle posizioni in caricamento...</span>
-          <span style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>Permette di vedere il ranking esatto via per via contro i competitor locali.</span>
-        </div>
-      </div>
-    </div>
-  )
+  // ─── Tab: Reportistica ────────────────────────────────────────────────────
 
-  const renderReporting = () => (
-    <div className="tab-content-animation glass-table" style={{ padding: '2rem', borderRadius: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-        <div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <FileBarChart size={20} color="#f59e0b" /> Reportistica Automatica
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.95rem' }}>
-            Genera e invia report PDF brandizzati ai tuoi clienti per dimostrare il ROI.
-          </p>
-        </div>
-        <button className="primary-btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Download size={18} /> Genera Report Mese Scorso
-        </button>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-        <div style={{ padding: '1.5rem', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-          <h4 style={{ fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Sparkles size={16} color="#8b5cf6" /> Sintesi AI del Mese (Anteprima per il Report)
-          </h4>
-          <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--text-secondary)' }}>
-            "Nel mese di Maggio, la scheda Google Business Profile ha registrato un <strong>incremento del 15% nelle impressioni totali</strong> rispetto ad Aprile. Particolarmente positiva la crescita delle ricerche su Google Maps (+22%), che si è tradotta in <strong>475 richieste di indicazioni stradali</strong>. La reputazione online si mantiene eccellente (4.8/5) grazie a 14 nuove recensioni ricevute."
-          </p>
-        </div>
-
-        <div style={{ padding: '1.5rem', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-          <h4 style={{ fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Calendar size={16} /> Impostazioni Invio Automatico
-          </h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <div style={{ width: 44, height: 24, borderRadius: '12px', background: '#10b981', position: 'relative', cursor: 'pointer' }}>
-              <div style={{ position: 'absolute', top: 2, right: 2, width: 20, height: 20, borderRadius: '50%', background: '#fff' }}></div>
-            </div>
-            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Invio automatico attivo</span>
+  const renderReporting = () => {
+    if (!configured) return <NotConfiguredBanner />
+    return (
+      <div className="glass-card p-6 rounded-2xl border border-white/5 bg-white/[0.02] space-y-4 animate-in fade-in duration-300">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-foreground flex items-center gap-2">
+              <FileBarChart className="h-5 w-5 text-amber-400" /> Reportistica Automatica
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Genera e invia report PDF brandizzati al cliente con i KPI GBP mensili.
+            </p>
           </div>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Il report verrà inviato automaticamente all'email del cliente ogni 1° del mese alle 09:00 AM.</p>
+          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all active:scale-95">
+            <Download size={14} /> Genera Report
+          </button>
+        </div>
+        <div className="text-center py-10 border border-dashed border-white/10 rounded-xl text-muted-foreground text-sm">
+          <FileBarChart className="h-8 w-8 mx-auto mb-2 opacity-20" />
+          I report saranno disponibili quando i dati GBP sono attivi.
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
-  const renderContent = () => (
-    <div className="tab-content-animation glass-table" style={{ padding: '2rem', borderRadius: '16px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
-        <div>
-          <h3 style={{ fontSize: '1.2rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Megaphone size={20} color="#f59e0b" /> Gestione Contenuti & Post
-          </h3>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.95rem' }}>
-            Crea, programma e pubblica Aggiornamenti, Offerte ed Eventi sulla tua scheda Google.
-          </p>
-        </div>
-        <button className="primary-btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}>
-          + Nuovo Post
-        </button>
-      </div>
+  // ─── Tab: Post & Contenuti ────────────────────────────────────────────────
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ padding: '1.5rem', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '12px', display: 'flex', gap: '1.5rem' }}>
-          <div style={{ width: 120, height: 120, background: 'rgba(0,0,0,0.05)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            📸 Immagine
+  const renderContent = () => {
+    if (!configured) return <NotConfiguredBanner />
+    return (
+      <div className="glass-card p-6 rounded-2xl border border-white/5 bg-white/[0.02] space-y-4 animate-in fade-in duration-300">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-foreground flex items-center gap-2">
+              <Megaphone className="h-5 w-5 text-amber-400" /> Gestione Post & Contenuti
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Crea, programma e pubblica Aggiornamenti, Offerte ed Eventi sulla scheda Google.
+            </p>
           </div>
-          <div style={{ flex: 1 }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>Offerta</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Pubblicato: Ieri, 15:30</span>
-             </div>
-             <h4 style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>Menu Speciale Weekend: Sconto 20%</h4>
-             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Vieni a provare il nostro nuovo menu speciale questo weekend! Approfitta del 20% di sconto mostrando questo post alla cassa.</p>
-             <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
-               <span>👁️ 145 Visualizzazioni</span>
-               <span>👆 12 Click</span>
-             </div>
-          </div>
+          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-400 transition-all active:scale-95">
+            <Plus size={14} /> Nuovo Post
+          </button>
+        </div>
+        <div className="text-center py-10 border border-dashed border-white/10 rounded-xl text-muted-foreground text-sm">
+          <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-20" />
+          Funzionalità disponibile con API GBP attiva.
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
-  // MAIN RENDER
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
+    { id: 'overview', label: 'Overview & KPI', icon: LayoutDashboard },
+    { id: 'directories', label: 'Sedi & Directory', icon: MapPin },
+    { id: 'reviews', label: 'Recensioni & AI', icon: MessageSquareHeart },
+    { id: 'seo', label: 'Local SEO & Competitor', icon: Search },
+    { id: 'reporting', label: 'Reportistica', icon: FileBarChart },
+    { id: 'content', label: 'Post & Contenuti', icon: Megaphone },
+  ]
+
   return (
-    <div style={{ maxWidth: '1200px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <div className="w-full space-y-5">
+      {/* ── HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Profilo <span style={{ color: '#f59e0b' }}>GBP</span></h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Centro di comando Local SEO (Modo: Anteprima Grafica)</p>
+          <h2 className="text-2xl font-black tracking-tight text-foreground">
+            Profilo <span className="text-amber-400">GBP</span>
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Centro di comando Local SEO</p>
         </div>
-        
-        {/* TOP CONTROLS */}
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          {activeTab === 'overview' && (
-            <select 
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Location selector (only if multiple) */}
+          {locations.length > 1 && (
+            <div className="relative">
+              <select
+                value={selectedLocationId ?? ''}
+                onChange={(e) => setSelectedLocationId(e.target.value || null)}
+                className="text-xs font-semibold pr-8 pl-3 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-foreground outline-none focus:border-amber-500/50 cursor-pointer appearance-none"
+              >
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id} className="bg-neutral-900">
+                    {loc.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            </div>
+          )}
+
+          {/* Period selector */}
+          {activeTab === 'overview' && configured && (
+            <select
               value={daysBack}
               onChange={(e) => setDaysBack(Number(e.target.value))}
-              style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'rgba(0,0,0,0.05)', fontSize: '0.9rem', outline: 'none' }}
+              className="text-xs font-semibold pr-8 pl-3 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-foreground outline-none focus:border-primary/50 cursor-pointer appearance-none"
             >
               <option value={7}>Ultimi 7 giorni</option>
               <option value={30}>Ultimi 30 giorni</option>
               <option value={90}>Ultimi 90 giorni</option>
               <option value={180}>Ultimi 6 mesi</option>
-              <option value={365}>Ultimo Anno (Premium)</option>
+              <option value={365}>Ultimo Anno</option>
             </select>
           )}
-          <button className="primary-btn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(0,0,0,0.05)', color: 'var(--text-primary)', border: '1px solid rgba(0,0,0,0.1)' }}>
-            <Settings size={18} /> Configura Sede
-          </button>
+
+          {/* Refresh button */}
+          {configured && selectedLocationId && (
+            <button
+              onClick={() => fetchGbpData(selectedLocationId)}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+              {loading ? 'Aggiornamento...' : 'Aggiorna'}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* HORIZONTAL TAB NAVIGATION */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', overflowX: 'auto', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-        {[
-          { id: 'overview', label: 'Overview & KPI', icon: <LayoutDashboard size={16} /> },
-          { id: 'directories', label: 'Sedi & Directory', icon: <MapPin size={16} /> },
-          { id: 'reviews', label: 'Recensioni & AI', icon: <MessageSquareHeart size={16} /> },
-          { id: 'seo', label: 'Local SEO & Competitor', icon: <Search size={16} /> },
-          { id: 'reporting', label: 'Reportistica', icon: <FileBarChart size={16} /> },
-          { id: 'content', label: 'Post & Contenuti', icon: <Megaphone size={16} /> }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabType)}
-            style={{
-              padding: '0.75rem 1.25rem',
-              borderRadius: '8px',
-              border: 'none',
-              background: activeTab === tab.id ? 'var(--card-bg)' : 'transparent',
-              color: activeTab === tab.id ? '#f59e0b' : 'var(--text-secondary)',
-              fontWeight: activeTab === tab.id ? 700 : 500,
-              fontSize: '0.95rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: activeTab === tab.id ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-              transition: 'all 0.2s ease',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
+      {/* ── TAB BAR ── */}
+      <div className="flex gap-1 overflow-x-auto scrollbar-hide border-b border-white/5 pb-0">
+        {tabs.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-t-lg text-xs font-bold whitespace-nowrap transition-all border-b-2 -mb-px ${
+                activeTab === tab.id
+                  ? 'border-amber-500 text-amber-400 bg-amber-500/5'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/5'
+              }`}
+            >
+              <Icon size={14} />
+              {tab.label}
+            </button>
+          )
+        })}
       </div>
 
-      {/* RENDER ACTIVE TAB */}
-      <div>
+      {/* ── TAB CONTENT ── */}
+      <div className="min-h-[300px]">
         {activeTab === 'overview' && renderOverview()}
         {activeTab === 'directories' && renderDirectories()}
         {activeTab === 'reviews' && renderReviews()}
@@ -442,16 +663,6 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
         {activeTab === 'reporting' && renderReporting()}
         {activeTab === 'content' && renderContent()}
       </div>
-
-      <style dangerouslySetInnerHTML={{__html: `
-        .tab-content-animation {
-          animation: fadeIn 0.3s ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(5px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}} />
     </div>
   )
 }

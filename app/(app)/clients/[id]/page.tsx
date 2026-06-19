@@ -135,8 +135,10 @@ interface Client {
   ga4PropertyId?: string | null;
   clarityProjectId?: string | null;
   googleAdAccountId?: string | null;
-  gbpLocationId?: string | null;
+  gbpLocationId?: string | null; // legacy — single location
   gbpAccountId?: string | null;
+  gbpLocations?: Array<{ id: string; name: string; address?: string }>; // multi-sede
+  gbpActiveLocationId?: string | null; // sede attiva
 }
 
 const statusColors: Record<
@@ -807,7 +809,7 @@ export default function ClientDetailPage() {
             size="sm"
             className="active:scale-[0.97] transition-transform rounded-xl font-bold bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/10"
           >
-            <Link href={`/clients/${id}/campaigns/new`}>
+            <Link href={`/clients/${id}/meta-ads/new`}>
               <Plus className="h-4 w-4 mr-1.5" /> Nuova Campagna
             </Link>
           </Button>
@@ -2294,7 +2296,7 @@ export default function ClientDetailPage() {
               Campagne in Piattaforma
             </h2>
             <Link
-              href={`/clients/${id}/campaigns/new`}
+              href={`/clients/${id}/meta-ads/new`}
               className="btn-gorgeous inline-flex items-center gap-2 no-underline text-xs font-bold px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all"
             >
               <Plus size={16} /> Nuova Campagna
@@ -2664,8 +2666,18 @@ export default function ClientDetailPage() {
                 title="Microsoft Clarity Dashboard"
               />
             </div>
-{/* TAB: GBP PROFILE */}
-      {activeTab === "gbp" && <GbpDashboardTab clientId={client.id} />}
+          )}
+        </div>
+      )}
+
+      {/* TAB: GBP PROFILE */}
+      {activeTab === "gbp" && (
+        <GbpDashboardTab
+          clientId={client.id}
+          locations={client.gbpLocations ?? (client.gbpLocationId ? [{ id: client.gbpLocationId, name: 'Sede Principale' }] : [])}
+          activeLocationId={client.gbpActiveLocationId ?? client.gbpLocationId ?? null}
+        />
+      )}
 
       {/* TAB: API SETTINGS */}
       {activeTab === "settings" && (
