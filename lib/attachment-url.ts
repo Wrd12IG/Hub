@@ -20,6 +20,11 @@
 export function getAttachmentUrl(url: string, token: string | null): string {
     if (!url) return '#';
 
+    // blob: URL sono temporanei e validi solo nel browser che li ha creati.
+    // Se sono stati salvati per errore su Firestore, non possono essere aperti
+    // da altri utenti — restituiamo '#' per evitare redirect a pagine inesistenti.
+    if (url.startsWith('blob:')) return '#';
+
     // Link esterno (es. Google Drive, Figma, ecc.) → passa diretto
     if (
         !url.includes('firebasestorage.googleapis.com') &&
@@ -28,7 +33,7 @@ export function getAttachmentUrl(url: string, token: string | null): string {
         return url;
     }
 
-    // File Firebase Storage → proxy con Signed URL (15 min)
+    // File Firebase Storage → proxy con auth check (15 min)
     const params = new URLSearchParams({ url });
     if (token) params.set('token', token);
     return `/api/tasks/attachment?${params.toString()}`;

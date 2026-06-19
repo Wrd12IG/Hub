@@ -367,6 +367,19 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                 return clean;
             });
 
+            // ⚠️ Rimuovi allegati con blob: URL — sono temporanei e non accessibili ad altri utenti.
+            // Questo può succedere se l'utente ha aggiunto un file ma non è stato caricato correttamente.
+            const invalidBlobs = cleanedAttachments.filter((att: any) => att.url?.startsWith('blob:'));
+            const validAttachments = cleanedAttachments.filter((att: any) => !att.url?.startsWith('blob:'));
+
+            if (invalidBlobs.length > 0) {
+                toast({
+                    title: `⚠️ ${invalidBlobs.length} file non caricato`,
+                    description: 'Alcuni file non erano stati caricati correttamente e sono stati rimossi. Aggiungili di nuovo.',
+                    variant: 'destructive',
+                });
+            }
+
             const taskData: any = {
                 title: values.title,
                 description: values.description,
@@ -378,7 +391,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                 projectId: values.projectId === "nessuno" ? undefined : values.projectId,
                 assignedUserId: values.assignedUserId === "nessuno" ? undefined : values.assignedUserId,
                 activityType: values.activityType,
-                attachments: cleanedAttachments,
+                attachments: validAttachments,
                 dependencies: values.dependencies,
                 requiresTwoStepApproval: values.requiresTwoStepApproval,
                 skipAttachmentOnApproval: values.skipAttachmentOnApproval,
@@ -936,7 +949,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                             return (
                                 <div key={field.id} className="flex items-center justify-between p-2 bg-secondary rounded-md">
                                     <div className="flex items-center gap-3 overflow-hidden">
-                                        {isImg ? (
+                                        {isImg && !attachment.url?.startsWith('blob:') ? (
                                             <div className="h-10 w-10 flex-shrink-0 rounded-md overflow-hidden bg-background border">
                                                 <img src={getAttachmentUrl(attachment.url, authToken)} alt="anteprima" className="h-full w-full object-cover" />
                                             </div>
@@ -944,9 +957,15 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                             attachment.documentType === 'File' ? <FileIcon className="h-4 w-4 flex-shrink-0" /> : <LinkIcon className="h-4 w-4 flex-shrink-0" />
                                         )}
 
-                                        <a href={getAttachmentUrl(attachment.url, authToken)} target="_blank" rel="noopener noreferrer" className="text-sm truncate hover:underline underline-offset-4 decoration-primary">
-                                            {attachment.filename || attachment.url}
-                                        </a>
+                                        {attachment.url?.startsWith('blob:') ? (
+                                            <span className="text-sm text-amber-500 truncate flex items-center gap-1">
+                                                ⚠️ File non disponibile — carica di nuovo
+                                            </span>
+                                        ) : (
+                                            <a href={getAttachmentUrl(attachment.url, authToken)} target="_blank" rel="noopener noreferrer" className="text-sm truncate hover:underline underline-offset-4 decoration-primary">
+                                                {attachment.filename || attachment.url}
+                                            </a>
+                                        )}
                                     </div>
                                     <Button type="button" variant="ghost" size="sm" onClick={() => removeAttachment(index)}>
                                         <X className="h-4 w-4" />
