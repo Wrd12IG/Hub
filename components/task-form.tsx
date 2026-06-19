@@ -117,7 +117,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
             projectId: task?.projectId || "nessuno",
             assignedUserId: task?.assignedUserId || "nessuno",
             activityType: task?.activityType || "",
-            attachments: task?.attachments || [],
+            attachments: (task?.attachments || []) as any,
             dependencies: task?.dependencies || [],
             requiresTwoStepApproval: task?.requiresTwoStepApproval || false,
             skipAttachmentOnApproval: task?.skipAttachmentOnApproval || false,
