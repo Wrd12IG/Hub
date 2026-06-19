@@ -2664,20 +2664,16 @@ export default function ClientDetailPage() {
                 title="Microsoft Clarity Dashboard"
               />
             </div>
-          )}
-        </div>
-      )}
-
-      {/* TAB: GBP PROFILE */}
+{/* TAB: GBP PROFILE */}
       {activeTab === "gbp" && <GbpDashboardTab clientId={client.id} />}
 
       {/* TAB: API SETTINGS */}
       {activeTab === "settings" && (
-        <div className="max-w-2xl space-y-6">
+        <div className="w-full space-y-6">
           <div>
             <h2 className="text-xl font-extrabold text-foreground">
               Configurazione{" "}
-              <span className="text-cyan-400">Integrazioni API</span>
+              <span className="text-primary">Integrazioni API</span>
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
               Collega Meta Ads e l’ecosistema Google per sincronizzare dati
@@ -2691,7 +2687,7 @@ export default function ClientDetailPage() {
           </div>
 
           <form
-            className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] flex flex-col gap-6 sm:gap-8 shadow-lg"
+            className="w-full flex flex-col gap-6 sm:gap-8"
             onSubmit={async (e) => {
               e.preventDefault();
               const form = e.currentTarget;
@@ -2772,10 +2768,13 @@ export default function ClientDetailPage() {
               }
             }}
           >
+            {/* ─── TOP ROW: META + GOOGLE side by side ─── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* ─── META ADS INTEGRATION ─── */}
-            <div className="space-y-6 pb-6 border-b border-white/5">
+            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] space-y-6 shadow-md">
               <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
-                <h3 className="text-base font-bold text-cyan-400">
+                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
                   Meta Ads & Facebook
                 </h3>
                 <button
@@ -2905,9 +2904,10 @@ export default function ClientDetailPage() {
             </div>
 
             {/* ─── GOOGLE INTEGRATION ─── */}
-            <div className="space-y-6 pb-6 border-b border-white/5">
+            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] space-y-6 shadow-md">
               <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
-                <h3 className="text-base font-bold text-blue-400">
+                <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
                   Ecosistema Google
                 </h3>
                 <button
@@ -3016,13 +3016,16 @@ export default function ClientDetailPage() {
                 </p>
               </div>
             </div>
+            </div>{/* end grid 2col */}
 
+            {/* ─── SECOND ROW: GBP + CLARITY + GA4 ─── */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* ─── Google Business Profile ─── */}
-            <div className="space-y-6 pb-6 border-b border-white/5">
-              <h3 className="text-base font-bold text-amber-400">
+            <div className="glass-card p-6 rounded-2xl border border-amber-500/10 bg-amber-500/[0.02] space-y-4 shadow-md">
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
                 Google Business Profile (Maps)
               </h3>
-
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-muted-foreground">
                   ID Account GBP (Account Name)
@@ -3053,7 +3056,7 @@ export default function ClientDetailPage() {
             </div>
 
             {/* ─── MICROSOFT CLARITY ─── */}
-            <div className="p-5 border border-violet-500/10 bg-violet-500/[0.01] rounded-2xl space-y-4">
+            <div className="glass-card p-6 rounded-2xl border border-violet-500/10 bg-violet-500/[0.02] space-y-4 shadow-md">
               <div>
                 <label className="flex items-center gap-2 text-sm font-bold text-violet-400">
                   Microsoft Clarity (Heatmaps)
@@ -3072,8 +3075,9 @@ export default function ClientDetailPage() {
             </div>
 
             {/* GA4 Property selection */}
-            <div className="p-5 border border-blue-500/10 bg-blue-500/[0.01] rounded-2xl space-y-4">
-              <label className="block text-xs font-bold text-blue-400">
+            <div className="glass-card p-6 rounded-2xl border border-blue-500/10 bg-blue-500/[0.02] space-y-4 shadow-md">
+              <label className="block text-xs font-bold text-foreground flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
                 Google Analytics 4 — Collega Proprietà
               </label>
 
