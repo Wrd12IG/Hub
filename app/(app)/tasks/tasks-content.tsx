@@ -1103,7 +1103,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
 
 
-    const { tasksByStatus } = useMemo(() => {
+    const { tasksByStatus, overdueTasks } = useMemo(() => {
         const byStatus: Record<Task['status'], Task[]> = {
             'Da Fare': [],
             'In Lavorazione': [],
