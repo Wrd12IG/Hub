@@ -1315,17 +1315,15 @@
 
 /* ─────────────────────────────────────────────────────────────────────
    Task in Approvazione — scintillio unico
-   Un solo keyframe (sparkle-glide): striscia di luce diagonale che
-   attraversa la card come un riflesso su vetro.
-   .animate-approval        → viola, ogni 4 s (normale)
-   .animate-approval-overdue → rosso/viola, ogni 2 s (scaduto urgente)
+   Un solo @keyframes (sparkle-glide) che anima background-position.
+   mix-blend-mode:overlay garantisce visibilità su qualsiasi sfondo/glass.
+   .animate-approval           → viola, ogni 4 s (normale)
+   .animate-approval-overdue   → rosso, ogni 2 s (scaduto)
 ───────────────────────────────────────────────────────────────────── */
 
 @keyframes sparkle-glide {
-  0%   { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
-  8%   { opacity: 1; }
-  92%  { opacity: 1; }
-  100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
+  0%   { background-position: 150% center; }
+  100% { background-position: -50% center; }
 }
 
 /* ── Base: In Approvazione (viola) ── */
@@ -1338,61 +1336,53 @@
   overflow: hidden;
 }
 
-/* Striscia luminosa diagonale */
 .animate-approval::after {
   content: '';
   position: absolute;
-  top: 0; left: 0;
-  width: 55%;
-  height: 100%;
+  inset: 0;
+  border-radius: inherit;
   background: linear-gradient(
-    to right,
-    transparent,
-    rgba(255, 255, 255, 0.04) 30%,
-    rgba(255, 255, 255, 0.18) 50%,
-    rgba(255, 255, 255, 0.04) 70%,
-    transparent
+    105deg,
+    transparent 0%,
+    transparent 30%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 70%,
+    transparent 100%
   );
-  transform: translateX(-140%) skewX(-18deg);
+  background-size: 250% 100%;
+  background-position: 150% center;
   animation: sparkle-glide 4s ease-in-out infinite;
   pointer-events: none;
+  mix-blend-mode: overlay;
   z-index: 2;
-  will-change: transform;
+  will-change: background-position;
 }
 
-/* ── Variante: In Approvazione SCADUTO (più urgente, più veloce) ── */
+/* ── Variante: In Approvazione SCADUTO ── */
 .animate-approval-overdue {
   border-color: rgba(239, 68, 68, 0.5) !important;
   box-shadow:
     0 0 0 0.5px rgba(239, 68, 68, 0.08),
-    0 0 20px rgba(239, 68, 68, 0.16) !important;
+    0 0 20px rgba(239, 68, 68, 0.18) !important;
 }
 
 .animate-approval-overdue::after {
-  animation-duration: 2.2s;
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgba(255, 200, 200, 0.04) 30%,
-    rgba(255, 255, 255, 0.22) 50%,
-    rgba(255, 200, 200, 0.04) 70%,
-    transparent
-  );
+  animation-duration: 2s;
 }
 
-/* Dark mode: leggermente più luminoso */
+/* Dark mode */
 .dark .animate-approval {
   border-color: rgba(192, 132, 252, 0.5) !important;
   box-shadow:
     0 0 0 0.5px rgba(192, 132, 252, 0.1),
-    0 0 22px rgba(192, 132, 252, 0.18) !important;
+    0 0 22px rgba(192, 132, 252, 0.2) !important;
 }
 
 .dark .animate-approval-overdue {
   border-color: rgba(252, 165, 165, 0.55) !important;
   box-shadow:
     0 0 0 0.5px rgba(252, 165, 165, 0.1),
-    0 0 22px rgba(252, 165, 165, 0.2) !important;
+    0 0 22px rgba(252, 165, 165, 0.22) !important;
 }
 
 
