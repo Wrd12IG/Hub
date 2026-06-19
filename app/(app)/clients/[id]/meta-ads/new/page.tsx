@@ -650,7 +650,7 @@ export default function NewCampaignPage() {
   }
 
   return (
-    <div style={{ maxWidth: '780px' }}>
+    <div className="w-full min-w-0">
       {/* Header */}
       <div style={{ marginBottom: '2.5rem' }}>
         <Link href={`/clients/${clientId}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none', marginBottom: '1rem', fontSize: '0.9rem' }}>
