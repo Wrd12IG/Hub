@@ -1,14 +1,18 @@
 /**
  * GET /api/tasks/attachment?url=<firebase-storage-url>&token=<firebase-id-token>
  *
- * Genera un signed URL temporaneo (15 min) per un allegato Firebase Storage.
- * Qualsiasi utente autenticato nell'app può accedere a qualsiasi allegato.
+ * Proxy per allegati Firebase Storage.
+ * Verifica che l'utente sia autenticato, poi fa redirect all'URL originale.
+ *
+ * Firebase Storage getDownloadURL() restituisce già un URL con download token
+ * incorporato (?alt=media&token=...) che è accessibile pubblicamente.
+ * Questo proxy aggiunge solo il gate di autenticazione Firebase.
  *
  * Auth: accetta token come query param (?token=) per supportare apertura
  * diretta da <a href> nel browser (che non può aggiungere header Authorization).
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth, adminStorage } from '@/lib/firebase-admin';
+import { adminAuth } from '@/lib/firebase-admin';
 
 async function verifyToken(request: NextRequest): Promise<{ uid: string } | null> {
   // 1. Bearer header (chiamate fetch API)
@@ -34,7 +38,14 @@ async function verifyToken(request: NextRequest): Promise<{ uid: string } | null
 export async function GET(request: NextRequest) {
   const user = await verifyToken(request);
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return new NextResponse(
+      `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:2rem;">
+        <h2>⚠️ Accesso negato</h2>
+        <p>Devi essere autenticato per visualizzare questo allegato.</p>
+        <p><a href="/login">Vai al login</a></p>
+      </body></html>`,
+      { status: 401, headers: { 'Content-Type': 'text/html' } }
+    );
   }
 
   const rawUrl = request.nextUrl.searchParams.get('url');
@@ -42,45 +53,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
   }
 
-  try {
-    // URL esterno (link manuali) — redirect diretto senza proxy
-    if (!rawUrl.includes('firebasestorage.googleapis.com') && !rawUrl.startsWith('gs://')) {
-      return NextResponse.redirect(rawUrl);
-    }
-
-    // Estrai il path Firebase Storage
-    let storagePath: string;
-    if (rawUrl.startsWith('gs://')) {
-      storagePath = rawUrl.replace(/^gs:\/\/[^/]+\//, '');
-    } else {
-      const urlObj = new URL(rawUrl);
-      const pathMatch = urlObj.pathname.match(/\/v0\/b\/[^/]+\/o\/(.+)/);
-      if (!pathMatch) {
-        return NextResponse.json({ error: 'Invalid Firebase Storage URL' }, { status: 400 });
-      }
-      storagePath = decodeURIComponent(pathMatch[1]);
-    }
-
-    const bucket = adminStorage.bucket();
-    const file = bucket.file(storagePath);
-
-    const [exists] = await file.exists();
-    if (!exists) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 });
-    }
-
-    // Signed URL valido 15 minuti — accessibile dal browser senza auth Firebase
-    const [signedUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: Date.now() + 15 * 60 * 1000,
-    });
-
-    return NextResponse.redirect(signedUrl);
-  } catch (error: any) {
-    console.error('[api/tasks/attachment] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate attachment URL' },
-      { status: 500 }
-    );
-  }
+  // Redirect diretto all'URL originale.
+  // - Per Firebase Storage: l'URL di getDownloadURL() contiene già un download token
+  //   (?alt=media&token=...) che lo rende accessibile pubblicamente a chiunque abbia il link.
+  // - Per link esterni (Google Drive, Figma, ecc.): redirect diretto.
+  // In entrambi i casi il gate di autenticazione sopra garantisce che solo
+  // utenti dell'app possano ottenere il link.
+  return NextResponse.redirect(rawUrl);
 }
