@@ -278,10 +278,10 @@ const TaskCard = ({
                 'glass-card',
                 // 1. Timer Attivo → bordo verde + bg
                 isTimerActiveForThisTask && '!bg-green-500/10 dark:!bg-green-900/20 border-green-500 border-2',
-                // 2. In Approvazione SCADUTO → Lampeggio Viola URGENTE (priorità su tutto)
-                isApprovalOverdue && 'animate-glow-approval-overdue',
-                // 3. In Approvazione RECENTE (<24h) → Glow Viola lento
-                (!isApprovalOverdue && isTaskInApproval && approvalDaysPending < 1) && 'animate-glow-custom',
+                // 2. In Approvazione SCADUTO → scintillio rosso urgente (priorità su tutto)
+                isApprovalOverdue && 'animate-approval animate-approval-overdue',
+                // 3. In Approvazione RECENTE (<24h) → scintillio viola lento
+                (!isApprovalOverdue && isTaskInApproval && approvalDaysPending < 1) && 'animate-approval',
                 // 4. Scaduto (non in approvazione) → solo bordo sinistro rosso
                 (!isApprovalOverdue && isOverdue) && 'border-l-4 border-l-red-500',
                 // 5. Highlighted (Selezione URL) → Ring Blu statico
