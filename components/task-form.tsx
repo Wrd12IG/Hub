@@ -73,7 +73,10 @@ const formSchema = z.object({
         url: z.string(), // Removed .url() validation to allow placeholders or local paths
         filename: z.string().optional(),
         documentType: z.string().optional(),
-    })).optional(),
+        // Campi interni per il tracking dell'upload — passthrough li preserva invece di stripparli
+        _pendingUpload: z.boolean().optional(),
+        _fileIndex: z.number().optional(),
+    }).passthrough()).optional(),
     dependencies: z.array(z.string()).optional(),
     requiresTwoStepApproval: z.boolean().optional(),
     skipAttachmentOnApproval: z.boolean().optional(),
