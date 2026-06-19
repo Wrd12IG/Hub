@@ -53,6 +53,7 @@ import { WorkloadSphere } from "@/components/WorkloadSphere"
 import { motion } from "framer-motion"
 import { useAuthToken } from "@/hooks/use-auth-token"
 import { getAttachmentUrl } from "@/lib/attachment-url"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 
 const formSchema = z.object({
     title: z.string().min(2, {
@@ -99,7 +100,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
     const [isLoading, setIsLoading] = React.useState(false)
     const [newAttachmentUrl, setNewAttachmentUrl] = React.useState("")
     const fileInputRef = React.useRef<HTMLInputElement>(null)
-    const [pendingFiles, setPendingFiles] = React.useState<File[]>([])
+    const [pendingFiles, setPendingFiles] = React.useState<{ file: File; url: string }[]>([])
     const [isUploading, setIsUploading] = React.useState(false)
     const [useAutoDueDate, setUseAutoDueDate] = React.useState(!task && !initialDate) // Auto scadenza per nuovi task
     const [suggestedDuration, setSuggestedDuration] = React.useState<number | null>(null)
@@ -131,29 +132,44 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
     })
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            // Store file for later upload and show preview with local URL
-            const objectUrl = URL.createObjectURL(file);
-            setPendingFiles(prev => [...prev, file]);
-            appendAttachment({
-                url: objectUrl, // Temporary preview URL
-                documentType: file.type.startsWith('image/') ? 'Image' : 'File',
-                filename: file.name,
-                // Mark as pending upload
-                _pendingUpload: true,
-                _fileIndex: pendingFiles.length
-            } as any);
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const newFiles = Array.from(files);
+            const newPending = newFiles.map(file => ({
+                file,
+                url: URL.createObjectURL(file)
+            }));
+
+            setPendingFiles(prev => [...prev, ...newPending]);
+
+            newPending.forEach(item => {
+                appendAttachment({
+                    url: item.url,
+                    documentType: item.file.type.startsWith('image/') ? 'Image' : 'File',
+                    filename: item.file.name,
+                    _pendingUpload: true,
+                } as any);
+            });
 
             toast({
-                title: "File Selezionato",
-                description: `Il file ${file.name} verrà caricato al salvataggio.`,
-            })
+                title: newFiles.length === 1 ? "File Selezionato" : `${newFiles.length} File Selezionati`,
+                description: newFiles.length === 1 
+                    ? `Il file ${newFiles[0].name} verrà caricato al salvataggio.`
+                    : "I file verranno caricati al salvataggio.",
+            });
 
             if (fileInputRef.current) {
                 fileInputRef.current.value = "";
             }
         }
+    }
+
+    const handleRemoveAttachment = (index: number) => {
+        const att = attachmentFields[index] as any;
+        if (att?._pendingUpload) {
+            setPendingFiles(prev => prev.filter(p => p.url !== att.url));
+        }
+        removeAttachment(index);
     }
 
     const isImage = (url: string, type?: string) => {
@@ -323,26 +339,27 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
 
                 try {
                     const uploadedAttachments = await uploadFilesAndGetAttachments(
-                        pendingFiles,
+                        pendingFiles.map(p => p.file),
                         `tasks/${values.clientId}`,
                         currentUser.id
                     );
 
                     // Replace pending attachments with uploaded ones
-                    let uploadIndex = 0;
                     finalAttachments = finalAttachments.map((att: any) => {
-                        if (att._pendingUpload && uploadIndex < uploadedAttachments.length) {
-                            const uploaded = uploadedAttachments[uploadIndex];
-                            uploadIndex++;
-                            return {
-                                url: uploaded.url,
-                                filename: uploaded.filename,
-                                type: uploaded.type,
-                                size: uploaded.size,
-                                documentType: att.documentType === 'Image' ? 'Altro' : 'Altro',
-                                date: uploaded.date,
-                                userId: uploaded.userId,
-                            };
+                        if (att._pendingUpload) {
+                            const pendingIndex = pendingFiles.findIndex(p => p.url === att.url);
+                            if (pendingIndex !== -1 && pendingIndex < uploadedAttachments.length) {
+                                const uploaded = uploadedAttachments[pendingIndex];
+                                return {
+                                    url: uploaded.url,
+                                    filename: uploaded.filename,
+                                    type: uploaded.type,
+                                    size: uploaded.size,
+                                    documentType: att.documentType === 'Image' ? 'Image' : 'File',
+                                    date: uploaded.date,
+                                    userId: uploaded.userId,
+                                };
+                            }
                         }
                         return att;
                     });
@@ -469,7 +486,8 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     className="h-6 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                                     onClick={() => {
                                         const current = form.getValues('description') || '';
-                                        form.setValue('description', current + (current ? '\n\n' : '') + '✨ Suggerimento AI:\n- Obiettivo:\n- Passaggi:\n- Scadenza:');
+                                        const suggestion = '<p><strong>✨ Suggerimento AI:</strong></p><ul><li>Obiettivo: </li><li>Passaggi: </li><li>Scadenza: </li></ul>';
+                                        form.setValue('description', current + (current ? '<br/>' : '') + suggestion);
                                         toast({ title: "AI Assist", description: "Suggerimento generato!" });
                                     }}
                                 >
@@ -477,7 +495,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                 </Button>
                             </div>
                             <FormControl>
-                                <Textarea placeholder="Descrizione dettagliata..." {...field} />
+                                <RichTextEditor value={field.value || ''} onChange={field.onChange} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -933,6 +951,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                             className="hidden"
                             ref={fileInputRef}
                             onChange={handleFileUpload}
+                            multiple
                         />
                         <Button
                             type="button"
@@ -970,7 +989,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                             </a>
                                         )}
                                     </div>
-                                    <Button type="button" variant="ghost" size="sm" onClick={() => removeAttachment(index)}>
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveAttachment(index)}>
                                         <X className="h-4 w-4" />
                                     </Button>
                                 </div>

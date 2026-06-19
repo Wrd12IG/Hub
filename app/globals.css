@@ -1327,16 +1327,16 @@
 }
 
 /* ── Base: In Approvazione (viola) ── */
-.animate-approval {
+.animate-approval, .glass-card.animate-approval {
   position: relative;
-  border: 1.5px solid rgba(168, 85, 247, 0.45) !important;
+  border: 2px solid rgba(168, 85, 247, 0.65) !important;
   box-shadow:
-    0 0 0 0.5px rgba(168, 85, 247, 0.08),
-    0 0 18px rgba(168, 85, 247, 0.14) !important;
+    0 0 0 1px rgba(168, 85, 247, 0.15),
+    0 0 20px rgba(168, 85, 247, 0.22) !important;
   overflow: hidden;
 }
 
-.animate-approval::after {
+.animate-approval::after, .glass-card.animate-approval::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -1344,45 +1344,53 @@
   background: linear-gradient(
     105deg,
     transparent 0%,
-    transparent 30%,
-    rgba(255, 255, 255, 0.25) 50%,
-    transparent 70%,
+    transparent 35%,
+    rgba(168, 85, 247, 0.3) 50%,
+    transparent 65%,
     transparent 100%
   );
   background-size: 250% 100%;
   background-position: 150% center;
   animation: sparkle-glide 4s ease-in-out infinite;
   pointer-events: none;
-  mix-blend-mode: overlay;
+  mix-blend-mode: normal;
   z-index: 2;
   will-change: background-position;
 }
 
 /* ── Variante: In Approvazione SCADUTO ── */
-.animate-approval-overdue {
-  border-color: rgba(239, 68, 68, 0.5) !important;
+.animate-approval-overdue, .glass-card.animate-approval-overdue {
+  border-color: rgba(239, 68, 68, 0.75) !important;
   box-shadow:
-    0 0 0 0.5px rgba(239, 68, 68, 0.08),
-    0 0 20px rgba(239, 68, 68, 0.18) !important;
+    0 0 0 1px rgba(239, 68, 68, 0.2),
+    0 0 22px rgba(239, 68, 68, 0.28) !important;
 }
 
-.animate-approval-overdue::after {
-  animation-duration: 2s;
+.animate-approval-overdue::after, .glass-card.animate-approval-overdue::after {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(239, 68, 68, 0.35) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  animation-duration: 2.2s;
 }
 
 /* Dark mode */
-.dark .animate-approval {
-  border-color: rgba(192, 132, 252, 0.5) !important;
+.dark .animate-approval, .dark .glass-card.animate-approval {
+  border-color: rgba(192, 132, 252, 0.75) !important;
   box-shadow:
-    0 0 0 0.5px rgba(192, 132, 252, 0.1),
-    0 0 22px rgba(192, 132, 252, 0.2) !important;
+    0 0 0 1px rgba(192, 132, 252, 0.2),
+    0 0 24px rgba(192, 132, 252, 0.3) !important;
 }
 
-.dark .animate-approval-overdue {
-  border-color: rgba(252, 165, 165, 0.55) !important;
+.dark .animate-approval-overdue, .dark .glass-card.animate-approval-overdue {
+  border-color: rgba(248, 113, 113, 0.8) !important;
   box-shadow:
-    0 0 0 0.5px rgba(252, 165, 165, 0.1),
-    0 0 22px rgba(252, 165, 165, 0.22) !important;
+    0 0 0 1px rgba(248, 113, 113, 0.25),
+    0 0 24px rgba(248, 113, 113, 0.32) !important;
 }
 
 

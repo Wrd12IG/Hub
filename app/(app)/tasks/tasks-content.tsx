@@ -92,6 +92,22 @@ const formatTime = (totalSeconds: number) => {
     return [hours, minutes, seconds].map((v) => (v < 10 ? '0' + v : v)).join(':');
 };
 
+const stripHtml = (html: string): string => {
+    if (!html) return '';
+    // Replace HTML tags with spaces, then normalize spacing
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+};
+
+const formatDescription = (desc: string): string => {
+    if (!desc) return 'Nessuna descrizione.';
+    // If it already has HTML formatting, return it
+    if (desc.includes('<p>') || desc.includes('<ul>') || desc.includes('<strong>') || desc.includes('<ol>') || desc.includes('<br>')) {
+        return desc;
+    }
+    // Convert newlines to paragraphs for backward compatibility
+    return desc.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('');
+};
+
 type ModalState = {
     mode: 'create' | 'edit';
     task?: Task;
@@ -280,8 +296,8 @@ const TaskCard = ({
                 isTimerActiveForThisTask && '!bg-green-500/10 dark:!bg-green-900/20 border-green-500 border-2',
                 // 2. In Approvazione SCADUTO → scintillio rosso urgente (priorità su tutto)
                 isApprovalOverdue && 'animate-approval animate-approval-overdue',
-                // 3. In Approvazione RECENTE (<24h) → scintillio viola lento
-                (!isApprovalOverdue && isTaskInApproval && approvalDaysPending < 1) && 'animate-approval',
+                // 3. In Approvazione → scintillio viola lento
+                (!isApprovalOverdue && isTaskInApproval) && 'animate-approval',
                 // 4. Scaduto (non in approvazione) → solo bordo sinistro rosso
                 (!isApprovalOverdue && isOverdue) && 'border-l-4 border-l-red-500',
                 // 5. Highlighted (Selezione URL) → Ring Blu statico
@@ -333,9 +349,9 @@ const TaskCard = ({
                 <h3 className="font-bold text-sm text-foreground leading-snug break-words uppercase">
                     {task.title}
                 </h3>
-                {task.description && (
+                {task.description && stripHtml(task.description).trim() && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                        {task.description}
+                        {stripHtml(task.description)}
                     </p>
                 )}
                 {/* Data richiesta di completamento */}
@@ -2025,9 +2041,10 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             <CardTitle className="text-sm">Descrizione</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            <p className="text-sm whitespace-pre-wrap">
-                                                {previewTask.description || 'Nessuna descrizione.'}
-                                            </p>
+                                            <div 
+                                                className="text-sm leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>h1]:text-base [&>h1]:font-bold [&>h1]:mt-3 [&>h1]:mb-1 [&>h2]:text-sm [&>h2]:font-bold [&>h2]:mt-2 [&>h2]:mb-1 [&>blockquote]:border-l-4 [&>blockquote]:border-purple-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>code]:bg-purple-500/10 [&>code]:text-purple-500 [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded"
+                                                dangerouslySetInnerHTML={{ __html: formatDescription(previewTask.description || '') }}
+                                            />
                                         </CardContent>
                                     </Card>
 
