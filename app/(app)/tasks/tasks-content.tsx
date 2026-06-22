@@ -216,7 +216,7 @@ const TaskCard = ({
     }, [isTaskInApproval, task.updatedAt]);
 
     const isNewApprovalRequest = isTaskInApproval && approvalDaysPending < 1;
-    const isOverdue = daysRemaining !== null && daysRemaining < 0 && task.status !== 'Approvato' && task.status !== 'Annullato' && task.status !== 'In Approvazione Cliente';
+    const isOverdue = daysRemaining !== null && daysRemaining < 0 && (task.status === 'Da Fare' || task.status === 'In Lavorazione');
     // Task in approvazione (sia interna che cliente) con scadenza superata → lampeggio viola urgente
     const isApprovalOverdue = isTaskInApproval && daysRemaining !== null && daysRemaining < 0;
 
@@ -1155,7 +1155,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         // Build overdue virtual column: tasks from active statuses with past dueDate
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const overdueStatuses: Task['status'][] = ['Da Fare', 'In Lavorazione', 'In Approvazione'];
+        const overdueStatuses: Task['status'][] = ['Da Fare', 'In Lavorazione'];
         const overdueTasks = filteredTasks.filter(task => {
             if (!task.dueDate) return false;
             if (!overdueStatuses.includes(task.status)) return false;
