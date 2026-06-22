@@ -1113,11 +1113,30 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             'Annullato': [],
         };
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const overdueStatuses: Task['status'][] = ['Da Fare', 'In Lavorazione'];
+        
+        const overdueTasks: Task[] = [];
+
         filteredTasks.forEach(task => {
-            if (byStatus[task.status]) {
+            let isOverdue = false;
+            if (task.dueDate && overdueStatuses.includes(task.status)) {
+                const due = new Date(task.dueDate);
+                due.setHours(0, 0, 0, 0);
+                if (due < today) {
+                    isOverdue = true;
+                }
+            }
+
+            if (isOverdue) {
+                overdueTasks.push(task);
+            } else if (byStatus[task.status]) {
                 byStatus[task.status].push(task);
             }
         });
+
+        overdueTasks.sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
 
         const priorityOrder: Record<string, number> = { 'Critica': 0, 'Alta': 1, 'Media': 2, 'Bassa': 3 };
 
@@ -1151,18 +1170,6 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             };
             return getUpdateDate(b).getTime() - getUpdateDate(a).getTime();
         });
-
-        // Build overdue virtual column: tasks from active statuses with past dueDate
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const overdueStatuses: Task['status'][] = ['Da Fare', 'In Lavorazione'];
-        const overdueTasks = filteredTasks.filter(task => {
-            if (!task.dueDate) return false;
-            if (!overdueStatuses.includes(task.status)) return false;
-            const due = new Date(task.dueDate);
-            due.setHours(0, 0, 0, 0);
-            return due < today;
-        }).sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
 
         return {
             tasksByStatus: byStatus,
