@@ -686,7 +686,15 @@ export async function getEditorialFormats(): Promise<EditorialFormat[]> {
 
 // Editorial Statuses
 export async function getEditorialStatuses(): Promise<EditorialStatus[]> {
-    return fetchCollection<EditorialStatus>('editorialStatuses');
+    const statuses = await fetchCollection<EditorialStatus>('editorialStatuses');
+    if (!statuses.some(s => s.name === 'Pubblicato')) {
+        statuses.push({
+            id: 'virtual-pubblicato',
+            name: 'Pubblicato',
+            color: 'bg-green-100 text-green-800'
+        });
+    }
+    return statuses;
 }
 
 // Editorial Columns

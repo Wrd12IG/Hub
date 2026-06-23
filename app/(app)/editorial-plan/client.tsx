@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/card';
 import { getEditorialContents, addEditorialContent, updateEditorialContent, deleteEditorialContent, getEditorialFormats, getEditorialColumns, getEditorialStatuses, addTask, addProject, uploadFilesAndGetAttachments } from '@/lib/actions';
 import type { EditorialContent, Client, EditorialFormat, EditorialColumn, EditorialStatus, User, Task, Project, ActivityType } from '@/lib/data';
-import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, Upload, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X } from 'lucide-react';
+import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, Upload, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -234,7 +234,7 @@ const MediaGallery = ({ imageUrls, videoUrl, alt }: { imageUrls?: string[], vide
 };
 
 // Kanban Board View Component
-const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns }: {
+const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishToZapier, isPublishing }: {
     contents: EditorialContent[],
     clientsById: Record<string, Client>,
     statuses: EditorialStatus[],
@@ -245,6 +245,8 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
     tasksById: Record<string, Task>,
     projectsById: Record<string, Project>,
     editorialColumns: EditorialColumn[],
+    onPublishToZapier: (content: EditorialContent) => void,
+    isPublishing: Record<string, boolean>,
 }) => {
     const contentsByStatus = useMemo(() => {
         const grouped: Record<string, EditorialContent[]> = {};
@@ -322,6 +324,14 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent>
+                                                        <DropdownMenuItem 
+                                                            disabled={content.status !== 'Approvato' || isPublishing[content.id]}
+                                                            onClick={() => onPublishToZapier(content)}
+                                                        >
+                                                            <Send className="mr-2 h-4 w-4" /> 
+                                                            {isPublishing[content.id] ? 'Invio in corso...' : 'Invia a Zapier'}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => onEdit(content)}>
                                                             <Edit className="mr-2 h-4 w-4" /> Modifica
                                                         </DropdownMenuItem>
@@ -632,6 +642,7 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
     const [editorialStatuses, setEditorialStatuses] = useState<EditorialStatus[]>([]);
     const [editorialColumns, setEditorialColumns] = useState<EditorialColumn[]>([]);
     const [isLoadingData, setIsLoadingData] = useState(true);
+    const [isPublishing, setIsPublishing] = useState<Record<string, boolean>>({});
 
     const [modalState, setModalState] = useState<ModalState>(null);
     const [editingContent, setEditingContent] = useState<EditorialContent | null>(null);
@@ -682,6 +693,35 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    const handlePublishToZapier = async (content: EditorialContent) => {
+        if (content.status !== 'Approvato') {
+            toast.error('Il post deve essere nello stato "Approvato" per essere inviato a Zapier.');
+            return;
+        }
+
+        setIsPublishing(prev => ({ ...prev, [content.id]: true }));
+        try {
+            const res = await fetch('/api/publish-zapier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contentId: content.id })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Errore durante la pubblicazione.');
+            }
+
+            toast.success('Contenuto inviato a Zapier con successo!');
+            await fetchData();
+        } catch (error: any) {
+            console.error('Publish error:', error);
+            toast.error(error.message || 'Errore durante l\\'invio a Zapier.');
+        } finally {
+            setIsPublishing(prev => ({ ...prev, [content.id]: false }));
+        }
+    };
 
     const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
         setFilters(prev => ({ ...prev, [filterName]: value }));
@@ -1332,6 +1372,14 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
                                                                 <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent>
+                                                                <DropdownMenuItem 
+                                                                    disabled={content.status !== 'Approvato' || isPublishing[content.id]}
+                                                                    onClick={() => handlePublishToZapier(content)}
+                                                                >
+                                                                    <Send className="mr-2 h-4 w-4" /> 
+                                                                    {isPublishing[content.id] ? 'Invio in corso...' : 'Invia a Zapier'}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
                                                                 <DropdownMenuItem onClick={() => handleOpenEditModal(content)}>
                                                                     <Edit className="mr-2 h-4 w-4" /> Modifica
                                                                 </DropdownMenuItem>
@@ -1357,7 +1405,7 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
                 </Card>
             )}
 
-            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} />}
+            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishToZapier={handlePublishToZapier} isPublishing={isPublishing} />}
 
             {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} />}
 
