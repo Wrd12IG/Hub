@@ -45,6 +45,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import dynamic from 'next/dynamic';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { LivePreview } from '@/components/editorial-plan/live-preview';
 import Link from 'next/link';
 import { useLayoutData } from '@/app/(app)/layout-context';
 
@@ -1562,6 +1564,21 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
     const [currentImageUrls, setCurrentImageUrls] = useState<string[]>([]);
     const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
     const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+    
+    // Controlled states for Live Preview
+    const [topic, setTopic] = useState(editingContent?.topic || '');
+    const [formatValue, setFormatValue] = useState(editingContent?.format || '');
+    const [copy, setCopy] = useState(editingContent?.copy || '');
+    const [platforms, setPlatforms] = useState({
+        facebook: editingContent?.facebook || false,
+        linkedin: editingContent?.linkedin || false,
+        instagram: editingContent?.instagram || false,
+        igStories: editingContent?.igStories || false,
+        tiktok: editingContent?.tiktok || false,
+        gbp: editingContent?.gbp || false,
+        youtube: editingContent?.youtube || false,
+    });
+
     const [publicationDate, setPublicationDate] = useState<Date | undefined>(
         editingContent?.publicationDate && !isNaN(new Date(editingContent.publicationDate).getTime())
             ? new Date(editingContent.publicationDate)
@@ -1581,13 +1598,41 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                     ? new Date(editingContent.publicationDate)
                     : undefined
             );
+            setTopic(editingContent.topic || '');
+            setFormatValue(editingContent.format || '');
+            setCopy(editingContent.copy || '');
+            setPlatforms({
+                facebook: editingContent.facebook || false,
+                linkedin: editingContent.linkedin || false,
+                instagram: editingContent.instagram || false,
+                igStories: editingContent.igStories || false,
+                tiktok: editingContent.tiktok || false,
+                gbp: editingContent.gbp || false,
+                youtube: editingContent.youtube || false,
+            });
         } else if (modalState === 'create') {
             setSelectedClientId(undefined);
             setCurrentImageUrls([]);
             setCurrentVideoUrl('');
             setPublicationDate(undefined);
+            setTopic('');
+            setFormatValue('');
+            setCopy('');
+            setPlatforms({
+                facebook: false,
+                linkedin: false,
+                instagram: false,
+                igStories: false,
+                tiktok: false,
+                gbp: false,
+                youtube: false,
+            });
         }
     }, [modalState, editingContent]);
+
+    const handlePlatformChange = (platform: keyof typeof platforms) => (checked: boolean) => {
+        setPlatforms(prev => ({ ...prev, [platform]: checked }));
+    };
 
     const getFormData = () => {
         if (!formRef.current) return null;
@@ -1611,13 +1656,13 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             focus: mainFormData.get('focus') as string,
             copy: mainFormData.get('copy') as string,
             tags: mainFormData.get('tags') as string,
-            facebook: mainFormData.get('facebook') === 'on',
-            linkedin: mainFormData.get('linkedin') === 'on',
-            instagram: mainFormData.get('instagram') === 'on',
-            igStories: mainFormData.get('igStories') === 'on',
-            tiktok: mainFormData.get('tiktok') === 'on',
-            gbp: mainFormData.get('gbp') === 'on',
-            youtube: mainFormData.get('youtube') === 'on',
+            facebook: platforms.facebook,
+            linkedin: platforms.linkedin,
+            instagram: platforms.instagram,
+            igStories: platforms.igStories,
+            tiktok: platforms.tiktok,
+            gbp: platforms.gbp,
+            youtube: platforms.youtube,
             customFields: customFields,
             imageUrls: currentImageUrls.filter(url => url.trim() !== ''),
             videoUrl: currentVideoUrl,
@@ -1697,338 +1742,460 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
     };
 
 
+    const activeClient = clients.find(c => c.id === selectedClientId);
+    const clientName = activeClient?.name || 'Seleziona Cliente';
+    
+    const mapFormatToPostType = (format: string) => {
+        const f = format?.toLowerCase() || '';
+        if (f.includes('reel') || f.includes('short') || f.includes('tiktok')) return 'REEL';
+        if (f.includes('video')) return 'VIDEO';
+        if (f.includes('storia') || f.includes('story')) return 'STORY';
+        if (f.includes('carosello') || f.includes('carousel')) return 'CAROUSEL';
+        if (f.includes('link')) return 'LINK';
+        if (f.includes('testo') || f.includes('text')) return 'TEXT';
+        return 'PHOTO';
+    };
+    
+    const postType = mapFormatToPostType(formatValue) as any;
+
     return (
-        <form ref={formRef} onSubmit={handleFormSubmit} className="space-y-4 pt-4 max-h-[80vh] overflow-y-auto pr-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="publicationDate">Data di Pubblicazione</Label>
-                    <DatePickerDialog
-                        value={publicationDate}
-                        onChange={setPublicationDate}
-                        placeholder="Seleziona data"
-                        label="Data di Pubblicazione"
-                    />
-                </div>
-                <div className="space-y-2">
-                    {forcedClientId ? (
-                        <input type="hidden" name="clientId" value={forcedClientId} />
-                    ) : (
-                        <>
-                            <Label htmlFor="clientId">Cliente</Label>
-                            <Select name="clientId" required defaultValue={editingContent?.clientId || forcedClientId} onValueChange={setSelectedClientId}>
-                                <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
-                                <SelectContent>
-                                    {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </>
-                    )}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="topic">Topic</Label>
-                    <Input id="topic" name="topic" defaultValue={editingContent?.topic} required />
-                </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="format">Formato</Label>
-                    <Select name="format" defaultValue={editingContent?.format} required>
-                        <SelectTrigger id="format">
-                            <SelectValue placeholder="Seleziona un formato..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {[...editorialFormats].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(format => (
-                                <SelectItem key={format.id} value={format.name}>{format.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="focus">Focus</Label>
-                    <Input id="focus" name="focus" defaultValue={editingContent?.focus} />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <Label>Canali</Label>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 border rounded-xl">
-                    <div className="flex items-center gap-2"><Checkbox id="facebook" name="facebook" defaultChecked={editingContent?.facebook} /><Label htmlFor="facebook" className="font-normal">Facebook</Label></div>
-                    <div className="flex items-center gap-2"><Checkbox id="linkedin" name="linkedin" defaultChecked={editingContent?.linkedin} /><Label htmlFor="linkedin" className="font-normal">LinkedIn</Label></div>
-                    <div className="flex items-center gap-2"><Checkbox id="instagram" name="instagram" defaultChecked={editingContent?.instagram} /><Label htmlFor="instagram" className="font-normal">Instagram</Label></div>
-                    <div className="flex items-center gap-2"><Checkbox id="igStories" name="igStories" defaultChecked={editingContent?.igStories} /><Label htmlFor="igStories" className="font-normal">IG Stories</Label></div>
-                    <div className="flex items-center gap-2"><Checkbox id="tiktok" name="tiktok" defaultChecked={editingContent?.tiktok} /><Label htmlFor="tiktok" className="font-normal">TikTok</Label></div>
-                    <div className="flex items-center gap-2"><Checkbox id="gbp" name="gbp" defaultChecked={editingContent?.gbp} /><Label htmlFor="gbp" className="font-normal">GBP</Label></div>
-                    <div className="flex items-center gap-2"><Checkbox id="youtube" name="youtube" defaultChecked={editingContent?.youtube} /><Label htmlFor="youtube" className="font-normal">YouTube</Label></div>
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="copy">Copy / Testo del post</Label>
-                <Textarea id="copy" name="copy" defaultValue={editingContent?.copy} rows={6} />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="tags">Tag</Label>
-                <Input id="tags" name="tags" defaultValue={editingContent?.tags} placeholder="#marketing, #content, ..." />
-            </div>
-
-            <DynamicFormFields clientId={selectedClientId} content={editingContent} editorialColumns={editorialColumns} />
-
-            <div className="space-y-4 pt-4 border-t">
-                <Label className="text-base font-semibold">Immagini</Label>
-
-                {/* File Upload Section */}
-                <div className="space-y-2">
-                    <Label htmlFor="fileUpload" className="text-sm text-muted-foreground">Carica file immagine</Label>
-                    <div
-                        className={cn(
-                            "relative border-2 border-dashed rounded-lg p-6 transition-colors",
-                            "hover:border-primary hover:bg-primary/5",
-                            isUploadingFiles && "opacity-50 pointer-events-none"
-                        )}
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.add('border-primary', 'bg-primary/5');
-                        }}
-                        onDragLeave={(e) => {
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
-                        }}
-                        onDrop={async (e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
-
-                            const allFiles = Array.from(e.dataTransfer.files);
-                            const imageFiles = allFiles.filter(f => f.type.startsWith('image/'));
-                            const videoFiles = allFiles.filter(f => f.type.startsWith('video/'));
-
-                            if (imageFiles.length === 0 && videoFiles.length === 0) {
-                                toast.error('Solo immagini e video sono supportati');
-                                return;
-                            }
-
-                            setIsUploadingFiles(true);
-                            try {
-                                if (imageFiles.length > 0) {
-                                    const attachments = await uploadFilesAndGetAttachments(
-                                        imageFiles,
-                                        'editorial-plan/images',
-                                        'anonymous'
-                                    );
-                                    const newUrls = attachments.map(a => a.url);
-                                    setCurrentImageUrls(prev => [...prev, ...newUrls]);
-                                }
-
-                                if (videoFiles.length > 0) {
-                                    // Upload video
-                                    const videoFile = videoFiles[0];
-                                    const attachments = await uploadFilesAndGetAttachments(
-                                        [videoFile],
-                                        'editorial-plan/videos',
-                                        'anonymous'
-                                    );
-                                    if (attachments.length > 0) {
-                                        setCurrentVideoUrl(attachments[0].url);
-                                    }
-                                }
-
-                                toast.success('Media caricati con successo');
-                            } catch (error) {
-                                console.error('Upload failed:', error);
-                                toast.error('Errore durante il caricamento');
-                            } finally {
-                                setIsUploadingFiles(false);
-                            }
-                        }}
-                    >
-                        <div className="flex flex-col items-center justify-center gap-2 text-center">
-                            {isUploadingFiles ? (
-                                <>
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                    <p className="text-sm text-muted-foreground">Caricamento in corso...</p>
-                                </>
+        <form ref={formRef} onSubmit={handleFormSubmit} className="pt-2">
+            <Tabs defaultValue="dati" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="dati">Dati Contenuto</TabsTrigger>
+                    <TabsTrigger value="anteprima">Anteprima Live</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="dati" className="space-y-4 max-h-[75vh] overflow-y-auto pr-4 pb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="publicationDate">Data di Pubblicazione</Label>
+                            <DatePickerDialog
+                                value={publicationDate}
+                                onChange={setPublicationDate}
+                                placeholder="Seleziona data"
+                                label="Data di Pubblicazione"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            {forcedClientId ? (
+                                <input type="hidden" name="clientId" value={forcedClientId} />
                             ) : (
                                 <>
-                                    <Upload className="h-8 w-8 text-muted-foreground" />
-                                    <p className="text-sm text-muted-foreground">
-                                        Trascina qui immagini o video, o clicca per selezionarli
-                                    </p>
-                                    <p className="text-xs text-muted-foreground/70">
-                                        Supportati: JPG, PNG, GIF, MP4, WEBM
-                                    </p>
+                                    <Label htmlFor="clientId">Cliente</Label>
+                                    <Select name="clientId" required value={selectedClientId} onValueChange={setSelectedClientId}>
+                                        <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
                                 </>
                             )}
                         </div>
-                        <input
-                            id="fileUpload"
-                            type="file"
-                            accept="image/*,video/*"
-                            multiple
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={isUploadingFiles}
-                            onChange={async (e) => {
-                                const allFiles = Array.from(e.target.files || []);
-                                if (allFiles.length === 0) return;
-
-                                const imageFiles = allFiles.filter(f => f.type.startsWith('image/'));
-                                const videoFiles = allFiles.filter(f => f.type.startsWith('video/'));
-
-                                setIsUploadingFiles(true);
-                                try {
-                                    if (imageFiles.length > 0) {
-                                        const attachments = await uploadFilesAndGetAttachments(
-                                            imageFiles,
-                                            'editorial-plan/images',
-                                            'anonymous'
-                                        );
-                                        const newUrls = attachments.map(a => a.url);
-                                        setCurrentImageUrls(prev => [...prev, ...newUrls]);
-                                    }
-
-                                    if (videoFiles.length > 0) {
-                                        const videoFile = videoFiles[0];
-                                        const attachments = await uploadFilesAndGetAttachments(
-                                            [videoFile],
-                                            'editorial-plan/videos',
-                                            'anonymous'
-                                        );
-                                        if (attachments.length > 0) {
-                                            setCurrentVideoUrl(attachments[0].url);
-                                        }
-                                    }
-
-                                    toast.success('Media caricati con successo');
-                                } catch (error) {
-                                    console.error('Upload failed:', error);
-                                    toast.error('Errore durante il caricamento');
-                                } finally {
-                                    setIsUploadingFiles(false);
-                                    e.target.value = '';
-                                }
-                            }}
-                        />
+                        <div className="space-y-2">
+                            <Label htmlFor="topic">Topic</Label>
+                            <Input id="topic" name="topic" value={topic} onChange={e => setTopic(e.target.value)} required />
+                        </div>
                     </div>
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="format">Formato</Label>
+                            <Select name="format" value={formatValue} onValueChange={setFormatValue} required>
+                                <SelectTrigger id="format">
+                                    <SelectValue placeholder="Seleziona un formato..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {[...editorialFormats].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(format => (
+                                        <SelectItem key={format.id} value={format.name}>{format.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="focus">Focus</Label>
+                            <Input id="focus" name="focus" defaultValue={editingContent?.focus} />
+                        </div>
+                    </div>
 
-                {/* Image Previews */}
-                {currentImageUrls.filter(url => url.trim() !== '').length > 0 && (
                     <div className="space-y-2">
-                        <Label className="text-sm text-muted-foreground">Immagini caricate ({currentImageUrls.filter(url => url.trim() !== '').length})</Label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {currentImageUrls.filter(url => url.trim() !== '').map((url, index) => (
-                                <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={url}
-                                        alt={`Immagine ${index + 1}`}
+                        <Label>Canali</Label>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 border rounded-xl">
+                            <div className="flex items-center gap-2"><Checkbox id="facebook" name="facebook" checked={platforms.facebook} onCheckedChange={handlePlatformChange('facebook')} /><Label htmlFor="facebook" className="font-normal">Facebook</Label></div>
+                            <div className="flex items-center gap-2"><Checkbox id="linkedin" name="linkedin" checked={platforms.linkedin} onCheckedChange={handlePlatformChange('linkedin')} /><Label htmlFor="linkedin" className="font-normal">LinkedIn</Label></div>
+                            <div className="flex items-center gap-2"><Checkbox id="instagram" name="instagram" checked={platforms.instagram} onCheckedChange={handlePlatformChange('instagram')} /><Label htmlFor="instagram" className="font-normal">Instagram</Label></div>
+                            <div className="flex items-center gap-2"><Checkbox id="igStories" name="igStories" checked={platforms.igStories} onCheckedChange={handlePlatformChange('igStories')} /><Label htmlFor="igStories" className="font-normal">IG Stories</Label></div>
+                            <div className="flex items-center gap-2"><Checkbox id="tiktok" name="tiktok" checked={platforms.tiktok} onCheckedChange={handlePlatformChange('tiktok')} /><Label htmlFor="tiktok" className="font-normal">TikTok</Label></div>
+                            <div className="flex items-center gap-2"><Checkbox id="gbp" name="gbp" checked={platforms.gbp} onCheckedChange={handlePlatformChange('gbp')} /><Label htmlFor="gbp" className="font-normal">GBP</Label></div>
+                            <div className="flex items-center gap-2"><Checkbox id="youtube" name="youtube" checked={platforms.youtube} onCheckedChange={handlePlatformChange('youtube')} /><Label htmlFor="youtube" className="font-normal">YouTube</Label></div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="copy">Copy / Testo del post</Label>
+                        <Textarea id="copy" name="copy" value={copy} onChange={e => setCopy(e.target.value)} rows={6} />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="tags">Tag</Label>
+                        <Input id="tags" name="tags" defaultValue={editingContent?.tags} placeholder="#marketing, #content, ..." />
+                    </div>
+
+                    <DynamicFormFields clientId={selectedClientId} content={editingContent} editorialColumns={editorialColumns} />
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <Label className="text-base font-semibold">Immagini</Label>
+
+                        {/* File Upload Section */}
+                        <div className="space-y-2">
+                            <Label htmlFor="fileUpload" className="text-sm text-muted-foreground">Carica file immagine</Label>
+                            <div
+                                className={cn(
+                                    "relative border-2 border-dashed rounded-lg p-6 transition-colors",
+                                    "hover:border-primary hover:bg-primary/5",
+                                    isUploadingFiles && "opacity-50 pointer-events-none"
+                                )}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.add('border-primary', 'bg-primary/5');
+                                }}
+                                onDragLeave={(e) => {
+                                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+                                }}
+                                onDrop={async (e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
+
+                                    const allFiles = Array.from(e.dataTransfer.files);
+                                    const imageFiles = allFiles.filter(f => f.type.startsWith('image/'));
+                                    const videoFiles = allFiles.filter(f => f.type.startsWith('video/'));
+
+                                    if (imageFiles.length === 0 && videoFiles.length === 0) {
+                                        toast.error('Solo immagini e video sono supportati');
+                                        return;
+                                    }
+
+                                    setIsUploadingFiles(true);
+                                    try {
+                                        if (imageFiles.length > 0) {
+                                            const attachments = await uploadFilesAndGetAttachments(
+                                                imageFiles,
+                                                'editorial-plan/images',
+                                                'anonymous'
+                                            );
+                                            const newUrls = attachments.map(a => a.url);
+                                            setCurrentImageUrls(prev => [...prev, ...newUrls]);
+                                        }
+
+                                        if (videoFiles.length > 0) {
+                                            // Upload video
+                                            const videoFile = videoFiles[0];
+                                            const attachments = await uploadFilesAndGetAttachments(
+                                                [videoFile],
+                                                'editorial-plan/videos',
+                                                'anonymous'
+                                            );
+                                            if (attachments.length > 0) {
+                                                setCurrentVideoUrl(attachments[0].url);
+                                            }
+                                        }
+
+                                        toast.success('Media caricati con successo');
+                                    } catch (error) {
+                                        console.error('Upload failed:', error);
+                                        toast.error('Errore durante il caricamento');
+                                    } finally {
+                                        setIsUploadingFiles(false);
+                                    }
+                                }}
+                            >
+                                <div className="flex flex-col items-center justify-center gap-2 text-center">
+                                    {isUploadingFiles ? (
+                                        <>
+                                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                            <p className="text-sm text-muted-foreground">Caricamento in corso...</p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload className="h-8 w-8 text-muted-foreground" />
+                                            <p className="text-sm text-muted-foreground">
+                                                Trascina qui immagini o video, o clicca per selezionarli
+                                            </p>
+                                            <p className="text-xs text-muted-foreground/70">
+                                                Supportati: JPG, PNG, GIF, MP4, WEBM
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
+                                <input
+                                    id="fileUpload"
+                                    type="file"
+                                    accept="image/*,video/*"
+                                    multiple
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    disabled={isUploadingFiles}
+                                    onChange={async (e) => {
+                                        const allFiles = Array.from(e.target.files || []);
+                                        if (allFiles.length === 0) return;
+
+                                        const imageFiles = allFiles.filter(f => f.type.startsWith('image/'));
+                                        const videoFiles = allFiles.filter(f => f.type.startsWith('video/'));
+
+                                        setIsUploadingFiles(true);
+                                        try {
+                                            if (imageFiles.length > 0) {
+                                                const attachments = await uploadFilesAndGetAttachments(
+                                                    imageFiles,
+                                                    'editorial-plan/images',
+                                                    'anonymous'
+                                                );
+                                                const newUrls = attachments.map(a => a.url);
+                                                setCurrentImageUrls(prev => [...prev, ...newUrls]);
+                                            }
+
+                                            if (videoFiles.length > 0) {
+                                                const videoFile = videoFiles[0];
+                                                const attachments = await uploadFilesAndGetAttachments(
+                                                    [videoFile],
+                                                    'editorial-plan/videos',
+                                                    'anonymous'
+                                                );
+                                                if (attachments.length > 0) {
+                                                    setCurrentVideoUrl(attachments[0].url);
+                                                }
+                                            }
+
+                                            toast.success('Media caricati con successo');
+                                        } catch (error) {
+                                            console.error('Upload failed:', error);
+                                            toast.error('Errore durante il caricamento');
+                                        } finally {
+                                            setIsUploadingFiles(false);
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Image Previews */}
+                        {currentImageUrls.filter(url => url.trim() !== '').length > 0 && (
+                            <div className="space-y-2">
+                                <Label className="text-sm text-muted-foreground">Immagini caricate ({currentImageUrls.filter(url => url.trim() !== '').length})</Label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {currentImageUrls.filter(url => url.trim() !== '').map((url, index) => (
+                                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={url}
+                                                alt={`Immagine ${index + 1}`}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="12">Errore</text></svg>';
+                                                }}
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="destructive"
+                                                size="icon"
+                                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => {
+                                                    setCurrentImageUrls(prev => prev.filter((_, i) => i !== index));
+                                                }}
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Video Preview */}
+                        {currentVideoUrl && currentVideoUrl.trim() !== '' && (
+                            <div className="space-y-2">
+                                <Label className="text-sm text-muted-foreground">Video caricato</Label>
+                                <div className="relative group rounded-lg overflow-hidden border bg-muted aspect-video">
+                                    <video
+                                        src={currentVideoUrl}
+                                        controls
                                         className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="12">Errore</text></svg>';
-                                        }}
                                     />
                                     <Button
                                         type="button"
                                         variant="destructive"
                                         size="icon"
-                                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                         onClick={() => {
-                                            setCurrentImageUrls(prev => prev.filter((_, i) => i !== index));
+                                            setCurrentVideoUrl('');
                                         }}
                                     >
-                                        <X className="h-3 w-3" />
+                                        <X className="h-4 w-4" />
                                     </Button>
                                 </div>
-                            ))}
+                            </div>
+                        )}
+
+                        {/* URL Input Section */}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="imageUrls" className="text-sm text-muted-foreground">Link immagini (uno per riga)</Label>
+                                <Textarea
+                                    id="imageUrls"
+                                    name="imageUrls"
+                                    placeholder={"https://example.com/image1.jpg\nhttps://example.com/image2.png"}
+                                    rows={3}
+                                    value={currentImageUrls.join('\n')}
+                                    onChange={(e) => setCurrentImageUrls(e.target.value.split('\n'))}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="videoUrl" className="text-sm text-muted-foreground">Link video</Label>
+                                <Input
+                                    id="videoUrl"
+                                    name="videoUrl"
+                                    placeholder="https://example.com/video.mp4"
+                                    value={currentVideoUrl}
+                                    onChange={(e) => setCurrentVideoUrl(e.target.value)}
+                                />
+                            </div>
                         </div>
                     </div>
-                )}
 
-                {/* Video Preview */}
-                {currentVideoUrl && currentVideoUrl.trim() !== '' && (
-                    <div className="space-y-2">
-                        <Label className="text-sm text-muted-foreground">Video caricato</Label>
-                        <div className="relative group rounded-lg overflow-hidden border bg-muted aspect-video">
-                            <video
-                                src={currentVideoUrl}
-                                controls
-                                className="w-full h-full object-cover"
-                            />
-                            <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                onClick={() => {
-                                    setCurrentVideoUrl('');
-                                }}
-                            >
-                                <X className="h-4 w-4" />
+                    <div className="pt-4 border-t">
+                        <h3 className="text-md font-semibold mb-2">Azioni Aggiuntive</h3>
+                        <div className="flex gap-4">
+                            <Button type="button" variant="outline" onClick={() => handleCreateLinked('task')}>
+                                <ClipboardList className="mr-2 h-4 w-4" />
+                                Crea Task Collegato
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => handleCreateLinked('project')}>
+                                <Briefcase className="mr-2 h-4 w-4" />
+                                Crea Progetto Collegato
                             </Button>
                         </div>
                     </div>
-                )}
 
-                {/* URL Input Section */}
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="imageUrls" className="text-sm text-muted-foreground">Link immagini (uno per riga)</Label>
-                        <Textarea
-                            id="imageUrls"
-                            name="imageUrls"
-                            placeholder={"https://example.com/image1.jpg\nhttps://example.com/image2.png"}
-                            rows={3}
-                            value={currentImageUrls.join('\n')}
-                            onChange={(e) => setCurrentImageUrls(e.target.value.split('\n'))}
-                        />
+                    <div className="space-y-2 pt-4 border-t">
+                        <Label htmlFor="status">Stato</Label>
+                        <Select name="status" defaultValue={editingContent?.status || initialStatusForCreate}>
+                            <SelectTrigger><SelectValue placeholder="Seleziona uno stato..." /></SelectTrigger>
+                            <SelectContent>
+                                {[...editorialStatuses].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                     </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="videoUrl" className="text-sm text-muted-foreground">Link video</Label>
-                        <Input
-                            id="videoUrl"
-                            name="videoUrl"
-                            placeholder="https://example.com/video.mp4"
-                            value={currentVideoUrl}
-                            onChange={(e) => setCurrentVideoUrl(e.target.value)}
-                        />
+                </TabsContent>
+                
+                <TabsContent value="anteprima" className="space-y-6 max-h-[75vh] overflow-y-auto pr-4 pb-4 bg-muted/20 p-6 rounded-lg">
+                    {Object.values(platforms).every(v => !v) && (
+                        <div className="text-center py-10 text-muted-foreground">
+                            <Eye className="mx-auto h-12 w-12 mb-4 opacity-50" />
+                            <h3 className="text-lg font-medium">Nessun canale selezionato</h3>
+                            <p className="text-sm mt-1">Seleziona uno o più canali social nella tab "Dati Contenuto" per visualizzare le anteprime.</p>
+                        </div>
+                    )}
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        {platforms.instagram && (
+                            <div className="flex flex-col items-center gap-4">
+                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima Instagram</h4>
+                                <LivePreview 
+                                    platform="INSTAGRAM"
+                                    caption={copy}
+                                    postType={postType}
+                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
+                                    clientName={clientName}
+                                />
+                            </div>
+                        )}
+                        {platforms.igStories && (
+                            <div className="flex flex-col items-center gap-4">
+                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima IG Stories</h4>
+                                <LivePreview 
+                                    platform="INSTAGRAM"
+                                    caption={copy}
+                                    postType="STORY"
+                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
+                                    clientName={clientName}
+                                />
+                            </div>
+                        )}
+                        {platforms.facebook && (
+                            <div className="flex flex-col items-center gap-4">
+                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima Facebook</h4>
+                                <LivePreview 
+                                    platform="FACEBOOK"
+                                    caption={copy}
+                                    postType={postType}
+                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
+                                    clientName={clientName}
+                                />
+                            </div>
+                        )}
+                        {platforms.linkedin && (
+                            <div className="flex flex-col items-center gap-4">
+                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima LinkedIn</h4>
+                                <LivePreview 
+                                    platform="LINKEDIN"
+                                    caption={copy}
+                                    postType={postType}
+                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
+                                    clientName={clientName}
+                                />
+                            </div>
+                        )}
+                        {platforms.tiktok && (
+                            <div className="flex flex-col items-center gap-4">
+                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima TikTok</h4>
+                                <LivePreview 
+                                    platform="TIKTOK"
+                                    caption={copy}
+                                    postType="REEL"
+                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
+                                    clientName={clientName}
+                                />
+                            </div>
+                        )}
+                        {platforms.youtube && (
+                            <div className="flex flex-col items-center gap-4">
+                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima YouTube</h4>
+                                <LivePreview 
+                                    platform="YOUTUBE"
+                                    caption={copy}
+                                    postType={postType === 'REEL' ? 'REEL' : 'VIDEO'}
+                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
+                                    clientName={clientName}
+                                />
+                            </div>
+                        )}
+                        {platforms.gbp && (
+                            <div className="flex flex-col items-center gap-4">
+                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima Google Business</h4>
+                                <LivePreview 
+                                    platform="GOOGLE_BUSINESS"
+                                    caption={copy}
+                                    postType={postType}
+                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
+                                    clientName={clientName}
+                                />
+                            </div>
+                        )}
                     </div>
-                </div>
-            </div>
+                </TabsContent>
 
-            <div className="pt-4 border-t">
-                <h3 className="text-md font-semibold mb-2">Azioni Aggiuntive</h3>
-                <div className="flex gap-4">
-                    <Button type="button" variant="outline" onClick={() => handleCreateLinked('task')}>
-                        <ClipboardList className="mr-2 h-4 w-4" />
-                        Crea Task Collegato
+                <DialogFooter className="mt-4 border-t pt-4">
+                    <Button type="button" variant="ghost" onClick={() => handleCloseModal()}>Annulla</Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Salvataggio...
+                            </>
+                        ) : editingContent ? 'Salva Modifiche' : 'Crea Contenuto'}
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => handleCreateLinked('project')}>
-                        <Briefcase className="mr-2 h-4 w-4" />
-                        Crea Progetto Collegato
-                    </Button>
-                </div>
-            </div>
-
-            <div className="space-y-2 pt-4 border-t">
-                <Label htmlFor="status">Stato</Label>
-                <Select name="status" defaultValue={editingContent?.status || initialStatusForCreate}>
-                    <SelectTrigger><SelectValue placeholder="Seleziona uno stato..." /></SelectTrigger>
-                    <SelectContent>
-                        {[...editorialStatuses].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <DialogFooter>
-                <Button type="button" variant="ghost" onClick={() => handleCloseModal()}>Annulla</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                        <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Salvataggio...
-                        </>
-                    ) : editingContent ? 'Salva Modifiche' : 'Crea Contenuto'}
-                </Button>
-            </DialogFooter>
+                </DialogFooter>
+            </Tabs>
         </form>
     );
 }
