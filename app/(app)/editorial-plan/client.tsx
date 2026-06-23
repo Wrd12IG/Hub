@@ -719,7 +719,7 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
             await fetchData();
         } catch (error: any) {
             console.error('Publish error:', error);
-            toast.error(error.message || 'Errore durante l\\'invio a Zapier.');
+            toast.error(error.message || "Errore durante l'invio a Zapier.");
         } finally {
             setIsPublishing(prev => ({ ...prev, [content.id]: false }));
         }

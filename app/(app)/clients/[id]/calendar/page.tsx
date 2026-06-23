@@ -531,7 +531,7 @@ function PostModal({
         alert('Post inviato a Zapier con successo!');
         onSave();
       } else {
-        alert('Errore durante l\\'invio a Zapier');
+        alert("Errore durante l'invio a Zapier");
       }
     } catch (e) {
       alert('Errore di rete');
