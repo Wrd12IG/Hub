@@ -358,7 +358,9 @@ function PostModal({
 
   const [previewPlatform, setPreviewPlatform] = useState<Platform>(platforms[0] || 'INSTAGRAM')
   const [saving, setSaving] = useState(false)
+  const [sendingZapier, setSendingZapier] = useState(false)
   const [showTypeMenu, setShowTypeMenu] = useState(false)
+  const [activeTab, setActiveTab] = useState<'DATI' | 'ANTEPRIMA'>('DATI')
 
   // Keep preview in sync with first selected platform
   useEffect(() => { if (!platforms.includes(previewPlatform) && platforms.length) setPreviewPlatform(platforms[0]) }, [platforms])
@@ -512,6 +514,33 @@ function PostModal({
     onSave()
   }
 
+  const handleZapier = async () => {
+    if (!post || !post.id) return;
+    setSendingZapier(true);
+    try {
+      const res = await fetch('/api/publish-zapier', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          contentId: post.id, 
+          type: 'organic', 
+          clientId: clientId 
+        })
+      });
+      if (res.ok) {
+        alert('Post inviato a Zapier con successo!');
+        onSave();
+      } else {
+        alert('Errore durante l\\'invio a Zapier');
+      }
+    } catch (e) {
+      alert('Errore di rete');
+    } finally {
+      setSendingZapier(false);
+    }
+  }
+
+
   const TypeIcon = (POST_TYPE_CONFIG[postType] ?? POST_TYPE_CONFIG['PHOTO']).icon
 
   return (
@@ -541,11 +570,17 @@ function PostModal({
           </button>
         </div>
 
+        {/* ── TABS ── */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+          <button onClick={() => setActiveTab('DATI')} style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'DATI' ? '2px solid #ec4899' : '2px solid transparent', color: activeTab === 'DATI' ? '#ec4899' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>📝 Dati Post</button>
+          <button onClick={() => setActiveTab('ANTEPRIMA')} style={{ flex: 1, padding: '12px', background: 'none', border: 'none', borderBottom: activeTab === 'ANTEPRIMA' ? '2px solid #ec4899' : '2px solid transparent', color: activeTab === 'ANTEPRIMA' ? '#ec4899' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>👀 Anteprima</button>
+        </div>
+
         {/* ── MAIN BODY (split) ────────────────────────────────────────── */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
 
           {/* LEFT — Editor */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+          <div style={{ flex: 1, display: activeTab === 'DATI' ? 'flex' : 'none', flexDirection: 'column', borderRight: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
             
             {/* Platform + PostType bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.06)', flexWrap: 'wrap', flexShrink: 0 }}>
@@ -1103,6 +1138,12 @@ function PostModal({
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  {!isNew && status === 'READY' && (
+                    <button onClick={handleZapier} disabled={sendingZapier}
+                      style={{ padding: '7px 16px', background: '#FF4A00', color: 'white', borderRadius: '10px', border: 'none', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {sendingZapier ? 'Invio...' : 'Invia a Zapier'}
+                    </button>
+                  )}
                   <button onClick={handleSave} disabled={saving || platforms.length===0} className="btn-gorgeous"
                     style={{ padding: '7px 18px', fontSize: '0.85rem', opacity: platforms.length===0 ? 0.5 : 1 }}>
                     {saving ? '...' : isNew ? 'Salva bozza' : 'Salva'}
@@ -1119,7 +1160,7 @@ function PostModal({
           </div>
 
           {/* RIGHT — Live Preview */}
-          <div style={{ width: '380px', flexShrink: 0, background: 'rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ width: '100%', display: activeTab === 'ANTEPRIMA' ? 'flex' : 'none', flexShrink: 0, background: 'rgba(0,0,0,0.02)', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Preview platform tabs */}
             <div style={{ display: 'flex', gap: '4px', padding: '0.75rem 1rem', borderBottom: '1px solid rgba(0,0,0,0.06)', flexShrink: 0, flexWrap: 'wrap' }}>
               {platforms.map(p => {
@@ -1251,7 +1292,7 @@ export default function ContentCalendarPage() {
             </button>
             
             <Link href={`/clients/${clientId}/stories/new`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', fontSize: '0.875rem', background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)', color: 'white', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, boxShadow: '0 4px 14px rgba(244,63,94,0.3)' }}>
-              📱 Crea Konva Story
+              Crea Konva Story
             </Link>
 
             <button onClick={() => { setModalDefaultDate(null); setModalPost(null) }} className="btn-gorgeous" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.65rem 1.25rem', fontSize: '0.875rem' }}>

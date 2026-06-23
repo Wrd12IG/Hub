@@ -4,7 +4,7 @@ import { adminDb } from '@/lib/firebase-admin';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { contentId } = body;
+        const { contentId, type, clientId } = body;
 
         if (!contentId) {
             return NextResponse.json({ error: 'Content ID is required' }, { status: 400 });
@@ -17,8 +17,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Zapier Webhook is not configured' }, { status: 500 });
         }
 
-        // Fetch content from Firestore using admin SDK
-        const contentRef = adminDb.collection('editorialContents').doc(contentId);
+        let contentRef;
+        if (type === 'organic' && clientId) {
+            contentRef = adminDb.collection('clients').doc(clientId).collection('organicPosts').doc(contentId);
+        } else {
+            contentRef = adminDb.collection('editorialContents').doc(contentId);
+        }
+        
         const contentSnap = await contentRef.get();
 
         if (!contentSnap.exists) {
@@ -34,6 +39,8 @@ export async function POST(request: Request) {
             // Convert timestamps if necessary
             createdAt: contentData?.createdAt?.toDate ? contentData.createdAt.toDate().toISOString() : contentData?.createdAt,
             updatedAt: contentData?.updatedAt?.toDate ? contentData.updatedAt.toDate().toISOString() : contentData?.updatedAt,
+            // Ensure type is clear in the payload
+            sourceType: type === 'organic' ? 'organic' : 'editorial'
         };
 
         const response = await fetch(webhookUrl, {
@@ -50,9 +57,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Failed to send data to Zapier' }, { status: response.status });
         }
 
-        // Update the content status to "Pubblicato"
+        // Update the content status to "PUBLISHED" or "Pubblicato"
         await contentRef.update({
-            status: 'Pubblicato',
+            status: type === 'organic' ? 'PUBLISHED' : 'Pubblicato',
             updatedAt: new Date(),
         });
 
