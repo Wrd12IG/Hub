@@ -184,7 +184,7 @@ const UrlImage = ({ layer, isSelected, onSelect, onChange }: any) => {
         onClick={onSelect}
         onTap={onSelect}
         ref={shapeRef}
-        image={image}
+        image={image || undefined}
         x={layer.x}
         y={layer.y}
         width={layer.width}
