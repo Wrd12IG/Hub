@@ -294,7 +294,12 @@ export default function KonvaStoryEditor({ params }: { params: { id: string } })
 
   const updateSelectedLayer = useCallback((updates: Partial<TextLayer>) => {
     setLayers((prev) =>
-      prev.map((l) => (l.id === selectedLayerId ? { ...l, ...updates } : l))
+      prev.map((l) => {
+          if (l.id === selectedLayerId && l.type === 'text') {
+              return { ...l, ...updates } as TextLayer;
+          }
+          return l;
+      })
     )
   }, [selectedLayerId])
   
