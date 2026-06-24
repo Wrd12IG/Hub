@@ -245,7 +245,7 @@ const DraggableText = ({ layer, isSelected, onSelect, onChange }: any) => {
         y={layer.y}
         fontSize={layer.fontSize}
         fontFamily="sans-serif"
-        fontStyle={`${layer.fontWeight} ${layer.fontStyle}`}
+        fontStyle={`${layer.fontWeight === 'bold' ? 'bold ' : ''}${layer.fontStyle === 'italic' ? 'italic' : ''}`.trim() || 'normal'}
         align={layer.align}
         fill={layer.color}
         rotation={layer.rotation}
@@ -417,7 +417,7 @@ export default function CanvasEditor({ clientId }: { clientId: string }) {
                         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Scegli Emoji</span>
                         <button onClick={() => setActiveTool(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>Chiudi</button>
                     </div>
-                    <EmojiPicker onEmojiClick={handleEmojiClick} />
+                    <EmojiPicker onEmojiClick={handleEmojiClick} emojiStyle="native" />
                 </div>
             )}
 
