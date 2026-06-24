@@ -2,10 +2,10 @@
 
 import React, { useState, useCallback } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Smartphone, Image as ImageIcon, Type, Layers, Wand2, Download, Save, AlignLeft, AlignCenter, AlignRight, Bold, Italic } from 'lucide-react'
+import { ArrowLeft, Smartphone, Image as ImageIcon, Type, Layers, Wand2, Download, Save, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 
 // --- Types ---
-type LayerType = 'text' | 'image' | 'sticker'
+type LayerType = 'text' | 'image' | 'sticker' | 'layers'
 
 interface TextLayer {
   id: string
@@ -20,7 +20,26 @@ interface TextLayer {
   color: string
 }
 
-type Layer = TextLayer
+interface ImageLayer {
+  id: string
+  type: 'image'
+  url: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface StickerLayer {
+  id: string
+  type: 'sticker'
+  content: string
+  x: number
+  y: number
+  size: number
+}
+
+type Layer = TextLayer | ImageLayer | StickerLayer
 
 // --- Sub-components ---
 function ToolButton({
@@ -74,15 +93,22 @@ function ToolButton({
 function TextPropertiesPanel({
   layer,
   onChange,
+  onDelete,
 }: {
   layer: TextLayer
   onChange: (updated: Partial<TextLayer>) => void
+  onDelete: () => void
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <h3 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', margin: 0 }}>
-        Proprietà Testo
-      </h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', margin: 0 }}>
+            Proprietà Testo
+          </h3>
+          <button onClick={onDelete} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+              <Trash2 size={16} />
+          </button>
+      </div>
 
       {/* Content */}
       <div>
@@ -160,6 +186,55 @@ function TextPropertiesPanel({
   )
 }
 
+function LayersPanel({ layers, setLayers, selectedLayerId, setSelectedLayerId }: any) {
+    
+    const moveLayer = (index: number, direction: 'up' | 'down') => {
+        if (direction === 'up' && index === layers.length - 1) return;
+        if (direction === 'down' && index === 0) return;
+        
+        const newLayers = [...layers];
+        const swapIndex = direction === 'up' ? index + 1 : index - 1;
+        
+        [newLayers[index], newLayers[swapIndex]] = [newLayers[swapIndex], newLayers[index]];
+        setLayers(newLayers);
+    }
+    
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', margin: 0 }}>
+                Livelli
+            </h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {[...layers].reverse().map((layer, idx) => {
+                    const actualIndex = layers.length - 1 - idx;
+                    return (
+                        <div 
+                            key={layer.id} 
+                            onClick={() => setSelectedLayerId(layer.id)}
+                            style={{ 
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                                padding: '0.5rem', borderRadius: '8px', 
+                                border: selectedLayerId === layer.id ? '1px solid #ec4899' : '1px solid rgba(0,0,0,0.1)',
+                                background: selectedLayerId === layer.id ? 'rgba(236,72,153,0.05)' : 'white',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{layer.type === 'text' ? 'Testo' : layer.type === 'image' ? 'Sfondo' : 'Sticker'}</span>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                <button onClick={(e) => { e.stopPropagation(); moveLayer(actualIndex, 'up'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--text-tertiary)' }}><ArrowUp size={14}/></button>
+                                <button onClick={(e) => { e.stopPropagation(); moveLayer(actualIndex, 'down'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--text-tertiary)' }}><ArrowDown size={14}/></button>
+                            </div>
+                        </div>
+                    )
+                })}
+                {layers.length === 0 && (
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', textAlign: 'center', padding: '1rem 0' }}>Nessun livello</p>
+                )}
+            </div>
+        </div>
+    )
+}
+
 function EmptyPropertiesPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', color: 'var(--text-tertiary)', textAlign: 'center', paddingTop: '2rem' }}>
@@ -194,22 +269,52 @@ export default function KonvaStoryEditor({ params }: { params: { id: string } })
     setSelectedLayerId(newLayer.id)
     setActiveTool('text')
   }, [])
+  
+  const addStickerLayer = useCallback(() => {
+    const emojis = ['✨', '🔥', '💯', '❤️', '😂', '🎉', '🚀', '👀', '💡', '🌟', '🤌', '🍷']
+    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)]
+    const newLayer: StickerLayer = { id: `sticker-${Date.now()}`, type: 'sticker', content: randomEmoji, x: 150, y: 300, size: 64 }
+    setLayers(prev => [...prev, newLayer])
+    setSelectedLayerId(newLayer.id)
+    setActiveTool('sticker')
+  }, [])
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          const url = URL.createObjectURL(file);
+          const newLayer: ImageLayer = { id: `img-${Date.now()}`, type: 'image', url, x: 0, y: 0, width: 360, height: 640 };
+          // Gli sfondi li mettiamo per primi (all'inizio dell'array)
+          setLayers((prev) => [newLayer, ...prev]);
+          setSelectedLayerId(newLayer.id);
+          setActiveTool('image');
+      }
+      e.target.value = '';
+  }
 
   const updateSelectedLayer = useCallback((updates: Partial<TextLayer>) => {
     setLayers((prev) =>
       prev.map((l) => (l.id === selectedLayerId ? { ...l, ...updates } : l))
     )
   }, [selectedLayerId])
+  
+  const deleteSelectedLayer = useCallback(() => {
+      setLayers(prev => prev.filter(l => l.id !== selectedLayerId));
+      setSelectedLayerId(null);
+  }, [selectedLayerId]);
 
   const tools = [
-    { icon: Layers, label: 'Livelli', type: 'sticker' as LayerType, action: () => setActiveTool('sticker') },
-    { icon: ImageIcon, label: 'Sfondo', type: 'image' as LayerType, action: () => setActiveTool('image') },
-    { icon: Type, label: 'Testo', type: 'text' as LayerType, action: addTextLayer },
-    { icon: Wand2, label: 'Stickers', type: 'sticker' as LayerType, action: () => setActiveTool('sticker') },
+    { icon: Layers, label: 'Livelli', type: 'layers' as any, action: () => setActiveTool('layers') },
+    { icon: ImageIcon, label: 'Sfondo', type: 'image' as any, action: () => document.getElementById('bg-upload')?.click() },
+    { icon: Type, label: 'Testo', type: 'text' as any, action: addTextLayer },
+    { icon: Wand2, label: 'Stickers', type: 'sticker' as any, action: addStickerLayer },
   ]
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc' }}>
+      {/* Hidden file input for Background */}
+      <input type="file" id="bg-upload" accept="image/*" style={{ display: 'none' }} onChange={handleImageUpload} />
+      
       {/* Header */}
       <div style={{ padding: '1.5rem 2rem', background: '#fff', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -253,7 +358,7 @@ export default function KonvaStoryEditor({ params }: { params: { id: string } })
               key={tool.label}
               icon={tool.icon}
               label={tool.label}
-              active={activeTool === tool.type && tool.label === 'Testo'}
+              active={activeTool === tool.type || (activeTool === null && tool.type === 'text')}
               onClick={tool.action}
             />
           ))}
@@ -276,32 +381,69 @@ export default function KonvaStoryEditor({ params }: { params: { id: string } })
             }}
             onClick={() => setSelectedLayerId(null)}
           >
-            {/* Render text layers */}
+            {/* Render layers */}
             {layers.map((layer) => {
-              if (layer.type !== 'text') return null
-              return (
-                <div
-                  key={layer.id}
-                  onClick={(e) => { e.stopPropagation(); setSelectedLayerId(layer.id) }}
-                  style={{
-                    position: 'absolute',
-                    top: `${layer.y}px`,
-                    left: `${layer.x}px`,
-                    right: `${layer.x}px`,
-                    color: layer.color,
-                    fontSize: `${layer.fontSize}px`,
-                    fontWeight: layer.fontWeight,
-                    fontStyle: layer.fontStyle,
-                    textAlign: layer.align,
-                    cursor: 'pointer',
-                    padding: '4px',
-                    border: selectedLayerId === layer.id ? '2px dashed rgba(236,72,153,0.8)' : '2px dashed transparent',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {layer.content}
-                </div>
-              )
+              if (layer.type === 'image') {
+                  return (
+                      <img
+                        key={layer.id}
+                        src={layer.url}
+                        alt="Sfondo"
+                        onClick={(e) => { e.stopPropagation(); setSelectedLayerId(layer.id); setActiveTool('image'); }}
+                        style={{
+                            position: 'absolute',
+                            top: layer.y, left: layer.x, width: layer.width, height: layer.height,
+                            objectFit: 'cover',
+                            border: selectedLayerId === layer.id ? '2px dashed rgba(236,72,153,0.8)' : 'none',
+                            cursor: 'pointer'
+                        }}
+                      />
+                  )
+              }
+              if (layer.type === 'sticker') {
+                  return (
+                      <div
+                        key={layer.id}
+                        onClick={(e) => { e.stopPropagation(); setSelectedLayerId(layer.id); setActiveTool('sticker'); }}
+                        style={{
+                            position: 'absolute',
+                            top: layer.y, left: layer.x,
+                            fontSize: `${layer.size}px`,
+                            border: selectedLayerId === layer.id ? '2px dashed rgba(236,72,153,0.8)' : '2px dashed transparent',
+                            cursor: 'pointer',
+                            userSelect: 'none'
+                        }}
+                      >
+                          {layer.content}
+                      </div>
+                  )
+              }
+              if (layer.type === 'text') {
+                  return (
+                    <div
+                      key={layer.id}
+                      onClick={(e) => { e.stopPropagation(); setSelectedLayerId(layer.id); setActiveTool('text'); }}
+                      style={{
+                        position: 'absolute',
+                        top: `${layer.y}px`,
+                        left: `${layer.x}px`,
+                        right: `${layer.x}px`,
+                        color: layer.color,
+                        fontSize: `${layer.fontSize}px`,
+                        fontWeight: layer.fontWeight,
+                        fontStyle: layer.fontStyle,
+                        textAlign: layer.align,
+                        cursor: 'pointer',
+                        padding: '4px',
+                        border: selectedLayerId === layer.id ? '2px dashed rgba(236,72,153,0.8)' : '2px dashed transparent',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      {layer.content}
+                    </div>
+                  )
+              }
+              return null;
             })}
 
             {/* Empty state */}
@@ -323,11 +465,26 @@ export default function KonvaStoryEditor({ params }: { params: { id: string } })
 
         {/* Right Properties Panel */}
         <div style={{ width: '280px', background: '#fff', borderLeft: '1px solid rgba(0,0,0,0.08)', padding: '1.5rem', overflowY: 'auto', flexShrink: 0 }}>
-          {selectedLayer?.type === 'text' ? (
+          {activeTool === 'layers' ? (
+              <LayersPanel layers={layers} setLayers={setLayers} selectedLayerId={selectedLayerId} setSelectedLayerId={setSelectedLayerId} />
+          ) : selectedLayer?.type === 'text' ? (
             <TextPropertiesPanel
               layer={selectedLayer}
               onChange={updateSelectedLayer}
+              onDelete={deleteSelectedLayer}
             />
+          ) : selectedLayer?.type === 'image' || selectedLayer?.type === 'sticker' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', margin: 0 }}>
+                        Proprietà {selectedLayer.type === 'image' ? 'Sfondo' : 'Sticker'}
+                    </h3>
+                    <button onClick={deleteSelectedLayer} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>Questo livello può essere spostato e ridimensionato tramite l'editor completo (in sviluppo).</p>
+              </div>
           ) : (
             <EmptyPropertiesPanel />
           )}
