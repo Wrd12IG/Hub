@@ -1893,7 +1893,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
 
                     {/* Preimpostazioni Globali (Collapsible) */}
                     <div className="border-t bg-muted/5 p-3">
-                        <Collapsible defaultOpen={true}>
+                        <Collapsible>
                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="w-full justify-between p-2 h-auto text-sm font-semibold">
                                     <div className="flex items-center gap-2">
