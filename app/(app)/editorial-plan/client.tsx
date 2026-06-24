@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/card';
 import { getEditorialContents, addEditorialContent, updateEditorialContent, deleteEditorialContent, getEditorialFormats, getEditorialColumns, getEditorialStatuses, addTask, addProject, uploadFilesAndGetAttachments } from '@/lib/actions';
 import type { EditorialContent, Client, EditorialFormat, EditorialColumn, EditorialStatus, User, Task, Project, ActivityType } from '@/lib/data';
-import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, Upload, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send } from 'lucide-react';
+import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, Upload, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import dynamic from 'next/dynamic';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LivePreview } from '@/components/editorial-plan/live-preview';
 import Link from 'next/link';
@@ -1759,443 +1760,279 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
     const postType = mapFormatToPostType(formatValue) as any;
 
     return (
-        <form ref={formRef} onSubmit={handleFormSubmit} className="pt-2">
-            <Tabs defaultValue="dati" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="dati">Dati Contenuto</TabsTrigger>
-                    <TabsTrigger value="anteprima">Anteprima Live</TabsTrigger>
-                </TabsList>
+        <form ref={formRef} onSubmit={handleFormSubmit} className="pt-2 h-full flex flex-col">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 items-start max-h-[80vh] overflow-hidden">
                 
-                <TabsContent value="dati" className="space-y-4 max-h-[75vh] overflow-y-auto pr-4 pb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="publicationDate">Data di Pubblicazione</Label>
+                {/* SINISTRA: FORM DI INPUT */}
+                <div className="flex flex-col h-full bg-white rounded-xl border overflow-hidden shadow-sm">
+                    {/* Header: Canali e Strumenti */}
+                    <div className="flex items-center justify-between p-3 border-b bg-muted/10">
+                        <div className="flex items-center gap-2">
+                            {/* Platform Toggles */}
+                            <TooltipProvider>
+                                {Object.entries(socialIcons).map(([key, { icon: Icon, color }]) => {
+                                    const isActive = platforms[key as keyof typeof platforms];
+                                    return (
+                                        <Tooltip key={key}>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handlePlatformChange(key as keyof typeof platforms)(!isActive)}
+                                                    className={cn(
+                                                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                                                        isActive ? "text-white" : "text-muted-foreground bg-muted hover:bg-muted/80"
+                                                    )}
+                                                    style={{ backgroundColor: isActive ? color : undefined }}
+                                                >
+                                                    <Icon className="h-4 w-4" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{key.charAt(0).toUpperCase() + key.slice(1)}</TooltipContent>
+                                        </Tooltip>
+                                    )
+                                })}
+                            </TooltipProvider>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {selectedClientId ? (
+                                <Link href={`/clients/${selectedClientId}/stories/new`}>
+                                    <Button type="button" variant="outline" size="sm" className="h-8 gap-1 border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800">
+                                        <Wand2 className="h-3.5 w-3.5" />
+                                        <span className="text-xs">Editor Stories</span>
+                                    </Button>
+                                </Link>
+                            ) : (
+                                <Button type="button" variant="outline" size="sm" className="h-8 gap-1 border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800" onClick={() => toast.error("Seleziona prima un cliente nelle preimpostazioni globali per accedere all'editor.")}>
+                                    <Wand2 className="h-3.5 w-3.5" />
+                                    <span className="text-xs">Editor Stories</span>
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Textarea Principale */}
+                    <div className="flex-1 flex flex-col p-4">
+                        <textarea
+                            name="copy"
+                            value={copy}
+                            onChange={e => setCopy(e.target.value)}
+                            placeholder="A cosa stai pensando?"
+                            className="flex-1 w-full resize-none border-none focus:ring-0 text-base placeholder:text-muted-foreground p-0 min-h-[200px]"
+                        />
+                        
+                        {/* Immagini Caricate (Thumbnails) */}
+                        <div className="flex flex-wrap gap-2 mt-4">
+                            {currentImageUrls.filter(url => url.trim() !== '').map((url, index) => (
+                                <div key={index} className="relative group w-16 h-16 rounded-md overflow-hidden border bg-muted">
+                                    <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                                    <button type="button" onClick={() => setCurrentImageUrls(prev => prev.filter((_, i) => i !== index))} className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ))}
+                            {currentVideoUrl && currentVideoUrl.trim() !== '' && (
+                                <div className="relative group w-16 h-16 rounded-md overflow-hidden border bg-muted flex items-center justify-center">
+                                    <Clapperboard className="h-6 w-6 text-muted-foreground" />
+                                    <button type="button" onClick={() => setCurrentVideoUrl('')} className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Toolbar Inferiore Textarea */}
+                        <div className="flex items-center justify-between pt-3 mt-3 border-t">
+                            <div className="flex items-center gap-3">
+                                {/* Upload Icon */}
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <label className="cursor-pointer text-muted-foreground hover:text-primary transition-colors">
+                                                {isUploadingFiles ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImageIcon className="h-5 w-5" />}
+                                                <input
+                                                    type="file"
+                                                    accept="image/*,video/*"
+                                                    multiple
+                                                    className="hidden"
+                                                    disabled={isUploadingFiles}
+                                                    onChange={async (e) => {
+                                                        const allFiles = Array.from(e.target.files || []);
+                                                        if (allFiles.length === 0) return;
+                                                        const imageFiles = allFiles.filter(f => f.type.startsWith('image/'));
+                                                        const videoFiles = allFiles.filter(f => f.type.startsWith('video/'));
+                                                        setIsUploadingFiles(true);
+                                                        try {
+                                                            if (imageFiles.length > 0) {
+                                                                const attachments = await uploadFilesAndGetAttachments(imageFiles, 'editorial-plan/images', 'anonymous');
+                                                                setCurrentImageUrls(prev => [...prev, ...attachments.map(a => a.url)]);
+                                                            }
+                                                            if (videoFiles.length > 0) {
+                                                                const attachments = await uploadFilesAndGetAttachments([videoFiles[0]], 'editorial-plan/videos', 'anonymous');
+                                                                setCurrentVideoUrl(attachments[0].url);
+                                                            }
+                                                        } catch (error) {
+                                                            toast.error('Errore durante il caricamento');
+                                                        } finally {
+                                                            setIsUploadingFiles(false);
+                                                            e.target.value = '';
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Aggiungi foto/video</TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                                {/* Altre icone decorative / mockup (Smile, Map, Link, ecc.) */}
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                                {copy.length} / 2200 <Facebook className="inline h-3 w-3 text-blue-500 ml-1" />
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Preimpostazioni Globali (Collapsible) */}
+                    <div className="border-t bg-muted/5 p-3">
+                        <Collapsible>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-between p-2 h-auto text-sm font-semibold">
+                                    <div className="flex items-center gap-2">
+                                        <span>⚙️ Preimpostazioni globali</span>
+                                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">Nuovo</Badge>
+                                    </div>
+                                    <ChevronDown className="h-4 w-4" />
+                                </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="pt-3 space-y-4 px-2 pb-2 overflow-y-auto max-h-[30vh]">
+                                <div className="grid grid-cols-2 gap-4">
+                                    {/* Client (if not forced) */}
+                                    {!forcedClientId && (
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs text-muted-foreground">Cliente</Label>
+                                            <Select name="clientId" required value={selectedClientId} onValueChange={setSelectedClientId}>
+                                                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Seleziona..." /></SelectTrigger>
+                                                <SelectContent>
+                                                    {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                    {forcedClientId && <input type="hidden" name="clientId" value={forcedClientId} />}
+                                    
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">Topic *</Label>
+                                        <Input id="topic" name="topic" value={topic} onChange={e => setTopic(e.target.value)} required className="h-8 text-sm" />
+                                    </div>
+                                    
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">Formato *</Label>
+                                        <Select name="format" value={formatValue} onValueChange={setFormatValue} required>
+                                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Seleziona..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {[...editorialFormats].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(format => (
+                                                    <SelectItem key={format.id} value={format.name}>{format.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">Focus</Label>
+                                        <Input id="focus" name="focus" defaultValue={editingContent?.focus} className="h-8 text-sm" />
+                                    </div>
+                                    
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">Tag</Label>
+                                        <Input id="tags" name="tags" defaultValue={editingContent?.tags} placeholder="#tag..." className="h-8 text-sm" />
+                                    </div>
+                                    
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">Stato</Label>
+                                        <Select name="status" defaultValue={editingContent?.status || initialStatusForCreate}>
+                                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Stato..." /></SelectTrigger>
+                                            <SelectContent>
+                                                {[...editorialStatuses].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <DynamicFormFields clientId={selectedClientId} content={editingContent} editorialColumns={editorialColumns} />
+                            </CollapsibleContent>
+                        </Collapsible>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="p-3 border-t bg-muted/10 flex items-center justify-between mt-auto">
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleCloseModal()}>Annulla</Button>
+                        <div className="flex items-center gap-2">
                             <DatePickerDialog
                                 value={publicationDate}
                                 onChange={setPublicationDate}
-                                placeholder="Seleziona data"
-                                label="Data di Pubblicazione"
+                                placeholder="Data pubbl."
+                                label=""
                             />
-                        </div>
-                        <div className="space-y-2">
-                            {forcedClientId ? (
-                                <input type="hidden" name="clientId" value={forcedClientId} />
-                            ) : (
-                                <>
-                                    <Label htmlFor="clientId">Cliente</Label>
-                                    <Select name="clientId" required value={selectedClientId} onValueChange={setSelectedClientId}>
-                                        <SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger>
-                                        <SelectContent>
-                                            {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="topic">Topic</Label>
-                            <Input id="topic" name="topic" value={topic} onChange={e => setTopic(e.target.value)} required />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="format">Formato</Label>
-                            <Select name="format" value={formatValue} onValueChange={setFormatValue} required>
-                                <SelectTrigger id="format">
-                                    <SelectValue placeholder="Seleziona un formato..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {[...editorialFormats].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(format => (
-                                        <SelectItem key={format.id} value={format.name}>{format.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="focus">Focus</Label>
-                            <Input id="focus" name="focus" defaultValue={editingContent?.focus} />
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Canali</Label>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 p-3 border rounded-xl">
-                            <div className="flex items-center gap-2"><Checkbox id="facebook" name="facebook" checked={platforms.facebook} onCheckedChange={handlePlatformChange('facebook')} /><Label htmlFor="facebook" className="font-normal">Facebook</Label></div>
-                            <div className="flex items-center gap-2"><Checkbox id="linkedin" name="linkedin" checked={platforms.linkedin} onCheckedChange={handlePlatformChange('linkedin')} /><Label htmlFor="linkedin" className="font-normal">LinkedIn</Label></div>
-                            <div className="flex items-center gap-2"><Checkbox id="instagram" name="instagram" checked={platforms.instagram} onCheckedChange={handlePlatformChange('instagram')} /><Label htmlFor="instagram" className="font-normal">Instagram</Label></div>
-                            <div className="flex items-center gap-2"><Checkbox id="igStories" name="igStories" checked={platforms.igStories} onCheckedChange={handlePlatformChange('igStories')} /><Label htmlFor="igStories" className="font-normal">IG Stories</Label></div>
-                            <div className="flex items-center gap-2"><Checkbox id="tiktok" name="tiktok" checked={platforms.tiktok} onCheckedChange={handlePlatformChange('tiktok')} /><Label htmlFor="tiktok" className="font-normal">TikTok</Label></div>
-                            <div className="flex items-center gap-2"><Checkbox id="gbp" name="gbp" checked={platforms.gbp} onCheckedChange={handlePlatformChange('gbp')} /><Label htmlFor="gbp" className="font-normal">GBP</Label></div>
-                            <div className="flex items-center gap-2"><Checkbox id="youtube" name="youtube" checked={platforms.youtube} onCheckedChange={handlePlatformChange('youtube')} /><Label htmlFor="youtube" className="font-normal">YouTube</Label></div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="copy">Copy / Testo del post</Label>
-                        <Textarea id="copy" name="copy" value={copy} onChange={e => setCopy(e.target.value)} rows={6} />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="tags">Tag</Label>
-                        <Input id="tags" name="tags" defaultValue={editingContent?.tags} placeholder="#marketing, #content, ..." />
-                    </div>
-
-                    <DynamicFormFields clientId={selectedClientId} content={editingContent} editorialColumns={editorialColumns} />
-
-                    <div className="space-y-4 pt-4 border-t">
-                        <Label className="text-base font-semibold">Immagini</Label>
-
-                        {/* File Upload Section */}
-                        <div className="space-y-2">
-                            <Label htmlFor="fileUpload" className="text-sm text-muted-foreground">Carica file immagine</Label>
-                            <div
-                                className={cn(
-                                    "relative border-2 border-dashed rounded-lg p-6 transition-colors",
-                                    "hover:border-primary hover:bg-primary/5",
-                                    isUploadingFiles && "opacity-50 pointer-events-none"
-                                )}
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.add('border-primary', 'bg-primary/5');
-                                }}
-                                onDragLeave={(e) => {
-                                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
-                                }}
-                                onDrop={async (e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.classList.remove('border-primary', 'bg-primary/5');
-
-                                    const allFiles = Array.from(e.dataTransfer.files);
-                                    const imageFiles = allFiles.filter(f => f.type.startsWith('image/'));
-                                    const videoFiles = allFiles.filter(f => f.type.startsWith('video/'));
-
-                                    if (imageFiles.length === 0 && videoFiles.length === 0) {
-                                        toast.error('Solo immagini e video sono supportati');
-                                        return;
-                                    }
-
-                                    setIsUploadingFiles(true);
-                                    try {
-                                        if (imageFiles.length > 0) {
-                                            const attachments = await uploadFilesAndGetAttachments(
-                                                imageFiles,
-                                                'editorial-plan/images',
-                                                'anonymous'
-                                            );
-                                            const newUrls = attachments.map(a => a.url);
-                                            setCurrentImageUrls(prev => [...prev, ...newUrls]);
-                                        }
-
-                                        if (videoFiles.length > 0) {
-                                            // Upload video
-                                            const videoFile = videoFiles[0];
-                                            const attachments = await uploadFilesAndGetAttachments(
-                                                [videoFile],
-                                                'editorial-plan/videos',
-                                                'anonymous'
-                                            );
-                                            if (attachments.length > 0) {
-                                                setCurrentVideoUrl(attachments[0].url);
-                                            }
-                                        }
-
-                                        toast.success('Media caricati con successo');
-                                    } catch (error) {
-                                        console.error('Upload failed:', error);
-                                        toast.error('Errore durante il caricamento');
-                                    } finally {
-                                        setIsUploadingFiles(false);
-                                    }
-                                }}
-                            >
-                                <div className="flex flex-col items-center justify-center gap-2 text-center">
-                                    {isUploadingFiles ? (
-                                        <>
-                                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                                            <p className="text-sm text-muted-foreground">Caricamento in corso...</p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Upload className="h-8 w-8 text-muted-foreground" />
-                                            <p className="text-sm text-muted-foreground">
-                                                Trascina qui immagini o video, o clicca per selezionarli
-                                            </p>
-                                            <p className="text-xs text-muted-foreground/70">
-                                                Supportati: JPG, PNG, GIF, MP4, WEBM
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
-                                <input
-                                    id="fileUpload"
-                                    type="file"
-                                    accept="image/*,video/*"
-                                    multiple
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    disabled={isUploadingFiles}
-                                    onChange={async (e) => {
-                                        const allFiles = Array.from(e.target.files || []);
-                                        if (allFiles.length === 0) return;
-
-                                        const imageFiles = allFiles.filter(f => f.type.startsWith('image/'));
-                                        const videoFiles = allFiles.filter(f => f.type.startsWith('video/'));
-
-                                        setIsUploadingFiles(true);
-                                        try {
-                                            if (imageFiles.length > 0) {
-                                                const attachments = await uploadFilesAndGetAttachments(
-                                                    imageFiles,
-                                                    'editorial-plan/images',
-                                                    'anonymous'
-                                                );
-                                                const newUrls = attachments.map(a => a.url);
-                                                setCurrentImageUrls(prev => [...prev, ...newUrls]);
-                                            }
-
-                                            if (videoFiles.length > 0) {
-                                                const videoFile = videoFiles[0];
-                                                const attachments = await uploadFilesAndGetAttachments(
-                                                    [videoFile],
-                                                    'editorial-plan/videos',
-                                                    'anonymous'
-                                                );
-                                                if (attachments.length > 0) {
-                                                    setCurrentVideoUrl(attachments[0].url);
-                                                }
-                                            }
-
-                                            toast.success('Media caricati con successo');
-                                        } catch (error) {
-                                            console.error('Upload failed:', error);
-                                            toast.error('Errore durante il caricamento');
-                                        } finally {
-                                            setIsUploadingFiles(false);
-                                            e.target.value = '';
-                                        }
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Image Previews */}
-                        {currentImageUrls.filter(url => url.trim() !== '').length > 0 && (
-                            <div className="space-y-2">
-                                <Label className="text-sm text-muted-foreground">Immagini caricate ({currentImageUrls.filter(url => url.trim() !== '').length})</Label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {currentImageUrls.filter(url => url.trim() !== '').map((url, index) => (
-                                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border bg-muted">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img
-                                                src={url}
-                                                alt={`Immagine ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23999" font-size="12">Errore</text></svg>';
-                                                }}
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="destructive"
-                                                size="icon"
-                                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => {
-                                                    setCurrentImageUrls(prev => prev.filter((_, i) => i !== index));
-                                                }}
-                                            >
-                                                <X className="h-3 w-3" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Video Preview */}
-                        {currentVideoUrl && currentVideoUrl.trim() !== '' && (
-                            <div className="space-y-2">
-                                <Label className="text-sm text-muted-foreground">Video caricato</Label>
-                                <div className="relative group rounded-lg overflow-hidden border bg-muted aspect-video">
-                                    <video
-                                        src={currentVideoUrl}
-                                        controls
-                                        className="w-full h-full object-cover"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="destructive"
-                                        size="icon"
-                                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                                        onClick={() => {
-                                            setCurrentVideoUrl('');
-                                        }}
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* URL Input Section */}
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="imageUrls" className="text-sm text-muted-foreground">Link immagini (uno per riga)</Label>
-                                <Textarea
-                                    id="imageUrls"
-                                    name="imageUrls"
-                                    placeholder={"https://example.com/image1.jpg\nhttps://example.com/image2.png"}
-                                    rows={3}
-                                    value={currentImageUrls.join('\n')}
-                                    onChange={(e) => setCurrentImageUrls(e.target.value.split('\n'))}
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="videoUrl" className="text-sm text-muted-foreground">Link video</Label>
-                                <Input
-                                    id="videoUrl"
-                                    name="videoUrl"
-                                    placeholder="https://example.com/video.mp4"
-                                    value={currentVideoUrl}
-                                    onChange={(e) => setCurrentVideoUrl(e.target.value)}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="pt-4 border-t">
-                        <h3 className="text-md font-semibold mb-2">Azioni Aggiuntive</h3>
-                        <div className="flex gap-4">
-                            <Button type="button" variant="outline" onClick={() => handleCreateLinked('task')}>
-                                <ClipboardList className="mr-2 h-4 w-4" />
-                                Crea Task Collegato
-                            </Button>
-                            <Button type="button" variant="outline" onClick={() => handleCreateLinked('project')}>
-                                <Briefcase className="mr-2 h-4 w-4" />
-                                Crea Progetto Collegato
+                            <Button type="submit" size="sm" className="bg-[#2D2A3B] hover:bg-[#2D2A3B]/90 text-white" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Programma
                             </Button>
                         </div>
                     </div>
+                </div>
 
-                    <div className="space-y-2 pt-4 border-t">
-                        <Label htmlFor="status">Stato</Label>
-                        <Select name="status" defaultValue={editingContent?.status || initialStatusForCreate}>
-                            <SelectTrigger><SelectValue placeholder="Seleziona uno stato..." /></SelectTrigger>
-                            <SelectContent>
-                                {[...editorialStatuses].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(s => <SelectItem key={s.id} value={s.name}>{s.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </TabsContent>
-                
-                <TabsContent value="anteprima" className="space-y-6 max-h-[75vh] overflow-y-auto pr-4 pb-4 bg-muted/20 p-6 rounded-lg">
+                {/* DESTRA: ANTEPRIMA LIVE */}
+                <div className="h-full bg-muted/20 rounded-xl border p-4 overflow-y-auto">
                     {Object.values(platforms).every(v => !v) && (
-                        <div className="text-center py-10 text-muted-foreground">
-                            <Eye className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                            <h3 className="text-lg font-medium">Nessun canale selezionato</h3>
-                            <p className="text-sm mt-1">Seleziona uno o più canali social nella tab "Dati Contenuto" per visualizzare le anteprime.</p>
+                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-center">
+                            <Eye className="h-10 w-10 mb-3 opacity-30" />
+                            <p className="text-sm font-medium">Seleziona un canale per vedere l'anteprima</p>
                         </div>
                     )}
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                        {platforms.instagram && (
-                            <div className="flex flex-col items-center gap-4">
-                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima Instagram</h4>
-                                <LivePreview 
-                                    platform="INSTAGRAM"
-                                    caption={copy}
-                                    postType={postType}
-                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
-                                    clientName={clientName}
-                                />
-                            </div>
-                        )}
-                        {platforms.igStories && (
-                            <div className="flex flex-col items-center gap-4">
-                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima IG Stories</h4>
-                                <LivePreview 
-                                    platform="INSTAGRAM"
-                                    caption={copy}
-                                    postType="STORY"
-                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
-                                    clientName={clientName}
-                                />
-                            </div>
-                        )}
+                    <div className="flex flex-col gap-8">
                         {platforms.facebook && (
-                            <div className="flex flex-col items-center gap-4">
-                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima Facebook</h4>
-                                <LivePreview 
-                                    platform="FACEBOOK"
-                                    caption={copy}
-                                    postType={postType}
-                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
-                                    clientName={clientName}
-                                />
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">Facebook</span>
+                                <LivePreview platform="FACEBOOK" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                            </div>
+                        )}
+                        {platforms.instagram && (
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">Instagram</span>
+                                <LivePreview platform="INSTAGRAM" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
                             </div>
                         )}
                         {platforms.linkedin && (
-                            <div className="flex flex-col items-center gap-4">
-                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima LinkedIn</h4>
-                                <LivePreview 
-                                    platform="LINKEDIN"
-                                    caption={copy}
-                                    postType={postType}
-                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
-                                    clientName={clientName}
-                                />
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">LinkedIn</span>
+                                <LivePreview platform="LINKEDIN" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                            </div>
+                        )}
+                        {platforms.igStories && (
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">IG Stories</span>
+                                <LivePreview platform="INSTAGRAM" caption={copy} postType="STORY" mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
                             </div>
                         )}
                         {platforms.tiktok && (
-                            <div className="flex flex-col items-center gap-4">
-                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima TikTok</h4>
-                                <LivePreview 
-                                    platform="TIKTOK"
-                                    caption={copy}
-                                    postType="REEL"
-                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
-                                    clientName={clientName}
-                                />
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">TikTok</span>
+                                <LivePreview platform="TIKTOK" caption={copy} postType="REEL" mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
                             </div>
                         )}
                         {platforms.youtube && (
-                            <div className="flex flex-col items-center gap-4">
-                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima YouTube</h4>
-                                <LivePreview 
-                                    platform="YOUTUBE"
-                                    caption={copy}
-                                    postType={postType === 'REEL' ? 'REEL' : 'VIDEO'}
-                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
-                                    clientName={clientName}
-                                />
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">YouTube</span>
+                                <LivePreview platform="YOUTUBE" caption={copy} postType={postType === 'REEL' ? 'REEL' : 'VIDEO'} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
                             </div>
                         )}
                         {platforms.gbp && (
-                            <div className="flex flex-col items-center gap-4">
-                                <h4 className="font-semibold text-muted-foreground self-start">Anteprima Google Business</h4>
-                                <LivePreview 
-                                    platform="GOOGLE_BUSINESS"
-                                    caption={copy}
-                                    postType={postType}
-                                    mediaUrls={[...currentImageUrls, currentVideoUrl]}
-                                    clientName={clientName}
-                                />
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">Google Business</span>
+                                <LivePreview platform="GOOGLE_BUSINESS" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
                             </div>
                         )}
                     </div>
-                </TabsContent>
-
-                <DialogFooter className="mt-4 border-t pt-4">
-                    <Button type="button" variant="ghost" onClick={() => handleCloseModal()}>Annulla</Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Salvataggio...
-                            </>
-                        ) : editingContent ? 'Salva Modifiche' : 'Crea Contenuto'}
-                    </Button>
-                </DialogFooter>
-            </Tabs>
+                </div>
+            </div>
         </form>
     );
 }
