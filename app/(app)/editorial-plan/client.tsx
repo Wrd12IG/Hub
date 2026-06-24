@@ -1167,7 +1167,7 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
                         <Card key={platform} className="p-3">
                             <div className="flex items-center gap-2">
                                 <div className={cn("h-8 w-8 rounded-full flex items-center justify-center bg-muted", iconData.color)}>
-                                    <Icon className="h-4 w-4" />
+                                    <Icon className="h-3.5 w-3.5" />
                                 </div>
                                 <div>
                                     <p className="text-lg font-bold">{count}</p>
@@ -1764,7 +1764,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 items-start max-h-[80vh] overflow-hidden">
                 
                 {/* SINISTRA: FORM DI INPUT */}
-                <div className="flex flex-col h-full bg-white rounded-xl border overflow-hidden shadow-sm">
+                <div className="flex flex-col h-full bg-white rounded-xl border shadow-sm overflow-y-auto overflow-x-hidden">
                     {/* Header: Canali e Strumenti */}
                     <div className="flex items-center justify-between p-3 border-b bg-muted/10">
                         <div className="flex items-center gap-2">
@@ -1779,12 +1779,12 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                                     type="button"
                                                     onClick={() => handlePlatformChange(key as keyof typeof platforms)(!isActive)}
                                                     className={cn(
-                                                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                                                        "w-7 h-7 rounded-full flex items-center justify-center transition-all",
                                                         isActive ? "text-white" : "text-muted-foreground bg-muted hover:bg-muted/80"
                                                     )}
                                                     style={{ backgroundColor: isActive ? color : undefined }}
                                                 >
-                                                    <Icon className="h-4 w-4" />
+                                                    <Icon className="h-3.5 w-3.5" />
                                                 </button>
                                             </TooltipTrigger>
                                             <TooltipContent>{key.charAt(0).toUpperCase() + key.slice(1)}</TooltipContent>
@@ -1893,7 +1893,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
 
                     {/* Preimpostazioni Globali (Collapsible) */}
                     <div className="border-t bg-muted/5 p-3">
-                        <Collapsible>
+                        <Collapsible defaultOpen={true}>
                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="w-full justify-between p-2 h-auto text-sm font-semibold">
                                     <div className="flex items-center gap-2">
@@ -1903,7 +1903,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                     <ChevronDown className="h-4 w-4" />
                                 </Button>
                             </CollapsibleTrigger>
-                            <CollapsibleContent className="pt-3 space-y-4 px-2 pb-2 overflow-y-auto max-h-[30vh]">
+                            <CollapsibleContent className="pt-3 space-y-4 px-2 pb-2">
                                 <div className="grid grid-cols-2 gap-4">
                                     {/* Client (if not forced) */}
                                     {!forcedClientId && (
