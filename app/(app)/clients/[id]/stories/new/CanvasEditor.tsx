@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Smartphone, Image as ImageIcon, Type, Layers, Wand2, Download, Save, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { Stage, Layer, Text as KonvaText, Image as KonvaImage, Transformer } from 'react-konva'
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react'
+import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react'
 
 // --- Custom useImage Hook ---
 const useImage = (url: string) => {
@@ -417,7 +417,7 @@ export default function CanvasEditor({ clientId }: { clientId: string }) {
                         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Scegli Emoji</span>
                         <button onClick={() => setActiveTool(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>Chiudi</button>
                     </div>
-                    <EmojiPicker onEmojiClick={handleEmojiClick} emojiStyle="native" />
+                    <EmojiPicker onEmojiClick={handleEmojiClick} emojiStyle={EmojiStyle.NATIVE} />
                 </div>
             )}
 
