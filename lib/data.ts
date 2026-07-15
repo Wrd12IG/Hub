@@ -40,6 +40,13 @@ export interface Client {
     updatedAt?: string;
     // Social & Marketing Profile (stored as part of Client for simplicity, or in a separate collection)
     socialProfile?: SocialProfile;
+    // Social integration flags (populated at runtime by the API route from sub-collections)
+    hasYoutubeToken?: boolean;
+    youtubeChannelName?: string;
+    hasTiktokToken?: boolean;
+    tiktokDisplayName?: string;
+    hasLinkedinToken?: boolean;
+    linkedinOrgName?: string;
 }
 
 export interface SocialProfile {
