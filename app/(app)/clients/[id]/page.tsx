@@ -140,6 +140,13 @@ interface Client {
   gbpAccountId?: string | null;
   gbpLocations?: Array<{ id: string; name: string; address?: string }>; // multi-sede
   gbpActiveLocationId?: string | null; // sede attiva
+  // Social integration flags (populated at runtime by the API route)
+  hasYoutubeToken?: boolean;
+  youtubeChannelName?: string | null;
+  hasTiktokToken?: boolean;
+  tiktokDisplayName?: string | null;
+  hasLinkedinToken?: boolean;
+  linkedinOrgName?: string | null;
 }
 
 const statusColors: Record<
