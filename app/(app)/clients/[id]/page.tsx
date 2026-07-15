@@ -2694,6 +2694,13 @@ export default function ClientDetailPage() {
               gbpActiveLocationId: client.gbpActiveLocationId,
               clarityProjectId: client.clarityProjectId,
               hasGoogleToken: !!(client.googleAdAccountId || client.ga4PropertyId),
+              // Social organico
+              hasYoutubeToken:    client.hasYoutubeToken    ?? false,
+              youtubeChannelName: client.youtubeChannelName ?? null,
+              hasTiktokToken:     client.hasTiktokToken     ?? false,
+              tiktokDisplayName:  client.tiktokDisplayName  ?? null,
+              hasLinkedinToken:   client.hasLinkedinToken   ?? false,
+              linkedinOrgName:    client.linkedinOrgName    ?? null,
             }}
             onClientUpdated={() => window.location.reload()}
           />

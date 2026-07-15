@@ -193,8 +193,9 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
     }
 
     return (
-        <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 max-h-[80vh] overflow-y-auto pr-4">
+        <>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 max-h-[80vh] overflow-y-auto pr-4">
                 <FormField
                     control={form.control}
                     name="name"
@@ -496,19 +497,22 @@ export default function ProjectForm({ project, onSuccess, onCancel }: ProjectFor
                     </Button>
                 </div>
             </form>
-
-            <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-                <DialogContent className="glass-card">
-                    <DialogHeader>
-                        <DialogTitle>Nuovo Task</DialogTitle>
-                    </DialogHeader>
-                    <TaskForm
-                        onSuccess={() => setIsTaskDialogOpen(false)}
-                        onCancel={() => setIsTaskDialogOpen(false)}
-                        defaultClientId={selectedClientId}
-                    />
-                </DialogContent>
-            </Dialog>
         </Form>
+
+        {/* Dialog Task separato — FUORI dal Form per evitare il nesting di Dialog
+            che causa il bug "scappa con il mouse" in Radix UI */}
+        <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+            <DialogContent className="glass-card max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>Nuovo Task</DialogTitle>
+                </DialogHeader>
+                <TaskForm
+                    onSuccess={() => setIsTaskDialogOpen(false)}
+                    onCancel={() => setIsTaskDialogOpen(false)}
+                    defaultClientId={selectedClientId}
+                />
+            </DialogContent>
+        </Dialog>
+        </>
     )
 }

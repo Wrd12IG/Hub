@@ -183,28 +183,33 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
     const watchedDuration = form.watch("estimatedDuration")
     const watchedDueDate  = form.watch("dueDate")
 
-    // Reset form when task changes
+    // Reset form solo quando si passa a modificare un task diverso (edit mode).
+    // NON resettare durante la creazione: l'onSnapshot del parent ricostruisce
+    // l'oggetto `task` ad ogni aggiornamento Firestore, causando la perdita dei
+    // dati non salvati. Usiamo task.id come dipendenza stabile invece di `task`.
+    const taskId = task?.id;
     React.useEffect(() => {
-        if (task) {
-            form.reset({
-                title: task.title || "",
-                description: task.description || "",
-                status: task.status,
-                priority: task.priority,
-                dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-                estimatedDuration: task.estimatedDuration?.toString() || "0",
-                clientId: task.clientId || "",
-                projectId: task.projectId || "nessuno",
-                assignedUserId: task.assignedUserId || "nessuno",
-                activityType: task.activityType || "",
-                attachments: (task.attachments || []) as any,
-                dependencies: task.dependencies || [],
-                requiresTwoStepApproval: task.requiresTwoStepApproval || false,
-                skipAttachmentOnApproval: task.skipAttachmentOnApproval || false,
-                sendEmailNotification: true,
-            })
-        }
-    }, [task, form])
+        if (!taskId) return; // modalità creazione → non toccare il form
+        form.reset({
+            title: task!.title || "",
+            description: task!.description || "",
+            status: task!.status,
+            priority: task!.priority,
+            dueDate: task!.dueDate ? new Date(task!.dueDate) : undefined,
+            estimatedDuration: task!.estimatedDuration?.toString() || "0",
+            clientId: task!.clientId || "",
+            projectId: task!.projectId || "nessuno",
+            assignedUserId: task!.assignedUserId || "nessuno",
+            activityType: task!.activityType || "",
+            attachments: (task!.attachments || []) as any,
+            dependencies: task!.dependencies || [],
+            requiresTwoStepApproval: task!.requiresTwoStepApproval || false,
+            skipAttachmentOnApproval: task!.skipAttachmentOnApproval || false,
+            sendEmailNotification: true,
+        })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [taskId]) // dipendenza stabile: si attiva solo se cambia l'ID del task
+
 
     // Sorted clients alphabetically
     const sortedClients = React.useMemo(() => {

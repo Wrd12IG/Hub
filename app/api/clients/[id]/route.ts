@@ -19,15 +19,35 @@ export async function GET(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // Leggi le integrazioni social in parallelo (solo presence, nessun token in chiaro)
+    const integrationsRef = docRef.collection('integrations');
+    const [youtubeSnap, tiktokSnap, linkedinSnap] = await Promise.all([
+      integrationsRef.doc('youtube').get(),
+      integrationsRef.doc('tiktok').get(),
+      integrationsRef.doc('linkedin').get(),
+    ]);
+
+    const youtubeData = youtubeSnap.exists ? youtubeSnap.data() : null;
+    const tiktokData  = tiktokSnap.exists  ? tiktokSnap.data()  : null;
+    const linkedinData = linkedinSnap.exists ? linkedinSnap.data() : null;
+
     return NextResponse.json({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
+      // Social organico — solo flag di presenza e nome visibile, mai token cifrati
+      hasYoutubeToken:    !!youtubeData?.accessToken,
+      youtubeChannelName: youtubeData?.extra?.channelName ?? null,
+      hasTiktokToken:     !!tiktokData?.accessToken,
+      tiktokDisplayName:  tiktokData?.extra?.displayName ?? null,
+      hasLinkedinToken:   !!linkedinData?.accessToken,
+      linkedinOrgName:    linkedinData?.extra?.organizationName ?? linkedinData?.extra?.orgName ?? null,
     });
   } catch (error) {
     console.error(`Error fetching client ${params.id}:`, error);
     return NextResponse.json({ error: 'Failed to fetch client' }, { status: 500 });
   }
 }
+
 
 export async function PUT(
   request: Request,

@@ -20,23 +20,41 @@ export async function GET(
     }
 
     const daysBack = parseInt(request.nextUrl.searchParams.get('daysBack') || '30', 10);
+    // Map daysBack to datePreset expected from n8n
+    const datePreset = daysBack === 7 ? 'last_7d' : daysBack === 30 ? 'last_30d' : 'this_month';
 
-    // Phase 4 TODO: Connect real Google Ads and Meta APIs
-    // Stub returns empty aggregates — frontend hides widgets when all zeros
-    return NextResponse.json({
+    // Fetch the stored performance data sent by n8n
+    const performanceSnapshot = await adminDb
+      .collection('clients')
+      .doc(id)
+      .collection('performance')
+      .where('datePreset', '==', datePreset)
+      .get();
+
+    const performanceData: any = {
       ok: true,
       daysBack,
-      message: 'Performance API — real data integration pending',
-      summary: {
-        totalSpend: 0,
-        totalImpressions: 0,
-        totalClicks: 0,
-        totalConversions: 0
-      },
-      campaigns: []
+      meta: null,
+      google: null,
+      tiktok: null,
+      youtube: null,
+      gbp: null,
+      instagram_organic: null
+    };
+
+    performanceSnapshot.forEach(doc => {
+      const data = doc.data();
+      // Map platform names to the frontend's expected keys
+      if (data.platform === 'facebook' || data.platform === 'meta') {
+        performanceData.meta = data.data;
+      } else if (data.platform === 'google_ads' || data.platform === 'google') {
+        performanceData.google = data.data;
+      } else {
+        performanceData[data.platform] = data.data;
+      }
     });
 
-
+    return NextResponse.json(performanceData);
   } catch (error) {
     console.error(`Error fetching performance for client ${params.id}:`, error);
     return NextResponse.json({ error: 'Failed to fetch performance data' }, { status: 500 });

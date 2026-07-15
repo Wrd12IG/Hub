@@ -36,6 +36,13 @@ export interface ClientConnections {
   gbpAccountId?: string | null;
   gbpActiveLocationId?: string | null;
   clarityProjectId?: string | null;
+  // Social organico
+  hasYoutubeToken?: boolean;
+  youtubeChannelName?: string | null;
+  hasTiktokToken?: boolean;
+  tiktokDisplayName?: string | null;
+  hasLinkedinToken?: boolean;
+  linkedinOrgName?: string | null;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -73,6 +80,30 @@ function ClarityIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5L12 1zm0 4l6 2.67V11c0 3.9-2.65 7.56-6 8.93C8.65 18.56 6 14.9 6 11V7.67L12 5z" />
+    </svg>
+  );
+}
+
+function YoutubeIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
+  );
+}
+
+function TikTokIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.27 8.27 0 004.84 1.55V6.79a4.85 4.85 0 01-1.07-.1z" />
+    </svg>
+  );
+}
+
+function LinkedinOrgIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
     </svg>
   );
 }
@@ -294,10 +325,6 @@ function GA4Modal({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   MODAL: GOOGLE ADS
-───────────────────────────────────────────────────────────────── */
-
 function GoogleAdsModal({
   clientId, currentCustomerId, hasGoogleToken, onClose, onSaved,
 }: {
@@ -347,10 +374,6 @@ function GoogleAdsModal({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   MODAL: CLARITY
-───────────────────────────────────────────────────────────────── */
-
 function ClarityModal({
   clientId, currentProjectId, onClose, onSaved,
 }: {
@@ -399,14 +422,10 @@ function ClarityModal({
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   MODAL: GBP ADD LOCATION
-───────────────────────────────────────────────────────────────── */
-
 function GbpAddModal({
   clientId, existingLocations, onClose, onSaved,
 }: {
-  clientId: string; existingLocations: GbpLocation[]; onClose: () => void; onSaved: (locations: GbpLocation[]) => void;
+  clientId: string; existingLocations: { id: string; name: string; address: string }[]; onClose: () => void; onSaved: (locations: { id: string; name: string; address: string }[]) => void;
 }) {
   const [step, setStep] = useState<"load" | "select">("load");
   const [loading, setLoading] = useState(false);
@@ -508,7 +527,384 @@ function GbpAddModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | null;
+/* ─────────────────────────────────────────────────────────────────
+   MODAL: YOUTUBE
+───────────────────────────────────────────────────────────────── */
+
+function YoutubeModal({
+  clientId, hasToken, channelName, onClose, onSaved,
+}: {
+  clientId: string; hasToken: boolean; channelName?: string | null;
+  onClose: () => void; onSaved: (name: string) => void;
+}) {
+  const [accessToken, setAccessToken] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ valid: boolean; channelName?: string } | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+
+  async function save() {
+    if (!accessToken.trim()) { toast.error("Inserisci l'access token YouTube"); return; }
+    setSaving(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/clients/${clientId}/youtube/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ accessToken, refreshToken: refreshToken || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore");
+      toast.success(`YouTube connesso — ${data.channelName}`);
+      onSaved(data.channelName || "");
+      onClose();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function checkStatus() {
+    const authToken = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/clients/${clientId}/youtube/token`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const data = await res.json();
+    setStatus({ valid: data.valid, channelName: data.channelName });
+  }
+
+  async function disconnect() {
+    setDisconnecting(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      await fetch(`${API_URL}/api/clients/${clientId}/youtube/token`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${authToken}` },
+      });
+      toast.success("YouTube disconnesso");
+      onSaved("");
+      onClose();
+    } catch { toast.error("Errore durante la disconnessione"); }
+    finally { setDisconnecting(false); }
+  }
+
+  return (
+    <ModalWrapper title="YouTube — Connetti canale" onClose={onClose}>
+      <div className="space-y-4">
+        {hasToken && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <div className="flex items-center gap-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+              <div>
+                <p className="text-xs font-bold text-emerald-400">Canale connesso</p>
+                {channelName && <p className="text-[11px] text-muted-foreground mt-0.5">{channelName}</p>}
+              </div>
+            </div>
+            <button onClick={checkStatus} className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
+          </div>
+        )}
+        {status && (
+          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"}`}>
+            {status.valid
+              ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12" /></svg>Token valido &mdash; {status.channelName}</>
+              : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
+          </div>
+        )}
+        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
+          <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
+          <ol className="text-[10px] text-muted-foreground/70 space-y-0.5 list-decimal list-inside">
+            <li>Google Cloud Console → Credenziali → OAuth 2.0</li>
+            <li>Abilita YouTube Data API v3 + YouTube Analytics API</li>
+            <li>Usa OAuth Playground per ottenere access + refresh token</li>
+            <li>Incolla qui sotto i token</li>
+          </ol>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground">Access Token *</label>
+          <input value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+            placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "ya29.a0..."}
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground/40" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato per rinnovo automatico)</label>
+          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+            placeholder="1//0e..."
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground/40" />
+        </div>
+        <div className="flex gap-2">
+          {hasToken && (
+            <button onClick={disconnect} disabled={disconnecting}
+              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
+              {disconnecting ? <Loader2 size={12} className="animate-spin" /> : "Disconnetti"}
+            </button>
+          )}
+          <button onClick={save} disabled={saving || !accessToken.trim()}
+            className="flex-1 py-2.5 text-sm font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {hasToken ? "Aggiorna token" : "Connetti YouTube"}
+          </button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MODAL: TIKTOK
+───────────────────────────────────────────────────────────────── */
+
+function TikTokModal({
+  clientId, hasToken, displayName, onClose, onSaved,
+}: {
+  clientId: string; hasToken: boolean; displayName?: string | null;
+  onClose: () => void; onSaved: (name: string) => void;
+}) {
+  const [accessToken, setAccessToken] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ valid: boolean; displayName?: string } | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+
+  async function save() {
+    if (!accessToken.trim()) { toast.error("Inserisci l'access token TikTok"); return; }
+    setSaving(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/clients/${clientId}/tiktok/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ accessToken, refreshToken: refreshToken || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore");
+      toast.success(`TikTok connesso — @${data.displayName}`);
+      onSaved(data.displayName || "");
+      onClose();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function checkStatus() {
+    const authToken = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/clients/${clientId}/tiktok/token`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const data = await res.json();
+    setStatus({ valid: data.valid, displayName: data.displayName });
+  }
+
+  async function disconnect() {
+    setDisconnecting(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      await fetch(`${API_URL}/api/clients/${clientId}/tiktok/token`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${authToken}` },
+      });
+      toast.success("TikTok disconnesso");
+      onSaved("");
+      onClose();
+    } catch { toast.error("Errore durante la disconnessione"); }
+    finally { setDisconnecting(false); }
+  }
+
+  return (
+    <ModalWrapper title="TikTok — Connetti account" onClose={onClose}>
+      <div className="space-y-4">
+        {hasToken && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <div className="flex items-center gap-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+              <div>
+                <p className="text-xs font-bold text-emerald-400">Account connesso</p>
+                {displayName && <p className="text-[11px] text-muted-foreground mt-0.5">@{displayName}</p>}
+              </div>
+            </div>
+            <button onClick={checkStatus} className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
+          </div>
+        )}
+        {status && (
+          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"}`}>
+            {status.valid
+              ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12" /></svg>Token valido &mdash; @{status.displayName}</>
+              : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
+          </div>
+        )}
+        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
+          <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
+          <ol className="text-[10px] text-muted-foreground/70 space-y-0.5 list-decimal list-inside">
+            <li>developers.tiktok.com → crea app → aggiungi scopes</li>
+            <li>Scopes: user.info.basic, video.list</li>
+            <li>Autorizza l'account del cliente via OAuth</li>
+            <li>Incolla qui access token e refresh token</li>
+          </ol>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground">Access Token *</label>
+          <input value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+            placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "act.xxx..."}
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground/40" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato)</label>
+          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+            placeholder="rft.xxx..."
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground/40" />
+        </div>
+        <div className="flex gap-2">
+          {hasToken && (
+            <button onClick={disconnect} disabled={disconnecting}
+              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
+              {disconnecting ? <Loader2 size={12} className="animate-spin" /> : "Disconnetti"}
+            </button>
+          )}
+          <button onClick={save} disabled={saving || !accessToken.trim()}
+            className="flex-1 py-2.5 text-sm font-bold bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-500 hover:to-fuchsia-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {hasToken ? "Aggiorna token" : "Connetti TikTok"}
+          </button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MODAL: LINKEDIN
+───────────────────────────────────────────────────────────────── */
+
+function LinkedinModal({
+  clientId, hasToken, orgName, onClose, onSaved,
+}: {
+  clientId: string; hasToken: boolean; orgName?: string | null;
+  onClose: () => void; onSaved: (name: string) => void;
+}) {
+  const [accessToken, setAccessToken] = useState("");
+  const [refreshToken, setRefreshToken] = useState("");
+  const [organizationId, setOrganizationId] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<{ valid: boolean; orgLabel?: string } | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+
+  async function save() {
+    if (!accessToken.trim()) { toast.error("Inserisci l'access token LinkedIn"); return; }
+    setSaving(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/clients/${clientId}/linkedin/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({
+          accessToken,
+          refreshToken: refreshToken || undefined,
+          organizationId: organizationId || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore");
+      toast.success(`LinkedIn connesso — ${data.userName}`);
+      onSaved(organizationId || data.userName || "");
+      onClose();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function checkStatus() {
+    const authToken = localStorage.getItem("token");
+    const res = await fetch(`${API_URL}/api/clients/${clientId}/linkedin/token`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const data = await res.json();
+    setStatus({ valid: data.valid, orgLabel: data.organizationName || data.userName });
+  }
+
+  async function disconnect() {
+    setDisconnecting(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      await fetch(`${API_URL}/api/clients/${clientId}/linkedin/token`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${authToken}` },
+      });
+      toast.success("LinkedIn disconnesso");
+      onSaved("");
+      onClose();
+    } catch { toast.error("Errore durante la disconnessione"); }
+    finally { setDisconnecting(false); }
+  }
+
+  return (
+    <ModalWrapper title="LinkedIn — Connetti pagina aziendale" onClose={onClose}>
+      <div className="space-y-4">
+        {hasToken && (
+          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <div className="flex items-center gap-2">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+              <div>
+                <p className="text-xs font-bold text-emerald-400">Pagina connessa</p>
+                {orgName && <p className="text-[11px] text-muted-foreground mt-0.5">{orgName}</p>}
+              </div>
+            </div>
+            <button onClick={checkStatus} className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
+          </div>
+        )}
+        {status && (
+          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"}`}>
+            {status.valid
+              ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12" /></svg>Token valido &mdash; {status.orgLabel}</>
+              : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
+          </div>
+        )}
+        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
+          <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
+          <ol className="text-[10px] text-muted-foreground/70 space-y-0.5 list-decimal list-inside">
+            <li>linkedin.com/developers → crea app → prodotti: Marketing API</li>
+            <li>Scopes: r_organization_social, r_organization_admin</li>
+            <li>Autorizza il cliente via OAuth 2.0</li>
+            <li>Incolla access token + Organization ID della pagina</li>
+          </ol>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground">Access Token *</label>
+          <input value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+            placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "AQV..."}
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground">Refresh Token (se disponibile)</label>
+          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+            placeholder="AQW..."
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-muted-foreground">Organization ID (numero della pagina)</label>
+          <input value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
+            placeholder="es. 12345678"
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
+          <p className="text-[10px] text-muted-foreground/60">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
+        </div>
+        <div className="flex gap-2">
+          {hasToken && (
+            <button onClick={disconnect} disabled={disconnecting}
+              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
+              {disconnecting ? <Loader2 size={12} className="animate-spin" /> : "Disconnetti"}
+            </button>
+          )}
+          <button onClick={save} disabled={saving || !accessToken.trim()}
+            className="flex-1 py-2.5 text-sm font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {hasToken ? "Aggiorna token" : "Connetti LinkedIn"}
+          </button>
+        </div>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MAIN: PlatformConnections
+───────────────────────────────────────────────────────────────── */
+
+type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | null;
+
 
 export default function PlatformConnections({
   clientId,
@@ -523,11 +919,7 @@ export default function PlatformConnections({
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
 
-  const gbpLocations: GbpLocation[] = client.gbpLocations?.length
-    ? client.gbpLocations
-    : client.gbpLocationId
-    ? [{ id: client.gbpLocationId, name: "Sede principale" }]
-    : [];
+  const gbpLocations = client.gbpLocations ?? [];
 
   const hasGoogleToken = !!(client.hasGoogleToken || client.googleAdAccountId || client.ga4PropertyId);
 
@@ -537,6 +929,9 @@ export default function PlatformConnections({
     client.googleAdAccountId,
     gbpLocations.length > 0,
     client.clarityProjectId,
+    client.hasYoutubeToken,
+    client.hasTiktokToken,
+    client.hasLinkedinToken,
   ].filter(Boolean).length;
 
   async function removeGbpLocation(locationId: string) {
@@ -557,7 +952,6 @@ export default function PlatformConnections({
     onClientUpdated?.();
   }
 
-  /* ── Card style helper ── */
   function cardStyle(active: boolean, color: string) {
     return {
       borderColor: active ? `${color}40` : "rgba(255,255,255,0.07)",
@@ -565,14 +959,12 @@ export default function PlatformConnections({
     };
   }
 
-  /* ── Icon container style ── */
   function iconStyle(color: string) {
     return { background: `${color}22`, color };
   }
 
   return (
     <div className="w-full space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-xl font-extrabold text-foreground">
@@ -584,19 +976,16 @@ export default function PlatformConnections({
         </div>
         <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/10 rounded-full px-4 py-2 shrink-0">
           <div className="flex gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className={cn("w-2 h-2 rounded-full transition-all duration-300", i < configuredCount ? "bg-emerald-400" : "bg-white/10")} />
             ))}
           </div>
-          <span className="text-xs font-bold text-muted-foreground">{configuredCount}/5 configurate</span>
+          <span className="text-xs font-bold text-muted-foreground">{configuredCount}/8 configurate</span>
         </div>
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
-        {/* ── META ADS ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(client.hasMetaToken, "#1877F2")}>
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasMetaToken || !!client.metaAdAccountId, "#1877F2")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#60a5fa")}>
@@ -606,19 +995,12 @@ export default function PlatformConnections({
             </div>
             {client.hasMetaToken && <ConnectedBadge />}
           </div>
-          {(client.metaAdAccountId || client.hasMetaToken) && (
-            <div className="space-y-1.5">
-              {client.metaAdAccountId && <AccountChip name={client.metaAdAccountId} sub="Ad Account ID" />}
-              {client.metaPageId && <AccountChip name={client.metaPageId} sub="Facebook Page ID" />}
-            </div>
-          )}
           <button type="button" onClick={() => setActiveModal("meta")}
             className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
             {client.hasMetaToken ? <><ExternalLink size={11} /> Modifica configurazione</> : <><Link2 size={11} /> Collega Meta Ads</>}
           </button>
         </div>
 
-        {/* ── GOOGLE ADS ── */}
         <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.googleAdAccountId, "#4285F4")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -629,14 +1011,12 @@ export default function PlatformConnections({
             </div>
             {client.googleAdAccountId && <ConnectedBadge />}
           </div>
-          {client.googleAdAccountId && <AccountChip name={client.googleAdAccountId} sub="Customer ID" />}
           <button type="button" onClick={() => setActiveModal("google-ads")}
             className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-400/20 text-blue-300 bg-blue-400/5 hover:bg-blue-400/10 transition-all cursor-pointer">
             {client.googleAdAccountId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Google Ads</>}
           </button>
         </div>
 
-        {/* ── GOOGLE ANALYTICS 4 ── */}
         <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.ga4PropertyId, "#F9AB00")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -650,40 +1030,22 @@ export default function PlatformConnections({
             </div>
             {client.ga4PropertyId && <ConnectedBadge />}
           </div>
-          {client.ga4PropertyId && <AccountChip name={`Property ${client.ga4PropertyId}`} sub="Google Analytics 4" />}
           <button type="button" onClick={() => setActiveModal("ga4")}
             className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-yellow-500/20 text-yellow-400 bg-yellow-500/5 hover:bg-yellow-500/10 transition-all cursor-pointer">
             {client.ga4PropertyId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Analytics</>}
           </button>
         </div>
 
-        {/* ── GOOGLE BUSINESS PROFILE (multi-sede, occupa 2 colonne) ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200 sm:col-span-2" style={cardStyle(gbpLocations.length > 0, "#34A853")}>
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(gbpLocations.length > 0, "#34A853")}>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
                 <GBPIcon />
               </div>
-              <div>
-                <span className="text-sm font-bold text-foreground">Google Business Profile</span>
-                {gbpLocations.length > 0 && (
-                  <span className="ml-2 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                    {gbpLocations.length} {gbpLocations.length === 1 ? "sede" : "sedi"}
-                  </span>
-                )}
-              </div>
+              <span className="text-sm font-bold text-foreground">GBP</span>
             </div>
             {gbpLocations.length > 0 && <ConnectedBadge />}
           </div>
-
-          {gbpLocations.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {gbpLocations.map((loc) => (
-                <AccountChip key={loc.id} name={loc.name} sub={loc.address} onRemove={() => removeGbpLocation(loc.id)} />
-              ))}
-            </div>
-          )}
-
           <button type="button" onClick={() => setActiveModal("gbp-add")}
             className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
             <Plus size={11} />
@@ -706,6 +1068,60 @@ export default function PlatformConnections({
           <button type="button" onClick={() => setActiveModal("clarity")}
             className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-violet-500/20 text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 transition-all cursor-pointer">
             {client.clarityProjectId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Clarity</>}
+          </button>
+        </div>
+
+        {/* ── YOUTUBE ── */}
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasYoutubeToken, "#FF0000")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#f87171")}>
+                <YoutubeIcon />
+              </div>
+              <span className="text-sm font-bold text-foreground">YouTube</span>
+            </div>
+            {client.hasYoutubeToken && <ConnectedBadge />}
+          </div>
+          {client.youtubeChannelName && <AccountChip name={client.youtubeChannelName} sub="Canale connesso" />}
+          <button type="button" onClick={() => setActiveModal("youtube")}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-all cursor-pointer">
+            {client.hasYoutubeToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega YouTube</>}
+          </button>
+        </div>
+
+        {/* ── TIKTOK ── */}
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasTiktokToken, "#fe2c55")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "#f0f0f0" }}>
+                <TikTokIcon />
+              </div>
+              <span className="text-sm font-bold text-foreground">TikTok</span>
+            </div>
+            {client.hasTiktokToken && <ConnectedBadge />}
+          </div>
+          {client.tiktokDisplayName && <AccountChip name={`@${client.tiktokDisplayName}`} sub="Account connesso" />}
+          <button type="button" onClick={() => setActiveModal("tiktok")}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-pink-500/20 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer">
+            {client.hasTiktokToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega TikTok</>}
+          </button>
+        </div>
+
+        {/* ── LINKEDIN ── */}
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasLinkedinToken, "#0A66C2")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#60a5fa")}>
+                <LinkedinOrgIcon />
+              </div>
+              <span className="text-sm font-bold text-foreground">LinkedIn</span>
+            </div>
+            {client.hasLinkedinToken && <ConnectedBadge />}
+          </div>
+          {client.linkedinOrgName && <AccountChip name={client.linkedinOrgName} sub="Pagina aziendale" />}
+          <button type="button" onClick={() => setActiveModal("linkedin")}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-600/20 text-blue-400 bg-blue-600/5 hover:bg-blue-600/10 transition-all cursor-pointer">
+            {client.hasLinkedinToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega LinkedIn</>}
           </button>
         </div>
 
@@ -736,6 +1152,42 @@ export default function PlatformConnections({
         <ClarityModal clientId={clientId} currentProjectId={client.clarityProjectId}
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }} />
+      )}
+      {activeModal === "youtube" && (
+        <YoutubeModal
+          clientId={clientId}
+          hasToken={!!client.hasYoutubeToken}
+          channelName={client.youtubeChannelName}
+          onClose={() => setActiveModal(null)}
+          onSaved={(name) => {
+            setClient((prev) => ({ ...prev, hasYoutubeToken: !!name, youtubeChannelName: name || null }));
+            setActiveModal(null);
+          }}
+        />
+      )}
+      {activeModal === "tiktok" && (
+        <TikTokModal
+          clientId={clientId}
+          hasToken={!!client.hasTiktokToken}
+          displayName={client.tiktokDisplayName}
+          onClose={() => setActiveModal(null)}
+          onSaved={(name) => {
+            setClient((prev) => ({ ...prev, hasTiktokToken: !!name, tiktokDisplayName: name || null }));
+            setActiveModal(null);
+          }}
+        />
+      )}
+      {activeModal === "linkedin" && (
+        <LinkedinModal
+          clientId={clientId}
+          hasToken={!!client.hasLinkedinToken}
+          orgName={client.linkedinOrgName}
+          onClose={() => setActiveModal(null)}
+          onSaved={(name) => {
+            setClient((prev) => ({ ...prev, hasLinkedinToken: !!name, linkedinOrgName: name || null }));
+            setActiveModal(null);
+          }}
+        />
       )}
     </div>
   );

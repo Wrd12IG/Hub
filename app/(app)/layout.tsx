@@ -16,7 +16,6 @@ import DynamicIcons from '@/components/dynamic-icons';
 import { useKonamiCodeToggle } from '@/hooks/useKonamiCode';
 import { BukowskiMode, BukowskiConfetti } from '@/components/easter-eggs/bukowski-mode';
 import { BirthdayCelebration } from '@/components/birthday-celebration';
-import { IdleBreakPopup } from '@/components/idle-break-popup';
 import FloatingNetworkBackground from '@/components/FloatingNetworkBackground';
 import { PageTransition } from '@/components/PageTransition';
 
@@ -90,7 +89,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
           <BukowskiConfetti />
           <BirthdayCelebration users={users} />
-          <IdleBreakPopup idleMinutes={5} onBreakLogged={(_log) => {}} />
 
         </div>
       </CommandMenuProvider>
