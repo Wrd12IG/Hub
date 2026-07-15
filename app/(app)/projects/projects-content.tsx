@@ -83,6 +83,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ProjectForm from '@/components/project-form';
+import TaskForm from '@/components/task-form';
 import { ProjectCard } from '@/components/project-card';
 import { Project, Client } from '@/lib/data';
 import { format } from 'date-fns';
@@ -113,6 +114,9 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
     const [deleteRelatedTasks, setDeleteRelatedTasks] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
+    // Task dialog — gestito qui al top level per evitare Dialog annidati (flickering Radix UI)
+    const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+    const [taskDefaultClientId, setTaskDefaultClientId] = useState<string | undefined>(undefined);
 
     const { toast } = useToast();
 
@@ -389,6 +393,10 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                 project={editingProject}
                                 onSuccess={() => setIsDialogOpen(false)}
                                 onCancel={() => setIsDialogOpen(false)}
+                                onCreateTask={(clientId) => {
+                                    setTaskDefaultClientId(clientId);
+                                    setIsTaskDialogOpen(true);
+                                }}
                             />
                         </DialogContent>
                     </Dialog>
@@ -1141,6 +1149,25 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                             )}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* ── Dialog Task al TOP LEVEL della pagina ──────────────────────────
+                Radix UI non supporta Dialog annidati: questo Dialog è fratello
+                del Dialog progetto, non figlio — elimina il flickering */}
+            <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Nuovo Task</DialogTitle>
+                        <DialogDescription>
+                            Crea un nuovo task da associare al progetto.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <TaskForm
+                        defaultClientId={taskDefaultClientId}
+                        onSuccess={() => setIsTaskDialogOpen(false)}
+                        onCancel={() => setIsTaskDialogOpen(false)}
+                    />
                 </DialogContent>
             </Dialog>
         </div>
