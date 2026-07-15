@@ -460,7 +460,11 @@ function GbpAddModal({
       const newLocs = apiLocations
         .filter((l) => selected.includes(l.name))
         .map((l) => ({ id: l.name, name: l.title, address: l.address }));
-      const merged = [...existingLocations, ...newLocs.filter((n) => !existingLocations.some((e) => e.id === n.id))];
+      const merged: { id: string; name: string; address: string }[] = [
+        ...existingLocations.map((e) => ({ ...e, address: e.address ?? "" })),
+        ...newLocs.filter((n) => !existingLocations.some((e) => e.id === n.id)),
+      ];
+
       const res = await fetch(`${API_URL}/api/clients/${clientId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
