@@ -425,7 +425,7 @@ function ClarityModal({
 function GbpAddModal({
   clientId, existingLocations, onClose, onSaved,
 }: {
-  clientId: string; existingLocations: { id: string; name: string; address: string }[]; onClose: () => void; onSaved: (locations: { id: string; name: string; address: string }[]) => void;
+  clientId: string; existingLocations: { id: string; name: string; address?: string }[]; onClose: () => void; onSaved: (locations: { id: string; name: string; address: string }[]) => void;
 }) {
   const [step, setStep] = useState<"load" | "select">("load");
   const [loading, setLoading] = useState(false);
