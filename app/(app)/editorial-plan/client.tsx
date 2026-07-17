@@ -3,6 +3,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
     Table,
@@ -307,7 +308,9 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
                         </div>
                         <div className="space-y-3 min-h-[500px]">
                             {displayContentsByStatus[status.name]?.map(content => {
-                                const linkedTask = content.taskId ? tasksById[content.taskId] : null;
+                                const linkedTask = content.taskId 
+                                    ? tasksById[content.taskId] 
+                                    : Object.values(tasksById).find(t => t.editorialContentId === content.id);
                                 const linkedProject = content.projectId ? projectsById[content.projectId] : null;
                                 const currentStatus = statuses.find(s => s.name === content.status)
 
@@ -634,7 +637,7 @@ const GanttView = ({ contents, clients, users, onEdit }: { contents: EditorialCo
 
 
 export function EditorialPlanPageContent({ forcedClientId, forceView }: { forcedClientId?: string; forceView?: ViewType }) {
-
+    const router = useRouter();
 
     // UI State
     const [isFiltersOpen, setIsFiltersOpen] = useState(true);
@@ -913,6 +916,10 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     };
 
     const handleOpenEditModal = (content: EditorialContent) => {
+        if (content.format === 'Storia' && content.status === 'Bozza') {
+            router.push(`/clients/${content.clientId}/stories/new?draftId=${content.id}`);
+            return;
+        }
         setEditingContent(content);
         setModalState('edit');
     };
@@ -1308,13 +1315,24 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                             const client = clientsById[content.clientId];
                                             const status = editorialStatuses.find(s => s.name === content.status);
                                             const pubDate = content.publicationDate && !isNaN(new Date(content.publicationDate).getTime()) ? new Date(content.publicationDate) : null;
+                                            const linkedTask = content.taskId 
+                                                ? tasksById[content.taskId] 
+                                                : Object.values(tasksById).find(t => t.editorialContentId === content.id);
 
                                             return (
                                                 <TableRow key={content.id}>
                                                     <TableCell className="font-bold text-muted-foreground">{pubDate ? format(pubDate, 'EEE', { locale: it }).toUpperCase() : '-'}</TableCell>
                                                     <TableCell className="whitespace-nowrap">{pubDate ? format(pubDate, 'dd/MM/yyyy', { locale: it }) : '-'}</TableCell>
                                                     <TableCell className="font-medium hover:bg-muted/50 cursor-pointer" style={{ backgroundColor: `${client?.color}20` }} onClick={() => handleOpenFieldEditor(content.id, 'clientId', 'Cliente', content.clientId, 'select', [...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => ({ value: c.id, label: c.name })))}>{client?.name || 'N/D'}</TableCell>
-                                                    <TableCell className="font-medium max-w-[200px] truncate hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'topic', 'Topic', content.topic)}>{content.topic}</TableCell>
+                                                    <TableCell className="font-medium max-w-[200px] hover:bg-muted/50 cursor-pointer">
+                                                        <div className="truncate" onClick={() => handleOpenFieldEditor(content.id, 'topic', 'Topic', content.topic)}>{content.topic}</div>
+                                                        {linkedTask && (
+                                                            <Link href={`/tasks?taskId=${linkedTask.id}`} className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground hover:text-primary">
+                                                                <ClipboardList className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                                                                <span className="truncate max-w-[150px]">Task: {linkedTask.title}</span>
+                                                            </Link>
+                                                        )}
+                                                    </TableCell>
                                                     <TableCell className="hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'format', 'Formato', content.format, 'select', editorialFormats.map(f => ({ value: f.name, label: f.name })))}>{content.format}</TableCell>
                                                     <TableCell className="max-w-[150px] truncate hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'focus', 'Focus', content.focus)}>{content.focus}</TableCell>
 

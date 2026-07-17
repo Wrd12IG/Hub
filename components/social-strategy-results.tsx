@@ -39,7 +39,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
-import { addTask, addEditorialContent } from '@/lib/actions';
+import { addTask, addEditorialContent, updateTask } from '@/lib/actions';
 
 interface SocialStrategyResultsProps {
     result: {
@@ -374,7 +374,7 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                 timeSpent: 0
             }, userId);
 
-            await addEditorialContent({
+            const editorialContentId = await addEditorialContent({
                 topic: item.topic,
                 clientId: clientId,
                 format: mediaType,
@@ -391,6 +391,8 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             } as any);
+
+            await updateTask(taskResult.taskId, { editorialContentId }, userId);
 
             setSavedPosts(prev => ({ ...prev, [index]: true }));
             toast({ title: 'Successo!', description: 'Post aggiunto al piano e task creato.' });

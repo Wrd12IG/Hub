@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { collection, addDoc } from 'firebase/firestore'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { collection, addDoc, doc, updateDoc, getDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { ArrowLeft, Smartphone, Image as ImageIcon, Type, Layers, Wand2, Download, Save, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { Stage, Layer, Text as KonvaText, Image as KonvaImage, Transformer } from 'react-konva'
@@ -284,11 +285,36 @@ const DraggableText = ({ layer, isSelected, onSelect, onChange }: any) => {
 
 // --- Main Component ---
 export default function CanvasEditor({ clientId }: { clientId: string }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null)
   const [layers, setLayers] = useState<CanvasLayer[]>([])
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
   const [activeTool, setActiveTool] = useState<LayerType | null>(null)
+
+  useEffect(() => {
+    const draftId = searchParams.get('draftId');
+    if (draftId) {
+      setCurrentDraftId(draftId);
+      getDoc(doc(db, 'editorialContents', draftId)).then((docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.storyData) {
+            try {
+              const loadedLayers = typeof data.storyData === 'string' ? JSON.parse(data.storyData) : data.storyData;
+              setLayers(loadedLayers || []);
+            } catch (err) {
+              console.error('Errore parsing layers:', err);
+            }
+          }
+        }
+      }).catch(err => {
+        console.error('Errore caricamento bozza:', err);
+      });
+    }
+  }, [searchParams]);
   
   // Per scaricare l'immagine
   const stageRef = useRef<any>(null);
@@ -375,23 +401,36 @@ export default function CanvasEditor({ clientId }: { clientId: string }) {
       setSelectedLayerId(null);
       await new Promise(r => setTimeout(r, 100));
       const dataUrl = stageRef.current.toDataURL({ pixelRatio: 1 });
-      await addDoc(collection(db, 'editorialContents'), {
-        clientId,
-        format: 'Storia',
-        igStories: true,
-        instagram: false,
-        facebook: false,
-        linkedin: false,
-        tiktok: false,
-        youtube: false,
-        gbp: false,
-        status: 'Bozza',
-        topic: `Storia del ${new Date().toLocaleDateString('it-IT')}`,
-        copy: '',
-        previewDataUrl: dataUrl,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      const serializedLayers = JSON.stringify(layers);
+
+      if (currentDraftId) {
+        await updateDoc(doc(db, 'editorialContents', currentDraftId), {
+          previewDataUrl: dataUrl,
+          storyData: serializedLayers,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        const docRef = await addDoc(collection(db, 'editorialContents'), {
+          clientId,
+          format: 'Storia',
+          igStories: true,
+          instagram: false,
+          facebook: false,
+          linkedin: false,
+          tiktok: false,
+          youtube: false,
+          gbp: false,
+          status: 'Bozza',
+          topic: `Storia del ${new Date().toLocaleDateString('it-IT')}`,
+          copy: '',
+          previewDataUrl: dataUrl,
+          storyData: serializedLayers,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        setCurrentDraftId(docRef.id);
+        router.replace(`/clients/${clientId}/stories/new?draftId=${docRef.id}`);
+      }
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 3000);
     } catch (e) {

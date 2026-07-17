@@ -154,6 +154,7 @@ export interface Task {
     // Timer tracking fields
     timerStartedAt?: string;  // ISO timestamp when timer was started
     timerUserId?: string;     // User ID who started the timer
+    editorialContentId?: string; // Link to editorial content
 }
 
 export interface ActivityType {

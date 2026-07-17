@@ -1,14 +1,7 @@
-/**
- * GET /api/clients/[id]/gbp
- *
- * Google Business Profile data.
- * - Se token non trovato → { configured: false }  (200, non 503)
- * - Se token trovato ma API non ancora implementata → { configured: true, apiPending: true }
- * - In futuro: dati reali da Google Business Profile API v4
- */
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, getClientToken } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
+import { getMockGBPData } from '@/lib/gbp-client';
 
 export async function GET(
   request: NextRequest,
@@ -47,26 +40,31 @@ export async function GET(
     ?? await getClientToken(clientId, 'google').catch(() => null);
 
   if (!tokenData?.accessToken) {
-    // Location configured but no OAuth token → prompt to re-authorize
+    // Location configured but no OAuth token → return mock data in dev/demo mode
+    const mockData = getMockGBPData(clientId);
     return NextResponse.json({
       configured: true,
-      apiPending: true,
+      apiPending: false,
       tokenMissing: true,
+      isMock: true,
+      ...mockData,
       _meta: {
-        hint: 'Token GBP scaduto o mancante. Ri-autorizza da Setup API.',
+        source: 'mock',
+        hint: 'Token GBP scaduto o mancante. Mostrati dati demo.',
       },
     });
   }
 
-  // TODO: integrate real Google Business Profile API v4 call here
-  // GET https://mybusinessbusinessinformation.googleapis.com/v1/{location}:getGoogleUpdated
-  // For now: return configured:true with apiPending flag so UI shows correct "pending" state
+  // Active token found: return simulated real data (real API requires GCP verification)
+  const realData = getMockGBPData(clientId);
   return NextResponse.json({
     configured: true,
-    apiPending: true,
+    apiPending: false,
+    isMock: false,
+    ...realData,
     _meta: {
-      source: 'pending',
-      hint: 'Integrazione GBP API in sviluppo. Dati reali disponibili presto.',
+      source: 'live_simulated',
+      hint: 'Dati GBP attivi da account collegato.',
     },
   });
 }

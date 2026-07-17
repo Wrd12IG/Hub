@@ -6,8 +6,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { getTask, addTask, updateTask, deleteTask, uploadFilesAndGetAttachments, getAbsences, getClients, getProjects, getUsers, getActivityTypes } from '@/lib/actions';
-import type { Task, Client, User, Project, ActivityType, Attachment, Absence, TaskApproval, TaskComment } from '@/lib/data';
+import { getTask, addTask, updateTask, deleteTask, uploadFilesAndGetAttachments, getAbsences, getClients, getProjects, getUsers, getActivityTypes, getEditorialContent } from '@/lib/actions';
+import type { Task, Client, User, Project, ActivityType, Attachment, Absence, TaskApproval, TaskComment, EditorialContent } from '@/lib/data';
 import { allTaskStatuses } from '@/lib/data';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
@@ -618,6 +618,27 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     const [fileAttachmentModalState, setFileAttachmentModalState] = useState<FileAttachmentModalState>({ isOpen: false, task: undefined, attachmentUrl: '', attachmentFilename: '', attachmentFile: undefined });
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
     const [previewTask, setPreviewTask] = useState<Task | null>(null);
+    const [previewEditorialContent, setPreviewEditorialContent] = useState<EditorialContent | null>(null);
+    const [isLoadingEditorialContent, setIsLoadingEditorialContent] = useState(false);
+
+    useEffect(() => {
+        if (previewTask?.editorialContentId) {
+            setIsLoadingEditorialContent(true);
+            getEditorialContent(previewTask.editorialContentId)
+                .then(content => {
+                    setPreviewEditorialContent(content);
+                })
+                .catch(err => {
+                    console.error('Error fetching linked editorial content:', err);
+                })
+                .finally(() => {
+                    setIsLoadingEditorialContent(false);
+                });
+        } else {
+            setPreviewEditorialContent(null);
+        }
+    }, [previewTask]);
+
     const [previewProject, setPreviewProject] = useState<Project | null>(null);
     const [dependencyError, setDependencyError] = useState<string[] | null>(null);
     const [rejectionReasonToShow, setRejectionReasonToShow] = useState<string | null>(null);
@@ -2106,6 +2127,55 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             />
                                         </CardContent>
                                     </Card>
+
+                                    {/* Contenuto Editoriale Collegato */}
+                                    {(previewTask.editorialContentId || previewEditorialContent) && (
+                                        <Card className="border-indigo-100 bg-indigo-50/20 dark:border-indigo-900/50 dark:bg-indigo-950/10">
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-sm flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                                                    <Target className="h-4 w-4" />
+                                                    Contenuto Editoriale Collegato
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="text-xs space-y-1.5 text-muted-foreground">
+                                                {isLoadingEditorialContent ? (
+                                                    <div className="flex items-center gap-2 py-1">
+                                                        <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
+                                                        <span>Caricamento dettagli contenuto...</span>
+                                                    </div>
+                                                ) : previewEditorialContent ? (
+                                                    <>
+                                                        <p className="font-semibold text-foreground text-sm line-clamp-1">{previewEditorialContent.topic}</p>
+                                                        <div className="flex flex-wrap gap-2 pt-1">
+                                                            <Badge variant="secondary" className="text-[10px] py-0">{previewEditorialContent.format}</Badge>
+                                                            <Badge variant="outline" className="text-[10px] py-0">{previewEditorialContent.status}</Badge>
+                                                            {previewEditorialContent.publicationDate && (
+                                                                <span className="text-[10px] self-center">Pubblicazione: {format(new Date(previewEditorialContent.publicationDate), 'dd MMM yyyy', { locale: it })}</span>
+                                                            )}
+                                                        </div>
+                                                        {previewEditorialContent.copy && (
+                                                            <p className="line-clamp-2 italic text-xs pt-1 border-t mt-1">{previewEditorialContent.copy}</p>
+                                                        )}
+                                                        <div className="pt-2 border-t mt-2">
+                                                            <Link 
+                                                                href={`/clients/${previewTask.clientId}/calendar`}
+                                                                onClick={() => setPreviewTask(null)}
+                                                                className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
+                                                            >
+                                                                <Calendar className="h-3 w-3" />
+                                                                Vedi nel Calendario Editoriale
+                                                            </Link>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="py-1">
+                                                        <span>ID Contenuto: {previewTask.editorialContentId}</span>
+                                                        <p className="text-[10px] text-destructive mt-1">Dettagli del contenuto non trovati.</p>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    )}
 
                                     {/* Motivo Rifiuto - mostrato solo se presente */}
                                     {previewTask.rejectionReason && (

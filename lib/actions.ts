@@ -658,6 +658,15 @@ export async function getEditorialContents(): Promise<EditorialContent[]> {
     return fetchCollection<EditorialContent>('editorialContents');
 }
 
+export async function getEditorialContent(contentId: string): Promise<EditorialContent | null> {
+    const docRef = doc(db, 'editorialContents', contentId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...convertTimestamps(docSnap.data()) } as EditorialContent;
+    }
+    return null;
+}
+
 export async function addEditorialContent(data: Omit<EditorialContent, 'id'>): Promise<string> {
     const docRef = await addDoc(collection(db, 'editorialContents'), {
         ...cleanData(data),
