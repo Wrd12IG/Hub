@@ -46,6 +46,13 @@
     "node_modules",
     "electron-app",
     "_archive_debug_scripts",
-    "scripts"
+    "scripts",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "vitest.config.ts",
+    "vitest.setup.ts"
   ]
 }
