@@ -15,14 +15,16 @@ export async function GET(request: NextRequest) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
 
-  const systemToken = process.env.META_SYSTEM_USER_TOKEN;
+  // Accetta sia META_SYSTEM_USER_TOKEN (ideale) sia META_ACCESS_TOKEN come fallback
+  const systemToken = process.env.META_SYSTEM_USER_TOKEN || process.env.META_ACCESS_TOKEN;
 
   if (!systemToken) {
     return NextResponse.json(
-      { error: 'META_SYSTEM_USER_TOKEN non configurato nelle variabili d\'ambiente Vercel.' },
+      { error: 'Configura META_SYSTEM_USER_TOKEN (o META_ACCESS_TOKEN) nelle variabili d\'ambiente Vercel.' },
       { status: 503 }
     );
   }
+
 
   try {
     // Chiama /me/adaccounts con il System User Token dell'agenzia

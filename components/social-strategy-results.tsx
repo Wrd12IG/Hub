@@ -316,18 +316,50 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                 ? `Tipo Media: ${brief.tipo_media}\n\nVisione Creativa: ${brief.descrizione_creativa}\n\nStruttura:\n${brief.struttura.map((s: any) => `- ${s.elemento}: ${s.dettagli}`).join('\n')}\n\nNote Tecniche: ${brief.note_tecniche}`
                 : `Produzione media per post: ${item.topic}\nFormato richiesto: ${mediaType}`;
 
-            // Calcola la dueDate dalla data del post (item.giorno) se possibile,
-            // altrimenti fallback a +7 giorni
-            let dueDate: string;
-            try {
-                // item.giorno potrebbe essere "Lunedì 3 Marzo" o una data ISO
-                const parsed = new Date(item.giorno);
-                dueDate = isNaN(parsed.getTime())
-                    ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-                    : parsed.toISOString();
-            } catch {
-                dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-            }
+            // Calcola la dueDate dalla data del post (item.giorno).
+            // L'AI produce formati come "Lunedì 1", "Martedì 15", "Lunedì 3 Marzo", "2024-03-01".
+            // new Date() non riesce a parsare "Lunedì 1" → NaN → fallback robusto.
+            const parseDueDate = (giorno: string): string => {
+                if (!giorno) return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+                // 1. ISO o formato internazionale: "2024-03-15", "15/03/2024"
+                const iso = new Date(giorno.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
+                if (!isNaN(iso.getTime()) && iso.getFullYear() > 2000) return iso.toISOString();
+
+                // 2. Formato AI: "Lunedì 1", "Martedì 15 Marzo", "Mercoledì 3"
+                const mesiIT: Record<string, number> = {
+                    gennaio: 0, febbraio: 1, marzo: 2, aprile: 3, maggio: 4, giugno: 5,
+                    luglio: 6, agosto: 7, settembre: 8, ottobre: 9, novembre: 10, dicembre: 11
+                };
+                const lower = giorno.toLowerCase();
+                const dayMatch = lower.match(/\b(\d{1,2})\b/);
+                const monthMatch = Object.keys(mesiIT).find(m => lower.includes(m));
+
+                const dayNum = dayMatch ? parseInt(dayMatch[1], 10) : null;
+                const now = new Date();
+
+                if (dayNum && dayNum >= 1 && dayNum <= 31) {
+                    const monthIdx = monthMatch !== undefined ? mesiIT[monthMatch] : now.getMonth();
+                    let year = now.getFullYear();
+                    // Se il mese indicato è già passato quest'anno, usa l'anno prossimo
+                    if (monthIdx < now.getMonth() || (monthIdx === now.getMonth() && dayNum < now.getDate())) {
+                        if (!monthMatch) {
+                            // Senza mese esplicito: usa il mese prossimo se il giorno è passato
+                            const candidate = new Date(year, now.getMonth(), dayNum);
+                            if (candidate < now) candidate.setMonth(candidate.getMonth() + 1);
+                            return candidate.toISOString();
+                        }
+                        year += 1;
+                    }
+                    const candidate = new Date(year, monthIdx, dayNum);
+                    if (!isNaN(candidate.getTime())) return candidate.toISOString();
+                }
+
+                // 3. Fallback: +7 giorni
+                return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            };
+            const dueDate = parseDueDate(item.giorno);
+
 
             const taskResult = await addTask({
                 title: taskTitle,

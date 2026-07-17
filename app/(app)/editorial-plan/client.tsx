@@ -633,7 +633,7 @@ const GanttView = ({ contents, clients, users, onEdit }: { contents: EditorialCo
 };
 
 
-export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: string }) {
+export function EditorialPlanPageContent({ forcedClientId, forceView }: { forcedClientId?: string; forceView?: 'table' | 'kanban' | 'calendar' | 'list' }) {
 
 
     // UI State
@@ -651,7 +651,7 @@ export function EditorialPlanPageContent({ forcedClientId }: { forcedClientId?: 
     const [editingContent, setEditingContent] = useState<EditorialContent | null>(null);
     const [initialStatusForCreate, setInitialStatusForCreate] = useState<string | undefined>(undefined);
     const [contentToDelete, setContentToDelete] = useState<EditorialContent | null>(null);
-    const [view, setView] = useState<ViewType>('table');
+    const [view, setView] = useState<ViewType>(forceView || 'table');
 
     // State for quick field editing
     const [editingField, setEditingField] = useState<EditingFieldState>(null);
