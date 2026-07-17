@@ -633,7 +633,7 @@ const GanttView = ({ contents, clients, users, onEdit }: { contents: EditorialCo
 };
 
 
-export function EditorialPlanPageContent({ forcedClientId, forceView }: { forcedClientId?: string; forceView?: 'table' | 'kanban' | 'calendar' | 'list' }) {
+export function EditorialPlanPageContent({ forcedClientId, forceView }: { forcedClientId?: string; forceView?: ViewType }) {
 
 
     // UI State
