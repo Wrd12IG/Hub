@@ -42,7 +42,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
           </div>
           <span style={{ fontSize: '18px', color: '#000' }}>···</span>
         </div>
-        <div style={{ width: '100%', aspectRatio: postType === 'REEL' ? '9/16' : '1', background: '#f0f0f0', overflow: 'hidden', position: 'relative', maxHeight: postType === 'REEL' ? '400px' : undefined }}>
+        <div style={{ width: '100%', aspectRatio: (postType === 'REEL' || postType === 'STORY') ? '9/16' : '1', background: '#f0f0f0', overflow: 'hidden', position: 'relative', maxHeight: (postType === 'REEL' || postType === 'STORY') ? '400px' : undefined }}>
           {(hasMedia || coverUrl)
             ? <>
                 <div style={{ position: 'absolute', inset: 0 }}>

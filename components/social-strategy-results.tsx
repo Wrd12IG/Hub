@@ -24,6 +24,7 @@ import {
     Camera,
     Layout,
     GalleryHorizontal,
+    Clapperboard,
     Wand2,
     RefreshCw,
     Palette,
@@ -32,7 +33,8 @@ import {
     ExternalLink,
     Loader2,
     Check,
-    PlusCircle
+    PlusCircle,
+    Clock
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -87,10 +89,11 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
     const [isLoadingMoodboard, setIsLoadingMoodboard] = useState<Record<number, boolean>>({});
 
     const mediaTypes = [
-        { id: 'Video', icon: Video, label: 'Video/Reel' },
-        { id: 'Foto', icon: Camera, label: 'Foto/Grafica' },
+        { id: 'Video/Reel', icon: Video, label: 'Video/Reel' },
+        { id: 'Foto', icon: Camera, label: 'Foto' },
         { id: 'Infografica', icon: Layout, label: 'Infografica' },
         { id: 'Carosello', icon: GalleryHorizontal, label: 'Carosello' },
+        { id: 'Storia', icon: Clapperboard, label: 'Storia (24h)' },
     ];
 
     const copyToClipboard = (text: string, title: string) => {
@@ -313,6 +316,19 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                 ? `Tipo Media: ${brief.tipo_media}\n\nVisione Creativa: ${brief.descrizione_creativa}\n\nStruttura:\n${brief.struttura.map((s: any) => `- ${s.elemento}: ${s.dettagli}`).join('\n')}\n\nNote Tecniche: ${brief.note_tecniche}`
                 : `Produzione media per post: ${item.topic}\nFormato richiesto: ${mediaType}`;
 
+            // Calcola la dueDate dalla data del post (item.giorno) se possibile,
+            // altrimenti fallback a +7 giorni
+            let dueDate: string;
+            try {
+                // item.giorno potrebbe essere "Lunedì 3 Marzo" o una data ISO
+                const parsed = new Date(item.giorno);
+                dueDate = isNaN(parsed.getTime())
+                    ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+                    : parsed.toISOString();
+            } catch {
+                dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            }
+
             const taskResult = await addTask({
                 title: taskTitle,
                 description: taskDescription,
@@ -320,13 +336,12 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                 status: 'Da Fare',
                 priority: 'Media',
                 createdBy: userId,
-                activityType: 'social-media', // Using the string ID directly as per Task interface
-                dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-                estimatedDuration: 60,
+                activityType: 'social-media',
+                dueDate: dueDate,
+                estimatedDuration: mediaType === 'Video/Reel' ? 120 : mediaType === 'Storia' ? 30 : 60,
                 timeSpent: 0
             }, userId);
 
-            // 2. Add to Editorial Plan
             await addEditorialContent({
                 topic: item.topic,
                 clientId: clientId,
@@ -334,7 +349,8 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                 status: 'Da Programmare',
                 copy: item.caption,
                 facebook: item.piattaforma.toLowerCase().includes('facebook'),
-                instagram: item.piattaforma.toLowerCase().includes('instagram'),
+                instagram: item.piattaforma.toLowerCase().includes('instagram') && !item.piattaforma.toLowerCase().includes('stor'),
+                igStories: item.piattaforma.toLowerCase().includes('stor') || mediaType === 'Storia',
                 linkedin: item.piattaforma.toLowerCase().includes('linkedin'),
                 tiktok: item.piattaforma.toLowerCase().includes('tiktok'),
                 youtube: item.piattaforma.toLowerCase().includes('youtube'),

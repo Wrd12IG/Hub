@@ -2,6 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { collection, addDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { ArrowLeft, Smartphone, Image as ImageIcon, Type, Layers, Wand2, Download, Save, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import { Stage, Layer, Text as KonvaText, Image as KonvaImage, Transformer } from 'react-konva'
 import EmojiPicker, { EmojiClickData, EmojiStyle } from 'emoji-picker-react'
@@ -283,6 +285,8 @@ const DraggableText = ({ layer, isSelected, onSelect, onChange }: any) => {
 // --- Main Component ---
 export default function CanvasEditor({ clientId }: { clientId: string }) {
   const [layers, setLayers] = useState<CanvasLayer[]>([])
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftSaved, setDraftSaved] = useState(false);
   const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
   const [activeTool, setActiveTool] = useState<LayerType | null>(null)
   
@@ -364,6 +368,39 @@ export default function CanvasEditor({ clientId }: { clientId: string }) {
     }, 100);
   }
 
+  const handleSaveDraft = async () => {
+    if (!stageRef.current || isSavingDraft) return;
+    setIsSavingDraft(true);
+    try {
+      setSelectedLayerId(null);
+      await new Promise(r => setTimeout(r, 100));
+      const dataUrl = stageRef.current.toDataURL({ pixelRatio: 1 });
+      await addDoc(collection(db, 'editorialContents'), {
+        clientId,
+        format: 'Storia',
+        igStories: true,
+        instagram: false,
+        facebook: false,
+        linkedin: false,
+        tiktok: false,
+        youtube: false,
+        gbp: false,
+        status: 'Bozza',
+        topic: `Storia del ${new Date().toLocaleDateString('it-IT')}`,
+        copy: '',
+        previewDataUrl: dataUrl,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 3000);
+    } catch (e) {
+      console.error('Errore salvataggio bozza:', e);
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
   const tools = [
     { icon: Layers, label: 'Livelli', type: 'layers' as any, action: () => setActiveTool('layers') },
     { icon: ImageIcon, label: 'Sfondo', type: 'image' as any, action: () => document.getElementById('bg-upload')?.click() },
@@ -390,8 +427,12 @@ export default function CanvasEditor({ clientId }: { clientId: string }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: 'white', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Save size={14} /> Salva Bozza
+          <button
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft || layers.length === 0}
+            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid rgba(0,0,0,0.1)', background: draftSaved ? '#22c55e' : 'white', color: draftSaved ? 'white' : 'var(--text-secondary)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s' }}
+          >
+            <Save size={14} /> {isSavingDraft ? 'Salvataggio...' : draftSaved ? 'Salvata!' : 'Salva Bozza'}
           </button>
           <button onClick={handleExport} style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', background: '#ec4899', color: 'white', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <Download size={14} /> Esporta Immagine

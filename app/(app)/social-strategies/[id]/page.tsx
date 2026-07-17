@@ -117,13 +117,34 @@ export default function SocialStrategyDetailPage() {
                         </Link>
                     </Button>
                     <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-3xl font-bold font-headline">{strategy.periodLabel}</h1>
                             <Badge variant={strategy.status === 'inviata' ? 'default' : strategy.status === 'archiviata' ? 'secondary' : 'outline'}>
                                 {strategy.status}
                             </Badge>
+                            {/* Badge approvazione cliente */}
+                            {(strategy as any).clientApprovalStatus === 'approved' && (
+                                <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                                    Cliente ha Approvato
+                                </Badge>
+                            )}
+                            {(strategy as any).clientApprovalStatus === 'feedback' && (
+                                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                                    Feedback Cliente Ricevuto
+                                </Badge>
+                            )}
+                            {(strategy as any).clientApprovalStatus === 'pending' && strategy.status === 'inviata' && (
+                                <Badge variant="outline" className="text-muted-foreground">
+                                    In attesa di risposta
+                                </Badge>
+                            )}
                         </div>
-                        <p className="text-muted-foreground flex items-center gap-2">
+                        {(strategy as any).clientComments && (
+                            <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-900 dark:text-yellow-200">
+                                <span className="font-semibold">Nota cliente: </span>{(strategy as any).clientComments}
+                            </div>
+                        )}
+                        <p className="text-muted-foreground flex items-center gap-2 mt-1">
                             <Bot className="h-4 w-4" /> {client?.name || 'Cliente eliminato'} • <span className="capitalize">{strategy.frequency}</span>
                         </p>
                     </div>
