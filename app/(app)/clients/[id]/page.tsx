@@ -51,7 +51,9 @@ import {
   LayoutGrid,
   CalendarDays,
   Settings,
+  FileBarChart,
 } from "lucide-react";
+import ClientMonthlyReport from "@/components/client-monthly-report";
 import MetaCampaignReportModal from "@/components/MetaCampaignReportModal";
 import dynamic from "next/dynamic";
 const SeoGodModeReportModal = dynamic(
@@ -252,6 +254,7 @@ export default function ClientDetailPage() {
     | "settings"
     | "heatmaps"
     | "gbp"
+    | "report"
   >("overview");
   const [newCompetitorName, setNewCompetitorName] = useState("");
   const [uploadingVisionIndex, setUploadingVisionIndex] = useState<
@@ -705,6 +708,7 @@ export default function ClientDetailPage() {
     },
     { id: "heatmaps", label: "Heatmaps & Registrazioni", icon: Eye },
     { id: "gbp", label: "Profilo GBP", icon: MapPin },
+    { id: "report", label: "Report Mensile", icon: FileBarChart },
     { id: "settings", label: "Setup API", icon: Settings },
   ];
 
@@ -2681,6 +2685,16 @@ export default function ClientDetailPage() {
           locations={client.gbpLocations ?? (client.gbpLocationId ? [{ id: client.gbpLocationId, name: 'Sede Principale' }] : [])}
           activeLocationId={client.gbpActiveLocationId ?? client.gbpLocationId ?? null}
         />
+      )}
+
+      {/* TAB: REPORT MENSILE */}
+      {activeTab === "report" && (
+        <div className="w-full">
+          <ClientMonthlyReport
+            clientId={client.id}
+            clientName={client.name}
+          />
+        </div>
       )}
 
       {/* TAB: API SETTINGS */}

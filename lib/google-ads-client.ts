@@ -31,6 +31,16 @@ export interface GoogleAdsSummary {
   totalConversions: number;
 }
 
+export interface GoogleAdsDailyMetric {
+  date: string;          // YYYY-MM-DD
+  campaignId: string;
+  campaignName: string;
+  spend: number;
+  impressions: number;
+  clicks: number;
+  conversions: number;
+}
+
 // ─── Configurazione Client API ───────────────────────────────────────────────
 
 /**
@@ -154,7 +164,106 @@ export async function getGoogleAdsCampaigns(clientId: string): Promise<{ campaig
   }
 }
 
+// ─── Daily Metrics (GAQL) ────────────────────────────────────────────────────
+
+/**
+ * Scarica il breakdown giornaliero (ultimi 30 giorni) per tutte le campagne
+ * di un account Google Ads tramite GAQL.
+ */
+export async function getGoogleAdsDailyMetrics(
+  clientId: string
+): Promise<GoogleAdsDailyMetric[]> {
+  const tokenData = await getClientToken(clientId, 'google');
+
+  if (!tokenData?.refreshToken || !tokenData?.accountId) {
+    throw new Error('Google Ads non configurato per questo cliente o refresh_token mancante.');
+  }
+
+  const client = getAdsClient(tokenData.refreshToken);
+  const customerId = tokenData.accountId.replace(/-/g, '');
+  const customer = client.Customer({
+    customer_id: customerId,
+    refresh_token: tokenData.refreshToken,
+    login_customer_id: process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID,
+  });
+
+  const query = `
+    SELECT
+      campaign.id,
+      campaign.name,
+      segments.date,
+      metrics.cost_micros,
+      metrics.conversions,
+      metrics.clicks,
+      metrics.impressions
+    FROM campaign
+    WHERE segments.date DURING LAST_30_DAYS
+      AND campaign.status != 'REMOVED'
+    ORDER BY segments.date
+  `;
+
+  try {
+    const report = await customer.query(query);
+
+    return report.map((row: any): GoogleAdsDailyMetric => ({
+      date: row.segments.date as string,           // formato YYYY-MM-DD
+      campaignId: String(row.campaign.id),
+      campaignName: row.campaign.name,
+      spend: (row.metrics.cost_micros || 0) / 1_000_000,
+      impressions: row.metrics.impressions || 0,
+      clicks: row.metrics.clicks || 0,
+      conversions: row.metrics.conversions || 0,
+    }));
+  } catch (error) {
+    console.error('[google-ads-client] Daily query failed:', error);
+    throw error;
+  }
+}
+
 // ─── Mock Fallback ────────────────────────────────────────────────────────────
+
+/**
+ * Genera un breakdown giornaliero deterministico (NO Math.random / Math.sin).
+ * Ogni giorno riceve la sua quota proporzionale agli indici giornalieri classici
+ * (lun-ven più alto, sab-dom più basso).
+ */
+export function getMockGoogleAdsDailyMetrics(clientId: string): GoogleAdsDailyMetric[] {
+  // Pesi giornalieri fissi per giorno della settimana (0=dom … 6=sab)
+  const dayWeights = [0.08, 0.18, 0.20, 0.20, 0.18, 0.12, 0.04];
+
+  // Valori mensili di riferimento coerenti con il mock campagne
+  const monthlySpend = 1800.20;
+  const monthlyImpressions = 137500;
+  const monthlyClicks = 2450;
+  const monthlyConversions = 170;
+
+  const today = new Date();
+  const result: GoogleAdsDailyMetric[] = [];
+
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    const dow = date.getDay();
+    // Peso normalizzato sul periodo di 30 giorni
+    const w = dayWeights[dow];
+    // Somma dei pesi per i 30 giorni — calcolata staticamente per evitare varianza
+    const totalWeight = 30 * (dayWeights.reduce((a, b) => a + b, 0) / 7);
+    const factor = w / totalWeight;
+
+    result.push({
+      date: dateStr,
+      campaignId: `mock-${clientId}`,
+      campaignName: 'Tutte le campagne (mock)',
+      spend: parseFloat((monthlySpend * factor).toFixed(2)),
+      impressions: Math.round(monthlyImpressions * factor),
+      clicks: Math.round(monthlyClicks * factor),
+      conversions: Math.round(monthlyConversions * factor),
+    });
+  }
+
+  return result;
+}
 
 export function getMockGoogleAdsCampaigns(clientId: string): GoogleAdsCampaign[] {
   return [

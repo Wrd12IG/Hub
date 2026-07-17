@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { AlertCircle, Target, Users, MousePointerClick, TrendingUp, DollarSign, Activity } from 'lucide-react'
+import { AlertCircle, AlertTriangle, Target, Users, MousePointerClick, TrendingUp, DollarSign, Activity } from 'lucide-react'
 import {
   ComposedChart,
   Line,
@@ -98,15 +98,40 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
   const id = (propsParams?.id || params.id) as string;
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMock, setIsMock] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/clients/${id}/google-ads`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Fetch summary + campagne
+        const response = await fetch(`/api/clients/${id}/google-ads`, { headers });
         if (!response.ok) throw new Error('Failed to fetch Google Ads data');
         const result = await response.json();
+
+        // Il chartData potrebbe essere vuoto; lo sostituiamo subito con quello daily
         setData(result);
+
+        // Fetch breakdown giornaliero separato
+        setChartLoading(true);
+        try {
+          const dailyRes = await fetch(`/api/clients/${id}/google-ads/daily`, { headers });
+          if (dailyRes.ok) {
+            const dailyJson = await dailyRes.json();
+            setIsMock(dailyJson._meta?.source === 'mock');
+            setData((prev) =>
+              prev ? { ...prev, chartData: dailyJson.chartData ?? [] } : prev
+            );
+          }
+        } catch {
+          // Se la daily fallisce usiamo il chartData dal summary (già [] se non c'erano dati reali)
+        } finally {
+          setChartLoading(false);
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -121,6 +146,16 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
       <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-48 w-full" />
+        {/* Skeleton grafico */}
+        <div className="h-[300px] w-full bg-card border rounded-xl p-4 shadow-sm flex items-end gap-2">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              className="flex-1 rounded-sm"
+              style={{ height: `${30 + (i % 5) * 12}%` }}
+            />
+          ))}
+        </div>
         <Skeleton className="h-96 w-full" />
       </div>
     );
@@ -143,9 +178,30 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
     color: 'hsl(var(--card-foreground))'
   };
 
-  // Common chart styling
-  const chartHeight = 350;
-  const orangeSpeso = "#fde68a"; // Light orange for bars
+  const orangeSpeso = "#fde68a";
+
+  /** Contenitore comune per i grafici con skeleton + stato vuoto */
+  const ChartBox = ({ children }: { children: React.ReactNode }) => (
+    <div className="h-[300px] w-full bg-card border rounded-xl p-4 shadow-sm">
+      {chartLoading ? (
+        <div className="h-full flex items-end gap-2">
+          {Array.from({ length: 15 }).map((_, i) => (
+            <Skeleton key={i} className="flex-1 rounded-sm" style={{ height: `${30 + (i % 5) * 12}%` }} />
+          ))}
+        </div>
+      ) : data.chartData.length === 0 ? (
+        <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+          <Activity size={32} className="opacity-30" />
+          <p className="text-sm">Nessun dato disponibile per questo periodo.</p>
+          <p className="text-xs opacity-60">Collega Google Ads per vedere i dati reali.</p>
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          {children as React.ReactElement}
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
 
   // Table Columns Setup
   const campaignColumns = [
@@ -184,6 +240,16 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+
+      {/* Banner dati mock — visibile solo in development */}
+      {isMock && (
+        <div className="flex items-center gap-3 rounded-lg border border-yellow-400/40 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-700 dark:text-yellow-300">
+          <AlertTriangle size={16} className="shrink-0" />
+          <span>
+            <strong>Dati simulati</strong> — Google Ads non collegato. I grafici mostrano dati mock deterministici (solo ambiente di sviluppo).
+          </span>
+        </div>
+      )}
       
       {/* 1. COPERTURA */}
       <section className="space-y-4">
@@ -194,19 +260,17 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
             <MetricoolCard title="Speso" value={formatCurrency(data.summary.spend)} icon={DollarSign} variant="orange" className="w-40" />
           </div>
         </div>
-        <div className="h-[300px] w-full bg-card border rounded-xl p-4 shadow-sm">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
-              <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
-              <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
-              <RechartsTooltip contentStyle={tooltipStyle} />
-              <Bar yAxisId="left" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
-              <Line yAxisId="right" type="monotone" dataKey="impressions" name="Impression" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartBox>
+          <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
+            <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+            <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+            <RechartsTooltip contentStyle={tooltipStyle} />
+            <Bar yAxisId="left" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
+            <Line yAxisId="right" type="monotone" dataKey="impressions" name="Impression" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
+          </ComposedChart>
+        </ChartBox>
       </section>
 
       {/* 2. RISULTATI */}
@@ -219,20 +283,18 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
             <MetricoolCard title="Speso" value={formatCurrency(data.summary.spend)} icon={DollarSign} variant="orange" className="w-32" size="sm"/>
           </div>
         </div>
-        <div className="h-[300px] w-full bg-card border rounded-xl p-4 shadow-sm">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
-              <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
-              <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
-              <RechartsTooltip contentStyle={tooltipStyle} />
-              <Bar yAxisId="right" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
-              <Line yAxisId="left" type="monotone" dataKey="clicks" name="Clic" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
-              <Line yAxisId="left" type="monotone" dataKey="conversions" name="Conversioni" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartBox>
+          <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
+            <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+            <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
+            <RechartsTooltip contentStyle={tooltipStyle} />
+            <Bar yAxisId="right" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
+            <Line yAxisId="left" type="monotone" dataKey="clicks" name="Clic" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
+            <Line yAxisId="left" type="monotone" dataKey="conversions" name="Conversioni" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
+          </ComposedChart>
+        </ChartBox>
       </section>
 
       {/* 3. PERFORMANCE */}
@@ -246,21 +308,19 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
             <MetricoolCard title="Speso" value={formatCurrency(data.summary.spend)} icon={DollarSign} variant="orange" className="w-32" size="sm"/>
           </div>
         </div>
-        <div className="h-[300px] w-full bg-card border rounded-xl p-4 shadow-sm">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
-              <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
-              <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
-              <RechartsTooltip contentStyle={tooltipStyle} />
-              <Bar yAxisId="right" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
-              <Line yAxisId="left" type="monotone" dataKey="cpm" name="CPM" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
-              <Line yAxisId="left" type="monotone" dataKey="cpc" name="CPC" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
-              <Line yAxisId="left" type="monotone" dataKey="ctr" name="CTR" stroke="#f472b6" strokeWidth={2} dot={{ r: 3 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartBox>
+          <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
+            <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
+            <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
+            <RechartsTooltip contentStyle={tooltipStyle} />
+            <Bar yAxisId="right" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
+            <Line yAxisId="left" type="monotone" dataKey="cpm" name="CPM" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
+            <Line yAxisId="left" type="monotone" dataKey="cpc" name="CPC" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
+            <Line yAxisId="left" type="monotone" dataKey="ctr" name="CTR" stroke="#f472b6" strokeWidth={2} dot={{ r: 3 }} />
+          </ComposedChart>
+        </ChartBox>
       </section>
 
       {/* 4. ENTRATE */}
@@ -273,20 +333,18 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
             <MetricoolCard title="Speso" value={formatCurrency(data.summary.spend)} icon={DollarSign} variant="orange" className="w-32" size="sm"/>
           </div>
         </div>
-        <div className="h-[300px] w-full bg-card border rounded-xl p-4 shadow-sm">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
-              <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
-              <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
-              <RechartsTooltip contentStyle={tooltipStyle} />
-              <Bar yAxisId="right" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
-              <Line yAxisId="left" type="monotone" dataKey="valoreConversione" name="Valore di conversione" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
-              <Line yAxisId="left" type="monotone" dataKey="roas" name="ROAS" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
+        <ChartBox>
+          <ComposedChart data={data.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+            <XAxis dataKey="date" tickFormatter={(val) => `${new Date(val).getDate()} ${new Date(val).toLocaleString('it-IT', {month: 'short'})}`} tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} minTickGap={30} />
+            <YAxis yAxisId="left" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+            <YAxis yAxisId="right" orientation="right" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
+            <RechartsTooltip contentStyle={tooltipStyle} />
+            <Bar yAxisId="right" dataKey="spend" name="Speso" fill={orangeSpeso} barSize={20} radius={[4,4,0,0]} opacity={0.8}/>
+            <Line yAxisId="left" type="monotone" dataKey="valoreConversione" name="Valore di conversione" stroke="#60a5fa" strokeWidth={2} dot={{ r: 3 }} />
+            <Line yAxisId="left" type="monotone" dataKey="roas" name="ROAS" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
+          </ComposedChart>
+        </ChartBox>
       </section>
 
       {/* 5. TABELLA CAMPAGNE */}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
-import { getGoogleAdsCampaigns } from '@/lib/google-ads-client';
+import { getGoogleAdsCampaigns, getGoogleAdsDailyMetrics } from '@/lib/google-ads-client';
 
 export async function GET(
   request: NextRequest,
@@ -67,55 +67,58 @@ export async function GET(
       roas: totalSpend > 0 ? totalValoreConversione / totalSpend : 0,
     };
 
-    // Genera 30 giorni di chartData coerenti
-    const chartData = [];
-    const today = new Date();
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const factor = (1 + Math.sin(i / 3) * 0.3 + Math.random() * 0.2) / 30;
-      const daySpend = summary.spend * factor;
-      const dayImpressions = Math.round(summary.impressions * factor);
-      const dayClicks = Math.round(summary.clicks * factor);
-      const dayConversions = Math.round(summary.conversions * factor);
-      const dayValoreConversione = summary.valoreConversione * factor;
-      
-      chartData.push({
-        date: dateStr,
-        spend: parseFloat(daySpend.toFixed(2)),
-        impressions: dayImpressions,
-        clicks: dayClicks,
-        conversions: dayConversions,
-        cpm: dayImpressions > 0 ? parseFloat(((daySpend / dayImpressions) * 1000).toFixed(2)) : 0,
-        cpc: dayClicks > 0 ? parseFloat((daySpend / dayClicks).toFixed(2)) : 0,
-        ctr: dayImpressions > 0 ? parseFloat(((dayClicks / dayImpressions) * 100).toFixed(2)) : 0,
-        valoreConversione: parseFloat(dayValoreConversione.toFixed(2)),
-        roas: daySpend > 0 ? parseFloat((dayValoreConversione / daySpend).toFixed(2)) : 0,
-      });
-    }
+    // Recupera il breakdown giornaliero reale tramite GAQL
+    let chartData: Array<{
+      date: string; spend: number; impressions: number; clicks: number;
+      conversions: number; cpm: number; cpc: number; ctr: number;
+      valoreConversione: number; roas: number;
+    }> = [];
 
-    // Genera parole chiave simulate coerenti con i totali
-    const keywords = [
-      { keyword: 'brand keywords', impressions: Math.round(summary.impressions * 0.3), clicks: Math.round(summary.clicks * 0.4), conversions: Math.round(summary.conversions * 0.5), spend: parseFloat((summary.spend * 0.2).toFixed(2)), cpm: 0, cpc: 0, ctr: 0 },
-      { keyword: 'competitor comparison', impressions: Math.round(summary.impressions * 0.25), clicks: Math.round(summary.clicks * 0.2), conversions: Math.round(summary.conversions * 0.15), spend: parseFloat((summary.spend * 0.3).toFixed(2)), cpm: 0, cpc: 0, ctr: 0 },
-      { keyword: 'generic search term', impressions: Math.round(summary.impressions * 0.4), clicks: Math.round(summary.clicks * 0.35), conversions: Math.round(summary.conversions * 0.3), spend: parseFloat((summary.spend * 0.45).toFixed(2)), cpm: 0, cpc: 0, ctr: 0 },
-    ].map(k => {
-      k.ctr = k.impressions > 0 ? parseFloat(((k.clicks / k.impressions) * 100).toFixed(2)) : 0;
-      k.cpc = k.clicks > 0 ? parseFloat((k.spend / k.clicks).toFixed(2)) : 0;
-      k.cpm = k.impressions > 0 ? parseFloat(((k.spend / k.impressions) * 1000).toFixed(2)) : 0;
-      return k;
-    });
+    try {
+      const dailyRows = await getGoogleAdsDailyMetrics(clientId);
+
+      // Aggrega per data (più campagne nello stesso giorno)
+      const byDate = new Map<string, { spend: number; impressions: number; clicks: number; conversions: number }>();
+      for (const row of dailyRows) {
+        const existing = byDate.get(row.date);
+        if (existing) {
+          existing.spend += row.spend;
+          existing.impressions += row.impressions;
+          existing.clicks += row.clicks;
+          existing.conversions += row.conversions;
+        } else {
+          byDate.set(row.date, { spend: row.spend, impressions: row.impressions, clicks: row.clicks, conversions: row.conversions });
+        }
+      }
+
+      chartData = Array.from(byDate.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, d]) => ({
+          date,
+          spend: parseFloat(d.spend.toFixed(2)),
+          impressions: d.impressions,
+          clicks: d.clicks,
+          conversions: d.conversions,
+          cpm: d.impressions > 0 ? parseFloat(((d.spend / d.impressions) * 1000).toFixed(2)) : 0,
+          cpc: d.clicks > 0 ? parseFloat((d.spend / d.clicks).toFixed(2)) : 0,
+          ctr: d.impressions > 0 ? parseFloat(((d.clicks / d.impressions) * 100).toFixed(2)) : 0,
+          valoreConversione: 0,
+          roas: 0,
+        }));
+    } catch (dailyError: any) {
+      // Il chartData rimane [] — mai dati inventati
+      console.warn(`[google-ads-api] Daily metrics failed for ${clientId}:`, dailyError.message);
+    }
 
     return NextResponse.json({
       summary,
       chartData,
       campaigns,
-      keywords,
+      keywords: [],   // Le keyword richiedono una query separata; non vengono simulate
       _meta: {
         source: 'live',
         adAccountId: result.summary.accountId,
+        chartDays: chartData.length,
       },
     });
   } catch (error: any) {
