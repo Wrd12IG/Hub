@@ -9,6 +9,10 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/__tests__/**/*.{ts,tsx}', '**/*.{spec,test}.{ts,tsx}'],
     exclude: ['node_modules', '.next'],
+    // Usa tsconfig dedicato ai test — moduleResolution: node invece di bundler
+    typecheck: {
+      tsconfig: './tsconfig.test.json',
+    },
   },
   resolve: {
     alias: {
