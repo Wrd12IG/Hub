@@ -2018,6 +2018,53 @@ export default function Dashboard() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Nuova Tabella Riepilogativa dei Tempi per Utente */}
+                <Card className="glass-card bg-transparent">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Clock className="h-5 w-5" /> Riepilogo Tempi e Task Utenti
+                        </CardTitle>
+                        <CardDescription>
+                            Numero di task assegnati, stima delle ore richieste (tempo stimato) e ore effettivamente registrate (attività + task) per ogni utente.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Utente</TableHead>
+                                        <TableHead className="text-center">Task Assegnati</TableHead>
+                                        <TableHead className="text-center">Task Completati</TableHead>
+                                        <TableHead className="text-center">Tempo Richiesto (Stima)</TableHead>
+                                        <TableHead className="text-center">Tempo Registrato (Effettivo)</TableHead>
+                                        <TableHead className="text-center">Differenza</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {userPerformanceData.map((user) => {
+                                        const diff = user.hours - user.estimatedHours;
+                                        const diffColor = diff > 0 ? 'text-amber-500' : 'text-emerald-500';
+                                        return (
+                                            <TableRow key={user.id}>
+                                                <TableCell className="font-semibold">{user.name}</TableCell>
+                                                <TableCell className="text-center">{user.assignedCount}</TableCell>
+                                                <TableCell className="text-center">{user.completedCount}</TableCell>
+                                                <TableCell className="text-center font-medium">{user.estimatedHours}h</TableCell>
+                                                <TableCell className="text-center font-medium">{user.hours}h</TableCell>
+                                                <TableCell className={`text-center font-semibold ${diffColor}`}>
+                                                    {diff > 0 ? `+${diff.toFixed(1)}h` : `${diff.toFixed(1)}h`}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Progetti Principali - Layout a Card */}
                 <Card className="glass-card">
                     <CardHeader>
