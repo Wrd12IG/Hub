@@ -22,6 +22,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Users,
     Clock,
@@ -52,6 +53,8 @@ import {
     Download,
     RefreshCw,
     Bell,
+    Eye,
+    EyeOff,
 } from 'lucide-react';
 import type {
     Task,
@@ -114,24 +117,31 @@ import { UpcomingBirthdaysWidget } from '@/components/birthday-celebration';
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
 
 const ADMIN_WIDGETS = [
-    { id: 'kpi_global', label: 'KPI Globali' },
+    { id: 'widgets_top', label: 'Widget Superiori (Meteo/Compleanni/Scadenze)' },
     { id: 'alerts_smart', label: 'Avvisi Intelligenti (Smart Alerts)' },
-    { id: 'chart_workload', label: 'Carico di Lavoro Team' },
-    { id: 'chart_performance', label: 'Performance Individuali' },
-    { id: 'table_future_workload', label: 'Carico Futuro (7 Giorni)' },
-    { id: 'chart_status_distribution', label: 'Distribuzione Stati Task' },
-    { id: 'chart_priority_distribution', label: 'Distribuzione Priorità' },
-    { id: 'list_overdue_tasks', label: 'Task Scaduti' },
-    { id: 'chart_activity_costs', label: 'Analisi Costi per Attività' },
-    { id: 'chart_client_costs', label: 'Analisi Costi per Cliente' },
+    { id: 'active_timers', label: 'Task in Corso (Timer Attivi)' },
+    { id: 'quick_feed', label: 'Azioni, Disponibilità e Attività Recenti' },
+    { id: 'chart_performance', label: 'Performance Utenti (Card)' },
+    { id: 'table_time_summary', label: 'Riepilogo Tempi e Task (Tabella)' },
+    { id: 'list_main_projects', label: 'Progetti Principali' },
     { id: 'chart_monthly_costs', label: 'Andamento Costi Mensili' },
+    { id: 'chart_client_costs', label: 'Analisi Costi per Cliente' },
+    { id: 'chart_activity_costs', label: 'Analisi Costi per Attività' },
+    { id: 'chart_workload', label: 'Conteggio Attività per Utente' },
+    { id: 'chart_status_distribution', label: 'Task per Stato (Grafico)' },
+    { id: 'chart_priority_distribution', label: 'Task per Priorità (Grafico)' },
+    { id: 'list_overdue_tasks', label: 'Task Scaduti' },
     { id: 'chart_calendar_user', label: 'Attività Calendario per Utente' },
     { id: 'chart_calendar_client', label: 'Attività Calendario per Cliente' },
-    { id: 'table_absences', label: 'Assenze di Oggi' },
+    { id: 'table_future_workload', label: 'Ore Stimate vs. Ore Effettive per Utente' },
+    { id: 'chart_predictive_delivery', label: 'Previsione Carico di Lavoro' },
     { id: 'chart_client_profitability', label: '💰 Redditività Clienti' },
-    { id: 'chart_predictive_delivery', label: '🔮 Previsioni Consegne' },
     { id: 'chart_efficiency_trends', label: '📈 Trend Efficienza' },
     { id: 'gamification_leaderboard', label: '🏆 Classifica Team' },
+    { id: 'table_absences', label: 'Assenze di Oggi' },
+    { id: 'list_upcoming_activities', label: 'Prossime Attività' },
+    { id: 'weekly_activity', label: 'Attività Settimanale (Grafico)' },
+    { id: 'radar_performance', label: 'Confronto Performance (Radar)' },
 ];
 
 
@@ -286,6 +296,7 @@ export default function Dashboard() {
     const [isFiltersOpen, setIsFiltersOpen] = useState(false);
     const [isKpisOpen, setIsKpisOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(0);
+    const [isWidgetsPanelOpen, setIsWidgetsPanelOpen] = useState(false);
 
     const [visibleWidgets, setVisibleWidgets] = useState<string[]>(ADMIN_WIDGETS.map(w => w.id));
     const [isLoaded, setIsLoaded] = useState(false);
@@ -1578,35 +1589,37 @@ export default function Dashboard() {
             </div>
 
             {/* Nuovi Widget Dashboard */}
-            <AnimatedGrid className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {isLoadingLayout ? (
-                    <>
-                        <Skeleton className="h-[200px] w-full rounded-lg" />
-                        <Skeleton className="h-[200px] w-full rounded-lg" />
-                        <Skeleton className="h-[200px] w-full rounded-lg" />
-                    </>
-                ) : (
-                    <>
-                        <AnimatedGridItem>
-                            <DeadlineCountdownWidget
-                                tasks={allTasks}
-                                onTaskClick={(taskId) => window.location.href = `/tasks?taskId=${taskId}`}
-                            />
-                        </AnimatedGridItem>
+            {isWidgetVisible('widgets_top') && (
+                <AnimatedGrid className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {isLoadingLayout ? (
+                        <>
+                            <Skeleton className="h-[200px] w-full rounded-lg" />
+                            <Skeleton className="h-[200px] w-full rounded-lg" />
+                            <Skeleton className="h-[200px] w-full rounded-lg" />
+                        </>
+                    ) : (
+                        <>
+                            <AnimatedGridItem>
+                                <DeadlineCountdownWidget
+                                    tasks={allTasks}
+                                    onTaskClick={(taskId) => window.location.href = `/tasks?taskId=${taskId}`}
+                                />
+                            </AnimatedGridItem>
 
-                        <AnimatedGridItem>
-                            <UpcomingBirthdaysWidget users={users} />
-                        </AnimatedGridItem>
+                            <AnimatedGridItem>
+                                <UpcomingBirthdaysWidget users={users} />
+                            </AnimatedGridItem>
 
-                        <AnimatedGridItem>
-                            <WeatherWidget city="Milano" apiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY} />
-                        </AnimatedGridItem>
-                    </>
-                )}
-            </AnimatedGrid>
+                            <AnimatedGridItem>
+                                <WeatherWidget city="Milano" apiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY} />
+                            </AnimatedGridItem>
+                        </>
+                    )}
+                </AnimatedGrid>
+            )}
 
             {/* Smart Alerts Section */}
-            {smartAlerts.length > 0 && (
+            {isWidgetVisible('alerts_smart') && smartAlerts.length > 0 && (
                 <AnimatedGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     {smartAlerts.map((alert, index) => (
                         <AnimatedGridItem key={index}>
@@ -1638,238 +1651,294 @@ export default function Dashboard() {
             )}
 
             {/* Active Tasks - Chi sta lavorando su cosa */}
-            <Card className="glass-card bg-transparent">
-                <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-emerald-500" />
-                        Task in Lavorazione
-                    </CardTitle>
-                    <CardDescription>Task attualmente in corso con registrazione tempo</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').length === 0 ? (
-                        <p className="text-muted-foreground text-sm text-center py-4">Nessun task con timer attivo al momento</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').map(task => {
-                                const client = clients.find(c => c.id === task.clientId);
-                                const workingUser = users.find(u => u.id === task.timerUserId);
-                                return (
-                                    <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-medium" style={{ backgroundColor: workingUser?.color || '#6b7280' }}>
-                                                {workingUser?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-sm">{task.title}</p>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    <span className="flex items-center gap-1">
-                                                        <Briefcase className="h-3 w-3" />
-                                                        {client?.name || 'Cliente non assegnato'}
-                                                    </span>
-                                                    <span>•</span>
-                                                    <span>{workingUser?.name || 'Utente sconosciuto'}</span>
+            {isWidgetVisible('active_timers') && (
+                <Card className="glass-card bg-transparent">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-emerald-500" />
+                            Task in Lavorazione
+                        </CardTitle>
+                        <CardDescription>Task attualmente in corso con registrazione tempo</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').length === 0 ? (
+                            <p className="text-muted-foreground text-sm text-center py-4">Nessun task con timer attivo al momento</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').map(task => {
+                                    const client = clients.find(c => c.id === task.clientId);
+                                    const workingUser = users.find(u => u.id === task.timerUserId);
+                                    return (
+                                        <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-medium" style={{ backgroundColor: workingUser?.color || '#6b7280' }}>
+                                                    {workingUser?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-sm">{task.title}</p>
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <span className="flex items-center gap-1">
+                                                            <Briefcase className="h-3 w-3" />
+                                                            {client?.name || 'Cliente non assegnato'}
+                                                        </span>
+                                                        <span>•</span>
+                                                        <span>{workingUser?.name || 'Utente sconosciuto'}</span>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
-                                                <Clock className="h-3 w-3 mr-1 animate-breathing-custom" />
-                                                In corso
-                                            </Badge>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* NEW: Quick Actions, Team Availability & Recent Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Quick Actions */}
-                <Card className="lg:col-span-1 glass-card bg-transparent">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Target className="h-4 w-4" /> Azioni Rapide
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
-                            <ClipboardList className="h-4 w-4" /> Nuovo Task
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
-                            <Briefcase className="h-4 w-4" /> Nuovo Progetto
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
-                            <Building2 className="h-4 w-4" /> Nuovo Cliente
-                        </Button>
-                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
-                            <Clock className="h-4 w-4" /> Registra Attività
-                        </Button>
-                    </CardContent>
-                </Card>
-
-                {/* Team Availability */}
-                <Card className="lg:col-span-1 glass-card bg-transparent">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Users className="h-4 w-4" /> Team Oggi
-                        </CardTitle>
-                        <CardDescription>
-                            {teamAvailability.available.length}/{teamAvailability.total} disponibili
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            {teamAvailability.absent.length > 0 && (
-                                <div className="space-y-2">
-                                    <p className="text-xs font-medium text-muted-foreground uppercase">Assenti</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {teamAvailability.absent.slice(0, 4).map(user => (
-                                            <div key={user.id} className="flex items-center gap-1.5 bg-red-500/10 rounded-full px-2 py-1">
-                                                <Avatar className="h-5 w-5">
-                                                    <AvatarFallback className="text-[8px]" style={{ backgroundColor: user.color || '#ef4444', color: 'white' }}>
-                                                        {user.name ? getInitials(user.name) : '?'}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className="text-xs text-red-600">{user.name?.split(' ')[0]}</span>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
+                                                    <Clock className="h-3 w-3 mr-1 animate-breathing-custom" />
+                                                    In corso
+                                                </Badge>
                                             </div>
-                                        ))}
-                                        {teamAvailability.absent.length > 4 && (
-                                            <Badge variant="secondary" className="text-[10px]">+{teamAvailability.absent.length - 4}</Badge>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                            <div className="space-y-2">
-                                <p className="text-xs font-medium text-muted-foreground uppercase">Disponibili</p>
-                                <div className="flex -space-x-2">
-                                    {teamAvailability.available.slice(0, 8).map(user => (
-                                        <Avatar key={user.id} className="h-8 w-8 border-2 border-background" title={user.name}>
-                                            <AvatarFallback className="text-xs" style={{ backgroundColor: user.color || '#10b981', color: 'white' }}>
-                                                {user.name ? getInitials(user.name) : '?'}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                    ))}
-                                    {teamAvailability.available.length > 8 && (
-                                        <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium">
-                                            +{teamAvailability.available.length - 8}
                                         </div>
-                                    )}
-                                </div>
+                                    );
+                                })}
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Recent Activity Feed */}
-                <Card className="lg:col-span-1 glass-card">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-base">
-                            <Activity className="h-4 w-4" /> Attività Recenti
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {recentActivityFeed.length > 0 ? (
-                            <div className="space-y-3 max-h-[200px] overflow-y-auto">
-                                {recentActivityFeed.map((activity, index) => (
-                                    <div key={index} className="flex items-start gap-3">
-                                        <div className={`p-1.5 rounded-full shrink-0 ${activity.icon === 'check' ? 'bg-emerald-500/20' : 'bg-primary/20'
-                                            }`}>
-                                            {activity.icon === 'check' ? (
-                                                <CheckCircle className="h-3 w-3 text-emerald-500" />
-                                            ) : (
-                                                <Clock className="h-3 w-3 text-primary" />
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">{activity.title}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {activity.user?.name?.split(' ')[0] || 'Sistema'} · {format(activity.timestamp, 'dd/MM HH:mm')}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">Nessuna attività recente.</p>
                         )}
                     </CardContent>
                 </Card>
-            </div>
+            )}
 
-            <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-                <Card className="rounded-xl glass-card bg-transparent">
-                    <CollapsibleTrigger asChild>
-                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-xl">
-                            <CardTitle className="flex items-center gap-2 text-lg justify-between">
-                                <span className="flex items-center gap-2">
-                                    <Filter className="h-5 w-5" />
-                                    Filtri
-                                    {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                </span>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8"
-                                    onClick={(e: React.MouseEvent) => { e.stopPropagation(); resetFilters(); }}
-                                >
-                                    <Eraser className="mr-2 h-4 w-4" />
-                                    Reset
-                                </Button>
+            {/* NEW: Quick Actions, Team Availability & Recent Activity */}
+            {isWidgetVisible('quick_feed') && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Quick Actions */}
+                    <Card className="lg:col-span-1 glass-card bg-transparent">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Target className="h-4 w-4" /> Azioni Rapide
                             </CardTitle>
                         </CardHeader>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div className="flex flex-col gap-1.5">
-                                <Label>Periodo</Label>
-                                <div className="flex flex-col sm:flex-row items-center gap-2">
-                                    <DatePickerDialog
-                                        value={filters.startDate || undefined}
-                                        onChange={(date) => handleFilterChange('startDate', date || null)}
-                                        label="Inizio"
-                                    />
-                                    <DatePickerDialog
-                                        value={filters.endDate || undefined}
-                                        onChange={(date) => handleFilterChange('endDate', date || null)}
-                                        label="Fine"
-                                    />
+                        <CardContent className="space-y-2">
+                            <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                                <ClipboardList className="h-4 w-4" /> Nuovo Task
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                                <Briefcase className="h-4 w-4" /> Nuovo Progetto
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                                <Building2 className="h-4 w-4" /> Nuovo Cliente
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                                <Clock className="h-4 w-4" /> Registra Attività
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* Team Availability */}
+                    <Card className="lg:col-span-1 glass-card bg-transparent">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Users className="h-4 w-4" /> Team Oggi
+                            </CardTitle>
+                            <CardDescription>
+                                {teamAvailability.available.length}/{teamAvailability.total} disponibili
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {teamAvailability.absent.length > 0 && (
+                                    <div className="space-y-2">
+                                        <p className="text-xs font-medium text-muted-foreground uppercase">Assenti</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {teamAvailability.absent.slice(0, 4).map(user => (
+                                                <div key={user.id} className="flex items-center gap-1.5 bg-red-500/10 rounded-full px-2 py-1">
+                                                    <Avatar className="h-5 w-5">
+                                                        <AvatarFallback className="text-[8px]" style={{ backgroundColor: user.color || '#ef4444', color: 'white' }}>
+                                                            {user.name ? getInitials(user.name) : '?'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="text-xs text-red-600">{user.name?.split(' ')[0]}</span>
+                                                </div>
+                                            ))}
+                                            {teamAvailability.absent.length > 4 && (
+                                                <Badge variant="secondary" className="text-[10px]">+{teamAvailability.absent.length - 4}</Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    <p className="text-xs font-medium text-muted-foreground uppercase">Disponibili</p>
+                                    <div className="flex -space-x-2">
+                                        {teamAvailability.available.slice(0, 8).map(user => (
+                                            <Avatar key={user.id} className="h-8 w-8 border-2 border-background" title={user.name}>
+                                                <AvatarFallback className="text-xs" style={{ backgroundColor: user.color || '#10b981', color: 'white' }}>
+                                                    {user.name ? getInitials(user.name) : '?'}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                        ))}
+                                        {teamAvailability.available.length > 8 && (
+                                            <div className="h-8 w-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs font-medium">
+                                                +{teamAvailability.available.length - 8}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                    <Button variant="outline" size="sm" onClick={() => setDateShortcut('week')}>Settimana</Button>
-                                    <Button variant="outline" size="sm" onClick={() => setDateShortcut('month')}>Mese</Button>
-                                    <Button variant="outline" size="sm" onClick={() => setDateShortcut('quarter')}>Trimestre</Button>
-                                    <Button variant="outline" size="sm" onClick={() => setDateShortcut('last3months')}>Ultimi 3 Mesi</Button>
-                                    <Button variant="outline" size="sm" onClick={() => setDateShortcut('year')}>Anno</Button>
-                                </div>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                                <Label htmlFor="client-filter">Cliente</Label>
-                                <Select value={filters.clientId} onValueChange={(value: string) => handleFilterChange('clientId', value)}>
-                                    <SelectTrigger id="client-filter"><SelectValue placeholder="Tutti i Clienti" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Tutti i Clienti</SelectItem>
-                                        {[...clients].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex flex-col gap-1.5">
-                                <Label htmlFor="user-filter">Collaboratore</Label>
-                                <Select value={filters.userId} onValueChange={(value: string) => handleFilterChange('userId', value)}>
-                                    <SelectTrigger id="user-filter"><SelectValue placeholder="Tutti i Collaboratori" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Tutti i Collaboratori</SelectItem>
-                                        {[...users].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((u: any) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
                             </div>
                         </CardContent>
-                    </CollapsibleContent>
-                </Card>
-            </Collapsible>
+                    </Card>
+
+                    {/* Recent Activity Feed */}
+                    <Card className="lg:col-span-1 glass-card">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-base">
+                                <Activity className="h-4 w-4" /> Attività Recenti
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {recentActivityFeed.length > 0 ? (
+                                <div className="space-y-3 max-h-[200px] overflow-y-auto">
+                                    {recentActivityFeed.map((activity, index) => (
+                                        <div key={index} className="flex items-start gap-3">
+                                            <div className={`p-1.5 rounded-full shrink-0 ${activity.icon === 'check' ? 'bg-emerald-500/20' : 'bg-primary/20'
+                                                }`}>
+                                                {activity.icon === 'check' ? (
+                                                    <CheckCircle className="h-3 w-3 text-emerald-500" />
+                                                ) : (
+                                                    <Clock className="h-3 w-3 text-primary" />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate">{activity.title}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {activity.user?.name?.split(' ')[0] || 'Sistema'} · {format(activity.timestamp, 'dd/MM HH:mm')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground text-center py-4">Nessuna attività recente.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+                    <Card className="rounded-xl glass-card bg-transparent h-full">
+                        <CollapsibleTrigger asChild>
+                            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-xl">
+                                <CardTitle className="flex items-center gap-2 text-lg justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <Filter className="h-5 w-5" />
+                                        Filtri
+                                        {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8"
+                                        onClick={(e: React.MouseEvent) => { e.stopPropagation(); resetFilters(); }}
+                                    >
+                                        <Eraser className="mr-2 h-4 w-4" />
+                                        Reset
+                                    </Button>
+                                </CardTitle>
+                            </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4">
+                                <div className="flex flex-col gap-1.5 col-span-1 sm:col-span-2">
+                                    <Label>Periodo</Label>
+                                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                                        <DatePickerDialog
+                                            value={filters.startDate || undefined}
+                                            onChange={(date) => handleFilterChange('startDate', date || null)}
+                                            label="Inizio"
+                                        />
+                                        <DatePickerDialog
+                                            value={filters.endDate || undefined}
+                                            onChange={(date) => handleFilterChange('endDate', date || null)}
+                                            label="Fine"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-1">
+                                        <Button variant="outline" size="sm" onClick={() => setDateShortcut('week')}>Settimana</Button>
+                                        <Button variant="outline" size="sm" onClick={() => setDateShortcut('month')}>Mese</Button>
+                                        <Button variant="outline" size="sm" onClick={() => setDateShortcut('quarter')}>Trimestre</Button>
+                                        <Button variant="outline" size="sm" onClick={() => setDateShortcut('last3months')}>Ultimi 3 Mesi</Button>
+                                        <Button variant="outline" size="sm" onClick={() => setDateShortcut('year')}>Anno</Button>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <Label htmlFor="client-filter">Cliente</Label>
+                                    <Select value={filters.clientId} onValueChange={(value: string) => handleFilterChange('clientId', value)}>
+                                        <SelectTrigger id="client-filter"><SelectValue placeholder="Tutti i Clienti" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Tutti i Clienti</SelectItem>
+                                            {[...clients].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                    <Label htmlFor="user-filter">Collaboratore</Label>
+                                    <Select value={filters.userId} onValueChange={(value: string) => handleFilterChange('userId', value)}>
+                                        <SelectTrigger id="user-filter"><SelectValue placeholder="Tutti i Collaboratori" /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Tutti i Collaboratori</SelectItem>
+                                            {[...users].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((u: any) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
+                </Collapsible>
+
+                <Collapsible open={isWidgetsPanelOpen} onOpenChange={setIsWidgetsPanelOpen}>
+                    <Card className="rounded-xl glass-card bg-transparent h-full">
+                        <CollapsibleTrigger asChild>
+                            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-xl">
+                                <CardTitle className="flex items-center gap-2 text-lg justify-between">
+                                    <span className="flex items-center gap-2">
+                                        <Eye className="h-5 w-5" />
+                                        Personalizza Vista
+                                        {isWidgetsPanelOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8"
+                                        onClick={(e: React.MouseEvent) => {
+                                            e.stopPropagation();
+                                            setVisibleWidgets(ADMIN_WIDGETS.map(w => w.id));
+                                            localStorage.setItem('admin_dashboard_widgets', JSON.stringify(ADMIN_WIDGETS.map(w => w.id)));
+                                        }}
+                                    >
+                                        Mostra Tutto
+                                    </Button>
+                                </CardTitle>
+                            </CardHeader>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                            <CardContent className="p-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 max-h-[220px] overflow-y-auto pr-2">
+                                    {ADMIN_WIDGETS.map((widget) => (
+                                        <div key={widget.id} className="flex items-center space-x-2 py-1">
+                                            <Checkbox
+                                                id={`widget-toggle-${widget.id}`}
+                                                checked={visibleWidgets.includes(widget.id)}
+                                                onCheckedChange={() => toggleWidget(widget.id)}
+                                            />
+                                            <label
+                                                htmlFor={`widget-toggle-${widget.id}`}
+                                                className="text-sm font-medium leading-none cursor-pointer select-none truncate"
+                                                title={widget.label}
+                                            >
+                                                {widget.label}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </CollapsibleContent>
+                    </Card>
+                </Collapsible>
+            </div>
 
 
             {/* Alert Scadenze Imminenti (entro 48h) */}
@@ -1910,99 +1979,436 @@ export default function Dashboard() {
 
             <div className="grid grid-cols-1 gap-8">
                 {/* Performance Utenti - Layout a Card */}
-                <Card className="glass-card bg-transparent">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Performance Utenti</CardTitle>
-                        <CardDescription>Riepilogo delle attività e delle performance per utente nel periodo selezionato.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {userPerformanceData.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {userPerformanceData.map((user, index) => {
-                                    const efficiency = user.estimatedHours > 0
-                                        ? ((user.hours / user.estimatedHours) * 100)
-                                        : 0;
-                                    const efficiencyStatus = efficiency === 0 ? 'neutral' :
-                                        efficiency <= 90 ? 'excellent' :
-                                            efficiency <= 110 ? 'good' : 'over';
-                                    const efficiencyColor = efficiencyStatus === 'excellent' ? '#10b981' :
-                                        efficiencyStatus === 'good' ? '#3b82f6' :
-                                            efficiencyStatus === 'over' ? '#f59e0b' : '#9ca3af';
-                                    const isTopPerformer = index < 3 && user.completedCount > 0;
-                                    const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                {isWidgetVisible('chart_performance') && (
+                    <Card className="glass-card bg-transparent">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Performance Utenti</CardTitle>
+                            <CardDescription>Riepilogo delle attività e delle performance per utente nel periodo selezionato.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {userPerformanceData.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    {userPerformanceData.map((user, index) => {
+                                        const efficiency = user.estimatedHours > 0
+                                            ? ((user.hours / user.estimatedHours) * 100)
+                                            : 0;
+                                        const efficiencyStatus = efficiency === 0 ? 'neutral' :
+                                            efficiency <= 90 ? 'excellent' :
+                                                efficiency <= 110 ? 'good' : 'over';
+                                        const efficiencyColor = efficiencyStatus === 'excellent' ? '#10b981' :
+                                            efficiencyStatus === 'good' ? '#3b82f6' :
+                                                efficiencyStatus === 'over' ? '#f59e0b' : '#9ca3af';
+                                        const isTopPerformer = index < 3 && user.completedCount > 0;
+                                        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
 
-                                    return (
-                                        <Card key={user.id} className={`relative overflow-hidden transition-all hover:shadow-lg ${isTopPerformer ? 'ring-2 ring-primary/20' : ''}`}>
-                                            {isTopPerformer && (
-                                                <div className="absolute top-2 right-2 text-xl">{rankEmoji}</div>
-                                            )}
-                                            <CardHeader className="pb-2 text-center">
-                                                <Avatar className="h-16 w-16 mx-auto border-4" style={{ borderColor: user.color || '#6366f1' }}>
-                                                    <AvatarFallback className="text-xl" style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
+                                        return (
+                                            <Card key={user.id} className={`relative overflow-hidden transition-all hover:shadow-lg ${isTopPerformer ? 'ring-2 ring-primary/20' : ''}`}>
+                                                {isTopPerformer && (
+                                                    <div className="absolute top-2 right-2 text-xl">{rankEmoji}</div>
+                                                )}
+                                                <CardHeader className="pb-2 text-center">
+                                                    <Avatar className="h-16 w-16 mx-auto border-4" style={{ borderColor: user.color || '#6366f1' }}>
+                                                        <AvatarFallback className="text-xl" style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
+                                                            {user.name ? getInitials(user.name) : '?'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <CardTitle className="text-lg mt-2">{user.name}</CardTitle>
+                                                    <CardDescription className="text-xs">
+                                                        {user.assignedCount > 0
+                                                            ? `${user.rate.toFixed(0)}% completamento`
+                                                            : 'Nessun task assegnato'}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {/* Stats Grid */}
+                                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                                        <div className="bg-muted/50 rounded-lg p-2">
+                                                            <div className="text-lg font-bold text-primary">{user.assignedCount}</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">Assegnati</div>
+                                                        </div>
+                                                        <div className="bg-muted/50 rounded-lg p-2">
+                                                            <div className="text-lg font-bold text-emerald-600">{user.completedCount}</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">Completati</div>
+                                                        </div>
+                                                        <div className="bg-muted/50 rounded-lg p-2">
+                                                            <div className="text-lg font-bold">{user.hours}h</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">Ore</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Efficiency Indicator */}
+                                                    {user.estimatedHours > 0 && (
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between text-xs">
+                                                                <span className="text-muted-foreground">Efficienza</span>
+                                                                <span className="font-semibold" style={{ color: efficiencyColor }}>
+                                                                    {efficiency.toFixed(0)}%
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full transition-all"
+                                                                    style={{
+                                                                        width: `${Math.min(efficiency, 150) / 1.5}%`,
+                                                                        backgroundColor: efficiencyColor
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                                                                <span>{user.hours}h effettive</span>
+                                                                <span>{user.estimatedHours}h stimate</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Completion Progress */}
+                                                    {user.assignedCount > 0 && (
+                                                        <div className="pt-2 border-t">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-xs text-muted-foreground">Progresso Task</span>
+                                                                <Badge variant={user.rate >= 80 ? 'default' : user.rate >= 50 ? 'secondary' : 'outline'} className="text-[10px] h-5">
+                                                                    {user.completedCount}/{user.assignedCount}
+                                                                </Badge>
+                                                            </div>
+                                                            <Progress value={user.rate} className="h-1.5 mt-1" />
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
+                                    <div className="p-3 bg-muted rounded-full">
+                                        <Users className="h-6 w-6 opacity-50" />
+                                    </div>
+                                    <p className="text-sm">Nessun dato utente da mostrare per i filtri selezionati.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Nuova Tabella Riepilogativa dei Tempi per Utente */}
+                {isWidgetVisible('table_time_summary') && (
+                    <Card className="glass-card bg-transparent">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Clock className="h-5 w-5" /> Riepilogo Tempi e Task Utenti
+                            </CardTitle>
+                            <CardDescription>
+                                Numero di task assegnati, stima delle ore richieste (tempo stimato) e ore effettivamente registrate (attività + task) per ogni utente.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Utente</TableHead>
+                                            <TableHead className="text-center">Task Assegnati</TableHead>
+                                            <TableHead className="text-center">Task Completati</TableHead>
+                                            <TableHead className="text-center">Tempo Richiesto (Stima)</TableHead>
+                                            <TableHead className="text-center">Tempo Registrato (Effettivo)</TableHead>
+                                            <TableHead className="text-center">Differenza</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {userPerformanceData.map((user) => {
+                                            const diff = user.hours - user.estimatedHours;
+                                            const diffColor = diff > 0 ? 'text-amber-500' : 'text-emerald-500';
+                                            return (
+                                                <TableRow key={user.id}>
+                                                    <TableCell className="font-semibold">{user.name}</TableCell>
+                                                    <TableCell className="text-center">{user.assignedCount}</TableCell>
+                                                    <TableCell className="text-center">{user.completedCount}</TableCell>
+                                                    <TableCell className="text-center font-medium">{user.estimatedHours}h</TableCell>
+                                                    <TableCell className="text-center font-medium">{user.hours}h</TableCell>
+                                                    <TableCell className={`text-center font-semibold ${diffColor}`}>
+                                                        {diff > 0 ? `+${diff.toFixed(1)}h` : `${diff.toFixed(1)}h`}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Progetti Principali - Layout a Card */}
+                {isWidgetVisible('list_main_projects') && (
+                    <Card className="glass-card">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5" /> Progetti Principali</CardTitle>
+                            <CardDescription>Una visione d'insieme dei progetti attivi e più importanti, in base ai filtri applicati.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {filteredData.projects.filter(p => p.status === 'In Corso' || p.priority === 'Critica').length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {filteredData.projects.filter(p => p.status === 'In Corso' || p.priority === 'Critica').slice(0, 6).map(project => {
+                                        const teamLeader = project.teamLeaderId ? usersById[project.teamLeaderId] : null;
+                                        const client = project.clientId ? clientsById[project.clientId] : null;
+                                        const endDate = project.endDate ? parseISO(project.endDate) : null;
+                                        const daysRemaining = endDate ? differenceInDays(endDate, new Date()) : null;
+                                        const isOverdue = daysRemaining !== null && daysRemaining < 0;
+                                        const isUrgent = daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7;
+
+                                        // Calculate project health
+                                        const projectTasks = filteredData.tasks.filter(t => t.projectId === project.id);
+                                        const completedTasks = projectTasks.filter(t => t.status === 'Approvato').length;
+                                        const progress = projectTasks.length > 0 ? (completedTasks / projectTasks.length) * 100 : 0;
+
+                                        // Health indicator based on deadline and progress
+                                        let healthStatus: 'good' | 'warning' | 'critical' = 'good';
+                                        let healthColor = '#10b981';
+                                        if (isOverdue) {
+                                            healthStatus = 'critical';
+                                            healthColor = '#ef4444';
+                                        } else if (isUrgent && progress < 70) {
+                                            healthStatus = 'warning';
+                                            healthColor = '#f59e0b';
+                                        } else if (project.priority === 'Critica') {
+                                            healthStatus = progress < 50 ? 'critical' : 'warning';
+                                            healthColor = progress < 50 ? '#ef4444' : '#f59e0b';
+                                        }
+
+                                        return (
+                                            <Card
+                                                key={project.id}
+                                                className="relative overflow-hidden hover:shadow-lg transition-all border-l-4"
+                                                style={{ borderLeftColor: healthColor }}
+                                            >
+                                                {/* Priority Badge */}
+                                                {project.priority === 'Critica' && (
+                                                    <div className="absolute top-2 right-2">
+                                                        <Badge variant="destructive" className="text-[10px] uppercase font-bold animate-pulse">
+                                                            🔥 Critico
+                                                        </Badge>
+                                                    </div>
+                                                )}
+
+                                                <CardHeader className="pb-2">
+                                                    <div className="flex items-start gap-2">
+                                                        <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ${project.status === 'In Corso' ? 'bg-green-500 animate-pulse' :
+                                                            project.status === 'Completato' ? 'bg-primary' : 'bg-gray-300'
+                                                            }`} />
+                                                        <div className="flex-1 min-w-0">
+                                                            <CardTitle className="text-base font-semibold truncate" title={project.name}>
+                                                                {project.name}
+                                                            </CardTitle>
+                                                            <CardDescription className="text-xs truncate">
+                                                                {client?.name || 'Nessun cliente'}
+                                                            </CardDescription>
+                                                        </div>
+                                                    </div>
+                                                </CardHeader>
+
+                                                <CardContent className="space-y-3">
+                                                    {/* Team Leader */}
+                                                    {teamLeader && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Avatar className="h-6 w-6 border" style={{ borderColor: teamLeader.color || '#6366f1' }}>
+                                                                <AvatarFallback className="text-[10px]" style={{ backgroundColor: teamLeader.color || '#6366f1', color: 'white' }}>
+                                                                    {teamLeader.name ? getInitials(teamLeader.name) : '?'}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="text-xs text-muted-foreground truncate">{teamLeader.name}</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Progress */}
+                                                    <div className="space-y-1">
+                                                        <div className="flex justify-between text-xs">
+                                                            <span className="text-muted-foreground">Avanzamento</span>
+                                                            <span className="font-semibold">{progress.toFixed(0)}%</span>
+                                                        </div>
+                                                        <Progress value={progress} className="h-2" />
+                                                        <div className="text-[10px] text-muted-foreground">
+                                                            {completedTasks}/{projectTasks.length} task completati
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Deadline Countdown */}
+                                                    <div className={`flex items-center justify-between p-2 rounded-lg ${isOverdue ? 'bg-destructive/10' :
+                                                        isUrgent ? 'bg-amber-500/10' : 'bg-muted/50'
+                                                        }`}>
+                                                        <div className="flex items-center gap-2">
+                                                            <CalendarClock className={`h-4 w-4 ${isOverdue ? 'text-destructive' :
+                                                                isUrgent ? 'text-amber-500' : 'text-muted-foreground'
+                                                                }`} />
+                                                            <span className="text-xs">
+                                                                {endDate ? format(endDate, 'dd/MM/yy') : 'N/D'}
+                                                            </span>
+                                                        </div>
+                                                        <Badge
+                                                            variant={isOverdue ? 'destructive' : isUrgent ? 'secondary' : 'outline'}
+                                                            className="text-[10px] h-5"
+                                                        >
+                                                            {daysRemaining !== null ? (
+                                                                isOverdue
+                                                                    ? `${Math.abs(daysRemaining)}gg scaduto`
+                                                                    : daysRemaining === 0
+                                                                        ? 'Oggi!'
+                                                                        : `${daysRemaining}gg`
+                                                            ) : 'N/D'}
+                                                        </Badge>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
+                                    <div className="p-3 bg-muted rounded-full">
+                                        <Briefcase className="h-6 w-6 opacity-50" />
+                                    </div>
+                                    <p className="text-sm">Nessun progetto attivo trovato per i filtri selezionati.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {isWidgetVisible('chart_monthly_costs') && (
+                    <Card className="lg:col-span-2 glass-card">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><LineChartIcon /> Trend Costi Mensili</CardTitle>
+                            <CardDescription>Andamento dei costi totali nel tempo.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <DynamicLineChart data={monthlyCostTrend} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                    <YAxis allowDecimals={false} tickFormatter={val => `€${val / 1000}k`} />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Area type="monotone" dataKey="Costo Totale" stroke="hsl(var(--primary))" fill="hsla(var(--primary), 0.2)" />
+                                    <Line type="monotone" dataKey="Costo Totale" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                                    <ReferenceLine y={avgMonthlyCost} stroke="hsl(var(--destructive))" strokeDasharray="3 3" label={{ position: 'insideTopRight', value: 'Media', fill: 'hsl(var(--destructive))', fontSize: 12 }} />
+                                </DynamicLineChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                )}
+                <div className="space-y-8">
+                    {isWidgetVisible('table_absences') && (
+                        <Card className="glass-card">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <UserX className="h-5 w-5" />
+                                    Assenti Oggi
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {absencesTodayData.length > 0 ? (
+                                    <div className="grid gap-4">
+                                        {absencesTodayData.map(({ user, absence }: any) => (
+                                            <div key={absence.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card/50">
+                                                <Avatar className="h-10 w-10 border-2 border-background">
+                                                    <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>
                                                         {user.name ? getInitials(user.name) : '?'}
                                                     </AvatarFallback>
                                                 </Avatar>
-                                                <CardTitle className="text-lg mt-2">{user.name}</CardTitle>
-                                                <CardDescription className="text-xs">
-                                                    {user.assignedCount > 0
-                                                        ? `${user.rate.toFixed(0)}% completamento`
-                                                        : 'Nessun task assegnato'}
-                                                </CardDescription>
+                                                <div>
+                                                    <p className="font-medium text-sm">{user.name}</p>
+                                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                        <Badge variant="outline" className="text-[10px] h-5 px-1 font-normal bg-muted">
+                                                            {absence.type}
+                                                        </Badge>
+                                                        <span>fino al {format(parseISO(absence.endDate), 'dd/MM')}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground gap-2">
+                                        <div className="p-3 bg-muted rounded-full">
+                                            <UserX className="h-6 w-6 opacity-50" />
+                                        </div>
+                                        <p className="text-sm">Nessun membro del team è assente oggi.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {isWidgetVisible('list_upcoming_activities') && (
+                        <Card className="glass-card bg-transparent">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <CalendarClock className="h-5 w-5" />
+                                    Prossime Attività
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {upcomingCalendarActivities.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {upcomingCalendarActivities.map((activity: any) => (
+                                            <div key={activity.id} className="flex items-center gap-3 border-b last:border-0 pb-3 last:pb-0">
+                                                <div className="bg-primary/10 p-2 rounded-lg text-primary text-center min-w-[50px]">
+                                                    <div className="text-xs font-bold uppercase">{format(parseISO(activity.startTime), 'MMM', { locale: it })}</div>
+                                                    <div className="text-lg font-bold">{format(parseISO(activity.startTime), 'dd')}</div>
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-sm line-clamp-1">{activity.title || 'Attività senza titolo'}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {format(parseISO(activity.startTime), 'HH:mm')} - {format(parseISO(activity.endTime), 'HH:mm')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground text-center py-4">Nessuna attività programmata.</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            </div>
+
+            {/* Report Costi per Cliente - Layout a Card */}
+            {isWidgetVisible('chart_client_costs') && (
+                <Card className="glass-card">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Costi per Cliente</CardTitle>
+                        <CardDescription>Costi totali stimati per cliente in base al tempo registrato. Totale: {formatCurrency(clientData.totalCost)}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {clientData.clientCosts.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {clientData.clientCosts.map(client => {
+                                    const percentage = clientData.totalCost > 0 ? (client.cost / clientData.totalCost) * 100 : 0;
+                                    const relativePercentage = clientData.maxCost > 0 ? (client.cost / clientData.maxCost) * 100 : 0;
+                                    const progressBarColor = relativePercentage > 75 ? 'bg-red-500' : relativePercentage > 40 ? 'bg-amber-500' : 'bg-emerald-500';
+                                    return (
+                                        <Card key={client.id} className="border-l-4 hover:shadow-md transition-shadow" style={{ borderLeftColor: relativePercentage > 75 ? '#ef4444' : relativePercentage > 40 ? '#f59e0b' : '#10b981' }}>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-base font-semibold truncate" title={client.name}>{client.name}</CardTitle>
+                                                <CardDescription className="text-xs">{percentage.toFixed(1)}% del totale</CardDescription>
                                             </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                {/* Stats Grid */}
-                                                <div className="grid grid-cols-3 gap-2 text-center">
-                                                    <div className="bg-muted/50 rounded-lg p-2">
-                                                        <div className="text-lg font-bold text-primary">{user.assignedCount}</div>
-                                                        <div className="text-[10px] text-muted-foreground uppercase">Assegnati</div>
+                                            <CardContent className="space-y-3">
+                                                <div className="text-2xl font-bold text-primary">
+                                                    {formatCurrency(client.cost)}
+                                                </div>
+                                                <Progress value={relativePercentage} className="h-2" indicatorClassName={progressBarColor} />
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="bg-muted/50 rounded-md p-2">
+                                                        <div className="text-muted-foreground">Ore</div>
+                                                        <div className="font-semibold">{formatNumber(client.hours)}h</div>
                                                     </div>
-                                                    <div className="bg-muted/50 rounded-lg p-2">
-                                                        <div className="text-lg font-bold text-emerald-600">{user.completedCount}</div>
-                                                        <div className="text-[10px] text-muted-foreground uppercase">Completati</div>
-                                                    </div>
-                                                    <div className="bg-muted/50 rounded-lg p-2">
-                                                        <div className="text-lg font-bold">{user.hours}h</div>
-                                                        <div className="text-[10px] text-muted-foreground uppercase">Ore</div>
+                                                    <div className="bg-muted/50 rounded-md p-2">
+                                                        <div className="text-muted-foreground">€/ora</div>
+                                                        <div className="font-semibold">{formatCurrency(client.averageRate)}</div>
                                                     </div>
                                                 </div>
-
-                                                {/* Efficiency Indicator */}
-                                                {user.estimatedHours > 0 && (
-                                                    <div className="space-y-1">
-                                                        <div className="flex justify-between text-xs">
-                                                            <span className="text-muted-foreground">Efficienza</span>
-                                                            <span className="font-semibold" style={{ color: efficiencyColor }}>
-                                                                {efficiency.toFixed(0)}%
-                                                            </span>
-                                                        </div>
-                                                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                                            <div
-                                                                className="h-full rounded-full transition-all"
-                                                                style={{
-                                                                    width: `${Math.min(efficiency, 150) / 1.5}%`,
-                                                                    backgroundColor: efficiencyColor
-                                                                }}
-                                                            />
-                                                        </div>
-                                                        <div className="flex justify-between text-[10px] text-muted-foreground">
-                                                            <span>{user.hours}h effettive</span>
-                                                            <span>{user.estimatedHours}h stimate</span>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {/* Completion Progress */}
-                                                {user.assignedCount > 0 && (
-                                                    <div className="pt-2 border-t">
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="text-xs text-muted-foreground">Progresso Task</span>
-                                                            <Badge variant={user.rate >= 80 ? 'default' : user.rate >= 50 ? 'secondary' : 'outline'} className="text-[10px] h-5">
-                                                                {user.completedCount}/{user.assignedCount}
-                                                            </Badge>
-                                                        </div>
-                                                        <Progress value={user.rate} className="h-1.5 mt-1" />
-                                                    </div>
-                                                )}
                                             </CardContent>
                                         </Card>
                                     );
@@ -2013,173 +2419,113 @@ export default function Dashboard() {
                                 <div className="p-3 bg-muted rounded-full">
                                     <Users className="h-6 w-6 opacity-50" />
                                 </div>
-                                <p className="text-sm">Nessun dato utente da mostrare per i filtri selezionati.</p>
+                                <p className="text-sm">Nessun dato sui costi dei clienti.</p>
                             </div>
                         )}
                     </CardContent>
                 </Card>
+            )}
 
-                {/* Nuova Tabella Riepilogativa dei Tempi per Utente */}
-                <Card className="glass-card bg-transparent">
+            {/* Report Costi per Attività - Layout a Card */}
+            {isWidgetVisible('chart_activity_costs') && (
+                <Card className="glass-card">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Clock className="h-5 w-5" /> Riepilogo Tempi e Task Utenti
-                        </CardTitle>
+                        <CardTitle className="flex items-center gap-2"><Euro className="h-5 w-5" /> Costi per Attività</CardTitle>
+                        <CardDescription>Costi totali stimati per tipo di attività in base al tempo registrato. Totale: {formatCurrency(activityData.reduce((sum, a) => sum + a.cost, 0))}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {activityData.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {activityData.map((activity, index) => {
+                                    const totalCost = activityData.reduce((sum, a) => sum + a.cost, 0);
+                                    const percentage = totalCost > 0 ? (activity.cost / totalCost) * 100 : 0;
+                                    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
+                                    const color = colors[index % colors.length];
+                                    return (
+                                        <Card key={activity.name} className="border-l-4 hover:shadow-md transition-shadow" style={{ borderLeftColor: color }}>
+                                            <CardHeader className="pb-2">
+                                                <CardTitle className="text-base font-semibold truncate" title={activity.name}>{activity.name}</CardTitle>
+                                                <CardDescription className="text-xs">{percentage.toFixed(1)}% del totale</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-3">
+                                                <div className="text-2xl font-bold" style={{ color }}>
+                                                    {formatCurrency(activity.cost)}
+                                                </div>
+                                                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                    <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: color }} />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="bg-muted/50 rounded-md p-2">
+                                                        <div className="text-muted-foreground">Ore</div>
+                                                        <div className="font-semibold">{formatNumber(activity.hours)}h</div>
+                                                    </div>
+                                                    <div className="bg-muted/50 rounded-md p-2">
+                                                        <div className="text-muted-foreground">€/ora</div>
+                                                        <div className="font-semibold">{formatCurrency(activity.rate)}</div>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
+                                <div className="p-3 bg-muted rounded-full">
+                                    <Euro className="h-6 w-6 opacity-50" />
+                                </div>
+                                <p className="text-sm">Nessun dato sulle attività.</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Report Conteggio Attività */}
+            {isWidgetVisible('chart_workload') && (
+                <Card className="glass-card">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5" /> Conteggio Attività</CardTitle>
                         <CardDescription>
-                            Numero di task assegnati, stima delle ore richieste (tempo stimato) e ore effettivamente registrate (attività + task) per ogni utente.
+                            Numero di attività calendario registrate per utente.
+                            Totale: {calendarActivityByUser.reduce((sum, item) => sum + item.count, 0)} attività |
+                            {formatNumber(calendarActivityByUser.reduce((sum, item) => sum + item.hours, 0))}h totali
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Utente</TableHead>
-                                        <TableHead className="text-center">Task Assegnati</TableHead>
-                                        <TableHead className="text-center">Task Completati</TableHead>
-                                        <TableHead className="text-center">Tempo Richiesto (Stima)</TableHead>
-                                        <TableHead className="text-center">Tempo Registrato (Effettivo)</TableHead>
-                                        <TableHead className="text-center">Differenza</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {userPerformanceData.map((user) => {
-                                        const diff = user.hours - user.estimatedHours;
-                                        const diffColor = diff > 0 ? 'text-amber-500' : 'text-emerald-500';
-                                        return (
-                                            <TableRow key={user.id}>
-                                                <TableCell className="font-semibold">{user.name}</TableCell>
-                                                <TableCell className="text-center">{user.assignedCount}</TableCell>
-                                                <TableCell className="text-center">{user.completedCount}</TableCell>
-                                                <TableCell className="text-center font-medium">{user.estimatedHours}h</TableCell>
-                                                <TableCell className="text-center font-medium">{user.hours}h</TableCell>
-                                                <TableCell className={`text-center font-semibold ${diffColor}`}>
-                                                    {diff > 0 ? `+${diff.toFixed(1)}h` : `${diff.toFixed(1)}h`}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Progetti Principali - Layout a Card */}
-                <Card className="glass-card">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5" /> Progetti Principali</CardTitle>
-                        <CardDescription>Una visione d'insieme dei progetti attivi e più importanti, in base ai filtri applicati.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {filteredData.projects.filter(p => p.status === 'In Corso' || p.priority === 'Critica').length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filteredData.projects.filter(p => p.status === 'In Corso' || p.priority === 'Critica').slice(0, 6).map(project => {
-                                    const teamLeader = project.teamLeaderId ? usersById[project.teamLeaderId] : null;
-                                    const client = project.clientId ? clientsById[project.clientId] : null;
-                                    const endDate = project.endDate ? parseISO(project.endDate) : null;
-                                    const daysRemaining = endDate ? differenceInDays(endDate, new Date()) : null;
-                                    const isOverdue = daysRemaining !== null && daysRemaining < 0;
-                                    const isUrgent = daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7;
-
-                                    // Calculate project health
-                                    const projectTasks = filteredData.tasks.filter(t => t.projectId === project.id);
-                                    const completedTasks = projectTasks.filter(t => t.status === 'Approvato').length;
-                                    const progress = projectTasks.length > 0 ? (completedTasks / projectTasks.length) * 100 : 0;
-
-                                    // Health indicator based on deadline and progress
-                                    let healthStatus: 'good' | 'warning' | 'critical' = 'good';
-                                    let healthColor = '#10b981';
-                                    if (isOverdue) {
-                                        healthStatus = 'critical';
-                                        healthColor = '#ef4444';
-                                    } else if (isUrgent && progress < 70) {
-                                        healthStatus = 'warning';
-                                        healthColor = '#f59e0b';
-                                    } else if (project.priority === 'Critica') {
-                                        healthStatus = progress < 50 ? 'critical' : 'warning';
-                                        healthColor = progress < 50 ? '#ef4444' : '#f59e0b';
-                                    }
-
+                        {calendarActivityByUser.length > 0 ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {calendarActivityByUser.map(({ user, hours, count }, index) => {
+                                    const totalActivities = calendarActivityByUser.reduce((sum, item) => sum + item.count, 0);
+                                    const percentage = totalActivities > 0 ? (count / totalActivities) * 100 : 0;
                                     return (
-                                        <Card
-                                            key={project.id}
-                                            className="relative overflow-hidden hover:shadow-lg transition-all border-l-4"
-                                            style={{ borderLeftColor: healthColor }}
-                                        >
-                                            {/* Priority Badge */}
-                                            {project.priority === 'Critica' && (
-                                                <div className="absolute top-2 right-2">
-                                                    <Badge variant="destructive" className="text-[10px] uppercase font-bold animate-pulse">
-                                                        🔥 Critico
-                                                    </Badge>
-                                                </div>
-                                            )}
-
-                                            <CardHeader className="pb-2">
-                                                <div className="flex items-start gap-2">
-                                                    <div className={`w-3 h-3 rounded-full mt-1 shrink-0 ${project.status === 'In Corso' ? 'bg-green-500 animate-pulse' :
-                                                        project.status === 'Completato' ? 'bg-primary' : 'bg-gray-300'
-                                                        }`} />
-                                                    <div className="flex-1 min-w-0">
-                                                        <CardTitle className="text-base font-semibold truncate" title={project.name}>
-                                                            {project.name}
-                                                        </CardTitle>
-                                                        <CardDescription className="text-xs truncate">
-                                                            {client?.name || 'Nessun cliente'}
-                                                        </CardDescription>
-                                                    </div>
+                                        <Card key={user.id} className="hover:shadow-md transition-shadow border-t-4" style={{ borderTopColor: user.color || '#6366f1' }}>
+                                            <CardHeader className="pb-2 flex flex-row items-center space-x-3">
+                                                <Avatar className="h-10 w-10 border-2" style={{ borderColor: user.color || '#6366f1' }}>
+                                                    <AvatarFallback style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
+                                                        {user.name ? getInitials(user.name) : '?'}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <CardTitle className="text-base font-semibold">{user.name}</CardTitle>
+                                                    <CardDescription className="text-xs">{percentage.toFixed(1)}% delle attività</CardDescription>
                                                 </div>
                                             </CardHeader>
-
                                             <CardContent className="space-y-3">
-                                                {/* Team Leader */}
-                                                {teamLeader && (
-                                                    <div className="flex items-center gap-2">
-                                                        <Avatar className="h-6 w-6 border" style={{ borderColor: teamLeader.color || '#6366f1' }}>
-                                                            <AvatarFallback className="text-[10px]" style={{ backgroundColor: teamLeader.color || '#6366f1', color: 'white' }}>
-                                                                {teamLeader.name ? getInitials(teamLeader.name) : '?'}
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                        <span className="text-xs text-muted-foreground truncate">{teamLeader.name}</span>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="text-center p-3 bg-primary/10 rounded-lg">
+                                                        <div className="text-2xl font-bold text-primary">{count}</div>
+                                                        <div className="text-xs text-muted-foreground">Attività</div>
                                                     </div>
-                                                )}
-
-                                                {/* Progress */}
-                                                <div className="space-y-1">
-                                                    <div className="flex justify-between text-xs">
-                                                        <span className="text-muted-foreground">Avanzamento</span>
-                                                        <span className="font-semibold">{progress.toFixed(0)}%</span>
-                                                    </div>
-                                                    <Progress value={progress} className="h-2" />
-                                                    <div className="text-[10px] text-muted-foreground">
-                                                        {completedTasks}/{projectTasks.length} task completati
+                                                    <div className="text-center p-3 bg-muted/50 rounded-lg">
+                                                        <div className="text-2xl font-bold">{formatNumber(hours)}h</div>
+                                                        <div className="text-xs text-muted-foreground">Ore totali</div>
                                                     </div>
                                                 </div>
-
-                                                {/* Deadline Countdown */}
-                                                <div className={`flex items-center justify-between p-2 rounded-lg ${isOverdue ? 'bg-destructive/10' :
-                                                    isUrgent ? 'bg-amber-500/10' : 'bg-muted/50'
-                                                    }`}>
-                                                    <div className="flex items-center gap-2">
-                                                        <CalendarClock className={`h-4 w-4 ${isOverdue ? 'text-destructive' :
-                                                            isUrgent ? 'text-amber-500' : 'text-muted-foreground'
-                                                            }`} />
-                                                        <span className="text-xs">
-                                                            {endDate ? format(endDate, 'dd/MM/yy') : 'N/D'}
-                                                        </span>
-                                                    </div>
-                                                    <Badge
-                                                        variant={isOverdue ? 'destructive' : isUrgent ? 'secondary' : 'outline'}
-                                                        className="text-[10px] h-5"
-                                                    >
-                                                        {daysRemaining !== null ? (
-                                                            isOverdue
-                                                                ? `${Math.abs(daysRemaining)}gg scaduto`
-                                                                : daysRemaining === 0
-                                                                    ? 'Oggi!'
-                                                                    : `${daysRemaining}gg`
-                                                        ) : 'N/D'}
+                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                    <span>Media:</span>
+                                                    <Badge variant="outline" className="font-mono">
+                                                        {count > 0 ? formatNumber(hours / count) : 0}h/attività
                                                     </Badge>
                                                 </div>
                                             </CardContent>
@@ -2190,563 +2536,332 @@ export default function Dashboard() {
                         ) : (
                             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
                                 <div className="p-3 bg-muted rounded-full">
-                                    <Briefcase className="h-6 w-6 opacity-50" />
+                                    <ClipboardList className="h-6 w-6 opacity-50" />
                                 </div>
-                                <p className="text-sm">Nessun progetto attivo trovato per i filtri selezionati.</p>
+                                <p className="text-sm">Nessuna attività calendario registrata.</p>
                             </div>
                         )}
                     </CardContent>
                 </Card>
-            </div>
+            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <Card className="lg:col-span-2 glass-card">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><LineChartIcon /> Trend Costi Mensili</CardTitle>
-                        <CardDescription>Andamento dei costi totali nel tempo.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <DynamicLineChart data={monthlyCostTrend} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                                <YAxis allowDecimals={false} tickFormatter={val => `€${val / 1000}k`} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Area type="monotone" dataKey="Costo Totale" stroke="hsl(var(--primary))" fill="hsla(var(--primary), 0.2)" />
-                                <Line type="monotone" dataKey="Costo Totale" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                                <ReferenceLine y={avgMonthlyCost} stroke="hsl(var(--destructive))" strokeDasharray="3 3" label={{ position: 'insideTopRight', value: 'Media', fill: 'hsl(var(--destructive))', fontSize: 12 }} />
-                            </DynamicLineChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                <div className="space-y-8">
-                    <Card className="glass-card">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <UserX className="h-5 w-5" />
-                                Assenti Oggi
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {absencesTodayData.length > 0 ? (
-                                <div className="grid gap-4">
-                                    {absencesTodayData.map(({ user, absence }: any) => (
-                                        <div key={absence.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card/50">
-                                            <Avatar className="h-10 w-10 border-2 border-background">
-                                                <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>
-                                                    {user.name ? getInitials(user.name) : '?'}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-medium text-sm">{user.name}</p>
-                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    <Badge variant="outline" className="text-[10px] h-5 px-1 font-normal bg-muted">
-                                                        {absence.type}
-                                                    </Badge>
-                                                    <span>fino al {format(parseISO(absence.endDate), 'dd/MM')}</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-6 text-center text-muted-foreground gap-2">
-                                    <div className="p-3 bg-muted rounded-full">
-                                        <UserX className="h-6 w-6 opacity-50" />
-                                    </div>
-                                    <p className="text-sm">Nessun membro del team è assente oggi.</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="glass-card bg-transparent">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <CalendarClock className="h-5 w-5" />
-                                Prossime Attività
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {upcomingCalendarActivities.length > 0 ? (
-                                <div className="space-y-4">
-                                    {upcomingCalendarActivities.map((activity: any) => (
-                                        <div key={activity.id} className="flex items-center gap-3 border-b last:border-0 pb-3 last:pb-0">
-                                            <div className="bg-primary/10 p-2 rounded-lg text-primary text-center min-w-[50px]">
-                                                <div className="text-xs font-bold uppercase">{format(parseISO(activity.startTime), 'MMM', { locale: it })}</div>
-                                                <div className="text-lg font-bold">{format(parseISO(activity.startTime), 'dd')}</div>
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-sm line-clamp-1">{activity.title || 'Attività senza titolo'}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {format(parseISO(activity.startTime), 'HH:mm')} - {format(parseISO(activity.endTime), 'HH:mm')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground text-center py-4">Nessuna attività programmata.</p>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* Report Costi per Cliente - Layout a Card */}
-            <Card className="glass-card">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Costi per Cliente</CardTitle>
-                    <CardDescription>Costi totali stimati per cliente in base al tempo registrato. Totale: {formatCurrency(clientData.totalCost)}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {clientData.clientCosts.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {clientData.clientCosts.map(client => {
-                                const percentage = clientData.totalCost > 0 ? (client.cost / clientData.totalCost) * 100 : 0;
-                                const relativePercentage = clientData.maxCost > 0 ? (client.cost / clientData.maxCost) * 100 : 0;
-                                const progressBarColor = relativePercentage > 75 ? 'bg-red-500' : relativePercentage > 40 ? 'bg-amber-500' : 'bg-emerald-500';
-                                return (
-                                    <Card key={client.id} className="border-l-4 hover:shadow-md transition-shadow" style={{ borderLeftColor: relativePercentage > 75 ? '#ef4444' : relativePercentage > 40 ? '#f59e0b' : '#10b981' }}>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-base font-semibold truncate" title={client.name}>{client.name}</CardTitle>
-                                            <CardDescription className="text-xs">{percentage.toFixed(1)}% del totale</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-3">
-                                            <div className="text-2xl font-bold text-primary">
-                                                {formatCurrency(client.cost)}
-                                            </div>
-                                            <Progress value={relativePercentage} className="h-2" indicatorClassName={progressBarColor} />
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                                <div className="bg-muted/50 rounded-md p-2">
-                                                    <div className="text-muted-foreground">Ore</div>
-                                                    <div className="font-semibold">{formatNumber(client.hours)}h</div>
-                                                </div>
-                                                <div className="bg-muted/50 rounded-md p-2">
-                                                    <div className="text-muted-foreground">€/ora</div>
-                                                    <div className="font-semibold">{formatCurrency(client.averageRate)}</div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
-                            <div className="p-3 bg-muted rounded-full">
-                                <Users className="h-6 w-6 opacity-50" />
-                            </div>
-                            <p className="text-sm">Nessun dato sui costi dei clienti.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            {/* Report Costi per Attività - Layout a Card */}
-            <Card className="glass-card">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Euro className="h-5 w-5" /> Costi per Attività</CardTitle>
-                    <CardDescription>Costi totali stimati per tipo di attività in base al tempo registrato. Totale: {formatCurrency(activityData.reduce((sum, a) => sum + a.cost, 0))}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {activityData.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {activityData.map((activity, index) => {
-                                const totalCost = activityData.reduce((sum, a) => sum + a.cost, 0);
-                                const percentage = totalCost > 0 ? (activity.cost / totalCost) * 100 : 0;
-                                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16', '#f97316'];
-                                const color = colors[index % colors.length];
-                                return (
-                                    <Card key={activity.name} className="border-l-4 hover:shadow-md transition-shadow" style={{ borderLeftColor: color }}>
-                                        <CardHeader className="pb-2">
-                                            <CardTitle className="text-base font-semibold truncate" title={activity.name}>{activity.name}</CardTitle>
-                                            <CardDescription className="text-xs">{percentage.toFixed(1)}% del totale</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="space-y-3">
-                                            <div className="text-2xl font-bold" style={{ color }}>
-                                                {formatCurrency(activity.cost)}
-                                            </div>
-                                            <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                                <div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: color }} />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                                <div className="bg-muted/50 rounded-md p-2">
-                                                    <div className="text-muted-foreground">Ore</div>
-                                                    <div className="font-semibold">{formatNumber(activity.hours)}h</div>
-                                                </div>
-                                                <div className="bg-muted/50 rounded-md p-2">
-                                                    <div className="text-muted-foreground">€/ora</div>
-                                                    <div className="font-semibold">{formatCurrency(activity.rate)}</div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
-                            <div className="p-3 bg-muted rounded-full">
-                                <Euro className="h-6 w-6 opacity-50" />
-                            </div>
-                            <p className="text-sm">Nessun dato sulle attività.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
-            {/* Report Conteggio Attività */}
-            <Card className="glass-card">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ClipboardList className="h-5 w-5" /> Conteggio Attività</CardTitle>
-                    <CardDescription>
-                        Numero di attività calendario registrate per utente.
-                        Totale: {calendarActivityByUser.reduce((sum, item) => sum + item.count, 0)} attività |
-                        {formatNumber(calendarActivityByUser.reduce((sum, item) => sum + item.hours, 0))}h totali
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {calendarActivityByUser.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {calendarActivityByUser.map(({ user, hours, count }, index) => {
-                                const totalActivities = calendarActivityByUser.reduce((sum, item) => sum + item.count, 0);
-                                const percentage = totalActivities > 0 ? (count / totalActivities) * 100 : 0;
-                                return (
-                                    <Card key={user.id} className="hover:shadow-md transition-shadow border-t-4" style={{ borderTopColor: user.color || '#6366f1' }}>
-                                        <CardHeader className="pb-2 flex flex-row items-center space-x-3">
-                                            <Avatar className="h-10 w-10 border-2" style={{ borderColor: user.color || '#6366f1' }}>
-                                                <AvatarFallback style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
-                                                    {user.name ? getInitials(user.name) : '?'}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <CardTitle className="text-base font-semibold">{user.name}</CardTitle>
-                                                <CardDescription className="text-xs">{percentage.toFixed(1)}% delle attività</CardDescription>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="space-y-3">
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="text-center p-3 bg-primary/10 rounded-lg">
-                                                    <div className="text-2xl font-bold text-primary">{count}</div>
-                                                    <div className="text-xs text-muted-foreground">Attività</div>
-                                                </div>
-                                                <div className="text-center p-3 bg-muted/50 rounded-lg">
-                                                    <div className="text-2xl font-bold">{formatNumber(hours)}h</div>
-                                                    <div className="text-xs text-muted-foreground">Ore totali</div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                <span>Media:</span>
-                                                <Badge variant="outline" className="font-mono">
-                                                    {count > 0 ? formatNumber(hours / count) : 0}h/attività
-                                                </Badge>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
-                            <div className="p-3 bg-muted rounded-full">
-                                <ClipboardList className="h-6 w-6 opacity-50" />
-                            </div>
-                            <p className="text-sm">Nessuna attività calendario registrata.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="glass-card">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><FilePieChart /> Task per Stato</CardTitle>
-                        <CardDescription>Distribuzione di tutti i task per stato.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <DynamicBarChart data={taskStatusDistribution} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" allowDecimals={false} />
-                                <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} interval={0} />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--accent-foreground), 0.1)' }} />
-                                <Bar dataKey="Task" name="Task" radius={[0, 4, 4, 0]}>
-                                    {taskStatusDistribution.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={TASK_STATUS_COLORS[entry.name] || '#8884d8'} />
-                                    ))}
-                                </Bar>
-                            </DynamicBarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                <Card className="glass-card">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Target /> Task Attivi per Priorità</CardTitle>
-                        <CardDescription>Conteggio dei task non conclusi per priorità.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={350}>
-                            <DynamicBarChart data={tasksByPriority} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                                <YAxis allowDecimals={false} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Bar dataKey="Task Attivi" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            </DynamicBarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="glass-card">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><AlertTriangle /> Task Scaduti</CardTitle>
-                        <CardDescription>Task non ancora completati.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Task</TableHead>
-                                        <TableHead>Assegnato</TableHead>
-                                        <TableHead>Scaduto da</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {overdueTasks.slice(0, 5).map(task => (
-                                        <TableRow key={task.id} className="bg-destructive/10">
-                                            <TableCell className="font-medium">{task.title}</TableCell>
-                                            <TableCell>{usersById[task.assignedUserId || '']?.name.split(' ')[0] || 'N/A'}</TableCell>
-                                            <TableCell className="font-bold text-destructive">{differenceInDays(new Date(), parseISO(task.dueDate!))}gg</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {overdueTasks.length === 0 && (
-                                        <TableRow><TableCell colSpan={3} className="text-center h-24">Nessun task scaduto.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Activity /> Riepilogo Attività Calendario</CardTitle>
-                        <CardDescription>Tempo registrato nelle attività del calendario per utente.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Utente</TableHead>
-                                        <TableHead>N. Attività</TableHead>
-                                        <TableHead className="text-right">Ore Registrate</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {calendarActivityByUser.map(({ user, hours, count }) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell className="font-medium">{user.name}</TableCell>
-                                            <TableCell>{count}</TableCell>
-                                            <TableCell className="text-right font-mono">{formatNumber(hours)}h</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {calendarActivityByUser.length === 0 && (
-                                        <TableRow><TableCell colSpan={3} className="h-24 text-center">Nessuna attività registrata.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Building2 /> Attività Calendario per Cliente</CardTitle>
-                        <CardDescription>Tempo registrato nelle attività del calendario diviso per cliente.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>N. Attività</TableHead>
-                                        <TableHead>Ore</TableHead>
-                                        <TableHead className="text-right">Costo Stimato</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {calendarActivityByClient.map(({ clientId, client, hours, count, cost }: any) => (
-                                        <TableRow key={clientId}>
-                                            <TableCell className="font-medium">{client?.name || 'Senza Cliente'}</TableCell>
-                                            <TableCell>{count}</TableCell>
-                                            <TableCell className="font-mono">{formatNumber(hours)}h</TableCell>
-                                            <TableCell className="text-right font-mono">{formatCurrency(cost)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {calendarActivityByClient.length === 0 && (
-                                        <TableRow><TableCell colSpan={4} className="h-24 text-center">Nessuna attività registrata.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><GanttChart /> Ore Stimate vs. Ore Effettive per Utente</CardTitle>
-                        <CardDescription>Confronto tra le ore pianificate e quelle effettivamente lavorate per utente.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <DynamicBarChart data={userPerformanceData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                                <YAxis allowDecimals={false} unit="h" />
-                                <Tooltip content={<CustomTooltip formatter={(val) => `${val}h`} />} />
-                                <Legend />
-                                <Bar dataKey="estimatedHours" name="Ore Stimate" fill="hsl(var(--primary))" opacity={0.6} radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="hours" name="Ore Effettive" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
-                            </DynamicBarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><CalendarClock /> Previsione Carico di Lavoro</CardTitle>
-                        <CardDescription>Ore stimate per i prossimi 7 giorni.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Utente</TableHead>
-                                        {sevenDayHeaders.map(day => <TableHead key={day} className="text-center">{day}</TableHead>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {futureWorkloadData.map(({ user, workload }) => (
-                                        <TableRow key={user.id}>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Avatar className="h-8 w-8">
-                                                        <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>{user.name ? getInitials(user.name) : '?'}</AvatarFallback>
-                                                    </Avatar>
-                                                </div>
-                                            </TableCell>
-                                            {workload.map((hours, index) => (
-                                                <TableCell key={index} className={cn("text-center font-mono", hours > 8 ? 'text-destructive font-bold' : '')}>
-                                                    {hours > 0 ? hours.toFixed(1) + 'h' : '-'}
-                                                </TableCell>
+            {(isWidgetVisible('chart_status_distribution') || isWidgetVisible('chart_priority_distribution')) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {isWidgetVisible('chart_status_distribution') && (
+                        <Card className={cn("glass-card", !isWidgetVisible('chart_priority_distribution') && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><FilePieChart /> Task per Stato</CardTitle>
+                                <CardDescription>Distribuzione di tutti i task per stato.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <DynamicBarChart data={taskStatusDistribution} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" allowDecimals={false} />
+                                        <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 12 }} interval={0} />
+                                        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(var(--accent-foreground), 0.1)' }} />
+                                        <Bar dataKey="Task" name="Task" radius={[0, 4, 4, 0]}>
+                                            {taskStatusDistribution.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={TASK_STATUS_COLORS[entry.name] || '#8884d8'} />
                                             ))}
-                                        </TableRow>
-                                    ))}
-                                    {futureWorkloadData.length === 0 && (
-                                        <TableRow><TableCell colSpan={8} className="h-24 text-center">Nessun carico.</TableCell></TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+                                        </Bar>
+                                    </DynamicBarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+                    {isWidgetVisible('chart_priority_distribution') && (
+                        <Card className={cn("glass-card", !isWidgetVisible('chart_status_distribution') && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Target /> Task Attivi per Priorità</CardTitle>
+                                <CardDescription>Conteggio dei task non conclusi per priorità.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <DynamicBarChart data={tasksByPriority} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                        <YAxis allowDecimals={false} />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Bar dataKey="Task Attivi" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                    </DynamicBarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
+            {(isWidgetVisible('list_overdue_tasks') || isWidgetVisible('chart_calendar_user') || isWidgetVisible('chart_calendar_client')) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {isWidgetVisible('list_overdue_tasks') && (
+                        <Card className={cn("glass-card", (!isWidgetVisible('chart_calendar_user') && !isWidgetVisible('chart_calendar_client')) && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><AlertTriangle /> Task Scaduti</CardTitle>
+                                <CardDescription>Task non ancora completati.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Task</TableHead>
+                                                <TableHead>Assegnato</TableHead>
+                                                <TableHead>Scaduto da</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {overdueTasks.slice(0, 5).map(task => (
+                                                <TableRow key={task.id} className="bg-destructive/10">
+                                                    <TableCell className="font-medium">{task.title}</TableCell>
+                                                    <TableCell>{usersById[task.assignedUserId || '']?.name.split(' ')[0] || 'N/A'}</TableCell>
+                                                    <TableCell className="font-bold text-destructive">{differenceInDays(new Date(), parseISO(task.dueDate!))}gg</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {overdueTasks.length === 0 && (
+                                                <TableRow><TableCell colSpan={3} className="text-center h-24">Nessun task scaduto.</TableCell></TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                    {isWidgetVisible('chart_calendar_user') && (
+                        <Card className={cn("glass-card", (!isWidgetVisible('list_overdue_tasks') && !isWidgetVisible('chart_calendar_client')) && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Activity /> Riepilogo Attività Calendario</CardTitle>
+                                <CardDescription>Tempo registrato nelle attività del calendario per utente.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Utente</TableHead>
+                                                <TableHead>N. Attività</TableHead>
+                                                <TableHead className="text-right">Ore Registrate</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {calendarActivityByUser.map(({ user, hours, count }) => (
+                                                <TableRow key={user.id}>
+                                                    <TableCell className="font-medium">{user.name}</TableCell>
+                                                    <TableCell>{count}</TableCell>
+                                                    <TableCell className="text-right font-mono">{formatNumber(hours)}h</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {calendarActivityByUser.length === 0 && (
+                                                <TableRow><TableCell colSpan={3} className="h-24 text-center">Nessuna attività registrata.</TableCell></TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                    {isWidgetVisible('chart_calendar_client') && (
+                        <Card className={cn("glass-card", ((!isWidgetVisible('list_overdue_tasks') && !isWidgetVisible('chart_calendar_user')) || (isWidgetVisible('list_overdue_tasks') && isWidgetVisible('chart_calendar_user'))) && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><Building2 /> Attività Calendario per Cliente</CardTitle>
+                                <CardDescription>Tempo registrato nelle attività del calendario diviso per cliente.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Cliente</TableHead>
+                                                <TableHead>N. Attività</TableHead>
+                                                <TableHead>Ore</TableHead>
+                                                <TableHead className="text-right">Costo Stimato</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {calendarActivityByClient.map(({ clientId, client, hours, count, cost }: any) => (
+                                                <TableRow key={clientId}>
+                                                    <TableCell className="font-medium">{client?.name || 'Senza Cliente'}</TableCell>
+                                                    <TableCell>{count}</TableCell>
+                                                    <TableCell className="font-mono">{formatNumber(hours)}h</TableCell>
+                                                    <TableCell className="text-right font-mono">{formatCurrency(cost)}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                            {calendarActivityByClient.length === 0 && (
+                                                <TableRow><TableCell colSpan={4} className="h-24 text-center">Nessuna attività registrata.</TableCell></TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
+            {(isWidgetVisible('table_future_workload') || isWidgetVisible('chart_predictive_delivery')) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {isWidgetVisible('table_future_workload') && (
+                        <Card className={cn("glass-card", !isWidgetVisible('chart_predictive_delivery') && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><GanttChart /> Ore Stimate vs. Ore Effettive per Utente</CardTitle>
+                                <CardDescription>Confronto tra le ore pianificate e quelle effettivamente lavorate per utente.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={300}>
+                                    <DynamicBarChart data={userPerformanceData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                        <YAxis allowDecimals={false} unit="h" />
+                                        <Tooltip content={<CustomTooltip formatter={(val) => `${val}h`} />} />
+                                        <Legend />
+                                        <Bar dataKey="estimatedHours" name="Ore Stimate" fill="hsl(var(--primary))" opacity={0.6} radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="hours" name="Ore Effettive" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                                    </DynamicBarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    )}
+                    {isWidgetVisible('chart_predictive_delivery') && (
+                        <Card className={cn("glass-card", !isWidgetVisible('table_future_workload') && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2"><CalendarClock /> Previsione Carico di Lavoro</CardTitle>
+                                <CardDescription>Ore stimate per i prossimi 7 giorni.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Utente</TableHead>
+                                                {sevenDayHeaders.map(day => <TableHead key={day} className="text-center">{day}</TableHead>)}
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {futureWorkloadData.map(({ user, workload }) => (
+                                                <TableRow key={user.id}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <Avatar className="h-8 w-8">
+                                                                <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>{user.name ? getInitials(user.name) : '?'}</AvatarFallback>
+                                                            </Avatar>
+                                                        </div>
+                                                    </TableCell>
+                                                    {workload.map((hours, index) => (
+                                                        <TableCell key={index} className={cn("text-center font-mono", hours > 8 ? 'text-destructive font-bold' : '')}>
+                                                            {hours > 0 ? hours.toFixed(1) + 'h' : '-'}
+                                                        </TableCell>
+                                                    ))}
+                                                </TableRow>
+                                            ))}
+                                            {futureWorkloadData.length === 0 && (
+                                                <TableRow><TableCell colSpan={8} className="h-24 text-center">Nessun carico.</TableCell></TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
 
             {/* NEW: Weekly Activity Heatmap & Radar Chart */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Weekly Activity Heatmap */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Activity className="h-5 w-5" /> Attività Settimanale
-                        </CardTitle>
-                        <CardDescription>Ore lavorate per giorno della settimana (totali)</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={250}>
-                            <DynamicBarChart data={weeklyHeatmapData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
-                                <YAxis allowDecimals={false} unit="h" />
-                                <Tooltip
-                                    content={<CustomTooltip />}
-                                    cursor={{ fill: 'hsla(var(--accent-foreground), 0.1)' }}
-                                />
-                                <Bar dataKey="total" name="Ore Totali" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
-                                    {weeklyHeatmapData.map((entry, index) => {
-                                        const intensity = entry.total / Math.max(...weeklyHeatmapData.map(d => d.total || 1), 1);
-                                        const color = `hsl(${220 - intensity * 120}, 70%, ${65 - intensity * 25}%)`;
-                                        return <Cell key={`cell-${index}`} fill={color} />;
-                                    })}
-                                </Bar>
-                            </DynamicBarChart>
-                        </ResponsiveContainer>
-                        <div className="mt-4 flex items-center justify-center gap-4">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(220, 70%, 65%)' }} />
-                                <span>Basso</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(160, 70%, 50%)' }} />
-                                <span>Medio</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(100, 70%, 40%)' }} />
-                                <span>Alto</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* User Performance Radar Chart */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Target className="h-5 w-5" /> Confronto Performance
-                        </CardTitle>
-                        <CardDescription>Confronto multi-dimensionale degli utenti (top 5)</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {userRadarData.length > 0 ? (
-                            <>
-                                <ResponsiveContainer width="100%" height={280}>
-                                    <RadarChart cx="50%" cy="50%" outerRadius="70%" data={[
-                                        { subject: 'Completamento', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Completamento']])) },
-                                        { subject: 'Ore Lavorate', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Ore Lavorate']])) },
-                                        { subject: 'Puntualità', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Puntualità']])) },
-                                        { subject: 'Task Totali', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Task Totali']])) },
-                                        { subject: 'Produttività', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Produttività']])) },
-                                    ]}>
-                                        <PolarGrid />
-                                        <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-                                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8 }} />
-                                        {userRadarData.map((user, index) => (
-                                            <Radar
-                                                key={user.name}
-                                                name={user.fullName}
-                                                dataKey={user.name}
-                                                stroke={user.color}
-                                                fill={user.color}
-                                                fillOpacity={0.2}
-                                            />
-                                        ))}
-                                        <Legend wrapperStyle={{ fontSize: 11 }} />
-                                    </RadarChart>
+            {(isWidgetVisible('weekly_activity') || isWidgetVisible('radar_performance')) && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Weekly Activity Heatmap */}
+                    {isWidgetVisible('weekly_activity') && (
+                        <Card className={cn("glass-card", !isWidgetVisible('radar_performance') && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Activity className="h-5 w-5" /> Attività Settimanale
+                                </CardTitle>
+                                <CardDescription>Ore lavorate per giorno della settimana (totali)</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ResponsiveContainer width="100%" height={250}>
+                                    <DynamicBarChart data={weeklyHeatmapData} margin={{ top: 5, right: 20, bottom: 5, left: -20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                                        <YAxis allowDecimals={false} unit="h" />
+                                        <Tooltip
+                                            content={<CustomTooltip />}
+                                            cursor={{ fill: 'hsla(var(--accent-foreground), 0.1)' }}
+                                        />
+                                        <Bar dataKey="total" name="Ore Totali" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                                            {weeklyHeatmapData.map((entry, index) => {
+                                                const intensity = entry.total / Math.max(...weeklyHeatmapData.map(d => d.total || 1), 1);
+                                                const color = `hsl(${220 - intensity * 120}, 70%, ${65 - intensity * 25}%)`;
+                                                return <Cell key={`cell-${index}`} fill={color} />;
+                                            })}
+                                        </Bar>
+                                    </DynamicBarChart>
                                 </ResponsiveContainer>
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
-                                <div className="p-3 bg-muted rounded-full">
-                                    <Target className="h-6 w-6 opacity-50" />
+                                <div className="mt-4 flex items-center justify-center gap-4">
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(220, 70%, 65%)' }} />
+                                        <span>Basso</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(160, 70%, 50%)' }} />
+                                        <span>Medio</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                        <div className="w-4 h-4 rounded" style={{ backgroundColor: 'hsl(100, 70%, 40%)' }} />
+                                        <span>Alto</span>
+                                    </div>
                                 </div>
-                                <p className="text-sm">Nessun dato disponibile.</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* User Performance Radar Chart */}
+                    {isWidgetVisible('radar_performance') && (
+                        <Card className={cn("glass-card", !isWidgetVisible('weekly_activity') && "lg:col-span-2")}>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Target className="h-5 w-5" /> Confronto Performance
+                                </CardTitle>
+                                <CardDescription>Confronto multi-dimensionale degli utenti (top 5)</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {userRadarData.length > 0 ? (
+                                    <>
+                                        <ResponsiveContainer width="100%" height={280}>
+                                            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={[
+                                                { subject: 'Completamento', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Completamento']])) },
+                                                { subject: 'Ore Lavorate', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Ore Lavorate']])) },
+                                                { subject: 'Puntualità', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Puntualità']])) },
+                                                { subject: 'Task Totali', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Task Totali']])) },
+                                                { subject: 'Produttività', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Produttività']])) },
+                                            ]}>
+                                                <PolarGrid />
+                                                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
+                                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8 }} />
+                                                {userRadarData.map((user, index) => (
+                                                    <Radar
+                                                        key={user.name}
+                                                        name={user.fullName}
+                                                        dataKey={user.name}
+                                                        stroke={user.color}
+                                                        fill={user.color}
+                                                        fillOpacity={0.2}
+                                                    />
+                                                ))}
+                                                <Legend wrapperStyle={{ fontSize: 11 }} />
+                                            </RadarChart>
+                                        </ResponsiveContainer>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
+                                        <div className="p-3 bg-muted rounded-full">
+                                            <Target className="h-6 w-6 opacity-50" />
+                                        </div>
+                                        <p className="text-sm">Nessun dato disponibile.</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
 
             {/* ===== NEW: Client Profitability Dashboard ===== */}
             {visibleWidgets.includes('chart_client_profitability') && clientProfitability.length > 0 && (
