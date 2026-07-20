@@ -702,6 +702,45 @@ export default function Dashboard() {
                     }
                 });
 
+                // Trova gli estremi dei task (sforamento e risparmio)
+                let maxOverrunTask: any = null;
+                let maxOverrunValue = -Infinity;
+
+                let maxUnderrunTask: any = null;
+                let maxUnderrunValue = -Infinity;
+
+                createdTasks.forEach(task => {
+                    const est = (task.estimatedDuration || 0) / 60;
+                    const act = (task.timeSpent || 0) / 3600;
+                    
+                    const overrun = act - est;
+                    const underrun = est - act;
+
+                    if (overrun > maxOverrunValue) {
+                        maxOverrunValue = overrun;
+                        maxOverrunTask = task;
+                    }
+                    
+                    if (underrun > maxUnderrunValue) {
+                        maxUnderrunValue = underrun;
+                        maxUnderrunTask = task;
+                    }
+                });
+
+                const overrunDetails = maxOverrunTask ? {
+                    title: maxOverrunTask.title,
+                    estimatedHours: parseFloat(((maxOverrunTask.estimatedDuration || 0) / 60).toFixed(1)),
+                    actualHours: parseFloat(((maxOverrunTask.timeSpent || 0) / 3600).toFixed(1)),
+                    assigneeName: maxOverrunTask.assignedUserId ? (usersById[maxOverrunTask.assignedUserId]?.name || 'N/A') : 'Nessuno',
+                } : null;
+
+                const underrunDetails = maxUnderrunTask ? {
+                    title: maxUnderrunTask.title,
+                    estimatedHours: parseFloat(((maxUnderrunTask.estimatedDuration || 0) / 60).toFixed(1)),
+                    actualHours: parseFloat(((maxUnderrunTask.timeSpent || 0) / 3600).toFixed(1)),
+                    assigneeName: maxUnderrunTask.assignedUserId ? (usersById[maxUnderrunTask.assignedUserId]?.name || 'N/A') : 'Nessuno',
+                } : null;
+
                 return {
                     id: user.id,
                     name: user.name,
@@ -710,6 +749,8 @@ export default function Dashboard() {
                     hours: parseFloat(totalHours.toFixed(1)),
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
                     activityCounts,
+                    overrunDetails,
+                    underrunDetails,
                 };
             })
             .filter(u => u.createdCount > 0 || u.hours > 0)
@@ -2217,6 +2258,49 @@ export default function Dashboard() {
                                                     {isRed && (
                                                         <div className="text-[10px] text-red-500 font-medium text-center bg-red-500/10 rounded-md py-1 px-2 border border-red-500/20">
                                                             ⚠️ Tempo richiesto superiore a effettivo
+                                                        </div>
+                                                    )}
+
+                                                    {/* Estremi dei Task Creati */}
+                                                    {(user.overrunDetails || user.underrunDetails) && (
+                                                        <div className="pt-3 border-t space-y-3">
+                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center">
+                                                                Estremi stime
+                                                            </div>
+                                                            {user.overrunDetails && (
+                                                                <div className="p-2 rounded-lg bg-red-500/5 border border-red-500/10 text-xs">
+                                                                    <div className="flex justify-between font-semibold text-[10px] text-red-500 uppercase">
+                                                                        <span>📈 Sforamento Maggiore</span>
+                                                                        <span className="font-mono">
+                                                                            +{ (user.overrunDetails.actualHours - user.overrunDetails.estimatedHours).toFixed(1) }h
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="font-medium text-foreground truncate mt-1" title={user.overrunDetails.title}>
+                                                                        {user.overrunDetails.title}
+                                                                    </div>
+                                                                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                                                                        <span>Assegnato: <span className="font-semibold">{user.overrunDetails.assigneeName}</span></span>
+                                                                        <span>{user.overrunDetails.estimatedHours}h vs {user.overrunDetails.actualHours}h</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {user.underrunDetails && (
+                                                                <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs">
+                                                                    <div className="flex justify-between font-semibold text-[10px] text-emerald-600 uppercase">
+                                                                        <span>📉 Risparmio Maggiore</span>
+                                                                        <span className="font-mono">
+                                                                            { (user.underrunDetails.actualHours - user.underrunDetails.estimatedHours).toFixed(1) }h
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="font-medium text-foreground truncate mt-1" title={user.underrunDetails.title}>
+                                                                        {user.underrunDetails.title}
+                                                                    </div>
+                                                                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                                                                        <span>Assegnato: <span className="font-semibold">{user.underrunDetails.assigneeName}</span></span>
+                                                                        <span>{user.underrunDetails.estimatedHours}h vs {user.underrunDetails.actualHours}h</span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </CardContent>
