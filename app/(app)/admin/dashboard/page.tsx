@@ -659,14 +659,6 @@ export default function Dashboard() {
                 const estimatedHours = assignedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
                 const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
 
-                // Calcolo conteggio attività assegnate
-                const activityCounts: { [activity: string]: number } = {};
-                assignedTasks.forEach(task => {
-                    if (task.activityType) {
-                        activityCounts[task.activityType] = (activityCounts[task.activityType] || 0) + 1;
-                    }
-                });
-
                 return {
                     id: user.id,
                     name: user.name,
@@ -676,11 +668,52 @@ export default function Dashboard() {
                     hours: parseFloat(totalHours.toFixed(1)),
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
                     rate: parseFloat(completionRate.toFixed(1)),
-                    activityCounts,
                 };
             })
             .filter(u => u.assignedCount > 0 || u.hours > 0)
             .sort((a, b) => b.completedCount - a.completedCount);
+    }, [users, filteredData]);
+
+    const userCreatedTasksData = useMemo(() => {
+        const { tasks: relevantTasks, activities: relevantActivities } = filteredData;
+
+        return [...users]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .filter(user => user.role !== 'Amministratore')
+            .map(user => {
+                const createdTasks = relevantTasks.filter(t => t.createdBy === user.id);
+                const assignedActivities = relevantActivities.filter(a => a.userId === user.id);
+
+                const taskHours = createdTasks.reduce((sum, t) => sum + (t.timeSpent || 0), 0) / 3600;
+                const activityHours = assignedActivities.reduce((sum, a) => {
+                    if (!a.startTime || !a.endTime) return sum;
+                    const duration = differenceInSeconds(parseISO(a.endTime), parseISO(a.startTime));
+                    if (duration <= 0) return sum;
+                    return sum + duration;
+                }, 0) / 3600;
+
+                const totalHours = taskHours + activityHours;
+                const estimatedHours = createdTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
+
+                const activityCounts: { [activity: string]: number } = {};
+                createdTasks.forEach(task => {
+                    if (task.activityType) {
+                        activityCounts[task.activityType] = (activityCounts[task.activityType] || 0) + 1;
+                    }
+                });
+
+                return {
+                    id: user.id,
+                    name: user.name,
+                    color: user.color,
+                    createdCount: createdTasks.length,
+                    hours: parseFloat(totalHours.toFixed(1)),
+                    estimatedHours: parseFloat(estimatedHours.toFixed(1)),
+                    activityCounts,
+                };
+            })
+            .filter(u => u.createdCount > 0 || u.hours > 0)
+            .sort((a, b) => b.createdCount - a.createdCount);
     }, [users, filteredData]);
 
     const { futureWorkloadData, sevenDayHeaders } = useMemo(() => {
@@ -2103,17 +2136,18 @@ export default function Dashboard() {
                 {isWidgetVisible('table_time_summary') && (
                     <Card className="glass-card bg-transparent">
                         <CardHeader>
+                            <Clock className="h-5 w-5 text-primary" />
                             <CardTitle className="flex items-center gap-2">
-                                <Clock className="h-5 w-5" /> Riepilogo Tempi e Task Utenti
+                                Riepilogo Tempi e Task Creati
                             </CardTitle>
                             <CardDescription>
-                                Numero di task assegnati, stima delle ore richieste (tempo stimato), ore effettive registrate ed elenco delle attività per ogni utente.
+                                Numero di task creati dall'utente, stima delle ore richieste (tempo stimato), ore effettive registrate ed elenco delle attività per ogni utente.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {userPerformanceData.length > 0 ? (
+                            {userCreatedTasksData.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {userPerformanceData.map((user) => {
+                                    {userCreatedTasksData.map((user) => {
                                         const activityList = Object.entries(user.activityCounts || {})
                                             .map(([name, count]) => `${name} ${count}`)
                                             .join(', ');
@@ -2135,15 +2169,15 @@ export default function Dashboard() {
                                                     </Avatar>
                                                     <CardTitle className="text-lg mt-2">{user.name}</CardTitle>
                                                     <CardDescription className="text-xs font-semibold truncate text-muted-foreground mt-1" title={activityList}>
-                                                        {activityList || 'Nessuna attività assegnata'}
+                                                        {activityList || 'Nessuna attività creata'}
                                                     </CardDescription>
                                                 </CardHeader>
                                                 <CardContent className="space-y-4">
                                                     {/* Stats Grid */}
                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                         <div className="bg-muted/50 rounded-lg p-2">
-                                                            <div className="text-lg font-bold text-amber-500">{user.assignedCount}</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">Assegnati</div>
+                                                            <div className="text-lg font-bold text-amber-500">{user.createdCount}</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">Creati</div>
                                                         </div>
                                                         <div className="bg-muted/50 rounded-lg p-2">
                                                             <div className="text-lg font-bold text-primary">{user.estimatedHours}h</div>
