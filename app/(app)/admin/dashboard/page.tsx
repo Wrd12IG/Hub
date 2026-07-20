@@ -659,6 +659,49 @@ export default function Dashboard() {
                 const estimatedHours = assignedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
                 const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
 
+                // Trova gli estremi dei task assegnati (sforamento e risparmio)
+                let maxOverrunTask: any = null;
+                let maxOverrunValue = -Infinity;
+
+                let maxUnderrunTask: any = null;
+                let maxUnderrunValue = -Infinity;
+
+                assignedTasks.forEach(task => {
+                    const est = (task.estimatedDuration || 0) / 60;
+                    const act = (task.timeSpent || 0) / 3600;
+                    
+                    const overrun = act - est;
+                    const underrun = est - act;
+
+                    if (overrun > maxOverrunValue) {
+                        maxOverrunValue = overrun;
+                        maxOverrunTask = task;
+                    }
+                    
+                    if (underrun > maxUnderrunValue) {
+                        maxUnderrunValue = underrun;
+                        maxUnderrunTask = task;
+                    }
+                });
+
+                const overrunDetails = maxOverrunTask ? {
+                    title: maxOverrunTask.title,
+                    estimatedHours: parseFloat(((maxOverrunTask.estimatedDuration || 0) / 60).toFixed(1)),
+                    actualHours: parseFloat(((maxOverrunTask.timeSpent || 0) / 3600).toFixed(1)),
+                    creatorName: maxOverrunTask.createdBy ? (usersById[maxOverrunTask.createdBy]?.name || 'N/A') : 'Nessuno',
+                } : null;
+
+                const underrunDetails = maxUnderrunTask ? {
+                    title: maxUnderrunTask.title,
+                    estimatedHours: parseFloat(((maxUnderrunTask.estimatedDuration || 0) / 60).toFixed(1)),
+                    actualHours: parseFloat(((maxUnderrunTask.timeSpent || 0) / 3600).toFixed(1)),
+                    creatorName: maxUnderrunTask.createdBy ? (usersById[maxUnderrunTask.createdBy]?.name || 'N/A') : 'Nessuno',
+                } : null;
+
+                // Task con tempo non registrato (timeSpent <= 0 o non valorizzato)
+                const openTasksNoTime = assignedTasks.filter(t => t.status !== 'Approvato' && t.status !== 'Annullato' && (!t.timeSpent || t.timeSpent <= 0)).length;
+                const approvedTasksNoTime = assignedTasks.filter(t => t.status === 'Approvato' && (!t.timeSpent || t.timeSpent <= 0)).length;
+
                 return {
                     id: user.id,
                     name: user.name,
@@ -668,6 +711,10 @@ export default function Dashboard() {
                     hours: parseFloat(totalHours.toFixed(1)),
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
                     rate: parseFloat(completionRate.toFixed(1)),
+                    overrunDetails,
+                    underrunDetails,
+                    openTasksNoTime,
+                    approvedTasksNoTime,
                 };
             })
             .filter(u => u.assignedCount > 0 || u.hours > 0)
@@ -741,6 +788,10 @@ export default function Dashboard() {
                     assigneeName: maxUnderrunTask.assignedUserId ? (usersById[maxUnderrunTask.assignedUserId]?.name || 'N/A') : 'Nessuno',
                 } : null;
 
+                // Task con tempo non registrato (creati dall'utente)
+                const openTasksNoTime = createdTasks.filter(t => t.status !== 'Approvato' && t.status !== 'Annullato' && (!t.timeSpent || t.timeSpent <= 0)).length;
+                const approvedTasksNoTime = createdTasks.filter(t => t.status === 'Approvato' && (!t.timeSpent || t.timeSpent <= 0)).length;
+
                 return {
                     id: user.id,
                     name: user.name,
@@ -751,6 +802,8 @@ export default function Dashboard() {
                     activityCounts,
                     overrunDetails,
                     underrunDetails,
+                    openTasksNoTime,
+                    approvedTasksNoTime,
                 };
             })
             .filter(u => u.createdCount > 0 || u.hours > 0)
@@ -2154,6 +2207,70 @@ export default function Dashboard() {
                                                                 </Badge>
                                                             </div>
                                                             <Progress value={user.rate} className="h-1.5 mt-1" />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Estremi stime (Sforamento / Risparmio) */}
+                                                    {(user.overrunDetails || user.underrunDetails) && (
+                                                        <div className="pt-3 border-t space-y-2">
+                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center">
+                                                                Estremi stime
+                                                            </div>
+                                                            {user.overrunDetails && (
+                                                                <div className="p-2 rounded-lg bg-red-500/5 border border-red-500/10 text-xs">
+                                                                    <div className="flex justify-between font-semibold text-[10px] text-red-500 uppercase">
+                                                                        <span>📈 Sforamento Maggiore</span>
+                                                                        <span className="font-mono">
+                                                                            +{(user.overrunDetails.actualHours - user.overrunDetails.estimatedHours).toFixed(1)}h
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="font-medium text-foreground truncate mt-1" title={user.overrunDetails.title}>
+                                                                        {user.overrunDetails.title}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-muted-foreground mt-1">
+                                                                        {user.overrunDetails.estimatedHours}h stimate vs {user.overrunDetails.actualHours}h effettive
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                            {user.underrunDetails && (
+                                                                <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs">
+                                                                    <div className="flex justify-between font-semibold text-[10px] text-emerald-600 uppercase">
+                                                                        <span>📉 Risparmio Maggiore</span>
+                                                                        <span className="font-mono">
+                                                                            {(user.underrunDetails.actualHours - user.underrunDetails.estimatedHours).toFixed(1)}h
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="font-medium text-foreground truncate mt-1" title={user.underrunDetails.title}>
+                                                                        {user.underrunDetails.title}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-muted-foreground mt-1">
+                                                                        {user.underrunDetails.estimatedHours}h stimate vs {user.underrunDetails.actualHours}h effettive
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Task senza tempo registrato */}
+                                                    {((user.openTasksNoTime ?? 0) > 0 || (user.approvedTasksNoTime ?? 0) > 0) && (
+                                                        <div className="pt-2 border-t">
+                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
+                                                                ⏱️ Tempo non registrato
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                {(user.openTasksNoTime ?? 0) > 0 && (
+                                                                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-center">
+                                                                        <div className="text-lg font-bold text-amber-500">{user.openTasksNoTime}</div>
+                                                                        <div className="text-[10px] text-muted-foreground uppercase">Aperti</div>
+                                                                    </div>
+                                                                )}
+                                                                {(user.approvedTasksNoTime ?? 0) > 0 && (
+                                                                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 text-center">
+                                                                        <div className="text-lg font-bold text-red-500">{user.approvedTasksNoTime}</div>
+                                                                        <div className="text-[10px] text-muted-foreground uppercase">Approvati</div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     )}
                                                 </CardContent>
