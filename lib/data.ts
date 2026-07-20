@@ -147,6 +147,7 @@ export interface Task {
     requiresTwoStepApproval?: boolean;
     skipAttachmentOnApproval?: boolean;
     rejectionReason?: string;
+    reworkCount?: number;  // Numero di volte che il task è stato rifiutato e rimandato in lavorazione
     cancelledAt?: string;  // Data di annullamento del task
     createdAt?: string;
     updatedAt?: string;

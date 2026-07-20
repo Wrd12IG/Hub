@@ -702,6 +702,11 @@ export default function Dashboard() {
                 const openTasksNoTime = assignedTasks.filter(t => t.status !== 'Approvato' && t.status !== 'Annullato' && (!t.timeSpent || t.timeSpent <= 0)).length;
                 const approvedTasksNoTime = assignedTasks.filter(t => t.status === 'Approvato' && (!t.timeSpent || t.timeSpent <= 0)).length;
 
+                // Tasso di rilavorazione: task rifiutati e rimandati in lavorazione
+                const totalReworks = assignedTasks.reduce((sum, t) => sum + (t.reworkCount || 0), 0);
+                const reworkedTasksCount = assignedTasks.filter(t => (t.reworkCount || 0) > 0).length;
+                const reworkRate = assignedTasks.length > 0 ? (reworkedTasksCount / assignedTasks.length) * 100 : 0;
+
                 return {
                     id: user.id,
                     name: user.name,
@@ -715,6 +720,9 @@ export default function Dashboard() {
                     underrunDetails,
                     openTasksNoTime,
                     approvedTasksNoTime,
+                    totalReworks,
+                    reworkedTasksCount,
+                    reworkRate: parseFloat(reworkRate.toFixed(1)),
                 };
             })
             .filter(u => u.assignedCount > 0 || u.hours > 0)
@@ -2270,6 +2278,35 @@ export default function Dashboard() {
                                                                         <div className="text-[10px] text-muted-foreground uppercase">Approvati</div>
                                                                     </div>
                                                                 )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Tasso di rilavorazione */}
+                                                    {(user.reworkedTasksCount ?? 0) > 0 && (
+                                                        <div className="pt-2 border-t">
+                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
+                                                                🔁 Rilavorazione
+                                                            </div>
+                                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                                <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
+                                                                    <div className="text-lg font-bold text-orange-500">{user.reworkRate}%</div>
+                                                                    <div className="text-[10px] text-muted-foreground uppercase">Tasso</div>
+                                                                </div>
+                                                                <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
+                                                                    <div className="text-lg font-bold text-orange-500">{user.reworkedTasksCount}</div>
+                                                                    <div className="text-[10px] text-muted-foreground uppercase">Task</div>
+                                                                </div>
+                                                                <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
+                                                                    <div className="text-lg font-bold text-orange-500">{user.totalReworks}</div>
+                                                                    <div className="text-[10px] text-muted-foreground uppercase">Rifiuti</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full bg-orange-500 transition-all"
+                                                                    style={{ width: `${Math.min(user.reworkRate, 100)}%` }}
+                                                                />
                                                             </div>
                                                         </div>
                                                     )}

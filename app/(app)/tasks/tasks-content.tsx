@@ -1032,7 +1032,8 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             const updateData: Partial<Task> = {
                 status: 'Da Fare' as const,
                 rejectionReason: reason,
-                attachments: remainingAttachments
+                attachments: remainingAttachments,
+                reworkCount: ((task.reworkCount ?? 0) + 1),
             };
             await updateTask(task.id, updateData, currentUser.id, canApprove, sendEmail);
             playSound('task_rejected');
