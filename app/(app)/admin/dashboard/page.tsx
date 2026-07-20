@@ -701,10 +701,17 @@ export default function Dashboard() {
                 // Task con tempo non registrato (timeSpent <= 0 o non valorizzato)
                 const openTasksNoTime = assignedTasks.filter(t => t.status !== 'Approvato' && t.status !== 'Annullato' && (!t.timeSpent || t.timeSpent <= 0)).length;
                 const approvedTasksNoTime = assignedTasks.filter(t => t.status === 'Approvato' && (!t.timeSpent || t.timeSpent <= 0)).length;
+                const totalNoTimeCount = openTasksNoTime + approvedTasksNoTime;
 
-                // Tasso di rilavorazione: task rifiutati e rimandati in lavorazione
-                const totalReworks = assignedTasks.reduce((sum, t) => sum + (t.reworkCount || 0), 0);
-                const reworkedTasksCount = assignedTasks.filter(t => (t.reworkCount || 0) > 0).length;
+                // Tasso di rilavorazione: usa reworkCount se presente, altrimenti rejectionReason come fallback storico
+                const totalReworks = assignedTasks.reduce((sum, t) => {
+                    if ((t.reworkCount || 0) > 0) return sum + (t.reworkCount || 0);
+                    if (t.rejectionReason) return sum + 1; // fallback storico
+                    return sum;
+                }, 0);
+                const reworkedTasksCount = assignedTasks.filter(t =>
+                    (t.reworkCount || 0) > 0 || !!t.rejectionReason
+                ).length;
                 const reworkRate = assignedTasks.length > 0 ? (reworkedTasksCount / assignedTasks.length) * 100 : 0;
 
                 return {
@@ -720,6 +727,7 @@ export default function Dashboard() {
                     underrunDetails,
                     openTasksNoTime,
                     approvedTasksNoTime,
+                    totalNoTimeCount,
                     totalReworks,
                     reworkedTasksCount,
                     reworkRate: parseFloat(reworkRate.toFixed(1)),
@@ -2260,22 +2268,22 @@ export default function Dashboard() {
                                                     )}
 
                                                     {/* Task senza tempo registrato */}
-                                                    {((user.openTasksNoTime ?? 0) > 0 || (user.approvedTasksNoTime ?? 0) > 0) && (
+                                                    {(user.totalNoTimeCount ?? 0) > 0 && (
                                                         <div className="pt-2 border-t">
                                                             <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
                                                                 ⏱️ Tempo non registrato
                                                             </div>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                {(user.openTasksNoTime ?? 0) > 0 && (
-                                                                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 text-center">
-                                                                        <div className="text-lg font-bold text-amber-500">{user.openTasksNoTime}</div>
-                                                                        <div className="text-[10px] text-muted-foreground uppercase">Aperti</div>
-                                                                    </div>
-                                                                )}
-                                                                {(user.approvedTasksNoTime ?? 0) > 0 && (
-                                                                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 text-center">
-                                                                        <div className="text-lg font-bold text-red-500">{user.approvedTasksNoTime}</div>
-                                                                        <div className="text-[10px] text-muted-foreground uppercase">Approvati</div>
+                                                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
+                                                                <div className="text-2xl font-bold text-amber-500">{user.totalNoTimeCount}</div>
+                                                                <div className="text-[10px] text-muted-foreground uppercase mt-0.5">task senza ore</div>
+                                                                {(user.openTasksNoTime > 0 || user.approvedTasksNoTime > 0) && (
+                                                                    <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                                                                        {user.openTasksNoTime > 0 && (
+                                                                            <span className="text-amber-600 font-medium">{user.openTasksNoTime} aperti</span>
+                                                                        )}
+                                                                        {user.approvedTasksNoTime > 0 && (
+                                                                            <span className="text-red-500 font-medium">{user.approvedTasksNoTime} approvati</span>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -2288,7 +2296,7 @@ export default function Dashboard() {
                                                             <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
                                                                 🔁 Rilavorazione
                                                             </div>
-                                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                            <div className="grid grid-cols-3 gap-1.5 text-center">
                                                                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
                                                                     <div className="text-lg font-bold text-orange-500">{user.reworkRate}%</div>
                                                                     <div className="text-[10px] text-muted-foreground uppercase">Tasso</div>
