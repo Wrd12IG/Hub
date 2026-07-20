@@ -148,6 +148,19 @@ const formSchema = z.object({
     endTime: z.string().min(1, "Ora fine richiesta"),
     color: z.string().optional(),
     notes: z.string().optional(),
+}).superRefine((data, ctx) => {
+    // Cross-field validation: endDate+endTime must be strictly after startDate+startTime
+    if (data.startDate && data.startTime && data.endDate && data.endTime) {
+        const start = new Date(`${data.startDate}T${data.startTime}`);
+        const end = new Date(`${data.endDate}T${data.endTime}`);
+        if (end <= start) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "L'ora di fine deve essere successiva all'ora di inizio",
+                path: ['endTime'],
+            });
+        }
+    }
 });
 
 interface CalendarActivityFormProps {

@@ -639,6 +639,8 @@ export default function Dashboard() {
                 const activityHours = assignedActivities.reduce((sum, a) => {
                     if (!a.startTime || !a.endTime) return sum;
                     const duration = differenceInSeconds(parseISO(a.endTime), parseISO(a.startTime));
+                    // Guard: skip activities with invalid/negative duration
+                    if (duration <= 0) return sum;
                     return sum + duration;
                 }, 0) / 3600;
 
@@ -999,6 +1001,9 @@ export default function Dashboard() {
 
             const durationSeconds = differenceInSeconds(parseISO(activity.endTime), parseISO(activity.startTime));
             const durationHours = durationSeconds / 3600;
+
+            // Guard: skip activities with invalid/negative duration (endTime before startTime)
+            if (durationHours <= 0) return;
 
             if (!activityByUser[activity.userId]) {
                 activityByUser[activity.userId] = { hours: 0, count: 0 };
