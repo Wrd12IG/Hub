@@ -181,9 +181,22 @@ export default function RecurringTasksPage() {
 
   const formatRecurrence = (recurrence: RecurringTask['recurrence']) => {
     const { type, time, dayOfWeek, weekOfMonth } = recurrence;
-    if (type === 'daily') return `Ogni giorno alle ${time}`;
+    const dayOfMonth = (recurrence as any).dayOfMonth;
+    const rotationMonth = (recurrence as any).rotationMonth;
+
+    if (type === 'daily') return `Ogni giorno lavorativo alle ${time}`;
     if (type === 'weekly') return `Ogni ${daysOfWeek.find(d => d.value === dayOfWeek)?.label} alle ${time}`;
-    if (type === 'monthly') return `Il ${weeksOfMonth.find(w => w.value === weekOfMonth)?.label} ${daysOfWeek.find(d => d.value === dayOfWeek)?.label} di ogni mese alle ${time}`;
+    if (type === 'trimestrale') {
+      const mesi = ['Gen/Apr/Lug/Ott', 'Feb/Mag/Ago/Nov', 'Mar/Giu/Set/Dic'];
+      const rotLabel = rotationMonth ? (mesi[rotationMonth - 1] || `Mese ${rotationMonth}`) : '';
+      return `Trimestrale (il ${dayOfMonth || 1}° giorno) - Rotazione: ${rotLabel} alle ${time}`;
+    }
+    if (type === 'monthly') {
+      if (dayOfMonth !== undefined) {
+        return `Il ${dayOfMonth} di ogni mese alle ${time}`;
+      }
+      return `Il ${weeksOfMonth.find(w => w.value === weekOfMonth)?.label} ${daysOfWeek.find(d => d.value === dayOfWeek)?.label} di ogni mese alle ${time}`;
+    }
     return 'N/D';
   };
 
