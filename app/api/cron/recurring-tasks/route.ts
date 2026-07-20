@@ -14,10 +14,12 @@ import { format, addDays, addWeeks, addMonths } from 'date-fns';
 // ─── Tipi ────────────────────────────────────────────────────────────────────
 
 interface RecurrenceConfig {
-    type: 'daily' | 'weekly' | 'monthly';
+    type: 'daily' | 'weekly' | 'monthly' | 'trimestrale';
     time?: string;
     dayOfWeek?: number;   // 0=Dom, 1=Lun … 6=Sab
     weekOfMonth?: number; // 1–4
+    dayOfMonth?: number;  // 1–31 (Nuovo)
+    rotationMonth?: number; // 1, 2, 3 (Nuovo)
 }
 
 interface RecurringTaskDoc {
@@ -54,8 +56,43 @@ function isMonthlyDue(dayOfWeek: number | undefined, weekOfMonth: number | undef
     return count === weekOfMonth;
 }
 
+function isTrimestralDue(rotationMonth: number | undefined, today: Date): boolean {
+    if (rotationMonth === undefined) return false;
+    const currentMonth = today.getMonth() + 1; // 1-12
+    return (currentMonth - rotationMonth) % 3 === 0;
+}
+
+function isDayOfMonthDue(dayOfMonth: number | undefined, today: Date): boolean {
+    if (dayOfMonth === undefined) return false;
+    
+    // Controlla se oggi è il giorno pianificato
+    const targetDate = new Date(today.getFullYear(), today.getMonth(), dayOfMonth);
+    const targetDayOfWeek = targetDate.getDay(); // 0=Domenica, 6=Sabato
+    
+    // Se cade in settimana lavorativa, deve girare esattamente in quel giorno
+    if (targetDayOfWeek !== 0 && targetDayOfWeek !== 6) {
+        return today.getDate() === dayOfMonth;
+    }
+    
+    // Se cade di Sabato, deve girare il Lunedì successivo (+2 giorni)
+    if (targetDayOfWeek === 6) {
+        const nextMonday = new Date(targetDate);
+        nextMonday.setDate(targetDate.getDate() + 2);
+        return today.getDate() === nextMonday.getDate() && today.getMonth() === nextMonday.getMonth();
+    }
+    
+    // Se cade di Domenica, deve girare il Lunedì successivo (+1 giorno)
+    if (targetDayOfWeek === 0) {
+        const nextMonday = new Date(targetDate);
+        nextMonday.setDate(targetDate.getDate() + 1);
+        return today.getDate() === nextMonday.getDate() && today.getMonth() === nextMonday.getMonth();
+    }
+    
+    return false;
+}
+
 function computeNextRunDate(recurrence: RecurrenceConfig, afterDate: Date): string {
-    const { type, dayOfWeek, weekOfMonth } = recurrence;
+    const { type, dayOfWeek, weekOfMonth, dayOfMonth } = recurrence;
     if (type === 'daily') return format(addDays(afterDate, 1), 'yyyy-MM-dd');
     if (type === 'weekly') {
         let next = addDays(afterDate, 1);
@@ -64,7 +101,12 @@ function computeNextRunDate(recurrence: RecurrenceConfig, afterDate: Date): stri
             next = addDays(next, 1);
         }
     }
-    if (type === 'monthly') {
+    if (type === 'trimestrale' || type === 'monthly') {
+        if (dayOfMonth !== undefined) {
+            // Ritorna una stima del prossimo mese/giorno
+            const nextMonth = addMonths(afterDate, type === 'trimestrale' ? 3 : 1);
+            return format(new Date(nextMonth.getFullYear(), nextMonth.getMonth(), dayOfMonth), 'yyyy-MM-dd');
+        }
         const nextMonth = addMonths(new Date(afterDate.getFullYear(), afterDate.getMonth(), 1), 1);
         let count = 0;
         const loopEnd = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 1);
@@ -128,9 +170,21 @@ export async function GET(request: NextRequest) {
 
         // Controlla se è il giorno giusto
         let isDue = false;
-        if (recurrence.type === 'daily') isDue = true;
-        else if (recurrence.type === 'weekly') isDue = isWeeklyDue(recurrence.dayOfWeek, today);
-        else if (recurrence.type === 'monthly') isDue = isMonthlyDue(recurrence.dayOfWeek, recurrence.weekOfMonth, today);
+        if (recurrence.type === 'daily') {
+            isDue = true;
+        } else if (recurrence.type === 'weekly') {
+            isDue = isWeeklyDue(recurrence.dayOfWeek, today);
+        } else if (recurrence.type === 'trimestrale') {
+            const isMonthDue = isTrimestralDue(recurrence.rotationMonth, today);
+            const isDayDue = isDayOfMonthDue(recurrence.dayOfMonth, today);
+            isDue = isMonthDue && isDayDue;
+        } else if (recurrence.type === 'monthly') {
+            if (recurrence.dayOfMonth !== undefined) {
+                isDue = isDayOfMonthDue(recurrence.dayOfMonth, today);
+            } else {
+                isDue = isMonthlyDue(recurrence.dayOfWeek, recurrence.weekOfMonth, today);
+            }
+        }
 
         if (!isDue) {
             results.push({ templateId: template.id, title: template.title, action: 'skipped_not_due', reason: `Non è il giorno per ${recurrence.type}` });
