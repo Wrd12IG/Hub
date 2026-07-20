@@ -540,7 +540,7 @@ export interface TaskPrioritySettings {
 
 // Recurrence Configuration
 export interface RecurrenceConfig {
-    type: 'Settimanale' | 'Mensile' | 'Annuale' | 'Trimestrale' | 'daily' | 'weekly' | 'monthly'; // Or string
+    type: 'Settimanale' | 'Mensile' | 'Annuale' | 'Trimestrale' | 'daily' | 'weekly' | 'monthly' | 'trimestrale'; // Or string
     time?: string;
     dayOfWeek?: number;
     weekOfMonth?: number;
