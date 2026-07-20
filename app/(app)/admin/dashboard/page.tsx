@@ -659,6 +659,14 @@ export default function Dashboard() {
                 const estimatedHours = assignedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
                 const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
 
+                // Calcolo conteggio attività assegnate
+                const activityCounts: { [activity: string]: number } = {};
+                assignedTasks.forEach(task => {
+                    if (task.activityType) {
+                        activityCounts[task.activityType] = (activityCounts[task.activityType] || 0) + 1;
+                    }
+                });
+
                 return {
                     id: user.id,
                     name: user.name,
@@ -668,6 +676,7 @@ export default function Dashboard() {
                     hours: parseFloat(totalHours.toFixed(1)),
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
                     rate: parseFloat(completionRate.toFixed(1)),
+                    activityCounts,
                 };
             })
             .filter(u => u.assignedCount > 0 || u.hours > 0)
@@ -2090,7 +2099,7 @@ export default function Dashboard() {
                     </Card>
                 )}
 
-                {/* Nuova Tabella Riepilogativa dei Tempi per Utente */}
+                {/* Nuova Tabella/Card Riepilogativa dei Tempi per Utente */}
                 {isWidgetVisible('table_time_summary') && (
                     <Card className="glass-card bg-transparent">
                         <CardHeader>
@@ -2098,42 +2107,97 @@ export default function Dashboard() {
                                 <Clock className="h-5 w-5" /> Riepilogo Tempi e Task Utenti
                             </CardTitle>
                             <CardDescription>
-                                Numero di task assegnati, stima delle ore richieste (tempo stimato) e ore effettivamente registrate (attività + task) per ogni utente.
+                                Numero di task assegnati, stima delle ore richieste (tempo stimato), ore effettive registrate ed elenco delle attività per ogni utente.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Utente</TableHead>
-                                            <TableHead className="text-center">Task Assegnati</TableHead>
-                                            <TableHead className="text-center">Task Completati</TableHead>
-                                            <TableHead className="text-center">Tempo Richiesto (Stima)</TableHead>
-                                            <TableHead className="text-center">Tempo Registrato (Effettivo)</TableHead>
-                                            <TableHead className="text-center">Differenza</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {userPerformanceData.map((user) => {
-                                            const diff = user.hours - user.estimatedHours;
-                                            const diffColor = diff > 0 ? 'text-amber-500' : 'text-emerald-500';
-                                            return (
-                                                <TableRow key={user.id}>
-                                                    <TableCell className="font-semibold">{user.name}</TableCell>
-                                                    <TableCell className="text-center">{user.assignedCount}</TableCell>
-                                                    <TableCell className="text-center">{user.completedCount}</TableCell>
-                                                    <TableCell className="text-center font-medium">{user.estimatedHours}h</TableCell>
-                                                    <TableCell className="text-center font-medium">{user.hours}h</TableCell>
-                                                    <TableCell className={`text-center font-semibold ${diffColor}`}>
-                                                        {diff > 0 ? `+${diff.toFixed(1)}h` : `${diff.toFixed(1)}h`}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                            {userPerformanceData.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    {userPerformanceData.map((user) => {
+                                        const activityList = Object.entries(user.activityCounts || {})
+                                            .map(([name, count]) => `${name} ${count}`)
+                                            .join(', ');
+
+                                        const isRed = user.estimatedHours > user.hours;
+                                        const statusColor = isRed ? 'text-red-500 dark:text-red-400' : 'text-emerald-500 dark:text-emerald-400';
+                                        const progressIndicatorColor = isRed ? 'bg-red-500' : 'bg-emerald-500';
+                                        const efficiency = user.estimatedHours > 0
+                                            ? ((user.hours / user.estimatedHours) * 100)
+                                            : 0;
+
+                                        return (
+                                            <Card key={user.id} className="relative overflow-hidden transition-all hover:shadow-lg">
+                                                <CardHeader className="pb-2 text-center">
+                                                    <Avatar className="h-16 w-16 mx-auto border-4" style={{ borderColor: user.color || '#6366f1' }}>
+                                                        <AvatarFallback className="text-xl" style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
+                                                            {user.name ? getInitials(user.name) : '?'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <CardTitle className="text-lg mt-2">{user.name}</CardTitle>
+                                                    <CardDescription className="text-xs font-semibold truncate text-muted-foreground mt-1" title={activityList}>
+                                                        {activityList || 'Nessuna attività assegnata'}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="space-y-4">
+                                                    {/* Stats Grid */}
+                                                    <div className="grid grid-cols-3 gap-2 text-center">
+                                                        <div className="bg-muted/50 rounded-lg p-2">
+                                                            <div className="text-lg font-bold text-amber-500">{user.assignedCount}</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">Assegnati</div>
+                                                        </div>
+                                                        <div className="bg-muted/50 rounded-lg p-2">
+                                                            <div className="text-lg font-bold text-primary">{user.estimatedHours}h</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">Stimate</div>
+                                                        </div>
+                                                        <div className="bg-muted/50 rounded-lg p-2">
+                                                            <div className="text-lg font-bold">{user.hours}h</div>
+                                                            <div className="text-[10px] text-muted-foreground uppercase">Effettive</div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Efficiency Indicator */}
+                                                    {user.estimatedHours > 0 && (
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between text-xs">
+                                                                <span className="text-muted-foreground">Rendimento Stime</span>
+                                                                <span className={`font-semibold ${statusColor}`}>
+                                                                    {efficiency.toFixed(0)}%
+                                                                </span>
+                                                            </div>
+                                                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full transition-all ${progressIndicatorColor}`}
+                                                                    style={{
+                                                                        width: `${Math.min(efficiency, 100)}%`
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                                                                <span>{user.hours}h effettive</span>
+                                                                <span>{user.estimatedHours}h stimate</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Warning Indicator */}
+                                                    {isRed && (
+                                                        <div className="text-[10px] text-red-500 font-medium text-center bg-red-500/10 rounded-md py-1 px-2 border border-red-500/20">
+                                                            ⚠️ Tempo richiesto superiore a effettivo
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2">
+                                    <div className="p-3 bg-muted rounded-full">
+                                        <Users className="h-6 w-6 opacity-50" />
+                                    </div>
+                                    <p className="text-sm">Nessun dato da visualizzare.</p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
