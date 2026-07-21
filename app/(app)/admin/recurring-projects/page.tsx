@@ -288,13 +288,24 @@ export default function RecurringProjectsPage() {
 
       const newProjectId = await addProject(projectToCreate);
 
-      // I task hanno SEMPRE la scadenza del progetto (o calcolata in base ad essa)
-      const tasksPromises = template.taskTemplates.map(tt => {
+      // I task hanno SEMPRE la scadenza del progetto (o calcolata in base ad essa).
+      // Se la data calcolata cade nel passato (es. progetto con finestra temporale
+      // più corta degli offset configurati), viene clampata al prossimo giorno lavorativo
+      // utile compreso tra oggi e la scadenza del progetto.
+      const today = getNextWorkday(new Date());
+      const tasksPromises = template.taskTemplates.map((tt, idx) => {
         let taskDueDate: Date;
         if (!tt.dueDateConfig || tt.dueDateConfig.type === 'PROJECT_END') {
           taskDueDate = projectEndDate;
         } else {
           taskDueDate = subWorkingDays(projectEndDate, tt.dueDateConfig.value || 0);
+        }
+        // Clamp: mai nel passato. Se la data calcolata è già trascorsa,
+        // distribuiamo i task in sequenza a partire da oggi verso la scadenza.
+        if (taskDueDate < today) {
+          taskDueDate = getNextWorkday(addDays(today, idx));
+          // Non superare mai la scadenza del progetto
+          if (taskDueDate > projectEndDate) taskDueDate = projectEndDate;
         }
 
         const newTask: Omit<Task, 'id'> = {
