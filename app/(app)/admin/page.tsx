@@ -1218,7 +1218,7 @@ function AdminPageContent() {
                                                         {activity.name}
                                                     </div>
                                                 </TableCell>
-                                                <TableCell>€{activity.hourlyRate.toFixed(2)}</TableCell>
+                                                <TableCell>€{(activity.hourlyRate || 0).toFixed(2)}</TableCell>
                                                 <TableCell>
                                                     {activity.hasDeadlineTask ? <Badge variant="default">Sì</Badge> : <Badge variant="secondary">No</Badge>}
                                                 </TableCell>
