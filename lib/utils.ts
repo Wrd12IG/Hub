@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -30,4 +29,30 @@ export function sortAlphabetically<T extends Record<string, any>>(
     const bValue = String(b[key] || '').toLowerCase();
     return aValue.localeCompare(bValue, 'it');
   });
+}
+
+const teamAvatarMap: Record<string, string> = {
+  'giada': '/images/team/giada.jpg',
+  'luca': '/images/team/luca.jpg',
+  'valentina': '/images/team/valentina.jpg',
+  'roberto': '/images/team/roberto.jpg',
+  'giuseppe': '/images/team/beppe.jpg',
+  'beppe': '/images/team/beppe.jpg',
+  'lorenzo': '/images/team/lorenzo.jpg',
+  'eleonora': '/images/team/eleonora.jpg',
+  'enxhi': '/images/team/enxhi.jpg',
+  'giulia': '/images/team/giulia.jpg',
+  'rebecca': '/images/team/rebecca.jpg',
+  'valeria': '/images/team/valeria.jpg',
+  'denise': '/images/team/denise.jpg',
+};
+
+export function getUserAvatar(user?: { avatar?: string; name?: string } | null): string | undefined {
+  if (user?.avatar) return user.avatar;
+  if (!user?.name) return undefined;
+  const lowerName = user.name.toLowerCase();
+  for (const [key, path] of Object.entries(teamAvatarMap)) {
+    if (lowerName.includes(key)) return path;
+  }
+  return undefined;
 }

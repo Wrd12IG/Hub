@@ -94,14 +94,14 @@ import {
 } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie, Sector, LabelList, LineChart, Line, Area, ReferenceLine, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn, getInitials } from '@/lib/utils';
+import { cn, getInitials, getUserAvatar } from '@/lib/utils';
 import DatePickerDialog from '@/components/ui/date-picker-dialog';
 import type { TooltipProps } from 'recharts';
 import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
@@ -2161,6 +2161,7 @@ export default function Dashboard() {
                                                 )}
                                                 <CardHeader className="pb-2 text-center">
                                                     <Avatar className="h-16 w-16 mx-auto border-4" style={{ borderColor: user.color || '#6366f1' }}>
+                                                        <AvatarImage src={getUserAvatar(user)} alt={user.name} />
                                                         <AvatarFallback className="text-xl" style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
                                                             {user.name ? getInitials(user.name) : '?'}
                                                         </AvatarFallback>
@@ -2998,6 +2999,7 @@ export default function Dashboard() {
                                             <Card key={user.id} className="border-l-4 p-3 flex items-center justify-between hover:shadow-md transition-all" style={{ borderLeftColor: user.color || '#6366f1' }}>
                                                 <div className="flex items-center gap-3 min-w-0">
                                                     <Avatar className="h-9 w-9 shrink-0" style={{ borderColor: user.color }}>
+                                                        <AvatarImage src={getUserAvatar(user)} alt={user.name} />
                                                         <AvatarFallback style={{ backgroundColor: user.color || '#6366f1', color: 'white' }} className="text-xs font-semibold">
                                                             {user.name ? getInitials(user.name) : '?'}
                                                         </AvatarFallback>
@@ -3131,6 +3133,7 @@ export default function Dashboard() {
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2">
                                                             <Avatar className="h-7 w-7">
+                                                                <AvatarImage src={getUserAvatar(user)} alt={user.name} />
                                                                 <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }} className="text-xs font-semibold">
                                                                     {user.name ? getInitials(user.name) : '?'}
                                                                 </AvatarFallback>

@@ -41,7 +41,7 @@ import { useTheme } from 'next-themes';
 import { markNotificationsAsRead, deleteReadNotifications } from '@/lib/actions';
 import { formatDistanceToNow } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { cn, getInitials } from '@/lib/utils';
+import { cn, getInitials, getUserAvatar } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Notification } from '@/lib/data';
 import { useCommandMenu } from '@/components/command-menu';
@@ -246,7 +246,7 @@ export function Header() {
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-transparent hover:ring-primary/30 transition-all duration-200">
                                 <Avatar className="h-9 w-9">
-                                    <AvatarImage src={currentUser?.avatar || ''} alt={currentUser?.name || ''} />
+                                    <AvatarImage src={getUserAvatar(currentUser)} alt={currentUser?.name || ''} />
                                     <AvatarFallback style={{ backgroundColor: currentUser?.color }} className="text-white text-sm font-semibold">{currentUser.name ? getInitials(currentUser.name) : '?'}</AvatarFallback>
                                 </Avatar>
                             </Button>
@@ -255,7 +255,7 @@ export function Header() {
                             <DropdownMenuLabel className="pb-2">
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-10 w-10">
-                                        <AvatarImage src={currentUser?.avatar || ''} alt={currentUser?.name || ''} />
+                                        <AvatarImage src={getUserAvatar(currentUser)} alt={currentUser?.name || ''} />
                                         <AvatarFallback style={{ backgroundColor: currentUser?.color }} className="text-white font-semibold">{currentUser.name ? getInitials(currentUser.name) : '?'}</AvatarFallback>
                                     </Avatar>
                                     <div>
