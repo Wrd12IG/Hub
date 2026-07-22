@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { PublishToEditorialModal } from '@/components/publish-to-editorial-modal';
 import { motion } from 'framer-motion';
 
 interface ProjectCardProps {
