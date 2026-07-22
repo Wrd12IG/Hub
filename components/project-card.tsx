@@ -15,7 +15,8 @@ import {
     CircleAlert,
     ChevronUp,
     Minus,
-    ChevronDown
+    ChevronDown,
+    Share2
 } from 'lucide-react';
 import {
     DropdownMenu,
