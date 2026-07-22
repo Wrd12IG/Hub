@@ -270,56 +270,96 @@ interface LeaderboardProps {
 
 export function Leaderboard({ users, currentUserId, limit = 10 }: LeaderboardProps) {
     const sortedUsers = [...users].sort((a, b) => b.xp - a.xp).slice(0, limit);
+    const topThree = sortedUsers.slice(0, 3);
+    const rest = sortedUsers.slice(3);
+
+    // Order top three as [2nd, 1st, 3rd] for classic podium display on desktop
+    const podiumOrder = topThree.length === 3 ? [topThree[1], topThree[0], topThree[2]] : topThree;
 
     return (
-        <div className="space-y-2">
-            {sortedUsers.map((user, index) => {
-                const rank = index + 1;
-                const isCurrentUser = user.id === currentUserId;
+        <div className="space-y-6">
+            {/* Top 3 Podium Cards */}
+            {topThree.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    {podiumOrder.map((user) => {
+                        const rank = sortedUsers.findIndex(u => u.id === user.id) + 1;
+                        const isFirst = rank === 1;
+                        const isSecond = rank === 2;
+                        const isThird = rank === 3;
+                        const isCurrentUser = user.id === currentUserId;
 
-                return (
-                    <div
-                        key={user.id}
-                        className={cn(
-                            'leaderboard-item',
-                            isCurrentUser && 'bg-primary/10 border border-primary/20'
-                        )}
-                    >
-                        <div
-                            className={cn(
-                                'leaderboard-rank',
-                                rank === 1 && 'leaderboard-rank-1',
-                                rank === 2 && 'leaderboard-rank-2',
-                                rank === 3 && 'leaderboard-rank-3',
-                                rank > 3 && 'bg-muted text-muted-foreground'
-                            )}
-                        >
-                            {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
-                        </div>
+                        return (
+                            <div
+                                key={user.id}
+                                className={cn(
+                                    "relative rounded-xl p-4 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1",
+                                    isFirst && "bg-amber-500/10 border-2 border-amber-500/50 shadow-lg shadow-amber-500/10 md:order-2 md:-translate-y-2",
+                                    isSecond && "bg-slate-400/10 border border-slate-400/40 md:order-1",
+                                    isThird && "bg-amber-700/10 border border-amber-700/40 md:order-3",
+                                    isCurrentUser && "ring-2 ring-primary"
+                                )}
+                            >
+                                <div className="absolute -top-3 px-3 py-0.5 rounded-full text-xs font-bold shadow-md bg-background border flex items-center gap-1">
+                                    <span>{['🥇 1°', '🥈 2°', '🥉 3°'][rank - 1]}</span>
+                                </div>
 
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <span className={cn('font-medium truncate', isCurrentUser && 'text-primary')}>
+                                <div className="mt-2 relative">
+                                    <LevelBadge xp={user.xp} size={isFirst ? "lg" : "md"} showName={false} />
+                                </div>
+
+                                <h4 className={cn("font-bold text-sm mt-2 truncate w-full", isFirst && "text-amber-500 text-base")}>
                                     {user.name}
-                                </span>
-                                <LevelBadge xp={user.xp} size="sm" />
+                                </h4>
+
+                                <div className="mt-1 flex items-center justify-center gap-2">
+                                    <span className="text-xs font-mono font-bold text-primary">{formatXp(user.xp)} XP</span>
+                                    {user.streak > 0 && (
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-500/30 text-orange-500">
+                                            <Flame className="w-3 h-3 mr-0.5" />
+                                            {user.streak}d
+                                        </Badge>
+                                    )}
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span>{formatXp(user.xp)} XP</span>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Rest of the leaderboard as sleek cards */}
+            {rest.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-border/40">
+                    {rest.map((user) => {
+                        const rank = sortedUsers.findIndex(u => u.id === user.id) + 1;
+                        const isCurrentUser = user.id === currentUserId;
+
+                        return (
+                            <div
+                                key={user.id}
+                                className={cn(
+                                    'flex items-center gap-3 p-2.5 rounded-lg border bg-card/50 hover:bg-card transition-all',
+                                    isCurrentUser && 'bg-primary/10 border-primary/30'
+                                )}
+                            >
+                                <span className="w-6 text-center text-xs font-bold text-muted-foreground">{rank}°</span>
+                                <LevelBadge xp={user.xp} size="sm" />
+                                <div className="flex-1 min-w-0">
+                                    <p className={cn('text-xs font-semibold truncate', isCurrentUser && 'text-primary')}>
+                                        {user.name}
+                                    </p>
+                                    <span className="text-[10px] text-muted-foreground font-mono">{formatXp(user.xp)} XP</span>
+                                </div>
                                 {user.streak > 0 && (
-                                    <>
-                                        <span>•</span>
-                                        <span className="flex items-center gap-1">
-                                            <Flame className="w-3 h-3 text-orange-500" />
-                                            {user.streak}
-                                        </span>
-                                    </>
+                                    <span className="flex items-center gap-0.5 text-[10px] text-orange-500 font-semibold shrink-0">
+                                        <Flame className="w-3 h-3" />
+                                        {user.streak}
+                                    </span>
                                 )}
                             </div>
-                        </div>
-                    </div>
-                );
-            })}
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
