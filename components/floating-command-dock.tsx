@@ -42,7 +42,7 @@ export function FloatingCommandDock() {
 
     return (
         <TooltipProvider delayDuration={150}>
-            <div className="fixed bottom-5 left-1/2 -translate-x-1/2 sm:left-6 sm:translate-x-0 z-40 flex items-center gap-2 p-2 rounded-2xl bg-background/85 backdrop-blur-xl border border-border/60 shadow-2xl shadow-black/40 transition-all duration-300 hover:border-primary/40">
+            <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 p-2 rounded-2xl bg-background/85 backdrop-blur-xl border border-border/60 shadow-2xl shadow-black/40 transition-all duration-300 hover:border-primary/40">
                 {/* Primary Quick Start Action Button */}
                 <Tooltip>
                     <TooltipTrigger asChild>

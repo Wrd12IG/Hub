@@ -76,6 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </PageTransition>
             </main>
             <CommandMenu />
+            <FloatingCommandDock />
           </SidebarInset>
           <Toaster richColors position="top-right" />
           {pomodoroTask && (
@@ -90,7 +91,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
           <BukowskiConfetti />
           <BirthdayCelebration users={users} />
-          <FloatingCommandDock />
 
         </div>
       </CommandMenuProvider>
