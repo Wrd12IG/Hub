@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Badge as UiBadge } from '@/components/ui/badge';
 import {
     Badge,
     BADGES,
@@ -20,6 +21,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Progress } from '@/components/ui/progress';
 import { Flame, Trophy, Star, Zap, Target, MessageCircle, Award } from 'lucide-react';
+
 
 // ============================================
 // BADGE DISPLAY COMPONENT
@@ -314,10 +316,10 @@ export function Leaderboard({ users, currentUserId, limit = 10 }: LeaderboardPro
                                 <div className="mt-1 flex items-center justify-center gap-2">
                                     <span className="text-xs font-mono font-bold text-primary">{formatXp(user.xp)} XP</span>
                                     {user.streak > 0 && (
-                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-500/30 text-orange-500">
+                                        <UiBadge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-500/30 text-orange-500">
                                             <Flame className="w-3 h-3 mr-0.5" />
                                             {user.streak}d
-                                        </Badge>
+                                        </UiBadge>
                                     )}
                                 </div>
                             </div>
