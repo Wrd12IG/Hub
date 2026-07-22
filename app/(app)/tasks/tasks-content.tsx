@@ -11,7 +11,8 @@ import type { Task, Client, User, Project, ActivityType, Attachment, Absence, Ta
 import { allTaskStatuses } from '@/lib/data';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, X, Play, Square, Pencil, LayoutGrid, List, Paperclip, FileText, Download, Trash2, Filter, Check, ThumbsUp, ThumbsDown, MessageSquare, AlertTriangle, ListTodo, Timer, CheckSquare, AlertOctagon, Eye, Loader2, Send, UserSquare, ListChecks, MoreVertical, Target, Link as LinkIcon, User as UserIcon, Search, ChevronDown, FolderKanban, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, X, Play, Square, Pencil, LayoutGrid, List, Paperclip, FileText, Download, Trash2, Filter, Check, ThumbsUp, ThumbsDown, MessageSquare, AlertTriangle, ListTodo, Timer, CheckSquare, AlertOctagon, Eye, Loader2, Send, UserSquare, ListChecks, MoreVertical, Target, Link as LinkIcon, User as UserIcon, Search, ChevronDown, FolderKanban, CheckCircle, Clock, Share2 } from 'lucide-react';
+import { PublishToEditorialModal } from '@/components/publish-to-editorial-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -619,6 +620,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     const [fileAttachmentModalState, setFileAttachmentModalState] = useState<FileAttachmentModalState>({ isOpen: false, task: undefined, attachmentUrl: '', attachmentFilename: '', attachmentFile: undefined });
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
     const [previewTask, setPreviewTask] = useState<Task | null>(null);
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const [previewEditorialContent, setPreviewEditorialContent] = useState<EditorialContent | null>(null);
     const [isLoadingEditorialContent, setIsLoadingEditorialContent] = useState(false);
 
@@ -2285,7 +2287,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                             </div>
 
                             {/* Azioni */}
-                            <div className="flex gap-3 mt-6 pt-4 border-t">
+                            <div className="flex gap-2 mt-6 pt-4 border-t flex-wrap sm:flex-nowrap">
                                 <Button
                                     variant="outline"
                                     className="flex-1"
@@ -2298,6 +2300,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                     Modifica Task
                                 </Button>
                                 <Button
+                                    variant="outline"
                                     className="flex-1"
                                     onClick={() => {
                                         handleChatOpen(previewTask);
@@ -2306,6 +2309,15 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 >
                                     <MessageSquare className="h-4 w-4 mr-2" />
                                     Apri Chat
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold"
+                                    onClick={() => {
+                                        setIsPublishModalOpen(true);
+                                    }}
+                                >
+                                    <Share2 className="h-4 w-4 mr-1.5 fill-slate-950" />
+                                    Programma su Piano
                                 </Button>
                             </div>
                         </div>
@@ -2457,6 +2469,11 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                     </SheetContent>
                 </Sheet>
             )}
+            <PublishToEditorialModal
+                isOpen={isPublishModalOpen}
+                onClose={() => setIsPublishModalOpen(false)}
+                task={previewTask}
+            />
         </motion.div>
     );
 }

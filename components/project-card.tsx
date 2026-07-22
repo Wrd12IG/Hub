@@ -90,6 +90,8 @@ export function ProjectCard({ project, client, tasks, teamLeader, onEdit, onDele
     }
 
     return (
+        <>
+        <PublishToEditorialModal project={project} isOpen={isPublishModalOpen} onClose={() => setIsPublishModalOpen(false)} />
         <motion.div
             whileHover={{ y: -4, scale: 1.01 }}
             transition={{ type: 'spring', stiffness: 300, damping: 22 }}
@@ -123,6 +125,10 @@ export function ProjectCard({ project, client, tasks, teamLeader, onEdit, onDele
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setIsPublishModalOpen(true)} className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                                <Share2 className="h-4 w-4 text-amber-500" />
+                                Programma su Piano Editoriale
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onEdit(project)}>Modifica</DropdownMenuItem>
                             <DropdownMenuItem onClick={() => router.push(`/projects/${project.id}`)}>Dettagli</DropdownMenuItem>
                             {onDelete && <DropdownMenuItem onClick={() => onDelete(project)} className="text-destructive">Elimina</DropdownMenuItem>}
@@ -216,5 +222,6 @@ export function ProjectCard({ project, client, tasks, teamLeader, onEdit, onDele
             </div>
         </Card>
         </motion.div>
+        </>
     );
 }
