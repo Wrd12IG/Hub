@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Badge as UiBadge } from '@/components/ui/badge';
 import {
-    Badge,
+    type Badge,
     BADGES,
     UserGamification,
     getLevelFromXp,
