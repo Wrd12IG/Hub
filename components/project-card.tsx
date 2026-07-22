@@ -42,6 +42,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, client, tasks, teamLeader, onEdit, onDelete }: ProjectCardProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
     const router = useRouter();
 
     const totalTasks = tasks.length;
