@@ -2943,101 +2943,120 @@ export default function Dashboard() {
                     {isWidgetVisible('list_overdue_tasks') && (
                         <Card className={cn("glass-card", (!isWidgetVisible('chart_calendar_user') && !isWidgetVisible('chart_calendar_client')) && "lg:col-span-2")}>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><AlertTriangle /> Task Scaduti</CardTitle>
-                                <CardDescription>Task non ancora completati.</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><AlertTriangle className="text-red-500" /> Task Scaduti</CardTitle>
+                                <CardDescription>Task non ancora completati con scadenza superata.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Task</TableHead>
-                                                <TableHead>Assegnato</TableHead>
-                                                <TableHead>Scaduto da</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {overdueTasks.slice(0, 5).map(task => (
-                                                <TableRow key={task.id} className="bg-destructive/10">
-                                                    <TableCell className="font-medium">{task.title}</TableCell>
-                                                    <TableCell>{usersById[task.assignedUserId || '']?.name.split(' ')[0] || 'N/A'}</TableCell>
-                                                    <TableCell className="font-bold text-destructive">{differenceInDays(new Date(), parseISO(task.dueDate!))}gg</TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {overdueTasks.length === 0 && (
-                                                <TableRow><TableCell colSpan={3} className="text-center h-24">Nessun task scaduto.</TableCell></TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                {overdueTasks.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {overdueTasks.slice(0, 6).map(task => {
+                                            const daysOverdue = differenceInDays(new Date(), parseISO(task.dueDate!));
+                                            const assigned = usersById[task.assignedUserId || ''];
+                                            return (
+                                                <Card key={task.id} className="border-l-4 border-l-red-500 bg-red-500/5 hover:bg-red-500/10 transition-all p-3 flex flex-col justify-between gap-2">
+                                                    <div className="flex items-start justify-between gap-2">
+                                                        <h4 className="font-semibold text-sm truncate" title={task.title}>{task.title}</h4>
+                                                        <Badge variant="destructive" className="shrink-0 text-[10px] font-bold">
+                                                            +{daysOverdue}gg
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-red-500/10">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Avatar className="h-5 w-5">
+                                                                <AvatarFallback style={{ backgroundColor: assigned?.color || '#6b7280', color: 'white' }} className="text-[10px]">
+                                                                    {assigned?.name ? getInitials(assigned.name) : '?'}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="truncate max-w-[120px]">{assigned?.name || 'Non assegnato'}</span>
+                                                        </div>
+                                                    </div>
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground gap-2">
+                                        <div className="p-2.5 bg-emerald-500/10 rounded-full text-emerald-500">
+                                            <CheckCircle className="h-5 w-5" />
+                                        </div>
+                                        <p className="text-xs">Nessun task scaduto.</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
                     {isWidgetVisible('chart_calendar_user') && (
                         <Card className={cn("glass-card", (!isWidgetVisible('list_overdue_tasks') && !isWidgetVisible('chart_calendar_client')) && "lg:col-span-2")}>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Activity /> Riepilogo Attività Calendario</CardTitle>
-                                <CardDescription>Tempo registrato nelle attività del calendario per utente.</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><Activity className="text-primary" /> Attività Calendario per Utente</CardTitle>
+                                <CardDescription>Tempo registrato nelle attività del calendario diviso per utente.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Utente</TableHead>
-                                                <TableHead>N. Attività</TableHead>
-                                                <TableHead className="text-right">Ore Registrate</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {calendarActivityByUser.map(({ user, hours, count }) => (
-                                                <TableRow key={user.id}>
-                                                    <TableCell className="font-medium">{user.name}</TableCell>
-                                                    <TableCell>{count}</TableCell>
-                                                    <TableCell className="text-right font-mono">{formatNumber(hours)}h</TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {calendarActivityByUser.length === 0 && (
-                                                <TableRow><TableCell colSpan={3} className="h-24 text-center">Nessuna attività registrata.</TableCell></TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                {calendarActivityByUser.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {calendarActivityByUser.map(({ user, hours, count }) => (
+                                            <Card key={user.id} className="border-l-4 p-3 flex items-center justify-between hover:shadow-md transition-all" style={{ borderLeftColor: user.color || '#6366f1' }}>
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <Avatar className="h-9 w-9 shrink-0" style={{ borderColor: user.color }}>
+                                                        <AvatarFallback style={{ backgroundColor: user.color || '#6366f1', color: 'white' }} className="text-xs font-semibold">
+                                                            {user.name ? getInitials(user.name) : '?'}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="min-w-0">
+                                                        <p className="font-semibold text-sm truncate">{user.name}</p>
+                                                        <p className="text-xs text-muted-foreground">{count} attività</p>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    <span className="text-base font-bold text-primary">{formatNumber(hours)}h</span>
+                                                    <p className="text-[10px] text-muted-foreground font-mono">{count > 0 ? (hours / count).toFixed(1) : 0}h/att</p>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground gap-2">
+                                        <p className="text-xs">Nessuna attività registrata.</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
                     {isWidgetVisible('chart_calendar_client') && (
                         <Card className={cn("glass-card", ((!isWidgetVisible('list_overdue_tasks') && !isWidgetVisible('chart_calendar_user')) || (isWidgetVisible('list_overdue_tasks') && isWidgetVisible('chart_calendar_user'))) && "lg:col-span-2")}>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><Building2 /> Attività Calendario per Cliente</CardTitle>
+                                <CardTitle className="flex items-center gap-2"><Building2 className="text-primary" /> Attività Calendario per Cliente</CardTitle>
                                 <CardDescription>Tempo registrato nelle attività del calendario diviso per cliente.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Cliente</TableHead>
-                                                <TableHead>N. Attività</TableHead>
-                                                <TableHead>Ore</TableHead>
-                                                <TableHead className="text-right">Costo Stimato</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {calendarActivityByClient.map(({ clientId, client, hours, count, cost }: any) => (
-                                                <TableRow key={clientId}>
-                                                    <TableCell className="font-medium">{client?.name || 'Senza Cliente'}</TableCell>
-                                                    <TableCell>{count}</TableCell>
-                                                    <TableCell className="font-mono">{formatNumber(hours)}h</TableCell>
-                                                    <TableCell className="text-right font-mono">{formatCurrency(cost)}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                            {calendarActivityByClient.length === 0 && (
-                                                <TableRow><TableCell colSpan={4} className="h-24 text-center">Nessuna attività registrata.</TableCell></TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                {calendarActivityByClient.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {calendarActivityByClient.map(({ clientId, client, hours, count, cost }: any) => (
+                                            <Card key={clientId} className="border-l-4 p-3 flex flex-col justify-between gap-2 hover:shadow-md transition-all" style={{ borderLeftColor: client?.color || '#3b82f6' }}>
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <p className="font-semibold text-sm truncate" title={client?.name}>{client?.name || 'Senza Cliente'}</p>
+                                                    <Badge variant="outline" className="text-xs font-mono bg-primary/10 text-primary border-primary/20">
+                                                        {formatCurrency(cost)}
+                                                    </Badge>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2 text-xs">
+                                                    <div className="bg-muted/50 rounded-md p-1.5 text-center">
+                                                        <span className="text-muted-foreground text-[10px] uppercase block">Attività</span>
+                                                        <span className="font-bold">{count}</span>
+                                                    </div>
+                                                    <div className="bg-muted/50 rounded-md p-1.5 text-center">
+                                                        <span className="text-muted-foreground text-[10px] uppercase block">Ore</span>
+                                                        <span className="font-bold font-mono">{formatNumber(hours)}h</span>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground gap-2">
+                                        <p className="text-xs">Nessuna attività registrata.</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
@@ -3069,41 +3088,54 @@ export default function Dashboard() {
                     {isWidgetVisible('chart_predictive_delivery') && (
                         <Card className={cn("glass-card", !isWidgetVisible('table_future_workload') && "lg:col-span-2")}>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2"><CalendarClock /> Previsione Carico di Lavoro</CardTitle>
-                                <CardDescription>Ore stimate per i prossimi 7 giorni.</CardDescription>
+                                <CardTitle className="flex items-center gap-2"><CalendarClock className="text-primary" /> Previsione Carico di Lavoro</CardTitle>
+                                <CardDescription>Ore stimate per i prossimi 7 giorni per utente.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Utente</TableHead>
-                                                {sevenDayHeaders.map(day => <TableHead key={day} className="text-center">{day}</TableHead>)}
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {futureWorkloadData.map(({ user, workload }) => (
-                                                <TableRow key={user.id}>
-                                                    <TableCell>
+                                {futureWorkloadData.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {futureWorkloadData.map(({ user, workload }) => {
+                                            const total7DayHours = workload.reduce((sum, h) => sum + h, 0);
+                                            return (
+                                                <Card key={user.id} className="p-3 space-y-2 border-l-4 hover:shadow-md transition-all" style={{ borderLeftColor: user.color || '#6366f1' }}>
+                                                    <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-2">
-                                                            <Avatar className="h-8 w-8">
-                                                                <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>{user.name ? getInitials(user.name) : '?'}</AvatarFallback>
+                                                            <Avatar className="h-7 w-7">
+                                                                <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }} className="text-xs font-semibold">
+                                                                    {user.name ? getInitials(user.name) : '?'}
+                                                                </AvatarFallback>
                                                             </Avatar>
+                                                            <span className="font-semibold text-sm">{user.name}</span>
                                                         </div>
-                                                    </TableCell>
-                                                    {workload.map((hours, index) => (
-                                                        <TableCell key={index} className={cn("text-center font-mono", hours > 8 ? 'text-destructive font-bold' : '')}>
-                                                            {hours > 0 ? hours.toFixed(1) + 'h' : '-'}
-                                                        </TableCell>
-                                                    ))}
-                                                </TableRow>
-                                            ))}
-                                            {futureWorkloadData.length === 0 && (
-                                                <TableRow><TableCell colSpan={8} className="h-24 text-center">Nessun carico.</TableCell></TableRow>
-                                            )}
-                                        </TableBody>
-                                    </Table>
-                                </div>
+                                                        <Badge variant={total7DayHours > 35 ? "destructive" : "secondary"} className="text-xs font-mono">
+                                                            {total7DayHours.toFixed(1)}h / 7gg
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="grid grid-cols-7 gap-1 text-center text-xs">
+                                                        {sevenDayHeaders.map((day, idx) => {
+                                                            const h = workload[idx] || 0;
+                                                            return (
+                                                                <div key={day} className={cn(
+                                                                    "p-1.5 rounded-md flex flex-col items-center justify-center transition-colors",
+                                                                    h > 8 ? "bg-red-500/20 text-red-600 dark:text-red-400 font-bold border border-red-500/30" :
+                                                                    h > 0 ? "bg-primary/10 text-primary font-medium" :
+                                                                    "bg-muted/40 text-muted-foreground/50"
+                                                                )}>
+                                                                    <span className="text-[10px] uppercase tracking-tighter opacity-70">{day}</span>
+                                                                    <span className="font-mono text-xs mt-0.5">{h > 0 ? h.toFixed(1) + 'h' : '-'}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground gap-2">
+                                        <p className="text-xs">Nessun carico registrato nei prossimi 7 giorni.</p>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
@@ -3277,41 +3309,29 @@ export default function Dashboard() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Task</TableHead>
-                                        <TableHead>Scadenza</TableHead>
-                                        <TableHead>Previsione</TableHead>
-                                        <TableHead>Rischio</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {predictiveDelivery.predictions.slice(0, 5).map((prediction) => (
-                                        <TableRow key={prediction.task.id}>
-                                            <TableCell className="font-medium max-w-[150px] truncate">
-                                                {prediction.task.title}
-                                            </TableCell>
-                                            <TableCell>{format(prediction.originalDue, 'dd/MM')}</TableCell>
-                                            <TableCell>
-                                                {prediction.predictedDelay > 0
-                                                    ? format(prediction.predictedDue, 'dd/MM')
-                                                    : '✓ In tempo'
-                                                }
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant={
-                                                    prediction.risk === 'high' ? 'destructive' :
-                                                        prediction.risk === 'medium' ? 'default' : 'secondary'
-                                                } className="text-xs">
-                                                    {prediction.risk === 'high' ? '🔴 Alto' :
-                                                        prediction.risk === 'medium' ? '🟡 Medio' : '🟢 Basso'}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {predictiveDelivery.predictions.slice(0, 6).map((prediction) => (
+                                    <Card key={prediction.task.id} className={cn(
+                                        "p-3 space-y-2 border-l-4 flex flex-col justify-between hover:shadow-md transition-all",
+                                        prediction.risk === 'high' ? "border-l-red-500 bg-red-500/5" :
+                                        prediction.risk === 'medium' ? "border-l-amber-500 bg-amber-500/5" :
+                                        "border-l-emerald-500 bg-emerald-500/5"
+                                    )}>
+                                        <div className="flex items-start justify-between gap-2">
+                                            <h4 className="font-semibold text-sm truncate" title={prediction.task.title}>{prediction.task.title}</h4>
+                                            <Badge variant={prediction.risk === 'high' ? 'destructive' : prediction.risk === 'medium' ? 'default' : 'secondary'} className="text-[10px] shrink-0 font-bold">
+                                                {prediction.risk === 'high' ? '🔴 Alto' : prediction.risk === 'medium' ? '🟡 Medio' : '🟢 Basso'}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
+                                            <span>Scadenza: <strong className="text-foreground">{format(prediction.originalDue, 'dd/MM')}</strong></span>
+                                            <span>Previsione: <strong className={cn(prediction.predictedDelay > 0 ? "text-red-500 font-bold" : "text-emerald-500")}>
+                                                {prediction.predictedDelay > 0 ? format(prediction.predictedDue, 'dd/MM') : '✓ In tempo'}
+                                            </strong></span>
+                                        </div>
+                                    </Card>
+                                ))}
+                            </div>
                         </CardContent>
                     </Card>
 
