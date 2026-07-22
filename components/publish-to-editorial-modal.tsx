@@ -95,7 +95,7 @@ export function PublishToEditorialModal({
             });
 
             toast.success("Post aggiunto al Piano Editoriale con successo!");
-            if (refetchData) await refetchData();
+            if (refetchData) await refetchData('all');
             onClose();
 
             // Direct link toast option to navigate to client's editorial plan
