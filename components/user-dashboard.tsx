@@ -458,39 +458,28 @@ export default function UserDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableBody>
-                  <AnimatedList>
-                    {upcomingDeadlines.map((task, index) => (
-                      <AnimatedListItem key={task.id}>
-                        <TableRow
-                          className="group transition-colors hover:bg-muted/50"
-                          style={{ animationDelay: `${index * 50}ms` }}
-                        >
-                          <TableCell>
-                            <Link href={`/tasks?taskId=${task.id}`} className="font-medium hover:underline block truncate group-hover:text-primary transition-colors">
-                              {task.title}
-                            </Link>
-                            <span className="text-xs text-muted-foreground">
-                              {task.dueDate && formatDistanceToNow(parseISO(task.dueDate), { addSuffix: true, locale: it })}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      </AnimatedListItem>
-                    ))}
-                  </AnimatedList>
-                  {upcomingDeadlines.length === 0 && (
-                    <TableRow>
-                      <TableCell className="h-24 text-center">
-                        <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                          <span className="text-3xl">🎉</span>
-                          <span>Nessuna scadenza imminente. Ottimo lavoro!</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <div className="space-y-2">
+                <AnimatedList>
+                  {upcomingDeadlines.map((task, index) => (
+                    <AnimatedListItem key={task.id}>
+                      <Card className="p-3 border-l-4 border-l-amber-500 bg-amber-500/5 hover:bg-amber-500/10 transition-all flex items-center justify-between gap-2">
+                        <Link href={`/tasks?taskId=${task.id}`} className="font-medium text-sm hover:underline truncate hover:text-primary transition-colors">
+                          {task.title}
+                        </Link>
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold shrink-0">
+                          {task.dueDate && formatDistanceToNow(parseISO(task.dueDate), { addSuffix: true, locale: it })}
+                        </span>
+                      </Card>
+                    </AnimatedListItem>
+                  ))}
+                </AnimatedList>
+                {upcomingDeadlines.length === 0 && (
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground py-8 text-center">
+                    <span className="text-3xl">🎉</span>
+                    <span className="text-xs">Nessuna scadenza imminente. Ottimo lavoro!</span>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </AnimatedCard>
         )}

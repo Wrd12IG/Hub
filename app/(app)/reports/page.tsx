@@ -721,64 +721,47 @@ export default function ReportsPage() {
                                     Nessun dato disponibile per il periodo selezionato
                                 </p>
                             ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Cliente</TableHead>
-                                            <TableHead className="text-right">Ore</TableHead>
-                                            <TableHead className="text-right">Costo</TableHead>
-                                            <TableHead className="text-right">% del Totale</TableHead>
-                                            <TableHead>Attività</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {clientReports.map(report => (
-                                            <TableRow key={report.clientId}>
-                                                <TableCell>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {clientReports.map(report => {
+                                        const pct = totals.cost > 0 ? (report.totalCost / totals.cost) * 100 : 0;
+                                        return (
+                                            <Card key={report.clientId} className="border-l-4 p-4 space-y-3 hover:shadow-md transition-shadow" style={{ borderLeftColor: report.clientColor || '#3b82f6' }}>
+                                                <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
                                                         <Avatar className="h-8 w-8">
-                                                            <AvatarFallback style={{ backgroundColor: report.clientColor }}>
+                                                            <AvatarFallback style={{ backgroundColor: report.clientColor, color: 'white' }}>
                                                                 {getInitials(report.clientName)}
                                                             </AvatarFallback>
                                                         </Avatar>
-                                                        <span className="font-medium">{report.clientName}</span>
+                                                        <span className="font-semibold text-sm truncate">{report.clientName}</span>
                                                     </div>
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono">
-                                                    {formatHours(report.totalHours)}
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono font-medium">
-                                                    {formatCurrency(report.totalCost)}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Progress
-                                                            value={totals.cost > 0 ? (report.totalCost / totals.cost) * 100 : 0}
-                                                            className="w-16 h-2"
-                                                        />
-                                                        <span className="text-sm text-muted-foreground w-12">
-                                                            {totals.cost > 0 ? ((report.totalCost / totals.cost) * 100).toFixed(1) : 0}%
-                                                        </span>
+                                                    <span className="text-sm font-bold text-primary font-mono">{formatCurrency(report.totalCost)}</span>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                                        <span>Quota totale</span>
+                                                        <span>{pct.toFixed(1)}% ({formatHours(report.totalHours)})</span>
                                                     </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {report.activities.slice(0, 3).map((a, i) => (
-                                                            <Badge key={i} variant="secondary" className="text-xs">
-                                                                {a.name}: {a.hours.toFixed(1)}h
-                                                            </Badge>
-                                                        ))}
-                                                        {report.activities.length > 3 && (
-                                                            <Badge variant="outline" className="text-xs">
-                                                                +{report.activities.length - 3}
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                                    <Progress value={pct} className="h-1.5" />
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-1 pt-1 border-t">
+                                                    {report.activities.slice(0, 4).map((a, i) => (
+                                                        <Badge key={i} variant="secondary" className="text-[10px]">
+                                                            {a.name}: {a.hours.toFixed(1)}h
+                                                        </Badge>
+                                                    ))}
+                                                    {report.activities.length > 4 && (
+                                                        <Badge variant="outline" className="text-[10px]">
+                                                            +{report.activities.length - 4}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </CardContent>
                     </Card>
@@ -902,59 +885,35 @@ export default function ReportsPage() {
                                     Nessun dato disponibile per il periodo selezionato
                                 </p>
                             ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Data</TableHead>
-                                            <TableHead>Utente</TableHead>
-                                            <TableHead>Cliente</TableHead>
-                                            <TableHead>Attività</TableHead>
-                                            <TableHead>Tipo</TableHead>
-                                            <TableHead className="text-right">Ore</TableHead>
-                                            <TableHead className="text-right">Costo</TableHead>
-                                            <TableHead>Fonte</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {timeEntries.slice(0, 50).map((entry, idx) => (
-                                            <TableRow key={idx}>
-                                                <TableCell className="font-mono text-sm">
-                                                    {format(parseISO(entry.date), 'dd/MM/yy')}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex items-center gap-2">
-                                                        <Avatar className="h-6 w-6">
-                                                            <AvatarFallback className="text-xs">
-                                                                {getInitials(entry.userName)}
-                                                            </AvatarFallback>
-                                                        </Avatar>
-                                                        <span className="text-sm">{entry.userName}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="text-sm">{entry.clientName}</TableCell>
-                                                <TableCell className="max-w-[200px] truncate text-sm" title={entry.taskTitle}>
-                                                    {entry.taskTitle}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {entry.activityType}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono">
-                                                    {entry.hours.toFixed(2)}h
-                                                </TableCell>
-                                                <TableCell className="text-right font-mono">
-                                                    {formatCurrency(entry.cost)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={entry.source === 'task' ? 'default' : 'secondary'} className="text-xs">
-                                                        {entry.source === 'task' ? 'Task' : 'Calendar'}
-                                                    </Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {timeEntries.slice(0, 50).map((entry, idx) => (
+                                        <Card key={idx} className="p-3 flex flex-col justify-between gap-2 border-l-4 border-l-primary hover:shadow-md transition-shadow">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="min-w-0">
+                                                    <h4 className="font-semibold text-sm truncate" title={entry.taskTitle}>{entry.taskTitle}</h4>
+                                                    <p className="text-xs text-muted-foreground">{entry.clientName} · {format(parseISO(entry.date), 'dd/MM/yy')}</p>
+                                                </div>
+                                                <Badge variant={entry.source === 'task' ? 'default' : 'secondary'} className="text-[10px] shrink-0">
+                                                    {entry.source === 'task' ? 'Task' : 'Calendar'}
+                                                </Badge>
+                                            </div>
+                                            <div className="flex items-center justify-between text-xs pt-1 border-t border-border/30">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Avatar className="h-5 w-5">
+                                                        <AvatarFallback className="text-[10px]">
+                                                            {getInitials(entry.userName)}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="truncate max-w-[100px] text-muted-foreground">{entry.userName}</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="font-bold text-primary font-mono">{entry.hours.toFixed(2)}h</span>
+                                                    <span className="text-[10px] text-muted-foreground block font-mono">{formatCurrency(entry.cost)}</span>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
                             )}
                             {timeEntries.length > 50 && (
                                 <p className="text-center text-muted-foreground text-sm mt-4">
