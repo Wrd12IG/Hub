@@ -18,6 +18,7 @@ import { BukowskiMode, BukowskiConfetti } from '@/components/easter-eggs/bukowsk
 import { BirthdayCelebration } from '@/components/birthday-celebration';
 import FloatingNetworkBackground from '@/components/FloatingNetworkBackground';
 import { PageTransition } from '@/components/PageTransition';
+import FloatingCommandDock from '@/components/floating-command-dock';
 
 
 
@@ -89,6 +90,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
           <BukowskiConfetti />
           <BirthdayCelebration users={users} />
+          <FloatingCommandDock />
 
         </div>
       </CommandMenuProvider>

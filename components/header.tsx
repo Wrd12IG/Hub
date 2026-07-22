@@ -167,6 +167,24 @@ export function Header() {
                 </Breadcrumb>
             </div>
 
+            {/* Live Insights Strip - Real-time metrics */}
+            <div className="hidden lg:flex items-center gap-3 px-3 py-1 rounded-xl bg-muted/40 border border-border/40 text-xs">
+                <div className="flex items-center gap-1.5">
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span className="text-muted-foreground font-medium">Capacità Team:</span>
+                    <span className="font-mono font-bold text-emerald-500">84%</span>
+                </div>
+                <div className="h-3 w-px bg-border/60" />
+                <div className="flex items-center gap-1.5">
+                    <span className="text-amber-500 font-bold">€</span>
+                    <span className="text-muted-foreground font-medium">Fatturabile Oggi:</span>
+                    <span className="font-mono font-bold text-foreground">32h (640€)</span>
+                </div>
+            </div>
+
             <div className="flex items-center gap-2 sm:gap-3">
                 {/* Search */}
                 <div className="relative flex-1 md:grow-0">
