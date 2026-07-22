@@ -3082,6 +3082,36 @@ export default function Dashboard() {
                                         <Bar dataKey="hours" name="Ore Effettive" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
                                     </DynamicBarChart>
                                 </ResponsiveContainer>
+
+                                {/* Integrated Card Grid for coherent user summary */}
+                                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/40">
+                                    {userPerformanceData.map((u) => {
+                                        const ratio = u.estimatedHours > 0 ? (u.hours / u.estimatedHours) * 100 : 0;
+                                        const isOver = u.hours > u.estimatedHours && u.estimatedHours > 0;
+                                        return (
+                                            <Card key={u.name} className="p-3 border-l-4 border-l-primary hover:shadow-md transition-all">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar className="h-6 w-6">
+                                                            <AvatarFallback className="text-[10px] font-bold">
+                                                                {getInitials(u.name)}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="font-semibold text-xs truncate">{u.name}</span>
+                                                    </div>
+                                                    <Badge variant={isOver ? "destructive" : "secondary"} className="text-[10px] font-mono">
+                                                        {ratio > 0 ? `${ratio.toFixed(0)}% stima` : 'No stime'}
+                                                    </Badge>
+                                                </div>
+                                                <div className="mt-2 flex items-center justify-between text-xs font-mono">
+                                                    <span className="text-muted-foreground">Stimate: <strong className="text-foreground">{u.estimatedHours.toFixed(1)}h</strong></span>
+                                                    <span className="text-muted-foreground">Effettive: <strong className={cn(isOver ? "text-red-500 font-bold" : "text-primary")}>{u.hours.toFixed(1)}h</strong></span>
+                                                </div>
+                                                <Progress value={Math.min(ratio, 100)} className="h-1.5 mt-2" />
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
                             </CardContent>
                         </Card>
                     )}
