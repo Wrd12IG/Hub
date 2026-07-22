@@ -24,6 +24,9 @@ import {
     ClipboardList,
     Users,
     Heart,
+    Volume2,
+    Languages,
+    BellRing,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -42,7 +45,6 @@ import { cn, getInitials } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { Notification } from '@/lib/data';
 import { useCommandMenu } from '@/components/command-menu';
-import { SoundSettingsButton } from '@/components/sound-settings-button';
 import { toast } from 'sonner';
 
 import { ThemeSelector } from '@/components/theme-selector';
@@ -165,66 +167,41 @@ export function Header() {
                 </Breadcrumb>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+                {/* Search */}
                 <div className="relative flex-1 md:grow-0">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
                         placeholder="Cerca..."
-                        className="w-full rounded-full bg-background pl-8 md:w-[200px] lg:w-[320px]"
+                        className="w-full rounded-full bg-background pl-8 md:w-[200px] lg:w-[300px]"
                         onFocus={() => setOpen(true)}
                     />
                     <p className="text-xs text-muted-foreground mt-1 ml-2 hidden md:block">Premi ⌘K per la ricerca rapida</p>
                 </div>
 
-                <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                {/* Theme controls */}
+                <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} title="Cambia tema chiaro/scuro">
+                    <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                    <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                     <span className="sr-only">Toggle theme</span>
                 </Button>
 
                 <ThemeSelector />
-                
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="font-bold uppercase"
-                    onClick={() => setLanguage(language === 'it' ? 'en' : 'it')}
-                >
-                    {language}
-                </Button>
 
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => {
-                        import('@/lib/push-notifications').then(({ PushNotificationManager }) => {
-                            const manager = new PushNotificationManager();
-                            manager.subscribeToPush().then((sub: any) => {
-                                if (sub) toast.success('Notifiche Push attivate con successo!');
-                            });
-                        });
-                    }}
-                    title="Attiva Notifiche Push"
-                >
-                    <Bell className="h-5 w-5" />
-                    <span className="sr-only">Attiva Push</span>
-                </Button>
-
-                <SoundSettingsButton />
-
+                {/* Notifications */}
                 <NotificationCenter
                     trigger={
-                        <Button variant="ghost" size="icon" className="relative h-10 w-10">
+                        <Button variant="ghost" size="icon" className="relative h-9 w-9">
                             {colorTheme === 'love' ? (
                                 <Heart
                                     className={cn(
-                                        "h-7 w-7 text-red-500 fill-red-500",
+                                        "h-6 w-6 text-red-500 fill-red-500",
                                         unreadCount > 0 && "animate-pulse"
                                     )}
                                 />
                             ) : colorTheme === 'juventus' ? (
-                                <div className={cn("relative h-8 w-8", unreadCount > 0 && "animate-pulse")}>
+                                <div className={cn("relative h-7 w-7", unreadCount > 0 && "animate-pulse")}>
                                     <Image
                                         src={(isClient ? resolvedTheme : theme) === 'dark' ? "/assets/juventus-logo-dark.png" : "/assets/juventus-logo.png"}
                                         alt="Juventus Notifications"
@@ -233,10 +210,10 @@ export function Header() {
                                     />
                                 </div>
                             ) : (
-                                <div className={cn("text-2xl", unreadCount > 0 && "animate-pulse")}>📬</div>
+                                <div className={cn("text-xl", unreadCount > 0 && "animate-pulse")}>📬</div>
                             )}
                             {unreadCount > 0 && (
-                                <Badge variant="destructive" className="absolute top-0 right-0 h-5 w-5 justify-center p-0 rounded-full">
+                                <Badge variant="destructive" className="badge-pulse absolute -top-0.5 -right-0.5 h-4 w-4 justify-center p-0 text-[10px] rounded-full">
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </Badge>
                             )}
@@ -249,17 +226,25 @@ export function Header() {
                 {currentUser && (
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                                <Avatar className="h-8 w-8">
+                            <Button variant="ghost" className="relative h-9 w-9 rounded-full ring-2 ring-transparent hover:ring-primary/30 transition-all duration-200">
+                                <Avatar className="h-9 w-9">
                                     <AvatarImage src={currentUser?.avatar || ''} alt={currentUser?.name || ''} />
-                                    <AvatarFallback style={{ backgroundColor: currentUser?.color }} className="text-white">{currentUser.name ? getInitials(currentUser.name) : '?'}</AvatarFallback>
+                                    <AvatarFallback style={{ backgroundColor: currentUser?.color }} className="text-white text-sm font-semibold">{currentUser.name ? getInitials(currentUser.name) : '?'}</AvatarFallback>
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-60">
-                            <DropdownMenuLabel>
-                                <p className="font-semibold">{currentUser?.name}</p>
-                                <p className="text-xs text-muted-foreground font-normal">{currentUser?.email}</p>
+                        <DropdownMenuContent align="end" className="w-64">
+                            <DropdownMenuLabel className="pb-2">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-10 w-10">
+                                        <AvatarImage src={currentUser?.avatar || ''} alt={currentUser?.name || ''} />
+                                        <AvatarFallback style={{ backgroundColor: currentUser?.color }} className="text-white font-semibold">{currentUser.name ? getInitials(currentUser.name) : '?'}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-semibold text-sm">{currentUser?.name}</p>
+                                        <p className="text-xs text-muted-foreground font-normal">{currentUser?.email}</p>
+                                    </div>
+                                </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {currentUser.role === 'Amministratore' && (
@@ -268,9 +253,23 @@ export function Header() {
                                     Pannello Admin
                                 </DropdownMenuItem>
                             )}
-
+                            <DropdownMenuItem onSelect={() => setLanguage(language === 'it' ? 'en' : 'it')}>
+                                <Languages className="mr-2 h-4 w-4" />
+                                Lingua: <span className="ml-1 font-bold uppercase">{language}</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => {
+                                import('@/lib/push-notifications').then(({ PushNotificationManager }) => {
+                                    const manager = new PushNotificationManager();
+                                    manager.subscribeToPush().then((sub: any) => {
+                                        if (sub) toast.success('Notifiche Push attivate con successo!');
+                                    });
+                                });
+                            }}>
+                                <BellRing className="mr-2 h-4 w-4" />
+                                Attiva Notifiche Push
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={handleLogout}>
+                            <DropdownMenuItem onSelect={handleLogout} className="text-destructive focus:text-destructive">
                                 <LogOut className="mr-2 h-4 w-4" />
                                 Logout
                             </DropdownMenuItem>

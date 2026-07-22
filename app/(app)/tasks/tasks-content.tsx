@@ -291,7 +291,8 @@ const TaskCard = ({
             ref={cardRef}
             className={cn(
                 'flex flex-col rounded-xl transition-all duration-300 relative overflow-hidden outline-none ring-0 focus:ring-0 group cursor-pointer',
-                'glass-card',
+                'glass-card card-hover',
+                task.priority ? `priority-${task.priority.toLowerCase()}` : 'priority-none',
                 // 1. Timer Attivo → bordo verde + bg
                 isTimerActiveForThisTask && '!bg-green-500/10 dark:!bg-green-900/20 border-green-500 border-2',
                 // 2. In Approvazione SCADUTO → scintillio rosso urgente (priorità su tutto)

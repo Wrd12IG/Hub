@@ -115,6 +115,7 @@ import { DeadlineCountdownWidget } from '@/components/dashboard/deadline-countdo
 import { WeatherWidget } from '@/components/dashboard/weather-widget';
 import { UpcomingBirthdaysWidget } from '@/components/birthday-celebration';
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
+import { AnimatedCounter, AnimatedHours } from '@/components/ui/animated-counter';
 
 const ADMIN_WIDGETS = [
     { id: 'widgets_top', label: 'Widget Superiori (Meteo/Compleanni/Scadenze)' },
@@ -1712,16 +1713,16 @@ export default function Dashboard() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                         <Badge className="bg-primary/20 text-primary border-primary/30">
-                            📁 Progetti: {globalKpis.activeProjects}
+                            📁 Progetti: <AnimatedCounter value={globalKpis.activeProjects} duration={800} />
                         </Badge>
                         <Badge className="bg-destructive/20 text-destructive border-destructive/30">
-                            ⚠️ Rischio: {globalKpis.atRiskProjects}
+                            ⚠️ Rischio: <AnimatedCounter value={globalKpis.atRiskProjects} duration={800} />
                         </Badge>
                         <Badge className="bg-primary/20 text-primary border-primary/30">
-                            🔄 Attivi: {globalKpis.inProgressTasks}
+                            🔄 Attivi: <AnimatedCounter value={globalKpis.inProgressTasks} duration={800} />
                         </Badge>
                         <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30">
-                            ⏰ Scadenze: {globalKpis.upcomingDeadlines}
+                            ⏰ Scadenze: <AnimatedCounter value={globalKpis.upcomingDeadlines} duration={800} />
                         </Badge>
                         {/* Trend indicators */}
                         <Badge className={`${globalKpis.trends.completedTasks >= 0 ? 'bg-emerald-500/20 text-emerald-600' : 'bg-red-500/20 text-red-600'} border-transparent`}>
@@ -2274,7 +2275,9 @@ export default function Dashboard() {
                                                                 ⏱️ Tempo non registrato
                                                             </div>
                                                             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
-                                                                <div className="text-2xl font-bold text-amber-500">{user.totalNoTimeCount}</div>
+                                                                <div className="text-2xl font-bold text-amber-500">
+                                                                    <AnimatedCounter value={user.totalNoTimeCount} duration={1200} />
+                                                                </div>
                                                                 <div className="text-[10px] text-muted-foreground uppercase mt-0.5">task senza ore</div>
                                                                 {(user.openTasksNoTime > 0 || user.approvedTasksNoTime > 0) && (
                                                                     <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground">
