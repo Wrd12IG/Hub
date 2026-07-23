@@ -102,7 +102,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -119,7 +119,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { Switch } from '@/components/ui/switch';
-import { getInitials } from '@/lib/utils';
+import { getInitials, getUserAvatar } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const AdminForm = dynamic(() => import('@/components/admin-form'), {
@@ -807,6 +807,7 @@ function AdminPageContent() {
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
                                                         <Avatar className="h-9 w-9">
+                                                            <AvatarImage src={getUserAvatar(user)} alt={user.name} />
                                                             <AvatarFallback
                                                                 style={{
                                                                     backgroundColor: user.color,

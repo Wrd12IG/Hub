@@ -2370,6 +2370,7 @@ export default function Dashboard() {
                                             <Card key={user.id} className="relative overflow-hidden transition-all hover:shadow-lg">
                                                 <CardHeader className="pb-2 text-center">
                                                     <Avatar className="h-16 w-16 mx-auto border-4" style={{ borderColor: user.color || '#6366f1' }}>
+                                                        <AvatarImage src={getUserAvatar(user)} alt={user.name} />
                                                         <AvatarFallback className="text-xl" style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
                                                             {user.name ? getInitials(user.name) : '?'}
                                                         </AvatarFallback>
@@ -2659,6 +2660,7 @@ export default function Dashboard() {
                                         {absencesTodayData.map(({ user, absence }: any) => (
                                             <div key={absence.id} className="flex items-center gap-3 p-3 rounded-lg border bg-card/50">
                                                 <Avatar className="h-10 w-10 border-2 border-background">
+                                                    <AvatarImage src={getUserAvatar(user)} alt={user.name} />
                                                     <AvatarFallback style={{ backgroundColor: user.color, color: 'white' }}>
                                                         {user.name ? getInitials(user.name) : '?'}
                                                     </AvatarFallback>
@@ -2850,6 +2852,7 @@ export default function Dashboard() {
                                         <Card key={user.id} className="hover:shadow-md transition-shadow border-t-4" style={{ borderTopColor: user.color || '#6366f1' }}>
                                             <CardHeader className="pb-2 flex flex-row items-center space-x-3">
                                                 <Avatar className="h-10 w-10 border-2" style={{ borderColor: user.color || '#6366f1' }}>
+                                                    <AvatarImage src={getUserAvatar(user)} alt={user.name} />
                                                     <AvatarFallback style={{ backgroundColor: user.color || '#6366f1', color: 'white' }}>
                                                         {user.name ? getInitials(user.name) : '?'}
                                                     </AvatarFallback>

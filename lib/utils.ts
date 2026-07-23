@@ -43,7 +43,7 @@ const teamAvatarMap: Record<string, string> = {
   'enxhi': '/images/team/enxhi.jpg',
   'giulia': '/images/team/giulia.jpg',
   'rebecca': '/images/team/rebecca.jpg',
-  'valeria': '/images/team/valeria.jpg',
+  'valeria messinese': '/images/team/valeria.jpg',
   'denise': '/images/team/denise.jpg',
 };
 
@@ -51,6 +51,13 @@ export function getUserAvatar(user?: { avatar?: string; name?: string } | null):
   if (user?.avatar) return user.avatar;
   if (!user?.name) return undefined;
   const lowerName = user.name.toLowerCase();
+
+  // Valeria Daniotti does not have a photo yet (distinct from Valeria Messinese)
+  if (lowerName.includes('valeria daniotti') || lowerName.includes('daniotti')) return undefined;
+
+  // Exact / full name matches first
+  if (lowerName.includes('valeria messinese') || lowerName.includes('messinese')) return '/images/team/valeria.jpg';
+
   for (const [key, path] of Object.entries(teamAvatarMap)) {
     if (lowerName.includes(key)) return path;
   }
