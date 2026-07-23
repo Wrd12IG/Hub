@@ -92,11 +92,11 @@ const allQuickActions: QuickAction[] = [
     },
     {
         label: 'Nuova Attività',
-        href: '/tasks?action=new-activity',
+        href: '/calendar?action=new-activity',
         icon: Zap,
         color: 'bg-amber-500 hover:bg-amber-400 text-slate-950',
         shadowColor: 'shadow-amber-500/25',
-        requiredPage: '/tasks',
+        requiredPage: '/calendar',
     },
     {
         label: 'Nuovo Progetto',

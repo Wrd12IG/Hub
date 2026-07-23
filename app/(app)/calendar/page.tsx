@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
     ChevronLeft,
     ChevronRight,
@@ -88,6 +89,20 @@ export default function CalendarPage() {
     const [isCreatingActivity, setIsCreatingActivity] = useState(false);
     const [creationDate, setCreationDate] = useState<Date | null>(null);
     const [expandedDayItems, setExpandedDayItems] = useState<{ day: Date; items: any[] } | null>(null);
+
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Auto-open create selection modal from URL (?action=new-activity or ?action=new)
+    useEffect(() => {
+        const action = searchParams.get('action');
+        if (action === 'new-activity' || action === 'new') {
+            setIsSelectionOpen(true);
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('action');
+            router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+        }
+    }, [searchParams, router]);
 
     const MAX_ITEMS_PER_DAY = 3;
 
