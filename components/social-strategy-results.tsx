@@ -37,7 +37,6 @@ import {
     Clock
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { createSocialPostsFromStrategy } from '@/lib/social-strategy-actions';
 import { getAuthHeaders } from '@/lib/client-api-auth';
 import { useToast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
