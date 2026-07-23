@@ -6,10 +6,14 @@ import { ChevronDown, Briefcase, Building2, Search } from 'lucide-react'
 
 import { useLayoutData } from '@/app/(app)/layout-context'
 
-export default function ClientSwitcher() {
+interface ClientSwitcherProps {
+  variant?: 'sidebar' | 'header'
+}
+
+export default function ClientSwitcher({ variant = 'sidebar' }: ClientSwitcherProps) {
   const router = useRouter()
   const pathname = usePathname()
-  
+
   const { clients } = useLayoutData()
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -35,13 +39,76 @@ export default function ClientSwitcher() {
   const handleSelectClient = (clientId: string) => {
     setIsOpen(false)
     setSearchQuery('')
-    // Seleziona il cliente e naviga alla sua Overview
     router.push(`/clients/${clientId}`)
   }
 
   const filteredClients = [...clients]
     .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+
+  if (variant === 'header') {
+    return (
+      <div className="relative inline-block" ref={dropdownRef}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-muted/60 hover:bg-muted border border-border/60 transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow"
+        >
+          <div className={`p-1 rounded-md ${activeClient ? 'bg-amber-500 text-slate-950' : 'bg-primary/10 text-primary'}`}>
+            {activeClient ? <Building2 size={14} /> : <Briefcase size={14} />}
+          </div>
+          <span className="font-semibold max-w-[120px] sm:max-w-[180px] truncate text-foreground">
+            {activeClient ? activeClient.name : 'Tutti i Clienti'}
+          </span>
+          <ChevronDown size={14} className={`text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute top-[calc(100%+0.5rem)] left-0 w-64 bg-popover text-popover-foreground border border-border rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in-50 zoom-in-95 duration-150">
+            {/* SEARCH BOX */}
+            <div className="p-2.5 border-b border-border relative">
+              <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Cerca cliente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-muted/50 border border-input rounded-lg text-xs outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground"
+              />
+            </div>
+
+            {/* LIST */}
+            <div className="max-h-[260px] overflow-y-auto p-1 text-xs">
+              <button
+                onClick={() => {
+                  setIsOpen(false)
+                  router.push('/dashboard')
+                }}
+                className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 font-medium transition-colors ${!activeClientId ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+              >
+                <Briefcase size={14} /> Generale (Tutti i clienti)
+              </button>
+
+              {filteredClients.map(c => (
+                <button
+                  key={c.id}
+                  onClick={() => handleSelectClient(c.id)}
+                  className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2 transition-colors ${activeClientId === c.id ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold' : 'text-muted-foreground hover:bg-muted hover:text-foreground font-medium'}`}
+                >
+                  <Building2 size={14} /> <span className="truncate">{c.name}</span>
+                </button>
+              ))}
+
+              {filteredClients.length === 0 && (
+                <div className="p-3 text-center text-muted-foreground text-xs">
+                  Nessun cliente trovato.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="client-switcher-container" ref={dropdownRef} style={{ position: 'relative', width: '100%', marginBottom: '1.5rem', zIndex: 50 }}>
@@ -86,7 +153,7 @@ export default function ClientSwitcher() {
             <button
               onClick={() => {
                 setIsOpen(false)
-                router.push('/dashboard') // Torna alla dashboard globale
+                router.push('/dashboard')
               }}
               className={`w-full text-left px-3 py-2.5 rounded-md flex items-center gap-2 text-sm font-medium transition-colors ${!activeClientId ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
             >

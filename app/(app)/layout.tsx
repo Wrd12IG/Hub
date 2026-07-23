@@ -67,7 +67,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex h-screen w-full bg-transparent">
           <FloatingNetworkBackground />
 
-          <SidebarNav />
+          {/* Menu Globale a sinistra nascosto: Navigazione spostata nel Floating Command Dock e Header */}
+          {/* <SidebarNav /> */}
           <SidebarInset className="relative isolate">
             <Header />
             <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6 w-full min-w-0">
