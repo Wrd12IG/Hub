@@ -58,7 +58,7 @@ Genera un JSON con questa struttura:
 
 Restituisci SOLO il JSON pulito.`;
 
-        const model = 'gemini-2.5-flash';
+        const model = 'gemini-3.6-flash';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
 
         const response = await fetch(url, {

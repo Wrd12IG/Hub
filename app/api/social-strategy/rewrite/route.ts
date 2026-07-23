@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
         }
 
-        const model = 'gemini-2.5-flash';
+        const model = 'gemini-3.6-flash';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
 
         const systemPrompt = `Sei un esperto Copywriter Social Senior.

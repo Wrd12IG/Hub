@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Use Gemini 2.0 Flash to generate a "Perfect Creative Prompt"
-        const promptModel = 'gemini-2.5-flash';
+        const promptModel = 'gemini-3.6-flash';
         const promptUrl = `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiApiKey}`;
 
         const visualSystemPrompt = `Sei un esperto Visual Designer. Crea un prompt in INGLESE per generare un'immagine fotografica di altissima qualità (stile editoriale, 8k, bokeh) per un post social.
