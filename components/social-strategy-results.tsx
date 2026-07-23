@@ -37,6 +37,8 @@ import {
     Clock
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { createSocialPostsFromStrategy } from '@/lib/social-strategy-actions';
+import { getAuthHeaders } from '@/lib/client-api-auth';
 import { useToast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
 import { addTask, addEditorialContent, updateTask } from '@/lib/actions';
@@ -213,9 +215,10 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
         setIsRewriting(prev => ({ ...prev, [index]: true }));
 
         try {
+            const headers = await getAuthHeaders();
             const response = await fetch('/api/social-strategy/rewrite', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     originalCaption: customCaptions[index] || item.caption,
                     targetTone,
@@ -243,9 +246,10 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
         setIsLoadingMoodboard(prev => ({ ...prev, [index]: true }));
 
         try {
+            const headers = await getAuthHeaders();
             const response = await fetch('/api/social-strategy/moodboard', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     topic: item.topic,
                     platform: item.piattaforma,
@@ -272,9 +276,10 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
         setLoadingBriefs(prev => ({ ...prev, [index]: true }));
 
         try {
+            const headers = await getAuthHeaders();
             const response = await fetch('/api/social-strategy/media-brief', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     topic: item.topic,
                     platform: item.piattaforma,

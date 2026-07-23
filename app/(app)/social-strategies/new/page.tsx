@@ -17,6 +17,7 @@ import { Bot, Sparkles, ArrowLeft, Loader2, AlertTriangle, Save, Send, Target, R
 import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
 import { Badge } from '@/components/ui/badge';
+import { getAuthHeaders } from '@/lib/client-api-auth';
 
 const SocialStrategyResults = nextDynamic(
   () => import('@/components/social-strategy-results').then(m => ({ default: m.SocialStrategyResults })),
@@ -238,9 +239,10 @@ Genera il JSON con questa struttura esatta:
 }`;
 
         try {
+            const headers = await getAuthHeaders();
             const response = await fetch('/api/social-strategy/generate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ prompt: userPrompt, systemPrompt })
             });
 
