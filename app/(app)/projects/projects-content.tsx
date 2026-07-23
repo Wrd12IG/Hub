@@ -88,7 +88,7 @@ import { ProjectCard } from '@/components/project-card';
 import { Project, Client } from '@/lib/data';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { autoCompleteAllProjects, deleteProject, deleteTask } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
@@ -98,6 +98,7 @@ import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
 export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: string } = {}) {
     const { allProjects: projects, clients, allTasks: tasks, usersById, currentUser } = useLayoutData();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const [previewProject, setPreviewProject] = useState<Project | null>(null);
@@ -179,6 +180,17 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
         setEditingProject(forcedClientId ? { clientId: forcedClientId } as any : null);
         setIsDialogOpen(true);
     };
+
+    // Auto-open create dialog from URL (?action=new)
+    useEffect(() => {
+        if (searchParams.get('action') === 'new') {
+            setEditingProject(forcedClientId ? { clientId: forcedClientId } as any : null);
+            setIsDialogOpen(true);
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('action');
+            router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+        }
+    }, [searchParams]);
 
     const handleAutoComplete = async () => {
         setIsAutoCompleting(true);

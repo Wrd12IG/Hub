@@ -757,6 +757,17 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         setModalState({ mode, task: taskData as Task, isOpen: true });
     }
 
+    // Auto-open create modal from URL (?action=new)
+    useEffect(() => {
+        const action = searchParams.get('action');
+        if (action === 'new' || action === 'new-activity') {
+            setModalState({ mode: 'create', isOpen: true });
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('action');
+            router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+        }
+    }, [searchParams, router]);
+
     const handleCloseModal = () => {
         setModalState({ mode: 'create', isOpen: false, task: undefined });
     }
