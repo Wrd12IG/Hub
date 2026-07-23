@@ -13,15 +13,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Bot, Sparkles, ArrowLeft, Loader2, AlertTriangle, Save, Send } from 'lucide-react';
+import { Bot, Sparkles, ArrowLeft, Loader2, AlertTriangle, Save, Send, Target, Rocket, Megaphone, Briefcase, RefreshCw, CheckCircle2, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
+import { Badge } from '@/components/ui/badge';
+
 const SocialStrategyResults = nextDynamic(
   () => import('@/components/social-strategy-results').then(m => ({ default: m.SocialStrategyResults })),
   { ssr: false }
 );
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
 
 const SOCIAL_HOLIDAYS: Record<string, string[]> = {
     'gennaio': ['Capodanno (1)', 'Epifania (6)', 'Blue Monday', 'Giorno della Memoria (27)'],
@@ -38,6 +38,48 @@ const SOCIAL_HOLIDAYS: Record<string, string[]> = {
     'dicembre': ['Immacolata (8)', 'Natale (25)', 'Santo Stefano (26)', 'San Silvestro (31)', 'Giorno dei Diritti Umani (10)']
 };
 
+const STRATEGY_PRESETS = [
+    {
+        id: 'launch',
+        title: 'Lancio Prodotto/Servizio',
+        icon: Rocket,
+        period: 'Mese di Lancio',
+        objective: 'Lancio sul mercato del nuovo servizio/prodotto. Focus su brand awareness, spiegazione dei benefici chiave e acquisizione primi clienti.',
+        color: 'hover:border-blue-500/50 hover:bg-blue-500/5'
+    },
+    {
+        id: 'growth',
+        title: 'Growth & Engagement',
+        icon: Sparkles,
+        period: 'Piano Mensile Growth',
+        objective: 'Aumentare l\'engagement organico e la community. Focus su Reels/TikTok di tendenza, format interattivi e domande nelle Storie.',
+        color: 'hover:border-purple-500/50 hover:bg-purple-500/5'
+    },
+    {
+        id: 'promo',
+        title: 'Promozione Stagionale',
+        icon: Megaphone,
+        period: 'Campagna Promo / Saldi',
+        objective: 'Generare vendite dirette e conversioni nel breve periodo. Focus su offerte a tempo, senso di scarsità e call to action chiare.',
+        color: 'hover:border-amber-500/50 hover:bg-amber-500/5'
+    },
+    {
+        id: 'b2b',
+        title: 'B2B & Autorità',
+        icon: Briefcase,
+        period: 'Piano Posizionamento B2B',
+        objective: 'Rafforzare l\'autorità e la credibilità nel settore B2B. Focus su case study di successo, articoli di approfondimento e posizionamento su LinkedIn.',
+        color: 'hover:border-emerald-500/50 hover:bg-emerald-500/5'
+    }
+];
+
+const GENERATION_STEPS = [
+    { step: 1, text: 'Analisi profilo brand, target audience e tono di voce...', progress: 20 },
+    { step: 2, text: 'Definizione pilastri di contenuto e messaggi chiave...', progress: 50 },
+    { step: 3, text: 'Generazione calendario editoriale e format grafici/video...', progress: 80 },
+    { step: 4, text: 'Finalizzazione idee WOW e KPI di rendimento...', progress: 95 }
+];
+
 function NewSocialStrategyForm() {
     const { clients, currentUser, isLoadingLayout } = useLayoutData();
     const [selectedClientId, setSelectedClientId] = useState<string>('');
@@ -48,8 +90,10 @@ function NewSocialStrategyForm() {
     const [extraNotes, setExtraNotes] = useState('');
 
     const [isGenerating, setIsGenerating] = useState(false);
+    const [generationStepIdx, setGenerationStepIdx] = useState(0);
     const [generatedResult, setGeneratedResult] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
+    const [errorDetails, setErrorDetails] = useState<string | null>(null);
     const [detectedMonth, setDetectedMonth] = useState<string | null>(null);
     const [selectedHolidays, setSelectedHolidays] = useState<string[]>([]);
 
@@ -57,7 +101,19 @@ function NewSocialStrategyForm() {
     const router = useRouter();
     const { toast } = useToast();
 
-    // Default values logic
+    // Stepper timer during generation
+    useEffect(() => {
+        let interval: any;
+        if (isGenerating) {
+            setGenerationStepIdx(0);
+            interval = setInterval(() => {
+                setGenerationStepIdx(prev => (prev < GENERATION_STEPS.length - 1 ? prev + 1 : prev));
+            }, 4500);
+        }
+        return () => clearInterval(interval);
+    }, [isGenerating]);
+
+    // Load defaults from URL
     useEffect(() => {
         const clientId = searchParams.get('clientId');
         if (clientId) setSelectedClientId(clientId);
@@ -85,7 +141,7 @@ function NewSocialStrategyForm() {
         const month = Object.keys(SOCIAL_HOLIDAYS).find(m => lowerLabel.includes(m));
         if (month !== detectedMonth) {
             setDetectedMonth(month || null);
-            setSelectedHolidays([]); // Reset if month changes
+            setSelectedHolidays([]);
         }
     }, [periodLabel, detectedMonth]);
 
@@ -95,10 +151,14 @@ function NewSocialStrategyForm() {
             : [...selectedHolidays, holiday];
 
         setSelectedHolidays(newSelected);
-
-        // Update the actual events textarea
         const baseEvents = events.split(', ').filter(e => !Object.values(SOCIAL_HOLIDAYS).flat().includes(e) && e !== '');
         setEvents([...baseEvents, ...newSelected].join(', '));
+    };
+
+    const applyPreset = (preset: typeof STRATEGY_PRESETS[0]) => {
+        setPeriodLabel(preset.period);
+        setObjective(preset.objective);
+        toast({ title: 'Template applicato', description: `Inizializzato con il modello "${preset.title}".` });
     };
 
     const selectedClient = clients.find(c => c.id === selectedClientId);
@@ -111,70 +171,70 @@ function NewSocialStrategyForm() {
 
     const handleGenerate = async () => {
         if (!selectedClientId || !objective || !periodLabel) {
-            toast({ title: 'Campi obbligatori', description: 'Completa i campi obbligatori (*).', variant: 'destructive' });
+            toast({ title: 'Campi obbligatori', description: 'Seleziona un cliente e inserisci Periodo e Obiettivo.', variant: 'destructive' });
             return;
         }
 
         setIsGenerating(true);
         setError(null);
+        setErrorDetails(null);
         setGeneratedResult(null);
 
         const profile = selectedClient?.socialProfile || {} as SocialProfile;
 
-        const systemPrompt = `Sei un esperto di social media marketing e strategia digitale. 
-Generi strategie professionali, creative e actionable per agenzie. 
-Rispondi SEMPRE in italiano. Rispondi SOLO in formato JSON valido, 
-senza markdown, senza backtick, senza testo prima o dopo.`;
+        const systemPrompt = `Sei un esperto di social media marketing e strategia digitale per agenzie web e comunicazione. 
+Generi strategie professionali, altamente creative, concrete e actionable per i clienti. 
+Rispondi SEMPRE in lingua italiana. 
+Rispondi RIGOROSAMENTE SOLO con un oggetto JSON valido, senza blocchi markdown e senza commenti prima o dopo.`;
 
-        const userPrompt = `Crea una strategia social e marketing completa per questo cliente.
+        const userPrompt = `Crea una strategia social e marketing completa per il seguente cliente.
 
 PROFILO CLIENTE:
-- Azienda: ${selectedClient?.name || 'Azienda Inc.'}
-- Settore comunicativo: ${profile.sector || 'N/D'}
-- Piattaforme attive: ${profile.platforms?.join(', ') || 'N/D'}
-- Tono di voce: ${profile.toneOfVoice || 'N/D'}
-- Target audience: ${profile.targetAudience || 'N/D'}
+- Azienda: ${selectedClient?.name || 'Azienda'}
+- Settore: ${profile.sector || 'Generico'}
+- Piattaforme attive: ${profile.platforms?.join(', ') || 'Instagram, Facebook, LinkedIn'}
+- Tono di voce: ${profile.toneOfVoice || 'Professionale ed empatico'}
+- Target audience: ${profile.targetAudience || 'Target ampio interessato al settore'}
 - Competitor principali: ${profile.competitors || 'N/D'}
 - Cose da evitare: ${profile.thingsToAvoid || 'N/D'}
-- Brief permanente: ${profile.aiInfo || 'N/D'}
+- Note permanenti: ${profile.aiInfo || 'N/D'}
 
-QUESTO PERIODO:
+DETTAGLI PERIODO CORRENTE:
 - Frequenza: ${frequency}
 - Periodo: ${periodLabel}
 - Obiettivo: ${objective}
-- Eventi/ricorrenze: ${events}
-- Note extra: ${extraNotes}
+- Eventi/ricorrenze: ${events || 'Nessuno'}
+- Note extra: ${extraNotes || 'Nessuna'}
 
-ISTRUZIONI QUANTITÀ E STRUTTURA:
-- Se la frequenza è "settimanale", genera un calendario di circa 4-5 post totali.
-- Se la frequenza è "mensile", genera un calendario corposo con almeno 12-15 post (circa 3-4 post a settimana) distribuiti bene su tutto il mese e sulle diverse piattaforme attive del cliente (${profile.platforms?.join(', ') || 'tutte'}).
-- OGNI giorno nel calendario deve essere diverso o coprire una diversa combinazione di piattaforma/argomento.
-- Sii creativo e specifico per ogni singolo post (topic, caption, cta).
+ISTRUZIONI QUANTITATIVE:
+- Se la frequenza è "settimanale", genera 4-5 post nel calendario.
+- Se la frequenza è "mensile", genera 12-15 post bilanciati per coprire il mese sulle piattaforme del cliente.
+- Ogni post deve avere formato specifico (Reel, Carosello, Foto, Infografica, Storia), topic rilevante, caption pronta e CTA d'impatto.
 
-Genera un JSON con questa struttura esatta:
+Genera il JSON con questa struttura esatta:
 {
-  "sommario_strategico": "paragrafo 3-4 righe",
+  "sommario_strategico": "descrizione panoramica 3-4 righe",
   "obiettivi": ["obiettivo 1", "obiettivo 2", "obiettivo 3"],
-  "messaggio_chiave": "claim centrale del periodo",
+  "messaggio_chiave": "claim principale del periodo",
   "calendario": [
     {
       "giorno": "Lunedì 1",
       "piattaforma": "Instagram",
       "formato": "Reel",
-      "topic": "argomento",
-      "caption": "testo",
-      "cta": "call to action"
+      "topic": "argomento specifico",
+      "caption": "testo completo del post",
+      "cta": "call to action d'impatto"
     }
   ],
   "idee_wow": [
     {
-      "titolo": "nome",
-      "descrizione": "come eseguirla",
-      "impatto_atteso": "perché"
+      "titolo": "nome idea",
+      "descrizione": "dettaglio esecuzione",
+      "impatto_atteso": "risultato atteso"
     }
   ],
-  "kpi": ["KPI 1"],
-  "testo_email": "email pronta"
+  "kpi": ["KPI 1", "KPI 2"],
+  "testo_email": "email pronta da inviare al cliente per presentare la strategia"
 }`;
 
         try {
@@ -184,16 +244,18 @@ Genera un JSON con questa struttura esatta:
                 body: JSON.stringify({ prompt: userPrompt, systemPrompt })
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                const errorBody = await response.json().catch(() => ({}));
-                throw new Error(errorBody.error || errorBody.details || 'Errore nella generazione della strategia.');
+                throw new Error(data.error || data.details || 'Errore durante la generazione della strategia AI.');
             }
 
-            const data = await response.json();
             setGeneratedResult(data);
+            toast({ title: '✨ Strategia Generata!', description: 'Il piano editoriale AI è stato creato con successo.' });
         } catch (err: any) {
-            setError(err.message);
-            toast({ title: 'Errore', description: err.message, variant: 'destructive' });
+            setError(err.message || 'Si è verificato un errore durante la chiamata AI.');
+            setErrorDetails(err.details || null);
+            toast({ title: 'Errore Generazione AI', description: err.message, variant: 'destructive' });
         } finally {
             setIsGenerating(false);
         }
@@ -226,89 +288,168 @@ Genera un JSON con questa struttura esatta:
     };
 
     if (isLoadingLayout) {
-        return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
+        return (
+            <div className="p-12 flex justify-center items-center">
+                <Loader2 className="animate-spin h-8 w-8 text-primary" />
+            </div>
+        );
     }
 
     return (
-        <div className="space-y-6 max-w-6xl mx-auto pb-20 animate-in fade-in duration-500">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild>
-                    <Link href="/social-strategies"><ArrowLeft className="h-4 w-4" /></Link>
-                </Button>
-                <div>
-                    <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
-                        <Sparkles className="h-8 w-8 text-primary" /> Genera Strategia Social
-                    </h1>
-                    <p className="text-muted-foreground">Utilizza l'AI per creare un piano editoriale strategico</p>
+        <div className="space-y-6 max-w-7xl mx-auto pb-20 animate-in fade-in duration-300">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" asChild className="rounded-xl">
+                        <Link href="/social-strategies"><ArrowLeft className="h-5 w-5" /></Link>
+                    </Button>
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-bold font-headline flex items-center gap-2.5">
+                            <Sparkles className="h-7 w-7 text-primary animate-pulse" /> Generatore Strategie Social AI
+                        </h1>
+                        <p className="text-sm text-muted-foreground">Crea piani editoriali e strategie social ottimizzate per i clienti dell'agenzia</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-12">
-                <div className="md:col-span-5 space-y-6">
-                    <Card className="glass-card sticky top-24">
-                        <CardHeader>
-                            <CardTitle>Input Strategia</CardTitle>
-                            <CardDescription>Inserisci i dettagli per la generazione</CardDescription>
+            {/* Template Presets */}
+            <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Rocket className="h-3.5 w-3.5 text-primary" /> Modelli Strategici Rapidi:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {STRATEGY_PRESETS.map(preset => {
+                        const Icon = preset.icon;
+                        return (
+                            <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => applyPreset(preset)}
+                                className={`flex items-start gap-3 p-3 rounded-xl border border-border bg-card/60 transition-all duration-200 text-left shadow-sm hover:shadow ${preset.color}`}
+                            >
+                                <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0 mt-0.5">
+                                    <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-bold text-foreground truncate">{preset.title}</p>
+                                    <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{preset.objective}</p>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Main Form + Results Container */}
+            <div className="grid gap-6 lg:grid-cols-12">
+                {/* Left Column: Input Form */}
+                <div className="lg:col-span-5 space-y-6">
+                    <Card className="border-border/60 shadow-xl bg-card/80 backdrop-blur-xl">
+                        <CardHeader className="pb-4 border-b border-border/40">
+                            <CardTitle className="text-lg font-bold flex items-center justify-between">
+                                <span>Input Strategia</span>
+                                {selectedClient && (
+                                    <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+                                        {selectedClient.name}
+                                    </Badge>
+                                )}
+                            </CardTitle>
+                            <CardDescription className="text-xs">Compila i parametri del periodo da pianificare</CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Cliente *</Label>
+                        <CardContent className="space-y-4 pt-4">
+
+                            {/* Client Selection */}
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Cliente *</Label>
                                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                                    <SelectTrigger><SelectValue placeholder="Seleziona un cliente..." /></SelectTrigger>
+                                    <SelectTrigger className="rounded-xl">
+                                        <SelectValue placeholder="Seleziona un cliente..." />
+                                    </SelectTrigger>
                                     <SelectContent>
-                                        {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {c.name}
+                                            </SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            <div className="flex items-center justify-between p-3 border rounded-lg bg-accent/20">
+                            {/* Client Social Profile Preview Card */}
+                            {selectedClient && selectedClient.socialProfile && (
+                                <div className="p-3 rounded-xl bg-muted/40 border border-border/50 text-xs space-y-1.5 animate-in fade-in-50">
+                                    <div className="flex items-center justify-between text-muted-foreground">
+                                        <span className="font-semibold text-foreground">Profilo Social Memorizzato</span>
+                                        <span>{selectedClient.socialProfile.sector || 'Settore N/D'}</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5 pt-1">
+                                        {selectedClient.socialProfile.toneOfVoice && (
+                                            <Badge variant="secondary" className="text-[10px] py-0 px-2">
+                                                🗣️ {selectedClient.socialProfile.toneOfVoice}
+                                            </Badge>
+                                        )}
+                                        {selectedClient.socialProfile.platforms?.map(p => (
+                                            <Badge key={p} variant="outline" className="text-[10px] py-0 px-2">
+                                                📱 {p}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Frequency Toggle */}
+                            <div className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/30">
                                 <div>
-                                    <p className="text-sm font-medium">Frequenza</p>
-                                    <p className="text-xs text-muted-foreground capitalize">{frequency}</p>
+                                    <p className="text-xs font-semibold text-foreground">Frequenza Piano</p>
+                                    <p className="text-[11px] text-muted-foreground capitalize">{frequency} ({frequency === 'mensile' ? '12-15 post' : '4-5 post'})</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-medium">Settimanale</span>
+                                    <span className="text-xs font-medium text-muted-foreground">Settimanale</span>
                                     <Switch
                                         checked={frequency === 'mensile'}
                                         onCheckedChange={(v) => setFrequency(v ? 'mensile' : 'settimanale')}
                                     />
-                                    <span className="text-xs font-medium">Mensile</span>
+                                    <span className="text-xs font-medium text-foreground">Mensile</span>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>Periodo di Riferimento *</Label>
+                            {/* Period Label */}
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Periodo di Riferimento *</Label>
                                 <Input
-                                    placeholder="es. Settimana 14 · Aprile 2026"
+                                    placeholder="es. Aprile 2026 · Settimana 14"
                                     value={periodLabel}
                                     onChange={(e) => setPeriodLabel(e.target.value)}
+                                    className="rounded-xl"
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>Obiettivo del Periodo *</Label>
+                            {/* Main Objective */}
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Obiettivo Principale del Periodo *</Label>
                                 <Textarea
-                                    placeholder="Qual è il focus principale di questo periodo?"
-                                    className="min-h-[80px]"
+                                    placeholder="Qual è il focus o risultato chiave di questo periodo?"
+                                    className="min-h-[80px] rounded-xl text-xs"
                                     value={objective}
                                     onChange={(e) => setObjective(e.target.value)}
                                 />
                             </div>
 
-                            <div className="space-y-3">
-                                <Label>Eventi/Ricorrenze Rilevanti</Label>
+                            {/* Social Holidays / Events */}
+                            <div className="space-y-2">
+                                <Label className="text-xs font-semibold">Eventi / Ricorrenze Rilevanti</Label>
 
-                                {detectedMonth && (
-                                    <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg space-y-2 animate-in slide-in-from-top-1">
-                                        <p className="text-[10px] font-bold uppercase text-primary flex items-center gap-1">
-                                            <Sparkles className="h-3 w-3" /> Suggeriti per {detectedMonth.charAt(0).toUpperCase() + detectedMonth.slice(1)}:
+                                {detectedMonth && SOCIAL_HOLIDAYS[detectedMonth] && (
+                                    <div className="p-3 bg-primary/5 border border-primary/15 rounded-xl space-y-2 animate-in fade-in duration-200">
+                                        <p className="text-[11px] font-bold text-primary flex items-center gap-1.5">
+                                            <Sparkles className="h-3.5 w-3.5" /> Giornate Nazionali per {detectedMonth.toUpperCase()}:
                                         </p>
-                                        <div className="flex flex-wrap gap-2">
+                                        <div className="flex flex-wrap gap-1.5">
                                             {SOCIAL_HOLIDAYS[detectedMonth].map(holiday => (
                                                 <Badge
                                                     key={holiday}
                                                     variant={selectedHolidays.includes(holiday) ? 'default' : 'outline'}
-                                                    className="cursor-pointer text-[10px] py-0 px-2 h-6"
+                                                    className="cursor-pointer text-[10px] py-0.5 px-2 hover:scale-105 transition-all"
                                                     onClick={() => toggleHoliday(holiday)}
                                                 >
                                                     {holiday}
@@ -319,25 +460,37 @@ Genera un JSON con questa struttura esatta:
                                 )}
 
                                 <Textarea
-                                    placeholder="es. Black Friday, Saldi, Evento X..."
+                                    placeholder="es. Black Friday, Saldi, Evento aziendale..."
                                     value={events}
                                     onChange={(e) => setEvents(e.target.value)}
-                                    className="min-h-[60px]"
+                                    className="min-h-[60px] rounded-xl text-xs"
                                 />
                             </div>
 
+                            {/* Extra Notes */}
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Note / Istruzioni Extra (opzionale)</Label>
+                                <Input
+                                    placeholder="es. Spingere i Reel parlati, evitare sconti..."
+                                    value={extraNotes}
+                                    onChange={(e) => setExtraNotes(e.target.value)}
+                                    className="rounded-xl text-xs"
+                                />
+                            </div>
+
+                            {/* Generate Button */}
                             <Button
                                 onClick={handleGenerate}
-                                className="w-full rainbow-border items-center justify-center py-6 text-lg"
+                                className="w-full py-6 rounded-xl font-bold text-base bg-gradient-to-r from-primary to-amber-500 hover:from-primary/90 hover:to-amber-500/90 text-white shadow-lg shadow-primary/20 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                                 disabled={isGenerating}
                             >
                                 {isGenerating ? (
                                     <>
-                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Elaborazione...
+                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generazione AI in corso...
                                     </>
                                 ) : (
                                     <>
-                                        Genera Ora <Sparkles className="ml-2 h-5 w-5" />
+                                        Genera Strategia AI <Sparkles className="ml-2 h-5 w-5" />
                                     </>
                                 )}
                             </Button>
@@ -345,25 +498,59 @@ Genera un JSON con questa struttura esatta:
                     </Card>
                 </div>
 
-                <div className="md:col-span-7">
+                {/* Right Column: Output / Live Generation Stepper */}
+                <div className="lg:col-span-7">
                     {isGenerating ? (
-                        <div className="h-full flex flex-col items-center justify-center min-h-[400px] gap-4 bg-card border rounded-lg animate-pulse p-8 text-center">
-                            <Bot className="h-20 w-20 text-primary animate-bounce" />
-                            <h3 className="text-2xl font-bold font-headline">Sto elaborando...</h3>
-                            <div className="w-full max-w-xs h-2 bg-accent rounded-full overflow-hidden">
-                                <div className="h-full bg-primary animate-[progress_5s_ease-in-out_infinite]" style={{ width: '100%' }} />
+                        <Card className="h-full border-primary/30 shadow-2xl bg-card/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center min-h-[480px]">
+                            <div className="relative mb-6">
+                                <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
+                                <div className="p-4 rounded-full bg-primary/10 border border-primary/30 text-primary relative">
+                                    <Bot className="h-12 w-12 animate-bounce" />
+                                </div>
                             </div>
-                        </div>
+
+                            <h3 className="text-xl font-bold font-headline text-foreground">
+                                L'Intelligenza Artificiale sta creando la tua strategia
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                                Elaborazione in tempo reale basata sul profilo cliente e gli obiettivi impostati
+                            </p>
+
+                            {/* Live Stepper Indicator */}
+                            <div className="w-full max-w-md mt-6 space-y-3">
+                                <div className="flex items-center justify-between text-xs font-semibold text-primary">
+                                    <span>Passo {GENERATION_STEPS[generationStepIdx].step} di {GENERATION_STEPS.length}</span>
+                                    <span>{GENERATION_STEPS[generationStepIdx].progress}%</span>
+                                </div>
+                                <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-primary to-amber-500 transition-all duration-700 ease-out rounded-full"
+                                        style={{ width: `${GENERATION_STEPS[generationStepIdx].progress}%` }}
+                                    />
+                                </div>
+                                <p className="text-xs font-medium text-foreground/80 animate-pulse transition-all">
+                                    {GENERATION_STEPS[generationStepIdx].text}
+                                </p>
+                            </div>
+                        </Card>
                     ) : generatedResult ? (
                         <div className="space-y-6">
-                            <div className="flex justify-end gap-2 sticky top-[100px] z-10 bg-background/80 backdrop-blur p-2 rounded-md border shadow-sm">
-                                <Button variant="outline" size="sm" onClick={() => handleSave('bozza')}>
-                                    <Save className="mr-2 h-4 w-4" /> Salva Bozza
-                                </Button>
-                                <Button size="sm" onClick={() => handleSave('inviata')}>
-                                    <Send className="mr-2 h-4 w-4" /> Segna come Inviata
-                                </Button>
+                            {/* Action Bar */}
+                            <div className="flex items-center justify-between sticky top-[80px] z-10 bg-background/95 backdrop-blur-xl p-3 rounded-2xl border shadow-lg border-border/80">
+                                <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                                    <span className="text-xs font-bold text-foreground">Strategia Pronta</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => handleSave('bozza')} className="rounded-xl text-xs">
+                                        <Save className="mr-1.5 h-3.5 w-3.5" /> Salva Bozza
+                                    </Button>
+                                    <Button size="sm" onClick={() => handleSave('inviata')} className="rounded-xl text-xs bg-emerald-600 hover:bg-emerald-500 text-white">
+                                        <Send className="mr-1.5 h-3.5 w-3.5" /> Segna Inviata
+                                    </Button>
+                                </div>
                             </div>
+
                             <SocialStrategyResults
                                 result={generatedResult}
                                 clientName={selectedClient?.name}
@@ -374,25 +561,30 @@ Genera un JSON con questa struttura esatta:
                             />
                         </div>
                     ) : error ? (
-                        <div className="h-full flex flex-col items-center justify-center min-h-[400px] gap-4 bg-destructive/5 border-destructive/20 border rounded-lg p-8 text-center">
-                            <AlertTriangle className="h-16 w-16 text-destructive" />
-                            <p className="text-muted-foreground">{error}</p>
-                            <Button variant="outline" onClick={handleGenerate}>Riprova</Button>
-                        </div>
+                        <Card className="h-full border-destructive/30 bg-destructive/5 flex flex-col items-center justify-center p-8 text-center min-h-[440px]">
+                            <ShieldAlert className="h-14 w-14 text-destructive mb-3" />
+                            <h3 className="text-lg font-bold text-foreground">Generazione AI non riuscita</h3>
+                            <p className="text-xs text-muted-foreground max-w-md mt-1 mb-2">{error}</p>
+                            {errorDetails && (
+                                <p className="text-[11px] font-mono bg-muted/60 p-2 rounded-lg text-muted-foreground max-w-md overflow-x-auto">
+                                    {errorDetails}
+                                </p>
+                            )}
+                            <Button onClick={handleGenerate} className="mt-4 rounded-xl" variant="outline">
+                                <RefreshCw className="mr-2 h-4 w-4" /> Riprova Ora
+                            </Button>
+                        </Card>
                     ) : (
-                        <div className="h-full flex flex-col items-center justify-center min-h-[400px] gap-4 bg-card border rounded-lg border-dashed p-8 text-center">
-                            <Bot className="h-16 w-16 text-muted-foreground/30" />
-                            <h3 className="text-xl font-medium text-muted-foreground">La strategia apparirà qui</h3>
-                        </div>
+                        <Card className="h-full border-dashed border-2 flex flex-col items-center justify-center p-8 text-center min-h-[440px] bg-card/40">
+                            <Bot className="h-16 w-16 text-muted-foreground/30 mb-3" />
+                            <h3 className="text-lg font-semibold text-foreground">La strategia AI apparirà qui</h3>
+                            <p className="text-xs text-muted-foreground max-w-sm mt-1">
+                                Seleziona un cliente o scegli un modello rapido in alto per iniziare subito la generazione.
+                            </p>
+                        </Card>
                     )}
                 </div>
             </div>
-            <style jsx global>{`
-                @keyframes progress {
-                    0% { transform: translateX(-100%); }
-                    100% { transform: translateX(0); }
-                }
-            `}</style>
         </div>
     );
 }
