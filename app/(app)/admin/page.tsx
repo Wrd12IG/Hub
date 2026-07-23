@@ -449,7 +449,7 @@ function AdminPageContent() {
                         status: data.status as User['status'],
                         salary: parseFloat(String(data.salary).replace(',', '.')) || 0,
                         hourlyRate: parseFloat(String(data.hourlyRate).replace(',', '.')) || 0,
-                        avatar: undefined,
+                        avatar: (data.avatar as string)?.trim() || undefined,
                     };
                     const result = await handleCreateUser(newUser, data.password);
                     if (!result.success && result.error) {
@@ -478,6 +478,7 @@ function AdminPageContent() {
                         status: data.status as User['status'],
                         salary: parseFloat(String(data.salary).replace(',', '.')) || 0,
                         hourlyRate: parseFloat(String(data.hourlyRate).replace(',', '.')) || 0,
+                        avatar: (data.avatar as string)?.trim() || undefined,
                     };
                     await updateUser(editingUser.id, updatedUserData);
                     break;

@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Client, Department, Team, User, ActivityType, BriefService, BriefServiceCategory, CalendarActivityPreset } from '@/lib/data';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getUserAvatar, getInitials } from '@/lib/utils';
 
 type ModalState = 'user' | 'client' | 'department' | 'team' | 'activity' | 'service' | 'calendar_preset' | 'edit-user' | 'edit-client' | 'edit-department' | 'edit-team' | 'edit-activity' | 'edit-service' | 'edit-calendar_preset' | null;
 
@@ -37,10 +39,12 @@ interface AdminFormProps {
 export default function AdminForm({ modalOpen, editingUser, editingClient, editingDepartment, editingTeam, editingActivity, editingService, editingCalendarPreset, departments, teams, users, clients, briefServiceCategories, activityTypes, handleFormSubmit, handleCloseModal }: AdminFormProps) {
     const isEdit = modalOpen?.startsWith('edit-') || false;
     const [selectedRole, setSelectedRole] = React.useState(editingUser?.role || '');
+    const [avatarUrl, setAvatarUrl] = React.useState(editingUser?.avatar || '');
 
     React.useEffect(() => {
         if (modalOpen === 'user' || modalOpen === 'edit-user') {
             setSelectedRole(editingUser?.role || '');
+            setAvatarUrl(editingUser?.avatar || '');
         }
     }, [modalOpen, editingUser]);
 
@@ -81,7 +85,25 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                         <div><Label htmlFor="birthDate">Data di Nascita 🎂</Label><Input id="birthDate" name="birthDate" type="date" defaultValue={editingUser?.birthDate ? editingUser.birthDate.split('T')[0] : ''} /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <div><Label htmlFor="color">Colore</Label><Input id="color" name="color" type="color" defaultValue={editingUser?.color || '#4285F4'} /></div>
+                        <div><Label htmlFor="color">Colore Accent</Label><Input id="color" name="color" type="color" defaultValue={editingUser?.color || '#4285F4'} /></div>
+                    </div>
+                    <div>
+                        <Label htmlFor="avatar">Foto Profilo / Avatar (URL o Percorso)</Label>
+                        <div className="flex items-center gap-3 mt-1.5">
+                            <Avatar className="h-10 w-10 shrink-0 border border-border shadow-sm">
+                                <AvatarImage src={avatarUrl || getUserAvatar({ ...editingUser, avatar: avatarUrl })} alt={editingUser?.name || 'Preview'} />
+                                <AvatarFallback style={{ backgroundColor: editingUser?.color || '#4285F4', color: 'white' }}>
+                                    {editingUser?.name ? getInitials(editingUser.name) : '?'}
+                                </AvatarFallback>
+                            </Avatar>
+                            <Input
+                                id="avatar"
+                                name="avatar"
+                                placeholder="es. /images/team/valeria-daniotti.jpg o https://..."
+                                value={avatarUrl}
+                                onChange={(e) => setAvatarUrl(e.target.value)}
+                            />
+                        </div>
                     </div>
                     <div><Label htmlFor="skills">Competenze (separate da virgola)</Label><Input id="skills" name="skills" defaultValue={editingUser?.skills?.join(', ')} /></div>
                     <div><Label htmlFor="status">Stato</Label><Select name="status" defaultValue={editingUser?.status || 'Attivo'}><SelectTrigger><SelectValue placeholder="Seleziona uno stato" /></SelectTrigger><SelectContent><SelectItem value="Attivo">Attivo</SelectItem><SelectItem value="Inattivo">Inattivo</SelectItem></SelectContent></Select></div>
