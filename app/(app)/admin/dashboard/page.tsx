@@ -3289,41 +3289,61 @@ export default function Dashboard() {
                         <CardDescription>Analisi budget vs costi effettivi per cliente</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={clientProfitability.slice(0, 8)} layout="vertical" margin={{ left: 100 }}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                                <XAxis type="number" tickFormatter={(v) => `€${v.toLocaleString('it-IT')}`} />
-                                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={95} />
+                        <ResponsiveContainer width="100%" height={340}>
+                            <BarChart data={clientProfitability.slice(0, 8)} layout="vertical" margin={{ left: 130, right: 30, top: 10, bottom: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                                <XAxis 
+                                    type="number" 
+                                    tickFormatter={(v) => v >= 1000 ? `€${(v / 1000).toFixed(0)}k` : `€${v}`}
+                                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                                />
+                                <YAxis 
+                                    type="category" 
+                                    dataKey="name" 
+                                    tick={{ fontSize: 11, fill: 'currentColor' }} 
+                                    width={125} 
+                                />
                                 <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: 'hsl(var(--card))',
+                                        borderColor: 'hsl(var(--border))',
+                                        borderRadius: '12px',
+                                        color: 'hsl(var(--foreground))',
+                                        fontSize: '12px',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.25)'
+                                    }}
                                     formatter={(value: number, name: string) => [
-                                        `€${value.toLocaleString('it-IT', { minimumFractionDigits: 2 })}`,
-                                        name
+                                        `€${Number(value).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+                                        name === 'budget' ? 'Budget Assegnato' : 'Costi Registrati'
                                     ]}
                                 />
-                                <Legend />
-                                <Bar dataKey="budget" name="Budget" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                                <Bar dataKey="costs" name="Costi" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                                <Legend 
+                                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                                    formatter={(value) => value === 'budget' ? 'Budget' : 'Costi'}
+                                />
+                                <Bar dataKey="budget" name="budget" fill="#10b981" radius={[0, 6, 6, 0]} barSize={14} />
+                                <Bar dataKey="costs" name="costs" fill="#f43f5e" radius={[0, 6, 6, 0]} barSize={14} />
                             </BarChart>
                         </ResponsiveContainer>
 
-                        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             {clientProfitability.slice(0, 4).map((client) => (
-                                <div key={client.clientId} className={cn(
-                                    "p-3 rounded-xl border transition-all duration-200",
-                                    client.profitMargin >= 30 ? "bg-emerald-500/10 border-emerald-500/20" :
-                                        client.profitMargin >= 0 ? "bg-amber-500/10 border-amber-500/20" :
-                                            "bg-rose-500/10 border-rose-500/20"
-                                )}>
-                                    <p className="font-medium text-xs text-muted-foreground truncate">{client.name}</p>
-                                    <p className={cn(
-                                        "text-base font-bold mt-1",
-                                        client.profit >= 0 ? "text-emerald-500" : "text-rose-500"
-                                    )}>
-                                        {client.profit >= 0 ? '+' : ''}€{client.profit.toLocaleString('it-IT', { minimumFractionDigits: 0 })}
-                                    </p>
-                                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                                        Margine: <span className="font-semibold">{client.profitMargin.toFixed(1)}%</span>
-                                    </p>
+                                <div key={client.clientId} className="p-3.5 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm space-y-1.5 shadow-sm">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="font-semibold text-xs text-foreground truncate" title={client.name}>{client.name}</p>
+                                        <Badge variant={client.profit >= 0 ? "secondary" : "destructive"} className="text-[10px] px-1.5 py-0 font-bold">
+                                            Margine {client.profitMargin.toFixed(0)}%
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-baseline justify-between pt-1">
+                                        <span className="text-[11px] text-muted-foreground">Utile / Perdita</span>
+                                        <span className={cn(
+                                            "text-sm font-extrabold font-mono",
+                                            client.profit >= 0 ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
+                                        )}>
+                                            {client.profit >= 0 ? '+' : ''}€{client.profit.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
+                                        </span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
