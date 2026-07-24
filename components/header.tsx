@@ -52,6 +52,7 @@ import { NotificationCenter } from '@/components/notification-center';
 import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 import ClientSwitcher from '@/components/ClientSwitcher';
+import { CommandPalette } from '@/components/command-palette';
 
 export function Header() {
     const pathname = usePathname();
@@ -167,6 +168,7 @@ export function Header() {
                 </Breadcrumb>
                 <div className="h-4 w-px bg-border/60 hidden md:block" />
                 <ClientSwitcher variant="header" />
+                <CommandPalette />
             </div>
 
             {/* Live Insights Strip - Real-time metrics */}

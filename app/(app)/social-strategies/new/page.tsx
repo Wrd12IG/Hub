@@ -97,6 +97,52 @@ function NewSocialStrategyForm() {
     const [errorDetails, setErrorDetails] = useState<string | null>(null);
     const [detectedMonth, setDetectedMonth] = useState<string | null>(null);
     const [selectedHolidays, setSelectedHolidays] = useState<string[]>([]);
+    const [isRestoredDraft, setIsRestoredDraft] = useState(false);
+
+    // Auto-load draft from localStorage on initial render
+    useEffect(() => {
+        try {
+            const savedDraft = localStorage.getItem('social_strategy_draft');
+            if (savedDraft) {
+                const parsed = JSON.parse(savedDraft);
+                if (parsed.clientId) setSelectedClientId(parsed.clientId);
+                if (parsed.frequency) setFrequency(parsed.frequency);
+                if (parsed.periodLabel) setPeriodLabel(parsed.periodLabel);
+                if (parsed.objective) setObjective(parsed.objective);
+                if (parsed.events) setEvents(parsed.events);
+                if (parsed.extraNotes) setExtraNotes(parsed.extraNotes);
+                setIsRestoredDraft(true);
+            }
+        } catch (e) {
+            console.warn('Failed to restore strategy draft:', e);
+        }
+    }, []);
+
+    // Auto-save form inputs to localStorage
+    useEffect(() => {
+        if (selectedClientId || periodLabel || objective) {
+            const draft = {
+                clientId: selectedClientId,
+                frequency,
+                periodLabel,
+                objective,
+                events,
+                extraNotes,
+                updatedAt: new Date().toISOString()
+            };
+            localStorage.setItem('social_strategy_draft', JSON.stringify(draft));
+        }
+    }, [selectedClientId, frequency, periodLabel, objective, events, extraNotes]);
+
+    const clearDraft = () => {
+        localStorage.removeItem('social_strategy_draft');
+        setPeriodLabel('');
+        setObjective('');
+        setEvents('');
+        setExtraNotes('');
+        setIsRestoredDraft(false);
+        toast({ title: 'Bozza Resettata', description: 'Tutti i campi sono stati svuotati.' });
+    };
 
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -312,6 +358,16 @@ Genera il JSON con questa struttura esatta:
                         <p className="text-sm text-muted-foreground">Crea piani editoriali e strategie social ottimizzate per i clienti dell'agenzia</p>
                     </div>
                 </div>
+
+                {isRestoredDraft && (
+                    <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        <span>Bozza Salvata Ripristinata</span>
+                        <Button variant="ghost" size="sm" onClick={clearDraft} className="h-6 px-2 text-[11px] hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-lg">
+                            Cancella Bozza
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Template Presets */}
