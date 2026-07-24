@@ -167,17 +167,7 @@ export function Header() {
                     </BreadcrumbList>
                 </Breadcrumb>
                 <div className="h-4 w-px bg-border/60 hidden md:block" />
-                <button
-                    type="button"
-                    onClick={() => setOpen(true)}
-                    className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border/60 bg-muted/30 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-all duration-200 shadow-sm cursor-pointer"
-                >
-                    <Search className="h-3.5 w-3.5" />
-                    <span>Cerca nell'Hub...</span>
-                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 ml-1">
-                        <span className="text-xs">⌘</span>K
-                    </kbd>
-                </button>
+                <ClientSwitcher variant="header" />
             </div>
 
             {/* Live Insights Strip - Real-time metrics */}

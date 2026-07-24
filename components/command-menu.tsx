@@ -99,20 +99,21 @@ interface SearchResults {
 
 // Quick actions
 const quickActions = [
-    { id: 'new-task', label: 'Crea nuovo Task', icon: Plus, path: '/tasks?action=new', shortcut: '⌘N' },
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', shortcut: '⌘D' },
-    { id: 'tasks', label: 'Tutti i Task', icon: CheckSquare, path: '/tasks', shortcut: '⌘T' },
-    { id: 'projects', label: 'Progetti', icon: FolderKanban, path: '/projects', shortcut: '⌘P' },
-    { id: 'calendar', label: 'Calendario', icon: Calendar, path: '/calendar', shortcut: '⌘L' },
-    { id: 'chat', label: 'Chat', icon: MessageSquare, path: '/chat', shortcut: '⌘M' },
+    { id: 'new-task', label: 'Crea nuovo Task', icon: Plus, path: '/tasks?action=new', shortcut: '⌘N', color: 'text-amber-500 bg-amber-500/10' },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', shortcut: '⌘D', color: 'text-blue-500 bg-blue-500/10' },
+    { id: 'tasks', label: 'Tutti i Task', icon: CheckSquare, path: '/tasks', shortcut: '⌘T', color: 'text-sky-500 bg-sky-500/10' },
+    { id: 'projects', label: 'Progetti', icon: FolderKanban, path: '/projects', shortcut: '⌘P', color: 'text-purple-500 bg-purple-500/10' },
+    { id: 'calendar', label: 'Calendario Editoriale', icon: Calendar, path: '/calendar', shortcut: '⌘L', color: 'text-emerald-500 bg-emerald-500/10' },
+    { id: 'chat', label: 'Chat', icon: MessageSquare, path: '/chat', shortcut: '⌘M', color: 'text-indigo-500 bg-indigo-500/10' },
+    { id: 'social', label: 'Strategie Social AI', icon: Sparkles, path: '/social-strategies', shortcut: '⌘S', color: 'text-rose-500 bg-rose-500/10' },
 ]
 
 const adminActions = [
-    { id: 'admin', label: 'Pannello Admin', icon: Settings, path: '/admin' },
-    { id: 'briefs', label: 'Brief', icon: FileText, path: '/briefs' },
-    { id: 'absences', label: 'Assenze', icon: Timer, path: '/absences' },
-    { id: 'documents', label: 'Documenti', icon: FileStack, path: '/documents' },
-    { id: 'editorial', label: 'Piano Editoriale', icon: FileText, path: '/editorial-plan' },
+    { id: 'admin', label: 'Pannello Admin', icon: Settings, path: '/admin', color: 'text-rose-500 bg-rose-500/10' },
+    { id: 'briefs', label: 'Brief Servizi', icon: FileText, path: '/briefs', color: 'text-amber-600 bg-amber-600/10' },
+    { id: 'absences', label: 'Assenze & Permessi', icon: Timer, path: '/absences', color: 'text-teal-500 bg-teal-500/10' },
+    { id: 'documents', label: 'Documenti', icon: FileStack, path: '/documents', color: 'text-cyan-500 bg-cyan-500/10' },
+    { id: 'editorial', label: 'Piano Editoriale', icon: FileText, path: '/editorial-plan', color: 'text-violet-500 bg-violet-500/10' },
 ]
 
 // Status colors for visual feedback
@@ -379,10 +380,12 @@ export default function CommandMenu() {
                                     key={action.id}
                                     value={action.label}
                                     onSelect={() => handleSelect(action.path, false)}
-                                    className="flex items-center gap-2"
+                                    className="flex items-center gap-3 py-2.5"
                                 >
-                                    <action.icon className="h-4 w-4 text-muted-foreground" />
-                                    <span>{action.label}</span>
+                                    <div className={cn("p-1.5 rounded-lg shrink-0 flex items-center justify-center", action.color)}>
+                                        <action.icon className="h-4 w-4" />
+                                    </div>
+                                    <span className="font-medium text-foreground">{action.label}</span>
                                     {action.shortcut && (
                                         <CommandShortcut>{action.shortcut}</CommandShortcut>
                                     )}
@@ -399,10 +402,12 @@ export default function CommandMenu() {
                                     key={action.id}
                                     value={action.label}
                                     onSelect={() => handleSelect(action.path, false)}
-                                    className="flex items-center gap-2"
+                                    className="flex items-center gap-3 py-2.5"
                                 >
-                                    <action.icon className="h-4 w-4 text-muted-foreground" />
-                                    <span>{action.label}</span>
+                                    <div className={cn("p-1.5 rounded-lg shrink-0 flex items-center justify-center", action.color)}>
+                                        <action.icon className="h-4 w-4" />
+                                    </div>
+                                    <span className="font-medium text-foreground">{action.label}</span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>
