@@ -136,9 +136,9 @@ const ADMIN_WIDGETS = [
     { id: 'chart_calendar_client', label: 'Attività Calendario per Cliente' },
     { id: 'table_future_workload', label: 'Ore Stimate vs. Ore Effettive per Utente' },
     { id: 'chart_predictive_delivery', label: 'Previsione Carico di Lavoro' },
-    { id: 'chart_client_profitability', label: '💰 Redditività Clienti' },
-    { id: 'chart_efficiency_trends', label: '📈 Trend Efficienza' },
-    { id: 'gamification_leaderboard', label: '🏆 Classifica Team' },
+    { id: 'chart_client_profitability', label: 'Redditività Clienti' },
+    { id: 'chart_efficiency_trends', label: 'Trend Efficienza' },
+    { id: 'gamification_leaderboard', label: 'Classifica Team' },
     { id: 'table_absences', label: 'Assenze di Oggi' },
     { id: 'list_upcoming_activities', label: 'Prossime Attività' },
     { id: 'weekly_activity', label: 'Attività Settimanale (Grafico)' },
@@ -3278,20 +3278,20 @@ export default function Dashboard() {
                 </div>
             )}
 
-            {/* ===== NEW: Client Profitability Dashboard ===== */}
+            {/* ===== Client Profitability Dashboard ===== */}
             {visibleWidgets.includes('chart_client_profitability') && clientProfitability.length > 0 && (
-                <Card className="border-green-200 dark:border-green-800">
+                <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Euro className="h-5 w-5 text-green-600" />
-                            💰 Redditività Clienti
+                            <Euro className="h-5 w-5 text-emerald-500" />
+                            <span>Redditività Clienti</span>
                         </CardTitle>
                         <CardDescription>Analisi budget vs costi effettivi per cliente</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={clientProfitability.slice(0, 8)} layout="vertical" margin={{ left: 100 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
+                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                 <XAxis type="number" tickFormatter={(v) => `€${v.toLocaleString('it-IT')}`} />
                                 <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={95} />
                                 <Tooltip
@@ -3301,7 +3301,7 @@ export default function Dashboard() {
                                     ]}
                                 />
                                 <Legend />
-                                <Bar dataKey="budget" name="Budget" fill="#10b981" radius={[0, 4, 4, 0]} />
+                                <Bar dataKey="budget" name="Budget" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                                 <Bar dataKey="costs" name="Costi" fill="#ef4444" radius={[0, 4, 4, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -3309,20 +3309,20 @@ export default function Dashboard() {
                         <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                             {clientProfitability.slice(0, 4).map((client) => (
                                 <div key={client.clientId} className={cn(
-                                    "p-3 rounded-lg border",
-                                    client.profitMargin >= 30 ? "bg-green-50 dark:bg-green-950/20 border-green-200" :
-                                        client.profitMargin >= 0 ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200" :
-                                            "bg-red-50 dark:bg-red-950/20 border-red-200"
+                                    "p-3 rounded-xl border transition-all duration-200",
+                                    client.profitMargin >= 30 ? "bg-emerald-500/10 border-emerald-500/20" :
+                                        client.profitMargin >= 0 ? "bg-amber-500/10 border-amber-500/20" :
+                                            "bg-rose-500/10 border-rose-500/20"
                                 )}>
-                                    <p className="font-medium text-sm truncate">{client.name}</p>
+                                    <p className="font-medium text-xs text-muted-foreground truncate">{client.name}</p>
                                     <p className={cn(
-                                        "text-lg font-bold",
-                                        client.profit >= 0 ? "text-green-600" : "text-red-600"
+                                        "text-base font-bold mt-1",
+                                        client.profit >= 0 ? "text-emerald-500" : "text-rose-500"
                                     )}>
                                         {client.profit >= 0 ? '+' : ''}€{client.profit.toLocaleString('it-IT', { minimumFractionDigits: 0 })}
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        Margine: {client.profitMargin.toFixed(1)}%
+                                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                                        Margine: <span className="font-semibold">{client.profitMargin.toFixed(1)}%</span>
                                     </p>
                                 </div>
                             ))}
@@ -3331,14 +3331,14 @@ export default function Dashboard() {
                 </Card>
             )}
 
-            {/* ===== NEW: Predictive Delivery Analytics ===== */}
+            {/* ===== Predictive Delivery Analytics ===== */}
             {visibleWidgets.includes('chart_predictive_delivery') && (
                 <div className="grid gap-6 lg:grid-cols-2">
-                    <Card className="border-purple-200 dark:border-purple-800">
+                    <Card className="glass-card">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <GanttChart className="h-5 w-5 text-purple-600" />
-                                🔮 Previsioni Consegne
+                                <GanttChart className="h-5 w-5 text-purple-500" />
+                                <span>Previsioni Consegne</span>
                             </CardTitle>
                             <CardDescription>
                                 Precisione stime: <span className="font-bold">{predictiveDelivery.overallAccuracy.toFixed(0)}%</span>
