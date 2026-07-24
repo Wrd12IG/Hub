@@ -42,28 +42,29 @@ interface DockNavItem {
     href: string;
     icon: React.ElementType;
     permission?: string;
+    color?: string;
 }
 
 const allNavItems: DockNavItem[] = [
-    { href: '/dashboard', icon: Gauge, label: 'Dashboard' },
-    { href: '/tasks', icon: ClipboardList, label: 'Tasks' },
-    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects' },
-    { href: '/projects', icon: LayoutGrid, label: 'Progetti' },
-    { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects' },
-    { href: '/briefs', icon: BookOpen, label: 'Briefs' },
-    { href: '/calendar', icon: Calendar, label: 'Calendario' },
-    { href: '/social-strategies', icon: Bot, label: 'Strategie Social' },
-    { href: '/absences', icon: CalendarX2, label: 'Assenze' },
-    { href: '/chat', icon: MessageSquare, label: 'Chat' },
-    { href: '/clients', icon: Users, label: 'Clienti' },
-    { href: '/documents', icon: FileText, label: 'Documenti' },
-    { href: '/assets', icon: ImageIcon, label: 'Media & Assets' },
-    { href: '/reports', icon: BarChart3, label: 'Report' },
+    { href: '/dashboard', icon: Gauge, label: 'Dashboard', color: 'text-blue-500' },
+    { href: '/tasks', icon: ClipboardList, label: 'Tasks', color: 'text-sky-500' },
+    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-amber-500' },
+    { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-purple-500' },
+    { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-indigo-500' },
+    { href: '/briefs', icon: BookOpen, label: 'Briefs', color: 'text-amber-600' },
+    { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-500' },
+    { href: '/social-strategies', icon: Bot, label: 'Strategie Social', color: 'text-rose-500' },
+    { href: '/absences', icon: CalendarX2, label: 'Assenze', color: 'text-teal-500' },
+    { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-indigo-400' },
+    { href: '/clients', icon: Users, label: 'Clienti', color: 'text-cyan-500' },
+    { href: '/documents', icon: FileText, label: 'Documenti', color: 'text-blue-400' },
+    { href: '/assets', icon: ImageIcon, label: 'Media & Assets', color: 'text-pink-500' },
+    { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500' },
 ];
 
 const adminNavItems: DockNavItem[] = [
-    { href: '/admin', icon: Settings, label: 'Pannello Admin' },
-    { href: '/import-editorial', icon: Upload, label: 'Importa Piano' },
+    { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-600' },
+    { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500' },
 ];
 
 const clientNavItems: DockNavItem[] = [
@@ -236,7 +237,7 @@ export function FloatingCommandDock() {
                                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                                         )}
                                     >
-                                        <Icon className="h-4 w-4" />
+                                        <Icon className={cn("h-4 w-4 transition-colors", isActive ? "text-primary scale-105" : item.color || "text-muted-foreground")} />
                                         {isActive && (
                                             <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
                                         )}

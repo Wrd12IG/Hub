@@ -77,39 +77,40 @@ export type NavItem = {
   icon: any;
   label: string;
   permission?: string;
+  color?: string;
 };
 
 export const allNavItems: NavItem[] = [
   // Overview
-  { href: '/dashboard', icon: Gauge, label: 'Dashboard' },
+  { href: '/dashboard', icon: Gauge, label: 'Dashboard', color: 'text-blue-400' },
 
   // Lavoro quotidiano
-  { href: '/tasks', icon: ClipboardList, label: 'Tasks' },
-  { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects' },
-  { href: '/projects', icon: LayoutGrid, label: 'Progetti' },
-  { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects' },
-  { href: '/briefs', icon: BookOpen, label: 'Briefs' },
+  { href: '/tasks', icon: ClipboardList, label: 'Tasks', color: 'text-sky-400' },
+  { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-amber-400' },
+  { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-purple-400' },
+  { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-indigo-400' },
+  { href: '/briefs', icon: BookOpen, label: 'Briefs', color: 'text-amber-500' },
 
   // Pianificazione
-  { href: '/calendar', icon: Calendar, label: 'Calendario' },
-  { href: '/social-strategies', icon: Bot, label: 'Strategie Social' },
+  { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-400' },
+  { href: '/social-strategies', icon: Bot, label: 'Strategie Social', color: 'text-rose-400' },
 
-  { href: '/absences', icon: CalendarX2, label: 'Assenze' },
+  { href: '/absences', icon: CalendarX2, label: 'Assenze', color: 'text-teal-400' },
 
   // Comunicazione
-  { href: '/chat', icon: MessageSquare, label: 'Chat' },
+  { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-indigo-400' },
 
   // Risorse
-  { href: '/documents', icon: FileText, label: 'Documenti' },
-  { href: '/assets', icon: ImageIcon, label: 'Media & Assets' },
+  { href: '/documents', icon: FileText, label: 'Documenti', color: 'text-blue-400' },
+  { href: '/assets', icon: ImageIcon, label: 'Media & Assets', color: 'text-pink-400' },
 
   // Analytics
-  { href: '/reports', icon: BarChart3, label: 'Report' },
+  { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-400' },
 ];
 
 const adminNavItems: NavItem[] = [
-  { href: '/admin', icon: Settings, label: 'Pannello Admin' },
-  { href: '/import-editorial', icon: Upload, label: 'Importa Piano' },
+  { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-500' },
+  { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-400' },
 ];
 
 const clientNavItems = [
@@ -461,7 +462,7 @@ export function SidebarNav() {
                           {colorTheme === 'audi' ? (
                             <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
                           ) : (
-                            <item.icon className="h-5 w-5 flex-shrink-0" />
+                            <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors", item.color || "text-foreground")} />
                           )}
                           {item.label === 'Chat' && unreadChatCount > 0 && (
                             <Badge className="absolute -top-2 -right-2 h-4 w-4 justify-center p-0 text-[10px]">{unreadChatCount}</Badge>
