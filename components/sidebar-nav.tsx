@@ -53,6 +53,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import {
   Avatar,
   AvatarFallback,
@@ -119,7 +120,7 @@ const clientNavItems = [
 ]
 
 
-const allTools: { href: string; icon: any; label: string; }[] = [
+const allTools: NavItem[] = [
 ];
 
 export function SidebarNav() {
