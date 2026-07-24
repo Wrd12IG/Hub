@@ -336,16 +336,11 @@ export default function CommandMenu() {
 
     return (
         <CommandDialog open={open} onOpenChange={setOpen}>
-            <div className="flex items-center gap-2 px-3 border-b">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <CommandInput
-                    placeholder="Cerca task, progetti, clienti... (usa t: p: c: per filtrare)"
-                    value={searchQuery}
-                    onValueChange={setSearchQuery}
-                    className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 border-0"
-                />
-                {isSearching && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-            </div>
+            <CommandInput
+                placeholder="Cerca task, progetti, clienti, colleghi... (es. t: p: c:)"
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+            />
             <CommandList className="max-h-[500px]">
                 {/* Show helper text when empty */}
                 {!searchQuery && !hasResults && (
