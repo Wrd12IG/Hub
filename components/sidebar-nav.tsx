@@ -463,7 +463,7 @@ export function SidebarNav() {
                           {colorTheme === 'audi' ? (
                             <AudiIcon name={lucideToAudiMap[item.icon.displayName || item.icon.name] || 'default'} className="h-5 w-5 flex-shrink-0" />
                           ) : (
-                            <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors", item.color || "text-foreground")} />
+                            <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors", (item as NavItem).color || "text-foreground")} />
                           )}
                           {item.label === 'Chat' && unreadChatCount > 0 && (
                             <Badge className="absolute -top-2 -right-2 h-4 w-4 justify-center p-0 text-[10px]">{unreadChatCount}</Badge>
