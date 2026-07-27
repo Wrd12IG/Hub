@@ -97,7 +97,7 @@ function AnimatedBarChart({ data }: { data: any[] }) {
               borderRadius: '8px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}
-            formatter={(value: number) => `${value.toFixed(1)}h`}
+            formatter={(value: any) => `${(value || 0).toFixed(1)}h`}
           />
           <Legend />
           <Bar
@@ -251,8 +251,8 @@ export default function UserDashboard() {
 
     return Object.values(dataByProject).map(p => ({
       ...p,
-      'Ore Stimate': parseFloat(p['Ore Stimate'].toFixed(1)),
-      'Ore Effettive': parseFloat(p['Ore Effettive'].toFixed(1)),
+      'Ore Stimate': parseFloat((p['Ore Stimate'] || 0).toFixed(1)),
+      'Ore Effettive': parseFloat((p['Ore Effettive'] || 0).toFixed(1)),
     })).filter(p => p['Ore Stimate'] > 0 || p['Ore Effettive'] > 0);
 
   }, [userTasks, allProjects]);
@@ -392,7 +392,7 @@ export default function UserDashboard() {
               title="Ore Questa Settimana"
               value={kpis.hoursThisWeek}
               suffix="h"
-              formatValue={(v) => v.toFixed(1)}
+              formatValue={(v) => (v || 0).toFixed(1)}
               icon={<TrendingUp className="h-4 w-4" />}
               description="Ultimi 7 giorni"
               delay={200}
