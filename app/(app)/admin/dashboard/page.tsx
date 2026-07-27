@@ -3094,7 +3094,7 @@ export default function Dashboard() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                                         <YAxis allowDecimals={false} unit="h" />
-                                        <Tooltip content={<CustomTooltip formatter={(val) => `${val}h`} />} />
+                                        <Tooltip content={<CustomTooltip unit="h" />} />
                                         <Legend />
                                         <Bar dataKey="estimatedHours" name="Ore Stimate" fill="hsl(var(--primary))" opacity={0.6} radius={[4, 4, 0, 0]} />
                                         <Bar dataKey="hours" name="Ore Effettive" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
