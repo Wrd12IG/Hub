@@ -652,7 +652,7 @@ export default function Dashboard() {
         const { tasks: relevantTasks, activities: relevantActivities } = filteredData;
 
         return [...users]
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
             .filter(user => user.role !== 'Amministratore')
             .map(user => {
                 const assignedTasks = relevantTasks.filter(t => t.assignedUserId === user.id);
@@ -755,7 +755,7 @@ export default function Dashboard() {
         const { tasks: relevantTasks, activities: relevantActivities } = filteredData;
 
         return [...users]
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
             .filter(user => user.role !== 'Amministratore')
             .map(user => {
                 const createdTasks = relevantTasks.filter(t => t.createdBy === user.id);
@@ -865,7 +865,7 @@ export default function Dashboard() {
         const sevenDayHeaders = sevenDays.map(d => format(d, 'EEE d', { locale: it }));
 
         const tableData = [...users]
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
             .filter(u => u.role !== 'Amministratore' && workload[u.id])
             .map(user => {
                 const userWorkload = sevenDayKeys.map(dateKey => workload[user.id]?.[dateKey] || 0);
@@ -1159,7 +1159,7 @@ export default function Dashboard() {
                 name: format(parseISO(month), 'MMM yy', { locale: it }),
                 'Costo Totale': parseFloat(cost.toFixed(2))
             }))
-            .sort((a, b) => a.name.localeCompare(b.name, 'it'));
+            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it'));
 
     }, [filteredData, usersById, hourlyOverhead]);
 
@@ -1644,7 +1644,7 @@ export default function Dashboard() {
         });
 
         return Object.values(monthlyData)
-            .sort((a, b) => a.month.localeCompare(b.month))
+            .sort((a, b) => (a.month || '').localeCompare(b.month || ''))
             .slice(-6) // Last 6 months
             .map(d => ({
                 ...d,
@@ -2036,7 +2036,7 @@ export default function Dashboard() {
                                         <SelectTrigger id="client-filter"><SelectValue placeholder="Tutti i Clienti" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tutti i Clienti</SelectItem>
-                                            {[...clients].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                            {[...clients].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -2046,7 +2046,7 @@ export default function Dashboard() {
                                         <SelectTrigger id="user-filter"><SelectValue placeholder="Tutti i Collaboratori" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tutti i Collaboratori</SelectItem>
-                                            {[...users].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((u: any) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                            {[...users].sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')).map((u: any) => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>

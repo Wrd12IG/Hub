@@ -157,7 +157,7 @@ export default function TaskGanttChart({ onTaskClick }: TaskGanttChartProps) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Tutti i clienti</SelectItem>
-                            {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'it')).map(c => (
+                            {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(c => (
                                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                             ))}
                         </SelectContent>
@@ -169,7 +169,7 @@ export default function TaskGanttChart({ onTaskClick }: TaskGanttChartProps) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Tutti i progetti</SelectItem>
-                            {[...filteredProjects].sort((a, b) => a.name.localeCompare(b.name, 'it')).map(p => (
+                            {[...filteredProjects].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(p => (
                                 <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                             ))}
                         </SelectContent>
@@ -181,7 +181,7 @@ export default function TaskGanttChart({ onTaskClick }: TaskGanttChartProps) {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Tutti gli utenti</SelectItem>
-                            {[...users].filter(u => u.role !== 'Cliente').sort((a, b) => a.name.localeCompare(b.name, 'it')).map(u => (
+                            {[...users].filter(u => u.role !== 'Cliente').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(u => (
                                 <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                             ))}
                         </SelectContent>
