@@ -3289,44 +3289,28 @@ export default function Dashboard() {
                         <CardDescription>Analisi budget vs costi effettivi per cliente</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ResponsiveContainer width="100%" height={340}>
-                            <BarChart data={clientProfitability.slice(0, 8)} layout="vertical" margin={{ left: 130, right: 30, top: 10, bottom: 10 }}>
-                                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                        <ResponsiveContainer width="100%" height={320}>
+                            <DynamicBarChart data={clientProfitability.slice(0, 7)} margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                 <XAxis 
-                                    type="number" 
-                                    tickFormatter={(v) => v >= 1000 ? `€${(v / 1000).toFixed(0)}k` : `€${v}`}
-                                    tick={{ fontSize: 11, fill: 'currentColor' }}
+                                    dataKey="name" 
+                                    tick={{ fontSize: 11 }} 
+                                    interval={0}
+                                    angle={-15}
+                                    textAnchor="end"
                                 />
                                 <YAxis 
-                                    type="category" 
-                                    dataKey="name" 
-                                    tick={{ fontSize: 11, fill: 'currentColor' }} 
-                                    width={125} 
+                                    tickFormatter={(v) => v >= 1000 ? `€${(v / 1000).toFixed(0)}k` : `€${v}`}
+                                    tick={{ fontSize: 11 }}
                                 />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--card))',
-                                        borderColor: 'hsl(var(--border))',
-                                        borderRadius: '12px',
-                                        color: 'hsl(var(--foreground))',
-                                        fontSize: '12px',
-                                        boxShadow: '0 10px 30px rgba(0,0,0,0.25)'
-                                    }}
-                                    formatter={(value: number, name: string) => [
-                                        `€${Number(value).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-                                        name === 'budget' ? 'Budget Assegnato' : 'Costi Registrati'
-                                    ]}
-                                />
-                                <Legend 
-                                    wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
-                                    formatter={(value) => value === 'budget' ? 'Budget' : 'Costi'}
-                                />
-                                <Bar dataKey="budget" name="budget" fill="#10b981" radius={[0, 6, 6, 0]} barSize={14} />
-                                <Bar dataKey="costs" name="costs" fill="#f43f5e" radius={[0, 6, 6, 0]} barSize={14} />
-                            </BarChart>
+                                <Tooltip content={<CustomTooltip formatter={(val) => `€${Number(val).toLocaleString('it-IT')}`} />} />
+                                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                <Bar dataKey="budget" name="Budget" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="costs" name="Costi" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                            </DynamicBarChart>
                         </ResponsiveContainer>
 
-                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-border/40">
                             {clientProfitability.slice(0, 4).map((client) => (
                                 <div key={client.clientId} className="p-3.5 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm space-y-1.5 shadow-sm">
                                     <div className="flex items-center justify-between gap-2">
