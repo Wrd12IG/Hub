@@ -222,18 +222,31 @@ interface CustomTooltipPayload {
     ore?: number;
 }
 
-const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+const CustomTooltip = ({ active, payload, label, unit }: any) => {
     if (active && payload && payload.length) {
-        const data = payload[0].payload as any;
+        const data = payload[0]?.payload || {};
 
         return (
-            <div className="bg-background border border-border p-2 rounded-md shadow-lg">
-                <p className="font-bold">{`${label}`}</p>
-                <p className="text-sm" style={{ color: payload[0].color }}>
-                    Costo: €{Number(payload[0].value).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                {data.ore && (
-                    <p className="text-sm text-muted-foreground">
+            <div className="bg-card border border-border p-2.5 rounded-xl shadow-xl space-y-1 text-xs">
+                {label && <p className="font-semibold text-foreground border-b border-border/40 pb-1">{label}</p>}
+                {payload.map((entry: any, index: number) => {
+                    const val = Number(entry.value || 0);
+                    const formattedVal = unit === 'h' 
+                        ? `${val.toFixed(1)}h` 
+                        : `€${val.toLocaleString('it-IT', { maximumFractionDigits: 0 })}`;
+                    return (
+                        <div key={index} className="flex items-center justify-between gap-4">
+                            <span style={{ color: entry.color || 'currentColor' }} className="font-medium">
+                                {entry.name || 'Valore'}:
+                            </span>
+                            <span className="font-mono font-bold text-foreground">
+                                {formattedVal}
+                            </span>
+                        </div>
+                    );
+                })}
+                {typeof data.ore === 'number' && (
+                    <p className="text-[11px] text-muted-foreground pt-0.5">
                         Ore registrate: {data.ore.toFixed(1)}h
                     </p>
                 )}
@@ -3303,7 +3316,7 @@ export default function Dashboard() {
                                     tickFormatter={(v) => v >= 1000 ? `€${(v / 1000).toFixed(0)}k` : `€${v}`}
                                     tick={{ fontSize: 11 }}
                                 />
-                                <Tooltip content={<CustomTooltip formatter={(val) => `€${Number(val).toLocaleString('it-IT')}`} />} />
+                                <Tooltip content={<CustomTooltip />} />
                                 <Legend wrapperStyle={{ paddingTop: '10px' }} />
                                 <Bar dataKey="budget" name="Budget" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                                 <Bar dataKey="costs" name="Costi" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
