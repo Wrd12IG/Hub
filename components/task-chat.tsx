@@ -190,7 +190,7 @@ export function TaskChat({ task, users, isOpen, onClose, onMessageSent }: TaskCh
                 <CommandInput placeholder="Menziona utente..." value={mentionQuery} onValueChange={setMentionQuery} />
                 <CommandList>
                   <CommandEmpty>Nessun utente trovato.</CommandEmpty>
-                  {Object.values(users).filter(user => user.name.toLowerCase().includes(mentionQuery.toLowerCase())).map(user => (
+                  {Object.values(users).filter(user => (user?.name || '').toLowerCase().includes((mentionQuery || '').toLowerCase())).map(user => (
                     <CommandItem key={user.id} onSelect={() => handleMentionSelect(user)}>
                       {user.name}
                     </CommandItem>

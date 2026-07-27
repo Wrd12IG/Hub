@@ -44,13 +44,13 @@ export function ChatSidebar({
         if (!searchQuery) return conversations;
         return conversations.filter(conv => {
             const name = getConversationName(conv);
-            return name.toLowerCase().includes(searchQuery.toLowerCase());
+            return (name || '').toLowerCase().includes((searchQuery || '').toLowerCase());
         });
     }, [conversations, searchQuery, currentUserId, usersById]);
 
     const filteredUsers = React.useMemo(() => {
         if (!userSearchQuery) return users;
-        return users.filter(u => u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) && u.id !== currentUserId);
+        return users.filter(u => (u.name || '').toLowerCase().includes((userSearchQuery || '').toLowerCase()) && u.id !== currentUserId);
     }, [users, userSearchQuery, currentUserId]);
 
     function getConversationName(conv: Conversation) {

@@ -43,7 +43,7 @@ export default function ClientSwitcher({ variant = 'sidebar' }: ClientSwitcherPr
   }
 
   const filteredClients = [...clients]
-    .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter(c => (c.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()))
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 
   if (variant === 'header') {
