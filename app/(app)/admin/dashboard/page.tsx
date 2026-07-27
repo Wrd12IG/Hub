@@ -212,7 +212,7 @@ const ActiveShape = (props: any) => {
                 {payload.name}
             </text>
             <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="hsl(var(--muted-foreground))">
-                {`€${value.toLocaleString('it-IT')} (${(percent * 100).toFixed(2)}%)`}
+                {`€${(value || 0).toLocaleString('it-IT')} (${((percent || 0) * 100).toFixed(2)}%)`}
             </text>
         </g>
     );
@@ -3313,7 +3313,10 @@ export default function Dashboard() {
                                     textAnchor="end"
                                 />
                                 <YAxis 
-                                    tickFormatter={(v) => v >= 1000 ? `€${(v / 1000).toFixed(0)}k` : `€${v}`}
+                                    tickFormatter={(v) => {
+                                        const val = Number(v) || 0;
+                                        return val >= 1000 ? `€${(val / 1000).toFixed(0)}k` : `€${val}`;
+                                    }}
                                     tick={{ fontSize: 11 }}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
@@ -3324,25 +3327,29 @@ export default function Dashboard() {
                         </ResponsiveContainer>
 
                         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-border/40">
-                            {clientProfitability.slice(0, 4).map((client) => (
-                                <div key={client.clientId} className="p-3.5 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm space-y-1.5 shadow-sm">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <p className="font-semibold text-xs text-foreground truncate" title={client.name}>{client.name}</p>
-                                        <Badge variant={client.profit >= 0 ? "secondary" : "destructive"} className="text-[10px] px-1.5 py-0 font-bold">
-                                            Margine {client.profitMargin.toFixed(0)}%
-                                        </Badge>
+                            {clientProfitability.slice(0, 4).map((client) => {
+                                const profit = Number(client.profit) || 0;
+                                const margin = Number.isFinite(client.profitMargin) ? client.profitMargin : 0;
+                                return (
+                                    <div key={client.clientId || client.name} className="p-3.5 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm space-y-1.5 shadow-sm">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="font-semibold text-xs text-foreground truncate" title={client.name}>{client.name || 'Cliente'}</p>
+                                            <Badge variant={profit >= 0 ? "secondary" : "destructive"} className="text-[10px] px-1.5 py-0 font-bold">
+                                                Margine {margin.toFixed(0)}%
+                                            </Badge>
+                                        </div>
+                                        <div className="flex items-baseline justify-between pt-1">
+                                            <span className="text-[11px] text-muted-foreground">Utile / Perdita</span>
+                                            <span className={cn(
+                                                "text-sm font-extrabold font-mono",
+                                                profit >= 0 ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
+                                            )}>
+                                                {profit >= 0 ? '+' : ''}€{profit.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="flex items-baseline justify-between pt-1">
-                                        <span className="text-[11px] text-muted-foreground">Utile / Perdita</span>
-                                        <span className={cn(
-                                            "text-sm font-extrabold font-mono",
-                                            client.profit >= 0 ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
-                                        )}>
-                                            {client.profit >= 0 ? '+' : ''}€{client.profit.toLocaleString('it-IT', { maximumFractionDigits: 0 })}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </CardContent>
                 </Card>
