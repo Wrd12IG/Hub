@@ -1172,7 +1172,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             }
         });
 
-        overdueTasks.sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+        overdueTasks.sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : 0) - (b.dueDate ? new Date(b.dueDate).getTime() : 0));
 
         const priorityOrder: Record<string, number> = { 'Critica': 0, 'Alta': 1, 'Media': 2, 'Bassa': 3 };
 

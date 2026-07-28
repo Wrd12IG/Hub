@@ -227,7 +227,7 @@ export default function BriefsPage() {
                                     <SelectTrigger><SelectValue placeholder="Seleziona cliente" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tutti i clienti</SelectItem>
-                                        {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'it')).map(c => (
+                                        {[...clients].sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map(c => (
                                             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                         ))}
                                     </SelectContent>
