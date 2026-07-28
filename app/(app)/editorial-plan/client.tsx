@@ -686,7 +686,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
             ]);
             setContents(data);
             setEditorialFormats(formatData);
-            setEditorialStatuses(statusesData.sort((a, b) => a.name.localeCompare(b.name)));
+            setEditorialStatuses(statusesData.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
             setEditorialColumns(columnsData);
         } catch (error) {
             console.error('Failed to fetch editorial plan:', error);

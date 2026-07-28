@@ -235,7 +235,7 @@ export default function ReportsPage() {
             });
         });
 
-        return entries.sort((a, b) => b.date.localeCompare(a.date));
+        return entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     }, [allTasks, calendarActivities, dateRange, selectedClient, selectedUser, activityTypesByName, presetsById, clientsById, usersById, allProjects]);
 
     // Calculate totals
@@ -594,7 +594,7 @@ export default function ReportsPage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tutti i Clienti</SelectItem>
-                                            {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'it')).map(client => (
+                                            {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(client => (
                                                 <SelectItem key={client.id} value={client.id}>
                                                     {client.name}
                                                 </SelectItem>
@@ -610,7 +610,7 @@ export default function ReportsPage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tutti gli Utenti</SelectItem>
-                                            {[...users].filter(u => u.role !== 'Cliente').sort((a, b) => a.name.localeCompare(b.name, 'it')).map(user => (
+                                            {[...users].filter(u => u.role !== 'Cliente').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(user => (
                                                 <SelectItem key={user.id} value={user.id}>
                                                     {user.name}
                                                 </SelectItem>

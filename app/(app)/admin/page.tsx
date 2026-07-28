@@ -803,7 +803,7 @@ function AdminPageContent() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {[...users].sort((a, b) => a.name.localeCompare(b.name)).map((user) => (
+                                        {[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((user) => (
                                             <TableRow key={user.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-3">
@@ -884,7 +884,7 @@ function AdminPageContent() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {[...clients].sort((a, b) => a.name.localeCompare(b.name)).map((client) => {
+                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((client) => {
                                             const stats = getClientStats(client.id);
                                             return (
                                                 <TableRow key={client.id}>
@@ -1209,7 +1209,7 @@ function AdminPageContent() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {[...activityTypes].sort((a, b) => a.name.localeCompare(b.name)).map((activity) => (
+                                        {[...activityTypes].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((activity) => (
                                             <TableRow key={activity.id}>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
@@ -1363,7 +1363,7 @@ function AdminPageContent() {
                                             <SelectTrigger><SelectValue /></SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="all">Per tutti i clienti</SelectItem>
-                                                {[...clients].sort((a, b) => a.name.localeCompare(b.name)).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                                {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                         <Button type="button" onClick={handleAddPillar}><Plus /></Button>
@@ -1463,7 +1463,7 @@ function AdminPageContent() {
                                     <div className="space-y-2">
                                         <Label>Applica Colonna a Clienti (opzionale)</Label>
                                         <div className="max-h-32 overflow-y-auto space-y-1 border p-2 rounded-md">
-                                            {[...clients].sort((a, b) => a.name.localeCompare(b.name)).map(client => (
+                                            {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(client => (
                                                 <div key={client.id} className="flex items-center gap-2">
                                                     <Checkbox
                                                         id={`client-col-${client.id}`}

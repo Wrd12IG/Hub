@@ -286,7 +286,7 @@ export default function ImportEditorialPage() {
                                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                                     <SelectTrigger id="selected-client" className="w-full md:w-1/2"><SelectValue placeholder="Seleziona un cliente..." /></SelectTrigger>
                                     <SelectContent>
-                                        {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'it')).map(client => (
+                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(client => (
                                             <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                                         ))}
                                     </SelectContent>

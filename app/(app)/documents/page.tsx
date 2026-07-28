@@ -129,7 +129,7 @@ export default function DocumentsPage() {
               <SelectTrigger id="client-filter"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tutti i Clienti</SelectItem>
-                {[...clients].sort((a, b) => a.name.localeCompare(b.name)).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -139,7 +139,7 @@ export default function DocumentsPage() {
               <SelectTrigger id="project-filter"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tutti i Progetti</SelectItem>
-                {[...projectsForFilter].sort((a, b) => a.name.localeCompare(b.name)).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                {[...projectsForFilter].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -149,7 +149,7 @@ export default function DocumentsPage() {
               <SelectTrigger id="user-filter"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tutti gli Utenti</SelectItem>
-                {[...users].sort((a, b) => a.name.localeCompare(b.name)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                {[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -159,7 +159,7 @@ export default function DocumentsPage() {
               <SelectTrigger id="activity-filter"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tutte le Attività</SelectItem>
-                {[...activityTypes].sort((a, b) => a.name.localeCompare(b.name)).map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
+                {[...activityTypes].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

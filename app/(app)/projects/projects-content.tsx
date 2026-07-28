@@ -455,7 +455,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tutti i clienti</SelectItem>
-                                            {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'it')).map((c: Client) => (
+                                            {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map((c: Client) => (
                                                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                             ))}
                                         </SelectContent>

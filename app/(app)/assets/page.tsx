@@ -169,7 +169,7 @@ export default function AssetsPage() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">Tutti i Clienti</SelectItem>
-                            {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'it')).map((c: Client) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map((c: Client) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
 

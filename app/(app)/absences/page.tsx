@@ -209,7 +209,7 @@ export default function AbsencesPage() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tutti gli utenti</SelectItem>
-                {[...users].sort((a, b) => a.name.localeCompare(b.name)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                {[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
