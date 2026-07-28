@@ -9,6 +9,24 @@ interface ProductivityByHourChartProps {
     tasks: Task[];
 }
 
+const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                <p className="font-semibold text-sm mb-1">{data.label}</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                    {data.tasksCompleted} task completati
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    {(data.timeSpent / 60).toFixed(1)}h lavorate
+                </p>
+            </div>
+        );
+    }
+    return null;
+};
+
 export function ProductivityByHourChart({ tasks }: ProductivityByHourChartProps) {
     const { hourlyData, peakHour } = useProductivityByHour(tasks);
 
@@ -30,24 +48,6 @@ export function ProductivityByHourChart({ tasks }: ProductivityByHourChartProps)
             </div>
         );
     }
-
-    const CustomTooltip = ({ active, payload }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
-            return (
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <p className="font-semibold text-sm mb-1">{data.label}</p>
-                    <p className="text-sm text-blue-600 dark:text-blue-400">
-                        {data.tasksCompleted} task completati
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                        {(data.timeSpent / 60).toFixed(1)}h lavorate
-                    </p>
-                </div>
-            );
-        }
-        return null;
-    };
 
     return (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">

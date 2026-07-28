@@ -16,6 +16,22 @@ const STATUS_COLORS: Record<string, string> = {
     'Annullato': '#EA4335',
 };
 
+const CustomTooltip = ({ active, payload, total }: any) => {
+    if (active && payload && payload.length) {
+        const data = payload[0];
+        const percentage = total > 0 ? ((data.value / total) * 100).toFixed(1) : '0';
+        return (
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                <p className="font-semibold text-sm mb-1">{data.name}</p>
+                <p className="text-sm" style={{ color: data.payload.color }}>
+                    {data.value} task ({percentage}%)
+                </p>
+            </div>
+        );
+    }
+    return null;
+};
+
 export function StatusDistributionChart({ data }: StatusDistributionChartProps) {
     const chartData = Object.entries(data)
         .filter(([_, value]) => value > 0)
@@ -42,22 +58,6 @@ export function StatusDistributionChart({ data }: StatusDistributionChartProps) 
             </div>
         );
     }
-
-    const CustomTooltip = ({ active, payload }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0];
-            const percentage = ((data.value / total) * 100).toFixed(1);
-            return (
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <p className="font-semibold text-sm mb-1">{data.name}</p>
-                    <p className="text-sm" style={{ color: data.payload.color }}>
-                        {data.value} task ({percentage}%)
-                    </p>
-                </div>
-            );
-        }
-        return null;
-    };
 
     const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
         if (percent < 0.05) return null; // Nascondi label per fette < 5%
@@ -106,7 +106,7 @@ export function StatusDistributionChart({ data }: StatusDistributionChartProps) 
                             <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                     </Pie>
-                    <Tooltip content={<CustomTooltip />} />
+                    <Tooltip content={<CustomTooltip total={total} />} />
                 </PieChart>
             </ResponsiveContainer>
 

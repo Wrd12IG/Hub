@@ -204,14 +204,16 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
                                 type="text"
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                className="text-sm font-semibold bg-white/50 dark:bg-black/50 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 w-32 focus:outline-none"
+                                aria-label="Nome città"
+                                placeholder="Inserisci città"
+                                className="text-sm font-semibold bg-white/50 dark:bg-black/50 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 w-32 focus:outline-none focus:ring-2 focus:ring-primary"
                                 autoFocus
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') handleSaveCity();
                                     if (e.key === 'Escape') setIsEditing(false);
                                 }}
                             />
-                            <button onClick={handleSaveCity} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded">
+                            <button onClick={handleSaveCity} aria-label="Salva città" className="p-1 hover:bg-gray-200 dark:hover:bg-gray-800 rounded focus-visible:ring-2 focus-visible:ring-primary">
                                 <Check className="w-4 h-4 text-green-600" />
                             </button>
                         </div>
@@ -220,7 +222,8 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
                             <h3 className="font-semibold text-lg">{weather.city}</h3>
                             <button 
                                 onClick={() => { setEditValue(weather.city); setIsEditing(true); }} 
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 rounded"
+                                aria-label="Modifica città"
+                                className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity p-1 hover:bg-gray-200/50 dark:hover:bg-gray-800/50 rounded focus-visible:ring-2 focus-visible:ring-primary"
                             >
                                 <Edit2 className="w-3 h-3 text-muted-foreground" />
                             </button>

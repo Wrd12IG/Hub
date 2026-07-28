@@ -421,7 +421,47 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     }
   }, [soundSettings]);
 
-  const value: LayoutContextType = {
+  const value: LayoutContextType = useMemo(() => {
+    // Sanitize sensitive financial fields (salary, hourlyRate) for Client role users
+    const sanitizedUsers = currentUser?.role === 'Cliente'
+      ? users.map(u => ({ ...u, salary: undefined, hourlyRate: undefined }))
+      : users;
+
+    return {
+      currentUser,
+      users: sanitizedUsers,
+      usersById,
+      clients,
+      clientsById,
+      allProjects,
+      allTasks,
+      tasksById,
+      projectsById,
+      activityTypes,
+      absences,
+      calendarActivities,
+      calendarActivityPresets,
+      briefServices,
+      briefServiceCategories,
+      serviceContracts,
+      handleLogin,
+      handleCreateUser,
+      handleLogout,
+      refetchData,
+      conversations,
+      notifications,
+      permissions,
+      taskPrioritySettings,
+      setTaskPrioritySettings,
+      isLoadingLayout,
+      clientDetails,
+      setClientDetails,
+      pomodoroTask,
+      setPomodoroTask,
+      soundSettings,
+      setSoundSettings,
+    };
+  }, [
     currentUser,
     users,
     usersById,
@@ -446,15 +486,11 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     notifications,
     permissions,
     taskPrioritySettings,
-    setTaskPrioritySettings,
     isLoadingLayout,
     clientDetails,
-    setClientDetails,
     pomodoroTask,
-    setPomodoroTask,
     soundSettings,
-    setSoundSettings,
-  };
+  ]);
 
   return (
     <LayoutContext.Provider value={value}>

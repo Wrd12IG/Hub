@@ -36,14 +36,22 @@ export default function ClientsPage() {
             {isLoadingLayout ? '…' : `${clients?.length ?? 0} clienti totali`}
           </p>
         </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cerca cliente..."
-            className="pl-9"
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cerca cliente..."
+              className="pl-9"
+            />
+          </div>
+          <Link href="/admin?tab=clients">
+            <Button size="sm" className="gap-1.5 shrink-0">
+              <PlusCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Nuovo Cliente</span>
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -68,7 +76,7 @@ export default function ClientsPage() {
             </p>
           </div>
           {!search && (
-            <Link href="/clients/new">
+            <Link href="/admin?tab=clients">
               <Button size="sm" className="gap-1.5 mt-1">
                 <PlusCircle className="h-4 w-4" />
                 Aggiungi cliente
