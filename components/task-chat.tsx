@@ -129,7 +129,7 @@ export function TaskChat({ task, users, isOpen, onClose, onMessageSent }: TaskCh
                     <Avatar className="w-8 h-8 shrink-0">
                       <AvatarImage src={user?.avatar || undefined} />
                       <AvatarFallback style={{ backgroundColor: user?.color, color: 'white' }}>
-                        {user?.name.split(' ')[0].charAt(0) || '?'}
+                        {(user?.name || "").split(' ')[0].charAt(0) || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div

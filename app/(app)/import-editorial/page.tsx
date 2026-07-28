@@ -129,7 +129,7 @@ export default function ImportEditorialPage() {
             const mappedRow: any = { clientId: selectedClientId };
             (Object.keys(fieldMapping) as (keyof FieldMapping)[]).forEach(field => {
                 const header = fieldMapping[field];
-                const colIndex = parsedData.headers.indexOf(header);
+                const colIndex = (parsedData?.headers || []).indexOf(header);
                 if (colIndex !== -1) {
                     let value = row[colIndex];
                     if (['facebook', 'linkedin', 'instagram', 'tiktok', 'gbp', 'youtube'].includes(field)) {
@@ -153,7 +153,7 @@ export default function ImportEditorialPage() {
             (Object.keys(fieldMapping) as (keyof FieldMapping)[]).forEach(field => {
                 const header = fieldMapping[field];
                 if (header) {
-                    const colIndex = parsedData.headers.indexOf(header);
+                    const colIndex = (parsedData?.headers || []).indexOf(header);
                     if (colIndex !== -1 && row[colIndex] !== undefined) {
                         let value = row[colIndex];
                         if (['facebook', 'linkedin', 'instagram', 'tiktok', 'gbp', 'youtube'].includes(field)) {

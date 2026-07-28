@@ -897,7 +897,7 @@ function AdminPageContent() {
                                                                         color: 'white',
                                                                     }}
                                                                 >
-                                                                    {client.name.charAt(0)}
+                                                                    {(client?.name || "").charAt(0)}
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                             <Link href={`/clients/${client.id}`} className="font-medium hover:underline">

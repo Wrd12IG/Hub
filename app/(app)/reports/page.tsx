@@ -413,10 +413,10 @@ export default function ReportsPage() {
 
             const tableData = timeEntries.slice(0, 100).map(e => [
                 format(parseISO(e.date), 'dd/MM'),
-                e.userName.substring(0, 15),
-                e.clientName.substring(0, 15),
-                e.taskTitle.substring(0, 25),
-                e.activityType.substring(0, 12),
+                (e?.userName || "").substring(0, 15),
+                (e?.clientName || "").substring(0, 15),
+                (e?.taskTitle || "").substring(0, 25),
+                (e?.activityType || "").substring(0, 12),
                 e.hours.toFixed(1) + 'h',
                 formatCurrency(e.cost),
             ]);
@@ -747,7 +747,7 @@ export default function ReportsPage() {
                                                 </div>
 
                                                 <div className="flex flex-wrap gap-1 pt-1 border-t">
-                                                    {report.activities.slice(0, 4).map((a, i) => (
+                                                    {(report?.activities || []).slice(0, 4).map((a, i) => (
                                                         <Badge key={i} variant="secondary" className="text-[10px]">
                                                             {a.name}: {a.hours.toFixed(1)}h
                                                         </Badge>

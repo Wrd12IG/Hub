@@ -608,7 +608,7 @@ const GanttView = ({ contents, clients, users, onEdit }: { contents: EditorialCo
                                                                     {manager && (
                                                                         <Avatar className="h-6 w-6 ml-2 flex-shrink-0">
                                                                             <AvatarFallback className="text-xs" style={{ backgroundColor: manager.color, color: 'white' }}>
-                                                                                {manager.name.charAt(0)}
+                                                                                {(manager?.name || "").charAt(0)}
                                                                             </AvatarFallback>
                                                                         </Avatar>
                                                                     )}
@@ -765,7 +765,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
             const clientMatch = filters.clientId === 'all' || content.clientId === filters.clientId;
             const statusMatch = filters.status === 'all' || content.status === filters.status;
             const formatMatch = filters.format === 'all' || content.format === filters.format;
-            const queryMatch = !filters.query || content.topic.toLowerCase().includes(filters.query.toLowerCase());
+            const queryMatch = !filters.query || content.topic.toLowerCase().includes((filters?.query || "").toLowerCase());
 
             const pubDate = content.publicationDate && !isNaN(new Date(content.publicationDate).getTime()) ? new Date(content.publicationDate) : null;
             const startDate = filters.startDate && !isNaN(new Date(filters.startDate).getTime()) ? new Date(filters.startDate) : null;
@@ -942,7 +942,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
         let payload: Partial<Omit<EditorialContent, 'id'>>;
 
         if (editingField.field.startsWith('customFields.')) {
-            const slug = editingField.field.split('.')[1];
+            const slug = (editingField?.field || "").split('.')[1];
             payload = {
                 customFields: {
                     ...(editingContent?.customFields || {}),

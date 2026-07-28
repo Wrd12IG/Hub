@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     const data = await res.json();
     const properties = (data.properties || []).map((p: any) => ({
       name: p.name,           // es. properties/345678901
-      propertyId: p.name.replace('properties/', ''),
+      propertyId: (p?.name || "").replace('properties/', ''),
       displayName: p.displayName,
       currencyCode: p.currencyCode,
       timeZone: p.timeZone,

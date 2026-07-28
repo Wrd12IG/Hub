@@ -596,7 +596,7 @@ export default function NewCampaignPage() {
           setAvailablePages(data.pages || [])
         } else {
           const errorData = await res.json().catch(() => null)
-          if (errorData?.error && errorData.error.includes('RATE_LIMIT')) {
+          if (errorData?.error && (errorData?.error || "").includes('RATE_LIMIT')) {
             setError(errorData.error)
           }
         }
@@ -614,7 +614,7 @@ export default function NewCampaignPage() {
   const suggestion = suggestObjective(form.dailyBudget, hasPixel)
 
   const handleSubmit = async () => {
-    if (!form.name.trim()) { setError('Inserisci il nome della campagna'); return }
+    if (!(form?.name || "").trim()) { setError('Inserisci il nome della campagna'); return }
     if (form.useLeadForm && !leadFormConfig.privacyPolicyUrl) {
       setError('Inserisci l\'URL della Privacy Policy (obbligatoria per i Meta Lead Form)')
       return
@@ -836,7 +836,7 @@ export default function NewCampaignPage() {
                 >
                   <option value="" disabled>Seleziona una Pagina</option>
                   {availablePages.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} {p.instagramUsername ? (p.instagramUsername.includes('(IG)') ? ' (+ IG)' : ` (+ IG: @${p.instagramUsername})`) : (p.instagramId ? ' (+ IG)' : '')}</option>
+                    <option key={p.id} value={p.id}>{p.name} {p.instagramUsername ? ((p?.instagramUsername || "").includes('(IG)') ? ' (+ IG)' : ` (+ IG: @${p.instagramUsername})`) : (p.instagramId ? ' (+ IG)' : '')}</option>
                   ))}
                 </select>
               ) : (
@@ -882,7 +882,7 @@ export default function NewCampaignPage() {
                   <input 
                     id="ig-actor-id" 
                     style={{ ...inputStyle, marginBottom: '0.5rem', background: '#fff' }} 
-                    value={identity.instagramUsername ? (identity.instagramUsername.includes('(IG)') ? identity.instagramUsername : `@${identity.instagramUsername}`) : identity.instagramActorId} 
+                    value={identity.instagramUsername ? ((identity?.instagramUsername || "").includes('(IG)') ? identity.instagramUsername : `@${identity.instagramUsername}`) : identity.instagramActorId} 
                     onChange={e => {
                       if (!identity.instagramUsername) setIdentity(prev => ({ ...prev, instagramActorId: e.target.value }))
                     }} 
@@ -1079,8 +1079,8 @@ export default function NewCampaignPage() {
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 600 }}>Interessi & Comportamenti <span style={{ fontWeight: 400, color: 'var(--text-tertiary)' }}>(opzionale)</span></label>
             <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <input id="interest-input" style={{ ...inputStyle, flex: 1 }} value={targeting.newInterest} onChange={e => setTargeting(t => ({ ...t, newInterest: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter' && targeting.newInterest.trim()) { setTargeting(t => ({ ...t, interests: [...t.interests, t.newInterest.trim()], newInterest: '' })) }}} placeholder="Es. Real estate, Investimenti, Casa e giardino..." />
-              <button onClick={() => { if (targeting.newInterest.trim()) setTargeting(t => ({ ...t, interests: [...t.interests, t.newInterest.trim()], newInterest: '' })) }} style={{ padding: '0 1rem', borderRadius: '10px', background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', color: '#a78bfa', cursor: 'pointer', fontWeight: 600 }}>+ Aggiungi</button>
+              <input id="interest-input" style={{ ...inputStyle, flex: 1 }} value={targeting.newInterest} onChange={e => setTargeting(t => ({ ...t, newInterest: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter' && (targeting?.newInterest || "").trim()) { setTargeting(t => ({ ...t, interests: [...t.interests, (t?.newInterest || "").trim()], newInterest: '' })) }}} placeholder="Es. Real estate, Investimenti, Casa e giardino..." />
+              <button onClick={() => { if ((targeting?.newInterest || "").trim()) setTargeting(t => ({ ...t, interests: [...t.interests, (t?.newInterest || "").trim()], newInterest: '' })) }} style={{ padding: '0 1rem', borderRadius: '10px', background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)', color: '#a78bfa', cursor: 'pointer', fontWeight: 600 }}>+ Aggiungi</button>
             </div>
             {targeting.interests.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>

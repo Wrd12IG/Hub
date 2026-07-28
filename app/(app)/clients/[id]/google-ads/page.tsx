@@ -211,8 +211,8 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
       label: 'Aggiornato', 
       render: (row: any) => (
         <div className="flex flex-col">
-          <span className="text-sm">{row.updatedAt.split(' ').slice(0,3).join(' ')}</span>
-          <span className="text-xs text-muted-foreground">{row.updatedAt.split(' ')[3]}</span>
+          <span className="text-sm">{(row?.updatedAt || "").split(' ').slice(0,3).join(' ')}</span>
+          <span className="text-xs text-muted-foreground">{(row?.updatedAt || "").split(' ')[3]}</span>
         </div>
       ) 
     },

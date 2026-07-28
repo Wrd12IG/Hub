@@ -718,8 +718,8 @@ export default function ClientDetailPage() {
   const socialChannels =
     ga4Data?.traffic?.channels?.filter(
       (c: any) =>
-        c.channel.toLowerCase().includes("social") ||
-        c.channel.toLowerCase().includes("video"),
+        (c?.channel || "").toLowerCase().includes("social") ||
+        (c?.channel || "").toLowerCase().includes("video"),
     ) || [];
   const totalSocialSessions = socialChannels.reduce(
     (sum: number, c: any) => sum + (c.sessions || 0),
@@ -727,7 +727,7 @@ export default function ClientDetailPage() {
   );
   const socialConvs =
     ga4Data?.conversions?.byChannel?.filter((c: any) =>
-      c.channel.toLowerCase().includes("social"),
+      (c?.channel || "").toLowerCase().includes("social"),
     ) || [];
   const totalSocialConversions = socialConvs.reduce(
     (sum: number, c: any) => sum + (c.conversions || 0),
@@ -763,7 +763,7 @@ export default function ClientDetailPage() {
                   className="inline-flex items-center gap-1 text-primary hover:underline font-bold"
                 >
                   <Globe className="h-3.5 w-3.5 text-primary" />
-                  {client.websiteUrl.replace(/^https?:\/\//, "")}
+                  {(client?.websiteUrl || "").replace(/^https?:\/\//, "")}
                 </a>
               )}
               {client.industry && (

@@ -397,7 +397,7 @@ export default function MigrationsPage() {
                                             {previewData.tasksToMigrate.map((task) => (
                                                 <TableRow key={task.id}>
                                                     <TableCell className="font-mono text-xs">
-                                                        {task.id.substring(0, 8)}...
+                                                        {(task?.id || "").substring(0, 8)}...
                                                     </TableCell>
                                                     <TableCell>{task.title}</TableCell>
                                                     <TableCell>{formatDate(task.updatedAt)}</TableCell>

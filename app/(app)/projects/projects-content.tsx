@@ -267,7 +267,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             filtered = filtered.filter(p =>
-                p.name.toLowerCase().includes(q) ||
+                (p?.name || "").toLowerCase().includes(q) ||
                 clients.find(c => c.id === p.clientId)?.name.toLowerCase().includes(q)
             );
         }
@@ -596,7 +596,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                             <div className="flex items-center gap-2 pt-2">
                                                 <Avatar className="h-6 w-6">
                                                     <AvatarFallback style={{ backgroundColor: usersById[project.teamLeaderId].color }} className="text-xs text-white">
-                                                        {usersById[project.teamLeaderId].name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                        {(usersById[project.teamLeaderId]?.name || "").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                     </AvatarFallback>
                                                 </Avatar>
                                                 <span className="text-sm text-muted-foreground">{usersById[project.teamLeaderId].name}</span>
@@ -670,10 +670,10 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                                     <div className="flex items-center gap-2">
                                                         <Avatar className="h-6 w-6">
                                                             <AvatarFallback style={{ backgroundColor: teamLeader.color }} className="text-xs text-white">
-                                                                {teamLeader.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                                {(teamLeader?.name || "").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                             </AvatarFallback>
                                                         </Avatar>
-                                                        <span className="text-sm">{teamLeader.name.split(' ')[0]}</span>
+                                                        <span className="text-sm">{(teamLeader?.name || "").split(' ')[0]}</span>
                                                     </div>
                                                 ) : (
                                                     <span className="text-muted-foreground">-</span>
@@ -805,7 +805,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-10 w-10">
                                                         <AvatarFallback style={{ backgroundColor: usersById[previewProject.teamLeaderId].color }} className="text-sm text-white">
-                                                            {usersById[previewProject.teamLeaderId].name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                            {(usersById[previewProject.teamLeaderId]?.name || "").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>
@@ -1054,7 +1054,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                                                         {assignee && (
                                                                             <Avatar className="h-5 w-5">
                                                                                 <AvatarFallback style={{ backgroundColor: assignee.color }} className="text-[10px] text-white">
-                                                                                    {assignee.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                                                    {(assignee?.name || "").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                                                 </AvatarFallback>
                                                                             </Avatar>
                                                                         )}

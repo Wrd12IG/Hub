@@ -113,7 +113,7 @@ export default function AssetsPage() {
     const filteredAssets = useMemo(() => {
         return allAssets.filter(asset => {
             const matchesSearch = (asset.filename || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                asset.taskTitle.toLowerCase().includes(searchQuery.toLowerCase());
+                (asset?.taskTitle || "").toLowerCase().includes(searchQuery.toLowerCase());
             const matchesClient = clientFilter === 'all' || asset.clientId === clientFilter;
 
             let matchesType = true;

@@ -104,7 +104,7 @@ export function ThreadView({ parentMessage, conversationId, usersById, currentUs
                     <div className="flex items-start gap-3">
                         <Avatar className="h-9 w-9">
                             <AvatarFallback style={{ backgroundColor: parentSender?.color, color: 'white' }}>
-                                {parentSender?.name.split(' ')[0].charAt(0) || '?'}
+                                {(parentSender?.name || "").split(' ')[0].charAt(0) || '?'}
                             </AvatarFallback>
                         </Avatar>
                         <div>

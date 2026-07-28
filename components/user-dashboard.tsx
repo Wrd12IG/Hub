@@ -277,7 +277,7 @@ export default function UserDashboard() {
       <div className="flex items-center justify-between animate-fade-in">
         <div>
           <h1 className="text-3xl font-bold font-headline bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-            Ciao, {currentUser?.name.split(' ')[0]}! 👋
+            Ciao, {(currentUser?.name || "").split(' ')[0]}! 👋
           </h1>
           <p className="text-muted-foreground">Ecco un riepilogo delle tue attività e dei tuoi progetti.</p>
         </div>

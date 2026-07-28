@@ -293,7 +293,7 @@ const TaskCard = ({
             className={cn(
                 'flex flex-col rounded-xl transition-all duration-300 relative overflow-hidden outline-none ring-0 focus:ring-0 group cursor-pointer',
                 'glass-card card-hover',
-                task.priority ? `priority-${task.priority.toLowerCase()}` : 'priority-none',
+                task.priority ? `priority-${(task?.priority || "").toLowerCase()}` : 'priority-none',
                 // 1. Timer Attivo → bordo verde + bg
                 isTimerActiveForThisTask && '!bg-green-500/10 dark:!bg-green-900/20 border-green-500 border-2',
                 // 2. In Approvazione SCADUTO → scintillio rosso urgente (priorità su tutto)
@@ -510,7 +510,7 @@ const TaskCard = ({
                                                     {getInitials(assignedUser.name)}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <span className="text-xs font-medium text-muted-foreground">{assignedUser.name.split(' ')[0]}</span>
+                                            <span className="text-xs font-medium text-muted-foreground">{(assignedUser?.name || "").split(' ')[0]}</span>
                                         </div>
                                     </TooltipTrigger>
                                     <TooltipContent><p>Assegnato a {assignedUser.name}</p></TooltipContent>
@@ -822,7 +822,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         } catch (error: any) {
             console.error(`Failed to ${modalState.mode} task:`, error);
             if (error.message.startsWith('Impossibile completare.')) {
-                const taskNames = error.message.replace('Impossibile completare. I seguenti task devono essere prima approvati: ', '').split(', ');
+                const taskNames = (error?.message || "").replace('Impossibile completare. I seguenti task devono essere prima approvati: ', '').split(', ');
                 setDependencyError(taskNames);
             } else {
                 toast.error(error.message || `Impossibile ${modalState.mode === 'create' ? 'creare' : 'aggiornare'} il task.`);
@@ -966,7 +966,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         } catch (error: any) {
             console.error("Failed to approve task:", error);
             if (error.message.startsWith('Impossibile completare.')) {
-                const taskNames = error.message.replace('Impossibile completare. I seguenti task devono essere prima approvati: ', '').split(', ');
+                const taskNames = (error?.message || "").replace('Impossibile completare. I seguenti task devono essere prima approvati: ', '').split(', ');
                 setDependencyError(taskNames);
             } else {
                 toast.error("Impossibile approvare il task.");
@@ -1093,8 +1093,8 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             tasks = tasks.filter(t =>
-                t.title.toLowerCase().includes(query) ||
-                (t.description && t.description.toLowerCase().includes(query))
+                (t?.title || "").toLowerCase().includes(query) ||
+                (t.description && (t?.description || "").toLowerCase().includes(query))
             );
         }
 
@@ -1460,7 +1460,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                                 {getInitials(assignedUser.name)}
                                                             </AvatarFallback>
                                                         </Avatar>
-                                                        <span>{assignedUser.name.split(' ')[0]}</span>
+                                                        <span>{(assignedUser?.name || "").split(' ')[0]}</span>
                                                     </div>
                                                 ) : '-'}
                                             </TableCell>
@@ -1782,7 +1782,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                     </div>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annulla</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDisapprove} disabled={!disapprovalModalState.reason.trim()}>
+                        <AlertDialogAction onClick={handleDisapprove} disabled={!(disapprovalModalState?.reason || "").trim()}>
                             Conferma Rifiuto
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -2070,7 +2070,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                     <div className="flex items-center gap-2">
                                                         <Avatar className="h-6 w-6">
                                                             <AvatarFallback style={{ backgroundColor: usersById[previewTask.assignedUserId].color }} className="text-xs text-white">
-                                                                {usersById[previewTask.assignedUserId].name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                                {(usersById[previewTask.assignedUserId]?.name || "").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <span className="font-medium">{usersById[previewTask.assignedUserId].name}</span>
@@ -2086,7 +2086,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                     <div className="flex items-center gap-2">
                                                         <Avatar className="h-6 w-6">
                                                             <AvatarFallback style={{ backgroundColor: usersById[previewTask.createdBy].color }} className="text-xs text-white">
-                                                                {usersById[previewTask.createdBy].name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                                                                {(usersById[previewTask.createdBy]?.name || "").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <span className="font-medium">{usersById[previewTask.createdBy].name}</span>
@@ -2450,7 +2450,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             {(Array.isArray(previewProject.tags)
                                                 ? previewProject.tags
                                                 : typeof previewProject.tags === 'string'
-                                                    ? previewProject.tags.split(',')
+                                                    ? (previewProject?.tags || "").split(',')
                                                     : []
                                             ).map((tag: string, i: number) => (
                                                 <Badge key={i} variant="outline" className="text-xs">{typeof tag === 'string' ? tag.trim() : String(tag)}</Badge>

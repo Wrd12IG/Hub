@@ -587,7 +587,7 @@ export default function CreativeFactoryPage() {
                   {test.baseVideoUrl && test.baseVideoUrl.startsWith('TEXT: ') && (
                     <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
                       <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>📝 Base Script (Corpo + CTA)</div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{test.baseVideoUrl.replace('TEXT: ', '')}</div>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{(test?.baseVideoUrl || "").replace('TEXT: ', '')}</div>
                     </div>
                   )}
 

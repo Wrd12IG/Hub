@@ -535,7 +535,7 @@ export default function CommandMenu() {
                                     >
                                         <Avatar className="h-6 w-6 shrink-0">
                                             <AvatarFallback style={{ backgroundColor: client.color }} className="text-white text-xs">
-                                                {getInitials(client.name)}
+                                                {getInitials(client?.name || "")}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1 min-w-0">

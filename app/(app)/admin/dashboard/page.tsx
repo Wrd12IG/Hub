@@ -1838,7 +1838,7 @@ export default function Dashboard() {
                                         <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                                             <div className="flex items-center gap-3">
                                                 <div className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-medium" style={{ backgroundColor: workingUser?.color || '#6b7280' }}>
-                                                    {workingUser?.name?.split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
+                                                    {(workingUser?.name || "").split(' ').map(n => n[0]).join('').slice(0, 2) || '?'}
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-sm">{task.title}</p>
@@ -1909,7 +1909,7 @@ export default function Dashboard() {
                                     <div className="space-y-2">
                                         <p className="text-xs font-medium text-muted-foreground uppercase">Assenti</p>
                                         <div className="flex flex-wrap gap-2">
-                                            {teamAvailability.absent.slice(0, 4).map(user => (
+                                            {(teamAvailability?.absent || []).slice(0, 4).map(user => (
                                                 <div key={user.id} className="flex items-center gap-1.5 bg-red-500/10 rounded-full px-2 py-1">
                                                     <Avatar className="h-5 w-5">
                                                         <AvatarFallback className="text-[8px]" style={{ backgroundColor: user.color || '#ef4444', color: 'white' }}>
@@ -1928,7 +1928,7 @@ export default function Dashboard() {
                                 <div className="space-y-2">
                                     <p className="text-xs font-medium text-muted-foreground uppercase">Disponibili</p>
                                     <div className="flex -space-x-2">
-                                        {teamAvailability.available.slice(0, 8).map(user => (
+                                        {(teamAvailability?.available || []).slice(0, 8).map(user => (
                                             <Avatar key={user.id} className="h-8 w-8 border-2 border-background" title={user.name}>
                                                 <AvatarFallback className="text-xs" style={{ backgroundColor: user.color || '#10b981', color: 'white' }}>
                                                     {user.name ? getInitials(user.name) : '?'}
@@ -3370,7 +3370,7 @@ export default function Dashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {predictiveDelivery.predictions.slice(0, 6).map((prediction) => (
+                                {(predictiveDelivery?.predictions || []).slice(0, 6).map((prediction) => (
                                     <Card key={prediction.task.id} className={cn(
                                         "p-3 space-y-2 border-l-4 flex flex-col justify-between hover:shadow-md transition-all",
                                         prediction.risk === 'high' ? "border-l-red-500 bg-red-500/5" :
@@ -3402,7 +3402,7 @@ export default function Dashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {predictiveDelivery.deviationByType.slice(0, 6).map((item) => (
+                                {(predictiveDelivery?.deviationByType || []).slice(0, 6).map((item) => (
                                     <div key={item.type} className="flex items-center gap-3">
                                         <div className="flex-1">
                                             <div className="flex justify-between text-sm mb-1">

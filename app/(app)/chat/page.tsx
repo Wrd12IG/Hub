@@ -178,7 +178,7 @@ function MessageBubble({
                 style={{ backgroundColor: sender.color || '#25D366' }}
                 className="text-white text-xs"
               >
-                {sender.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                {(sender?.name || "").split(' ').map(n => n[0]).join('').slice(0, 2)}
               </AvatarFallback>
             </Avatar>
           )}
@@ -220,7 +220,7 @@ function MessageBubble({
           {/* Sender name for group chats */}
           {!isCurrentUser && isFirstInGroup && sender && (
             <p className="text-xs font-semibold mb-0.5" style={{ color: sender.color || '#25D366' }}>
-              {sender.name.split(' ')[0]}
+              {(sender?.name || "").split(' ')[0]}
             </p>
           )}
 
@@ -781,7 +781,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
             {currentUser && (
               <Avatar className="h-10 w-10">
                 <AvatarFallback style={{ backgroundColor: currentUser.color || '#25D366' }} className="text-white">
-                  {currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  {(currentUser?.name || "").split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </AvatarFallback>
               </Avatar>
             )}
@@ -1162,7 +1162,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
                   .filter(u => u.id !== currentUser?.id)
                   .filter(u =>
                     !newChatUserSearch ||
-                    u.name.toLowerCase().includes(newChatUserSearch.toLowerCase()) ||
+                    (u?.name || "").toLowerCase().includes(newChatUserSearch.toLowerCase()) ||
                     u.email?.toLowerCase().includes(newChatUserSearch.toLowerCase())
                   )
                   .map(user => (
@@ -1177,7 +1177,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
                     >
                       <Avatar className="h-10 w-10">
                         <AvatarFallback style={{ backgroundColor: user.color || '#25D366' }} className="text-white">
-                          {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                          {(user?.name || "").split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
@@ -1247,7 +1247,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
                         >
                           <Avatar className="h-8 w-8">
                             <AvatarFallback style={{ backgroundColor: user.color || '#25D366' }} className="text-white text-xs">
-                              {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                              {(user?.name || "").split(' ').map(n => n[0]).join('').slice(0, 2)}
                             </AvatarFallback>
                           </Avatar>
                           <span className="flex-1 text-sm">{user.name}</span>
@@ -1309,7 +1309,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold"
                           style={{ backgroundColor: client.color || '#3B82F6' }}
                         >
-                          {client.name.slice(0, 2).toUpperCase()}
+                          {(client?.name || "").slice(0, 2).toUpperCase()}
                         </div>
                         <span className="flex-1 text-sm">{client.name}</span>
                         {isSelected && <Check className="h-4 w-4 text-primary" />}
@@ -1352,7 +1352,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
                         >
                           <Avatar className="h-8 w-8">
                             <AvatarFallback style={{ backgroundColor: user.color || '#25D366' }} className="text-white text-xs">
-                              {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                              {(user?.name || "").split(' ').map(n => n[0]).join('').slice(0, 2)}
                             </AvatarFallback>
                           </Avatar>
                           <span className="flex-1 text-sm">{user.name}</span>

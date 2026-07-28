@@ -443,7 +443,7 @@ export const TaskCard = memo(function TaskCard({
                                             </AvatarFallback>
                                         </Avatar>
                                         <span className="text-xs font-medium max-w-[60px] truncate">
-                                            {assignedUser.name.split(' ')[0]}
+                                            {(assignedUser?.name || "").split(' ')[0]}
                                         </span>
                                     </div>
                                 </TooltipTrigger>

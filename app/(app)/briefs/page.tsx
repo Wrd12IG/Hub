@@ -84,7 +84,7 @@ export default function BriefsPage() {
 
     const filteredBriefs = useMemo(() => {
         return briefs.filter(brief => {
-            const matchesQuery = (brief.projectName || brief.title).toLowerCase().includes(filters.query.toLowerCase());
+            const matchesQuery = (brief.projectName || brief.title).toLowerCase().includes((filters?.query || "").toLowerCase());
             const matchesClient = filters.clientId === 'all' || brief.clientId === filters.clientId;
             const matchesStatus = filters.status === 'all' || brief.status === filters.status;
             return matchesQuery && matchesClient && matchesStatus;

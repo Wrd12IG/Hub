@@ -69,7 +69,7 @@ function SocialStrategiesList() {
 
     const filteredStrategies = useMemo(() => {
         return strategies.filter(s => {
-            const matchesSearch = s.periodLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            const matchesSearch = (s?.periodLabel || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (clients.find(c => c.id === s.clientId)?.name || '').toLowerCase().includes(searchQuery.toLowerCase());
             const matchesClient = clientFilter === 'all' || s.clientId === clientFilter;
             const matchesStatus = statusFilter === 'all' || s.status === statusFilter;

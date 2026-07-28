@@ -144,8 +144,8 @@ export default function TikTokPage() {
       label: 'Data', 
       render: (row: any) => (
         <div className="flex flex-col">
-          <span className="text-sm">{row.date.split(' ').slice(0,3).join(' ')}</span>
-          <span className="text-xs text-muted-foreground">{row.date.split(' ')[3]}</span>
+          <span className="text-sm">{(row?.date || "").split(' ').slice(0,3).join(' ')}</span>
+          <span className="text-xs text-muted-foreground">{(row?.date || "").split(' ')[3]}</span>
         </div>
       ) 
     },

@@ -224,7 +224,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       return { success: false, error: "La password è obbligatoria per creare un nuovo utente." };
     }
 
-    const trimmedEmail = user.email.trim();
+    const trimmedEmail = (user?.email || "").trim();
     if (!trimmedEmail) {
       return { success: false, error: "L'indirizzo email è obbligatorio." };
     }
