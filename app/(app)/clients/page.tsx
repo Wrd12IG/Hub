@@ -18,11 +18,11 @@ export default function ClientsPage() {
 
   const filteredClients = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const list = clients as any[]
+    const list = (clients || []) as any[]
     return list.filter(
       (c) =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        (c.industry || '').toLowerCase().includes(search.toLowerCase())
+        (c?.name || '').toLowerCase().includes((search || '').toLowerCase()) ||
+        (c?.industry || '').toLowerCase().includes((search || '').toLowerCase())
     )
   }, [clients, search])
 
@@ -104,14 +104,14 @@ export default function ClientsPage() {
                       <Avatar className="h-10 w-10 flex-shrink-0">
                         <AvatarFallback
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          style={{ backgroundColor: (client as any).color || undefined }}
+                          style={{ backgroundColor: (client as any)?.color || undefined }}
                           className="text-white text-sm font-semibold"
                         >
-                          {getInitials(client.name)}
+                          {getInitials(client?.name || '')}
                         </AvatarFallback>
                       </Avatar>
                       <h2 className="font-semibold text-base leading-tight truncate">
-                        {client.name}
+                        {client?.name || 'Cliente'}
                       </h2>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
