@@ -52,7 +52,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, MoreVertical, Trash2, Edit, X, Loader2, Play, Calendar } from 'lucide-react';
+import { PlusCircle, MoreVertical, Trash2, Edit, X, Loader2, Play, Calendar, User } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { format } from 'date-fns';
@@ -561,7 +561,9 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
                   <div className="flex items-center justify-between">
                     <Label htmlFor="assignedUserId">Assegna a (Opzionale)</Label>
                     {selectedClientId && clients.find(c => c.id === selectedClientId)?.socialManagerId && (
-                      <span className="text-[11px] text-primary font-medium">📱 Auto (Social Manager)</span>
+                      <span className="text-[11px] text-primary font-medium inline-flex items-center gap-1">
+                        <User className="h-3 w-3 text-primary" /> Auto (Social Manager)
+                      </span>
                     )}
                   </div>
                   <Select name="assignedUserId" value={selectedAssignedUserId} onValueChange={setSelectedAssignedUserId}>

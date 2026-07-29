@@ -125,7 +125,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     </div>
                     <div><Label htmlFor="address">Indirizzo</Label><Input id="address" name="address" defaultValue={editingClient?.address} /></div>
                     <div>
-                        <Label htmlFor="socialManagerId">Social Media Manager Assegnato/a 📱</Label>
+                        <Label htmlFor="socialManagerId">Social Media Manager Assegnato/a</Label>
                         <Select name="socialManagerId" defaultValue={editingClient?.socialManagerId || 'none'}>
                             <SelectTrigger className="mt-1">
                                 <SelectValue placeholder="Seleziona Social Media Manager..." />
