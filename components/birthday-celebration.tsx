@@ -96,7 +96,7 @@ export function BirthdayCelebration({ users }: BirthdayCelebrationProps) {
                                     }}
                                     className="absolute text-4xl"
                                 >
-                                    🎈
+                                    
                                 </motion.div>
                             ))}
                         </div>
@@ -156,7 +156,7 @@ export function BirthdayCelebration({ users }: BirthdayCelebrationProps) {
                                     transition={{ type: "spring", bounce: 0.5 }}
                                     className="text-6xl font-bold text-white drop-shadow-lg"
                                 >
-                                    🎉 Buon Compleanno! 🎉
+                                     Buon Compleanno! 
                                 </motion.h1>
 
                                 <div className="space-y-2">

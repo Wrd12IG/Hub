@@ -145,7 +145,7 @@ export default function BriefsPage() {
         const taskData: Task = {
             id: '', // Empty = new task
             title: service.name,
-            description: `Attività per: ${selectedBriefForTasks.projectName}\n\n📋 Obiettivo: ${selectedBriefForTasks.mainObjective || 'N/A'}\n\n💬 Messaggi chiave: ${selectedBriefForTasks.keyMessages || 'N/A'}\n\n🎨 Stile: ${selectedBriefForTasks.stylePreferences || 'N/A'}\n\n📐 Formato: ${selectedBriefForTasks.formatDimensions || 'N/A'}`,
+            description: `Attività per: ${selectedBriefForTasks.projectName}\n\n Obiettivo: ${selectedBriefForTasks.mainObjective || 'N/A'}\n\n Messaggi chiave: ${selectedBriefForTasks.keyMessages || 'N/A'}\n\n Stile: ${selectedBriefForTasks.stylePreferences || 'N/A'}\n\n Formato: ${selectedBriefForTasks.formatDimensions || 'N/A'}`,
             status: 'Da Fare',
             priority: 'Media',
             clientId: selectedBriefForTasks.clientId,

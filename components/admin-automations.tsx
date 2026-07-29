@@ -677,8 +677,8 @@ export function AdminAutomations() {
                                                                 log.status === 'partial' ? 'secondary' : 'destructive'
                                                         }
                                                     >
-                                                        {log.status === 'success' ? '✓' :
-                                                            log.status === 'partial' ? '⚠' : '✗'}
+                                                        {log.status === 'success' ? '' :
+                                                            log.status === 'partial' ? '' : ''}
                                                     </Badge>
                                                 </TableCell>
                                             </TableRow>

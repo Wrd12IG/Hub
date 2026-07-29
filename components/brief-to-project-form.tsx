@@ -97,7 +97,7 @@ export default function BriefToProjectForm({
                 endDate: projectEndDate,
                 priority: projectPriority,
                 progress: 0,
-                notes: `📋 Creato dal Brief: ${brief.projectName}\n\n🎯 Tono: ${brief.toneOfVoice || 'N/A'}\n🎨 Stile: ${brief.stylePreferences || 'N/A'}`,
+                notes: ` Creato dal Brief: ${brief.projectName}\n\n Tono: ${brief.toneOfVoice || 'N/A'}\n Stile: ${brief.stylePreferences || 'N/A'}`,
                 createdAt: new Date().toISOString(),
             };
 
@@ -119,7 +119,7 @@ export default function BriefToProjectForm({
                 if (service) {
                     const taskData = {
                         title: service.name,
-                        description: `🎯 Obiettivo: ${brief.mainObjective || 'N/A'}\n\n💬 Messaggi chiave: ${brief.keyMessages || 'N/A'}`,
+                        description: ` Obiettivo: ${brief.mainObjective || 'N/A'}\n\n Messaggi chiave: ${brief.keyMessages || 'N/A'}`,
                         status: 'Da Fare',
                         priority: projectPriority,
                         clientId: brief.clientId,

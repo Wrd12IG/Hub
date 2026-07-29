@@ -223,11 +223,11 @@ export default function ProjectForm({ project, onSuccess, onCancel, onCreateTask
                                     className="h-6 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                                     onClick={() => {
                                         const current = form.getValues('description') || '';
-                                        form.setValue('description', current + (current ? '\n\n' : '') + '✨ Suggerimento AI (Progetto):\n- Scopo:\n- Deliverables:\n- Timeline:');
+                                        form.setValue('description', current + (current ? '\n\n' : '') + ' Suggerimento AI (Progetto):\n- Scopo:\n- Deliverables:\n- Timeline:');
                                         toast({ title: "AI Assist", description: "Suggerimento generato!" });
                                     }}
                                 >
-                                    ✨ AI Assist
+                                     AI Assist
                                 </Button>
                             </div>
                             <FormControl>

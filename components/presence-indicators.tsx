@@ -70,9 +70,9 @@ export function PresenceAvatar({ presence, size = 'md', showStatus = true }: Pre
                     <div className="space-y-1">
                         <p className="font-medium">{presence.userName}</p>
                         <p className="text-muted-foreground">
-                            {presence.status === 'online' ? '🟢 Online' :
-                                presence.status === 'idle' ? '🟡 Inattivo' :
-                                    '⚪ Assente'}
+                            {presence.status === 'online' ? ' Online' :
+                                presence.status === 'idle' ? ' Inattivo' :
+                                    ' Assente'}
                         </p>
                         {presence.isTyping && (
                             <p className="text-primary flex items-center gap-1">

@@ -410,8 +410,8 @@ export default function UserDashboard() {
               suffix="%"
               icon={<BarChart3 className="h-4 w-4" />}
               description={
-                kpis.efficiency >= 100 ? "🎯 Sotto budget" :
-                  kpis.efficiency >= 80 ? "⚠️ Nella media" :
+                kpis.efficiency >= 100 ? " Sotto budget" :
+                  kpis.efficiency >= 80 ? " Nella media" :
                     "⏰ Sopra budget"
               }
               delay={250}
@@ -438,7 +438,7 @@ export default function UserDashboard() {
           >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="animate-float">📈</span>
+                <span className="animate-float"></span>
                 Riepilogo Lavoro
               </CardTitle>
               <CardDescription>Confronto tra ore stimate e ore effettive per progetto.</CardDescription>
@@ -453,7 +453,7 @@ export default function UserDashboard() {
           <AnimatedCard delay={350}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <span className="animate-float">📅</span>
+                <span className="animate-float"></span>
                 Prossime Scadenze
               </CardTitle>
             </CardHeader>
@@ -475,7 +475,7 @@ export default function UserDashboard() {
                 </AnimatedList>
                 {upcomingDeadlines.length === 0 && (
                   <div className="flex flex-col items-center gap-2 text-muted-foreground py-8 text-center">
-                    <span className="text-3xl">🎉</span>
+                    <span className="text-3xl"></span>
                     <span className="text-xs">Nessuna scadenza imminente. Ottimo lavoro!</span>
                   </div>
                 )}
@@ -489,7 +489,7 @@ export default function UserDashboard() {
         <AnimatedCard delay={400}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="animate-float">🗓️</span>
+              <span className="animate-float"></span>
               Calendario Personale
             </CardTitle>
             <CardDescription>Riepilogo delle tue scadenze e assenze.</CardDescription>
@@ -530,32 +530,32 @@ export default function UserDashboard() {
         >
           <CardHeader>
             <CardTitle className="text-accent-foreground flex items-center gap-2">
-              <span className="animate-float">⚡</span> Azioni Rapide
+              <span className="animate-float"></span> Azioni Rapide
             </CardTitle>
             <CardDescription>Accedi velocemente alle funzioni più usate</CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
             <Link href="/tasks?new=true">
               <Button variant="outline" className="w-full justify-start gap-2 h-12 hover:bg-accent/20 border-accent/30 hover:scale-[1.02] transition-all">
-                <span className="text-lg">📋</span>
+                <span className="text-lg"></span>
                 <span>Nuovo Task</span>
               </Button>
             </Link>
             <Link href="/projects?new=true">
               <Button variant="outline" className="w-full justify-start gap-2 h-12 hover:bg-accent/20 border-accent/30 hover:scale-[1.02] transition-all">
-                <span className="text-lg">📁</span>
+                <span className="text-lg"></span>
                 <span>Nuovo Progetto</span>
               </Button>
             </Link>
             <Link href="/calendar">
               <Button variant="outline" className="w-full justify-start gap-2 h-12 hover:bg-accent/20 border-accent/30 hover:scale-[1.02] transition-all">
-                <span className="text-lg">🗓️</span>
+                <span className="text-lg"></span>
                 <span>Calendario</span>
               </Button>
             </Link>
             <Link href="/briefs?new=true">
               <Button variant="outline" className="w-full justify-start gap-2 h-12 hover:bg-accent/20 border-accent/30 hover:scale-[1.02] transition-all">
-                <span className="text-lg">📝</span>
+                <span className="text-lg"></span>
                 <span>Nuovo Brief</span>
               </Button>
             </Link>
@@ -568,7 +568,7 @@ export default function UserDashboard() {
         <AnimatedCard delay={500}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <span className="animate-float">🔔</span> Notifiche Recenti
+              <span className="animate-float"></span> Notifiche Recenti
             </CardTitle>
             <CardDescription>Ultime attività che ti riguardano</CardDescription>
           </CardHeader>
@@ -582,7 +582,7 @@ export default function UserDashboard() {
                       style={{ animationDelay: `${index * 100}ms` }}
                     >
                       <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                        📅
+                        
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate group-hover:text-primary transition-colors">{task.title}</p>
@@ -595,7 +595,7 @@ export default function UserDashboard() {
                 ))
               ) : (
                 <div className="text-center py-8 text-muted-foreground animate-fade-in">
-                  <span className="text-4xl mb-3 block animate-float">✨</span>
+                  <span className="text-4xl mb-3 block animate-float"></span>
                   <p className="font-medium">Nessuna scadenza imminente</p>
                   <p className="text-xs mt-1">Continua così!</p>
                 </div>

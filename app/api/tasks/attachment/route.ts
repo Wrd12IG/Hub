@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return new NextResponse(
       `<!DOCTYPE html><html><body style="font-family:sans-serif;padding:2rem;">
-        <h2>⚠️ Accesso negato</h2>
+        <h2> Accesso negato</h2>
         <p>Devi essere autenticato per visualizzare questo allegato.</p>
         <p><a href="/login">Vai al login</a></p>
       </body></html>`,

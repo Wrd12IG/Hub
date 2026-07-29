@@ -67,7 +67,7 @@ export function InstagramGridPreview({ newMediaUrl, postType, igAccountId, token
       {(isStory || isReel) && (
         <div style={{ padding: '6px 10px', background: 'rgba(225,48,108,0.06)', borderRadius: '8px', fontSize: '0.7rem', color: '#e1306c', display: 'flex', alignItems: 'center', gap: '5px' }}>
           <Instagram size={11} />
-          {isStory ? 'Le Stories non appaiono nel grid — scadono dopo 24h' : 'I Reels appaiono nel grid con un\'icona ▶'}
+          {isStory ? 'Le Stories non appaiono nel grid — scadono dopo 24h' : 'I Reels appaiono nel grid con un\'icona '}
         </div>
       )}
 
@@ -121,7 +121,7 @@ export function InstagramGridPreview({ newMediaUrl, postType, igAccountId, token
                 {/* Reel icon */}
                 {(cell.type === 'REEL' || cell.type === 'VIDEO') && !cell.isNew && (
                   <div style={{ position: 'absolute', top: '4px', right: '4px' }}>
-                    <span style={{ fontSize: '0.7rem' }}>▶</span>
+                    <span style={{ fontSize: '0.7rem' }}></span>
                   </div>
                 )}
               </>
@@ -362,10 +362,10 @@ export function AspectRatioWarning({ mediaUrl, postType }: AspectRatioWarningPro
       const isValid = Math.abs(ratio - best.ratio) <= best.tol
 
       if (isValid) {
-        setOk(`✓ Formato corretto: ${best.label} (${w}×${h}px)`)
+        setOk(` Formato corretto: ${best.label} (${w}×${h}px)`)
         setWarning(null)
       } else {
-        setWarning(`⚠️ Rapporto ${(ratio).toFixed(2)}:1 — Instagram suggerisce ${best.label}. Ritagliare prima di pubblicare.`)
+        setWarning(` Rapporto ${(ratio).toFixed(2)}:1 — Instagram suggerisce ${best.label}. Ritagliare prima di pubblicare.`)
         setOk(null)
       }
     }

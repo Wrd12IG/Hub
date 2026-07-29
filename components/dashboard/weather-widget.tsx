@@ -283,7 +283,7 @@ export function WeatherWidget({ apiKey, city, compact = false }: WeatherWidgetPr
             {!apiKey && (
                 <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800">
                     <p className="text-xs text-muted-foreground text-center">
-                        📍 Dati simulati - Aggiungi API key per dati reali
+                         Dati simulati - Aggiungi API key per dati reali
                     </p>
                 </div>
             )}

@@ -123,7 +123,7 @@ export function ThemeSelector() {
 
         // Messaggio speciale per il tema Juventus + audio
         if (color === 'juventus') {
-            toast.success('⚫⚪ #FinoAllaFine', {
+            toast.success(' #FinoAllaFine', {
                 description: 'Benvenuto nel tema Bianconero!',
                 duration: 5000,
             });
@@ -140,7 +140,7 @@ export function ThemeSelector() {
 
         // Messaggio per il tema Audi
         if (color === 'audi') {
-            toast.success('🏎️ Vorsprung durch Technik', {
+            toast.success(' Vorsprung durch Technik', {
                 description: 'Tema Audi Premium attivato!',
                 duration: 3000,
             });
@@ -148,7 +148,7 @@ export function ThemeSelector() {
 
         // Messaggio per il tema Love con cuori che cadono
         if (color === 'love') {
-            toast.success('❤️ Love is in the air!', {
+            toast.success(' Love is in the air!', {
                 description: 'Tema romantico attivato!',
                 duration: 4000,
             });
@@ -156,7 +156,7 @@ export function ThemeSelector() {
             // Crea cuori che cadono
             const createHeart = () => {
                 const heart = document.createElement('div');
-                heart.innerHTML = ['❤️', '💕', '💖', '💗', '💓', '💘', '💝'][Math.floor(Math.random() * 7)];
+                heart.innerHTML = ['', '', '', '', '', '', ''][Math.floor(Math.random() * 7)];
                 heart.className = 'falling-heart';
                 heart.style.left = Math.random() * 100 + 'vw';
                 heart.style.animationDuration = (Math.random() * 2 + 3) + 's';

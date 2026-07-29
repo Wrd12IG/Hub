@@ -299,7 +299,7 @@ Genera il JSON con questa struttura esatta:
             }
 
             setGeneratedResult(data);
-            toast({ title: '✨ Strategia Generata!', description: 'Il piano editoriale AI è stato creato con successo.' });
+            toast({ title: ' Strategia Generata!', description: 'Il piano editoriale AI è stato creato con successo.' });
         } catch (err: any) {
             setError(err.message || 'Si è verificato un errore durante la chiamata AI.');
             setErrorDetails(err.details || null);
@@ -443,12 +443,12 @@ Genera il JSON con questa struttura esatta:
                                     <div className="flex flex-wrap gap-1.5 pt-1">
                                         {selectedClient.socialProfile.toneOfVoice && (
                                             <Badge variant="secondary" className="text-[10px] py-0 px-2">
-                                                🗣️ {selectedClient.socialProfile.toneOfVoice}
+                                                 {selectedClient.socialProfile.toneOfVoice}
                                             </Badge>
                                         )}
                                         {selectedClient.socialProfile.platforms?.map(p => (
                                             <Badge key={p} variant="outline" className="text-[10px] py-0 px-2">
-                                                📱 {p}
+                                                 {p}
                                             </Badge>
                                         ))}
                                     </div>

@@ -155,7 +155,7 @@ function PlacementSelector({ config, onChange }: { config: PlacementConfig; onCh
                   background: config.platforms[platform] ? 'rgba(0, 0, 0,0.04)' : 'rgba(0, 0, 0,0.01)',
                 }}>
                   <div style={{ width: 18, height: 18, borderRadius: '4px', flexShrink: 0, border: `2px solid ${config.platforms[platform] ? info.color : 'rgba(0, 0, 0,0.2)'}`, background: config.platforms[platform] ? info.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--text-primary)' }}>
-                    {config.platforms[platform] ? '✓' : ''}
+                    {config.platforms[platform] ? '' : ''}
                   </div>
                   <span style={{ display: 'flex' }}>{info.icon}</span>
                   <span style={{ fontWeight: 600, flex: 1 }}>{info.label}</span>
@@ -176,7 +176,7 @@ function PlacementSelector({ config, onChange }: { config: PlacementConfig; onCh
                           border: `1px solid ${config.placements[k] ? 'rgba(0, 0, 0,0.1)' : 'transparent'}`,
                         }}>
                           <div style={{ width: 16, height: 16, borderRadius: '4px', flexShrink: 0, marginTop: '2px', border: `2px solid ${config.placements[k] ? info.color : 'rgba(0, 0, 0,0.2)'}`, background: config.placements[k] ? info.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: 'var(--text-primary)' }}>
-                            {config.placements[k] ? '✓' : ''}
+                            {config.placements[k] ? '' : ''}
                           </div>
                           <div>
                             <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{meta.label}</div>
@@ -714,7 +714,7 @@ export default function NewCampaignPage() {
                 background: form.objective === suggestion.objective && form.objectiveSetBy === 'AI' ? 'var(--brand-fuchsia)' : 'rgba(139,92,246,0.2)',
                 border: '1px solid rgba(139,92,246,0.3)', color: 'var(--text-primary)',
               }}>
-                {form.objective === suggestion.objective && form.objectiveSetBy === 'AI' ? '✓ Usato' : 'Usa questo'}
+                {form.objective === suggestion.objective && form.objectiveSetBy === 'AI' ? ' Usato' : 'Usa questo'}
               </button>
             </div>
           </div>
@@ -1015,7 +1015,7 @@ export default function NewCampaignPage() {
 
         {/* Broad toggle */}
         <div onClick={() => setTargeting(t => ({ ...t, broadAudience: !t.broadAudience }))} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem 1.25rem', borderRadius: '12px', cursor: 'pointer', marginBottom: '1.25rem', border: `1px solid ${targeting.broadAudience ? 'rgba(139,92,246,0.3)' : 'rgba(0, 0, 0,0.08)'}`, background: targeting.broadAudience ? 'rgba(139,92,246,0.05)' : 'rgba(0, 0, 0,0.02)' }}>
-          <div style={{ width: 18, height: 18, borderRadius: '4px', flexShrink: 0, border: `2px solid ${targeting.broadAudience ? '#a78bfa' : 'rgba(0, 0, 0,0.2)'}`, background: targeting.broadAudience ? '#a78bfa' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--text-primary)' }}>{targeting.broadAudience ? '✓' : ''}</div>
+          <div style={{ width: 18, height: 18, borderRadius: '4px', flexShrink: 0, border: `2px solid ${targeting.broadAudience ? '#a78bfa' : 'rgba(0, 0, 0,0.2)'}`, background: targeting.broadAudience ? '#a78bfa' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--text-primary)' }}>{targeting.broadAudience ? '' : ''}</div>
           <div>
             <div style={{ fontWeight: 600 }}><Sparkles size={16} /> Pubblico Advantage+ (lascia lavorare l'algoritmo)</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>L'algoritmo avanzato di Meta cerca conversioni oltre i confini del targeting manuale. Usalo per massimizzare le performance. Funziona meglio con Pixel attivo.</div>

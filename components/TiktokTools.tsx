@@ -40,7 +40,7 @@ export function TiktokKeywordSuggestions({ onAdd }: { onAdd: (keyword: string) =
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {keywords.map((kw, i) => (
             <span key={i} onClick={() => onAdd(kw)} style={{ fontSize: '0.7rem', background: '#fff', padding: '4px 8px', borderRadius: '12px', cursor: 'pointer', border: '1px solid rgba(0,0,0,0.05)', display: 'inline-block' }}>
-              🔍 {kw}
+               {kw}
             </span>
           ))}
           <div style={{ width: '100%', fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>Clicca per aggiungere alla caption. TikTok ora indicizza frasi complete meglio dei singoli hashtag.</div>

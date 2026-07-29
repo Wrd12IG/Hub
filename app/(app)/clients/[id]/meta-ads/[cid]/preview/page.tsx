@@ -33,7 +33,7 @@ function PreflightPanel({ clientId, campaignId }: { clientId: string; campaignId
         // Mock fallback
         setData({
           canLaunch: true, hasCritical: false, hasWarnings: true,
-          summary: '⚠️ La campagna può essere lanciata, ma ci sono ottimizzazioni consigliate.',
+          summary: ' La campagna può essere lanciata, ma ci sono ottimizzazioni consigliate.',
           checks: [
             { id: 'pixel', label: 'Meta Pixel', status: 'WARN', detail: 'Pixel non configurato.', blocking: false, recommendation: 'Aggiungilo nelle impostazioni del cliente per ottimizzare per conversioni.' },
             { id: 'capi', label: 'Conversions API', status: 'WARN', detail: 'CAPI non verificato.', blocking: false, recommendation: 'Implementa CAPI per recuperare conversioni perse da iOS.' },
@@ -74,7 +74,7 @@ function PreflightPanel({ clientId, campaignId }: { clientId: string; campaignId
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: '0.82rem', color: statusColor[check.status] }}>{check.label}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.1rem' }}>{check.detail}</div>
-              {check.recommendation && <div style={{ fontSize: '0.75rem', color: '#fbbf24', marginTop: '0.25rem', fontStyle: 'italic' }}>💡 {check.recommendation}</div>}
+              {check.recommendation && <div style={{ fontSize: '0.75rem', color: '#fbbf24', marginTop: '0.25rem', fontStyle: 'italic' }}> {check.recommendation}</div>}
             </div>
           </div>
         ))}
@@ -100,9 +100,9 @@ interface Campaign {
 }
 
 const policyBadge: Record<string, { color: string; bg: string; icon: React.ReactNode; label: string }> = {
-  OK: { color: '#34d399', bg: 'rgba(52,211,153,0.1)', icon: <CheckCircle2 size={12} />, label: '✓ Policy OK' },
-  WARN: { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', icon: <AlertTriangle size={12} />, label: '⚠ Verifica consigliata' },
-  BLOCK: { color: '#f87171', bg: 'rgba(248,113,113,0.1)', icon: <AlertCircle size={12} />, label: '✕ Bloccata da policy' },
+  OK: { color: '#34d399', bg: 'rgba(52,211,153,0.1)', icon: <CheckCircle2 size={12} />, label: ' Policy OK' },
+  WARN: { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', icon: <AlertTriangle size={12} />, label: ' Verifica consigliata' },
+  BLOCK: { color: '#f87171', bg: 'rgba(248,113,113,0.1)', icon: <AlertCircle size={12} />, label: ' Bloccata da policy' },
   PENDING: { color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', icon: <Loader2 size={12} />, label: '⏳ In verifica policy...' },
 }
 
@@ -202,7 +202,7 @@ export default function CampaignPreviewPage() {
         client: { name: 'Luxury Real Estate Roma', websiteUrl: 'https://luxuryrome.it', creativeMode: 'HYBRID' },
         adVariants: [
           { id: 'v1', angleName: 'Risparmio', headline: 'Risparmia il 30% sull\'affitto: scopri come', primaryText: 'Con l\'analisi AI del mercato, troviamo per te le migliori opportunità immobiliari a Roma. Zero commissioni nascoste.', callToAction: 'SIGN_UP', imageUrl: null, videoUrl: null, policyStatus: 'OK', policyReason: null, status: 'PENDING_REVIEW', creativeSource: 'AI_GENERATED', spend: 0, impressions: 0, cpa: null, roas: null },
-          { id: 'v2', angleName: 'Risultati', headline: '847 famiglie hanno già trovato la loro casa', primaryText: 'La nostra piattaforma AI analizza migliaia di annunci in tempo reale. I risultati parlano da soli: CPA medio €8.20 per lead qualificato.', callToAction: 'LEARN_MORE', imageUrl: null, videoUrl: null, policyStatus: 'WARN', policyReason: '⚠️ Il testo "847 famiglie" è un claim numerico: assicurati che sia verificabile.', status: 'PENDING_REVIEW', creativeSource: 'AI_GENERATED', spend: 0, impressions: 0, cpa: null, roas: null },
+          { id: 'v2', angleName: 'Risultati', headline: '847 famiglie hanno già trovato la loro casa', primaryText: 'La nostra piattaforma AI analizza migliaia di annunci in tempo reale. I risultati parlano da soli: CPA medio €8.20 per lead qualificato.', callToAction: 'LEARN_MORE', imageUrl: null, videoUrl: null, policyStatus: 'WARN', policyReason: ' Il testo "847 famiglie" è un claim numerico: assicurati che sia verificabile.', status: 'PENDING_REVIEW', creativeSource: 'AI_GENERATED', spend: 0, impressions: 0, cpa: null, roas: null },
           { id: 'v3', angleName: 'Prova Sociale', headline: '"Finalmente una casa a Roma senza stress"', primaryText: 'Valentina, 34 anni, ha trovato il suo appartamento in 3 giorni. Lascia i tuoi dati e ti ricontatteremo entro 24 ore.', callToAction: 'GET_QUOTE', imageUrl: null, videoUrl: null, policyStatus: 'OK', policyReason: null, status: 'PENDING_REVIEW', creativeSource: 'BRAND_ASSET', spend: 0, impressions: 0, cpa: null, roas: null },
         ],
       })
@@ -285,7 +285,7 @@ export default function CampaignPreviewPage() {
               <span><strong>{campaign.name}</strong></span>
               <span>• {campaign.objective}</span>
               <span>• €{campaign.dailyBudget}/gg</span>
-              {campaign.useLeadForm && <span>• 💬 Meta Lead Form</span>}
+              {campaign.useLeadForm && <span>•  Meta Lead Form</span>}
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

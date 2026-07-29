@@ -76,7 +76,7 @@ export default function MigrationsPage() {
 
             if (result.success) {
                 toast({
-                    title: 'Migrazione completata! ✅',
+                    title: 'Migrazione completata! ',
                     description: `${result.migratedCount} task migrati con successo.`,
                 });
             } else {
@@ -132,7 +132,7 @@ export default function MigrationsPage() {
 
             if (result.success) {
                 toast({
-                    title: 'Migrazione completata! ✅',
+                    title: 'Migrazione completata! ',
                     description: `${result.migratedCount} task migrati. Recuperate ${formatDuration(result.totalTimeRecovered)}.`,
                 });
             } else {
@@ -179,7 +179,7 @@ export default function MigrationsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Timer className="h-5 w-5 text-orange-500" />
-                        <span>⏱️ Migrazione: Recupero Tempo Timer Non Fermati</span>
+                        <span>⏱ Migrazione: Recupero Tempo Timer Non Fermati</span>
                         <Badge variant="destructive">IMPORTANTE</Badge>
                     </CardTitle>
                     <CardDescription>
@@ -229,11 +229,11 @@ export default function MigrationsPage() {
                             </AlertTitle>
                             <AlertDescription>
                                 <ul className="mt-2 space-y-1">
-                                    <li>✅ Task migrati: <strong>{timerMigrationResult.migratedCount}</strong></li>
-                                    <li>⏭️ Task saltati: <strong>{timerMigrationResult.skippedCount}</strong></li>
-                                    <li>⏱️ Tempo totale recuperato: <strong>{formatDuration(timerMigrationResult.totalTimeRecovered)}</strong></li>
+                                    <li> Task migrati: <strong>{timerMigrationResult.migratedCount}</strong></li>
+                                    <li>⏭ Task saltati: <strong>{timerMigrationResult.skippedCount}</strong></li>
+                                    <li>⏱ Tempo totale recuperato: <strong>{formatDuration(timerMigrationResult.totalTimeRecovered)}</strong></li>
                                     {timerMigrationResult.errors.length > 0 && (
-                                        <li>❌ Errori: <strong>{timerMigrationResult.errors.length}</strong></li>
+                                        <li> Errori: <strong>{timerMigrationResult.errors.length}</strong></li>
                                     )}
                                 </ul>
                             </AlertDescription>
@@ -307,7 +307,7 @@ export default function MigrationsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Clock className="h-5 w-5" />
-                        <span>🗓️ Migrazione: Data Annullamento Task</span>
+                        <span> Migrazione: Data Annullamento Task</span>
                     </CardTitle>
                     <CardDescription>
                         Popola il campo <code className="bg-muted px-1 rounded">cancelledAt</code> per tutti i task
@@ -355,10 +355,10 @@ export default function MigrationsPage() {
                             </AlertTitle>
                             <AlertDescription>
                                 <ul className="mt-2 space-y-1">
-                                    <li>✅ Task migrati: <strong>{migrationResult.migratedCount}</strong></li>
-                                    <li>⏭️ Task saltati (già migrati): <strong>{migrationResult.skippedCount}</strong></li>
+                                    <li> Task migrati: <strong>{migrationResult.migratedCount}</strong></li>
+                                    <li>⏭ Task saltati (già migrati): <strong>{migrationResult.skippedCount}</strong></li>
                                     {migrationResult.errors.length > 0 && (
-                                        <li>❌ Errori: <strong>{migrationResult.errors.length}</strong></li>
+                                        <li> Errori: <strong>{migrationResult.errors.length}</strong></li>
                                     )}
                                 </ul>
                             </AlertDescription>
@@ -415,10 +415,10 @@ export default function MigrationsPage() {
             {/* Info */}
             <Card>
                 <CardHeader>
-                    <CardTitle>ℹ️ Informazioni</CardTitle>
+                    <CardTitle> Informazioni</CardTitle>
                 </CardHeader>
                 <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-                    <h4>⏱️ Migrazione Timer</h4>
+                    <h4>⏱ Migrazione Timer</h4>
                     <ul>
                         <li>Recupera il tempo dei timer che non sono stati fermati prima dell&apos;approvazione</li>
                         <li>Calcola il tempo tra l&apos;avvio del timer e la data di approvazione/annullamento</li>
@@ -426,7 +426,7 @@ export default function MigrationsPage() {
                         <li>Rimuove <code>timerStartedAt</code> e <code>timerUserId</code> dopo la migrazione</li>
                     </ul>
 
-                    <h4>🗓️ Migrazione Data Annullamento</h4>
+                    <h4> Migrazione Data Annullamento</h4>
                     <ul>
                         <li>Aggiunge il campo <code>cancelledAt</code> ai task annullati</li>
                         <li>Usato per i filtri della dashboard basati su data di approvazione/annullamento</li>

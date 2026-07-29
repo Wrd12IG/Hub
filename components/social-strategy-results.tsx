@@ -190,7 +190,7 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
 
             // Final Slide: Idee WOW & KPI
             const slideFinal = pres.addSlide();
-            slideFinal.addText('Idee WOW ✨', { x: 0.5, y: 0.5, fontSize: 28, bold: true, color: PRIMARY_COLOR });
+            slideFinal.addText('Idee WOW ', { x: 0.5, y: 0.5, fontSize: 28, bold: true, color: PRIMARY_COLOR });
             slideFinal.addText(result.idee_wow.map(i => `★ ${i.titolo}: ${i.descrizione}`).join('\n\n'), { x: 0.5, y: 1.2, w: '90%', fontSize: 11 });
             slideFinal.addText('Principali KPI:', { x: 0.5, y: 4, fontSize: 18, bold: true });
             slideFinal.addText(result.kpi.join('  |  '), { x: 0.5, y: 4.4, w: '90%', fontSize: 12 });
@@ -490,10 +490,10 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="start">
-                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Ironico')} className="text-xs">😜 Ironico</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Formale')} className="text-xs">👔 Formale</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Ispirazionale')} className="text-xs">✨ Ispirazionale</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Tecnico')} className="text-xs">🔬 Tecnico</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Ironico')} className="text-xs"> Ironico</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Formale')} className="text-xs"> Formale</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Ispirazionale')} className="text-xs"> Ispirazionale</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleRewriteCaption(i, 'Tecnico')} className="text-xs"> Tecnico</DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </div>

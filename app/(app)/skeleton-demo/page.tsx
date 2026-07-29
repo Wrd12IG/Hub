@@ -30,7 +30,7 @@ export default function SkeletonDemoPage() {
                     onClick={() => setShowSkeleton(!showSkeleton)}
                     variant={showSkeleton ? 'default' : 'outline'}
                 >
-                    {showSkeleton ? '👁️ Mostra Contenuto Reale' : '💀 Mostra Skeleton'}
+                    {showSkeleton ? ' Mostra Contenuto Reale' : ' Mostra Skeleton'}
                 </Button>
             </div>
 
@@ -121,7 +121,7 @@ export default function SkeletonDemoPage() {
                                         {task.user}
                                     </div>
                                     <span>•</span>
-                                    <span>📅 {task.date}</span>
+                                    <span> {task.date}</span>
                                 </div>
                             </div>
                         ))}
@@ -200,7 +200,7 @@ export default function SkeletonDemoPage() {
             {/* Info */}
             <section className="bg-blue-50 dark:bg-blue-950/20 p-6 rounded-lg border border-blue-200 dark:border-blue-800">
                 <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                    💡 Come Funziona
+                     Come Funziona
                 </h3>
                 <ul className="space-y-2 text-sm text-blue-800 dark:text-blue-200">
                     <li>• Gli skeleton mostrano la <strong>struttura</strong> del contenuto mentre carica</li>

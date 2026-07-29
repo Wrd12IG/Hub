@@ -151,7 +151,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
             await deleteProject(projectToDelete.id);
 
             toast({
-                title: '🗑️ Progetto eliminato',
+                title: ' Progetto eliminato',
                 description: deleteRelatedTasks
                     ? `Progetto "${projectToDelete.name}" e ${getProjectTaskCount(projectToDelete.id)} task eliminati.`
                     : `Progetto "${projectToDelete.name}" eliminato.`,
@@ -198,7 +198,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
             const result = await autoCompleteAllProjects();
             if (result.count > 0) {
                 toast({
-                    title: '✅ Progetti completati',
+                    title: ' Progetti completati',
                     description: `${result.count} progetti sono stati impostati come Completati: ${result.updated.join(', ')}`,
                 });
                 // Refresh the page to get updated data
@@ -902,9 +902,9 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                                         </div>
                                                         <Progress value={progress} className="h-3" />
                                                         <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                                                            <span>✓ {completedTasks} completati</span>
+                                                            <span> {completedTasks} completati</span>
                                                             <span>⏳ {inProgressTasks} in corso</span>
-                                                            <span>📋 {todoTasks} da fare</span>
+                                                            <span> {todoTasks} da fare</span>
                                                         </div>
                                                     </div>
                                                 );
@@ -1129,7 +1129,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                             </div>
                             {!deleteRelatedTasks && (
                                 <p className="text-xs text-muted-foreground mt-2 pl-1">
-                                    ⚠️ I task rimarranno orfani (senza progetto associato)
+                                     I task rimarranno orfani (senza progetto associato)
                                 </p>
                             )}
                         </div>

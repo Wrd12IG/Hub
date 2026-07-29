@@ -415,7 +415,7 @@ export default function CommandMenu() {
                         <CommandSeparator />
 
                         {/* Search Tips */}
-                        <CommandGroup heading="💡 Suggerimenti di Ricerca">
+                        <CommandGroup heading=" Suggerimenti di Ricerca">
                             <div className="px-2 py-3 text-sm space-y-2 text-muted-foreground">
                                 <p className="flex items-center gap-2">
                                     <Hash className="h-3 w-3" />
@@ -456,7 +456,7 @@ export default function CommandMenu() {
                     <>
                         {/* Tasks */}
                         {results.tasks.length > 0 && (
-                            <CommandGroup heading={`📋 Task (${results.tasks.length})`}>
+                            <CommandGroup heading={` Task (${results.tasks.length})`}>
                                 {results.tasks.map((task) => (
                                     <CommandItem
                                         key={task.id}

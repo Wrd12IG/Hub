@@ -37,7 +37,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
             </div>
             <div>
               <div style={{ fontSize: '12px', fontWeight: 700, color: '#000' }}>{clientName.toLowerCase().replace(/\s/g,'_')}</div>
-              <div style={{ fontSize: '10px', color: '#737373' }}>{postType === 'REEL' ? '♻️ Reel' : postType === 'STORY' ? '📱 Storia' : 'Post'}</div>
+              <div style={{ fontSize: '10px', color: '#737373' }}>{postType === 'REEL' ? ' Reel' : postType === 'STORY' ? ' Storia' : 'Post'}</div>
             </div>
           </div>
           <span style={{ fontSize: '18px', color: '#000' }}>···</span>
@@ -54,7 +54,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
                 {showPlayOverlay && (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.18)' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 16px rgba(0,0,0,0.3)' }}>
-                      <span style={{ fontSize: '18px', marginLeft: '4px' }}>▶</span>
+                      <span style={{ fontSize: '18px', marginLeft: '4px' }}></span>
                     </div>
                   </div>
                 )}
@@ -90,7 +90,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
             <div>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#050505' }}>{clientName}</div>
               <div style={{ fontSize: '11px', color: '#65676b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · 🌐
+                {new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} · 
               </div>
             </div>
           </div>
@@ -105,7 +105,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
               {showPlayOverlay && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.15)' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '14px', marginLeft: '3px' }}>▶</span>
+                    <span style={{ fontSize: '14px', marginLeft: '3px' }}></span>
                   </div>
                 </div>
               )}

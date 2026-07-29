@@ -33,11 +33,11 @@ interface KanbanAsset {
 }
 
 const FRAMEWORK_META: Record<string, { label: string; color: string; emoji: string }> = {
-  PAS:          { label: 'Problem → Agitation → Solution', color: '#f87171', emoji: '🔥' },
+  PAS:          { label: 'Problem → Agitation → Solution', color: '#f87171', emoji: '' },
   AIDA:         { label: 'Attention → Interest → Desire → Action', color: '#fbbf24', emoji: '' },
-  BAB:          { label: 'Before → After → Bridge', color: '#34d399', emoji: '🌉' },
-  HOOK_BODY_CTA:{ label: 'Hook → Body → CTA', color: '#60a5fa', emoji: '🎣' },
-  STORYSELLING: { label: 'Story Selling', color: '#a78bfa', emoji: '📖' },
+  BAB:          { label: 'Before → After → Bridge', color: '#34d399', emoji: '' },
+  HOOK_BODY_CTA:{ label: 'Hook → Body → CTA', color: '#60a5fa', emoji: '' },
+  STORYSELLING: { label: 'Story Selling', color: '#a78bfa', emoji: '' },
   TESTIMONIAL:  { label: 'Testimonial Framework', color: '#06b6d4', emoji: '⭐' },
 }
 
@@ -47,14 +47,14 @@ const TRIGGER_COLOR: Record<string, string> = {
 }
 
 const STATUS_META = {
-  STAR:      { label: '🌟 Star', color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)' },
-  OK:        { label: '✅ OK', color: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)' },
-  DECLINING: { label: '📉 Declining', color: '#fbbf24', bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.2)' },
-  DYING:     { label: '💀 Dying', color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' },
+  STAR:      { label: ' Star', color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)' },
+  OK:        { label: ' OK', color: '#94a3b8', bg: 'rgba(148,163,184,0.06)', border: 'rgba(148,163,184,0.15)' },
+  DECLINING: { label: ' Declining', color: '#fbbf24', bg: 'rgba(251,191,36,0.06)', border: 'rgba(251,191,36,0.2)' },
+  DYING:     { label: ' Dying', color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' },
 }
 
 function ScriptCard({ script, idx }: { script: Script; idx: number }) {
-  const fm = FRAMEWORK_META[script.framework] ?? { label: script.framework, color: '#94a3b8', emoji: '📝' }
+  const fm = FRAMEWORK_META[script.framework] ?? { label: script.framework, color: '#94a3b8', emoji: '' }
   const triggerColor = TRIGGER_COLOR[script.trigger] ?? '#94a3b8'
   const [copied, setCopied] = useState(false)
 
@@ -107,7 +107,7 @@ function ScriptCard({ script, idx }: { script: Script; idx: number }) {
 
       {/* Hook */}
       <div style={{ marginBottom: '0.875rem' }}>
-        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🎣 Hook (primissimi 3 sec.)</div>
+        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}> Hook (primissimi 3 sec.)</div>
         <div style={{ padding: '0.75rem', background: 'rgba(0,0,0,0.25)', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.5, borderLeft: `3px solid ${fm.color}` }}>
           "{script.hookLine}"
         </div>
@@ -115,13 +115,13 @@ function ScriptCard({ script, idx }: { script: Script; idx: number }) {
 
       {/* Body */}
       <div style={{ marginBottom: '0.875rem' }}>
-        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>📢 Body</div>
+        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}> Body</div>
         <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.65 }}>{script.bodyScript}</div>
       </div>
 
       {/* CTA */}
       <div style={{ marginBottom: '0.875rem' }}>
-        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🎯 CTA</div>
+        <div style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}> CTA</div>
         <div style={{ padding: '0.5rem 0.875rem', background: `${fm.color}10`, border: `1px solid ${fm.color}25`, borderRadius: '8px', fontSize: '0.85rem', fontWeight: 700, color: fm.color }}>
           {script.ctaLine}
         </div>
@@ -130,7 +130,7 @@ function ScriptCard({ script, idx }: { script: Script; idx: number }) {
       {/* Visual note */}
       {script.visualNote && (
         <div style={{ marginBottom: '1rem', padding: '0.625rem 0.875rem', background: 'rgba(148,163,184,0.05)', borderRadius: '8px', fontSize: '0.72rem', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-          <div style={{ marginBottom: '0.5rem' }}>🎬 <em>{script.visualNote}</em></div>
+          <div style={{ marginBottom: '0.5rem' }}> <em>{script.visualNote}</em></div>
           
           {/* AI Image Generation per colmare il "solo testi" */}
           {!generatedImg ? (
@@ -141,7 +141,7 @@ function ScriptCard({ script, idx }: { script: Script; idx: number }) {
             <div style={{ marginTop: '0.75rem', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
               <img src={generatedImg} alt="AI Generated Asset" style={{ width: '100%', display: 'block', aspectRatio: '1/1', objectFit: 'cover' }} />
               <div style={{ padding: '0.4rem', background: 'rgba(0,0,0,0.8)', color: 'white', fontSize: '0.65rem', textAlign: 'center', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>✨ Generato con Imagen 3</span>
+                <span> Generato con Imagen 3</span>
                 <button onClick={() => setGeneratedImg(null)} style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: '0.68rem' }}>Rimuovi</button>
               </div>
             </div>
@@ -234,9 +234,9 @@ export default function CreativeFactoryPage() {
       else {
         // Mock
         setRanking([
-          { rank: 1, variantId: 'v1', name: 'Hook PAURA — "Stai perdendo clienti ogni giorno"', ctr: 3.4, cpa: 22, roas: 4.8, spend: 340, status: 'STAR', recommendation: '🌟 Scala il budget del 20%. Produci 3 varianti con lo stesso hook.' },
+          { rank: 1, variantId: 'v1', name: 'Hook PAURA — "Stai perdendo clienti ogni giorno"', ctr: 3.4, cpa: 22, roas: 4.8, spend: 340, status: 'STAR', recommendation: ' Scala il budget del 20%. Produci 3 varianti con lo stesso hook.' },
           { rank: 2, variantId: 'v2', name: 'RIPROVA SOCIALE — "1.200 clienti soddisfatti"', ctr: 2.1, cpa: 38, roas: 3.1, spend: 210, status: 'OK', recommendation: 'Mantieni. Continua a raccogliere dati.' },
-          { rank: 3, variantId: 'v3', name: 'CUPIDIGIA — "Risparmia il 40% entro domenica"', ctr: 0.8, cpa: 89, roas: 1.2, spend: 178, status: 'DYING', recommendation: '💀 CTR 0.8% sotto soglia. Metti in pausa e testa nuovo hook.' },
+          { rank: 3, variantId: 'v3', name: 'CUPIDIGIA — "Risparmia il 40% entro domenica"', ctr: 0.8, cpa: 89, roas: 1.2, spend: 178, status: 'DYING', recommendation: ' CTR 0.8% sotto soglia. Metti in pausa e testa nuovo hook.' },
         ])
         setRankDigest('1 variante star da scalare, 1 da mettere in pausa immediatamente.')
       }
@@ -353,11 +353,11 @@ export default function CreativeFactoryPage() {
   }, [tab])
 
   const TABS = [
-    { id: 'scripts', label: '✍️ Script AI', icon: Sparkles },
-    { id: 'ranking', label: '🏆 Creative Ranking', icon: BarChart3 },
-    { id: 'insight', label: '📋 Insight Lunedì', icon: Brain },
-    { id: 'hooks', label: '🎣 Hook Tests', icon: Target },
-    { id: 'kanban', label: '🗂️ Asset Pipeline', icon: LayoutDashboard },
+    { id: 'scripts', label: ' Script AI', icon: Sparkles },
+    { id: 'ranking', label: ' Creative Ranking', icon: BarChart3 },
+    { id: 'insight', label: ' Insight Lunedì', icon: Brain },
+    { id: 'hooks', label: ' Hook Tests', icon: Target },
+    { id: 'kanban', label: ' Asset Pipeline', icon: LayoutDashboard },
   ]
 
   return (
@@ -417,12 +417,12 @@ export default function CreativeFactoryPage() {
           {/* Competitor insights */}
           {competitive && (
             <div style={{ marginBottom: '1.5rem', padding: '1rem 1.25rem', background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '14px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔍 Analisi Competitor Pattern</div>
+              <div style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 700, marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}> Analisi Competitor Pattern</div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '0.75rem' }}>{competitive}</p>
               {topPatterns.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
                   {topPatterns.map(p => (
-                    <span key={p} style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '50px', color: '#fbbf24' }}>✓ {p}</span>
+                    <span key={p} style={{ fontSize: '0.7rem', padding: '2px 8px', background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.15)', borderRadius: '50px', color: '#fbbf24' }}> {p}</span>
                   ))}
                 </div>
               )}
@@ -490,7 +490,7 @@ export default function CreativeFactoryPage() {
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <div>
-              <h2 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>📋 La tua lista del lunedì</h2>
+              <h2 style={{ fontWeight: 700, marginBottom: '0.25rem' }}> La tua lista del lunedì</h2>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Non numeri. Azioni concrete ordinate per priorità.</p>
             </div>
             <button onClick={fetchInsight} disabled={loading} style={{ background: 'rgba(0, 0, 0,0.05)', border: '1px solid rgba(0, 0, 0,0.1)', borderRadius: '10px', padding: '0.6rem', cursor: 'pointer', color: 'var(--text-secondary)' }}>
@@ -519,7 +519,7 @@ export default function CreativeFactoryPage() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{action.action}</div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{action.rationale}</div>
-                        {action.format && <span style={{ marginTop: '0.375rem', display: 'inline-block', fontSize: '0.68rem', background: 'rgba(96,165,250,0.1)', color: '#60a5fa', padding: '2px 8px', borderRadius: '50px' }}>📐 {action.format}</span>}
+                        {action.format && <span style={{ marginTop: '0.375rem', display: 'inline-block', fontSize: '0.68rem', background: 'rgba(96,165,250,0.1)', color: '#60a5fa', padding: '2px 8px', borderRadius: '50px' }}> {action.format}</span>}
                       </div>
                     </div>
                   ))}
@@ -529,7 +529,7 @@ export default function CreativeFactoryPage() {
               {/* Format trends sidebar */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ padding: '1.25rem', background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.15)', borderRadius: '14px' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>📈 In Crescita</div>
+                  <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}> In Crescita</div>
                   {(insight.risingFormats ?? []).map(f => (
                     <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0', borderBottom: '1px solid rgba(0, 0, 0,0.04)', fontSize: '0.82rem' }}>
                       <TrendingUp size={13} color="#34d399" /> {f}
@@ -537,7 +537,7 @@ export default function CreativeFactoryPage() {
                   ))}
                 </div>
                 <div style={{ padding: '1.25rem', background: 'rgba(248,113,113,0.05)', border: '1px solid rgba(248,113,113,0.12)', borderRadius: '14px' }}>
-                  <div style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}>📉 In Calo</div>
+                  <div style={{ fontSize: '0.72rem', color: '#f87171', fontWeight: 700, marginBottom: '0.75rem', textTransform: 'uppercase' }}> In Calo</div>
                   {(insight.dyingFormats ?? []).map(f => (
                     <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.375rem 0', borderBottom: '1px solid rgba(0, 0, 0,0.04)', fontSize: '0.82rem' }}>
                       <TrendingDown size={13} color="#f87171" /> {f}
@@ -586,13 +586,13 @@ export default function CreativeFactoryPage() {
                   
                   {test.baseVideoUrl && test.baseVideoUrl.startsWith('TEXT: ') && (
                     <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}>📝 Base Script (Corpo + CTA)</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '0.5rem' }}> Base Script (Corpo + CTA)</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{(test?.baseVideoUrl || "").replace('TEXT: ', '')}</div>
                     </div>
                   )}
 
                   <div style={{ padding: '1.5rem' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '1rem' }}>🎣 Le 5 Varianti Hook generate</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: '1rem' }}> Le 5 Varianti Hook generate</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                       {(test.hooks || []).map((h: any) => (
                         <div key={h.id} style={{ padding: '1rem', background: 'rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '12px' }}>
@@ -636,15 +636,15 @@ export default function CreativeFactoryPage() {
 
           <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(5, minmax(280px, 1fr))', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem' }}>
             {/* Colonna 1: IDEA */}
-            <KanbanColumn title="💡 Idea / Scripting" stage="IDEA" assets={kanbanAssets.filter(a => a.stage === 'IDEA')} onMove={moveAsset} />
+            <KanbanColumn title=" Idea / Scripting" stage="IDEA" assets={kanbanAssets.filter(a => a.stage === 'IDEA')} onMove={moveAsset} />
             {/* Colonna 2: TO_SHOOT */}
-            <KanbanColumn title="🎬 Da Registrare" stage="TO_SHOOT" assets={kanbanAssets.filter(a => a.stage === 'TO_SHOOT')} onMove={moveAsset} />
+            <KanbanColumn title=" Da Registrare" stage="TO_SHOOT" assets={kanbanAssets.filter(a => a.stage === 'TO_SHOOT')} onMove={moveAsset} />
             {/* Colonna 3: EDITING */}
-            <KanbanColumn title="✂️ In Montaggio" stage="EDITING" assets={kanbanAssets.filter(a => a.stage === 'EDITING')} onMove={moveAsset} />
+            <KanbanColumn title=" In Montaggio" stage="EDITING" assets={kanbanAssets.filter(a => a.stage === 'EDITING')} onMove={moveAsset} />
             {/* Colonna 4: APPROVAL */}
-            <KanbanColumn title="👀 In Approvazione" stage="APPROVAL" assets={kanbanAssets.filter(a => a.stage === 'APPROVAL')} onMove={moveAsset} />
+            <KanbanColumn title=" In Approvazione" stage="APPROVAL" assets={kanbanAssets.filter(a => a.stage === 'APPROVAL')} onMove={moveAsset} />
             {/* Colonna 5: LIVE */}
-            <KanbanColumn title="🚀 Lanciato (Live)" stage="LIVE" assets={kanbanAssets.filter(a => a.stage === 'LIVE')} onMove={moveAsset} />
+            <KanbanColumn title=" Lanciato (Live)" stage="LIVE" assets={kanbanAssets.filter(a => a.stage === 'LIVE')} onMove={moveAsset} />
           </div>
         </div>
       )}

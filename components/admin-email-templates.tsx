@@ -483,7 +483,7 @@ export default function AdminEmailTemplates() {
                                         id="headerTitle"
                                         value={formData.headerTitle}
                                         onChange={e => setFormData(prev => ({ ...prev, headerTitle: e.target.value }))}
-                                        placeholder="es. 📋 Nuovo Task Assegnato"
+                                        placeholder="es.  Nuovo Task Assegnato"
                                     />
                                 </div>
 

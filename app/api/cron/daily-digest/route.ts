@@ -149,8 +149,8 @@ export async function GET(request: NextRequest) {
   // Costruiamo anche il subject con i dati reali
   const totalProblems = digest.overdue.length + digest.inApproval.length;
   const subject = totalProblems > 0
-    ? `⚠️ ${totalProblems} azioni richieste — Daily Digest ${digest.date}`
-    : `✅ Tutto in ordine — Daily Digest ${digest.date}`;
+    ? ` ${totalProblems} azioni richieste — Daily Digest ${digest.date}`
+    : ` Tutto in ordine — Daily Digest ${digest.date}`;
 
   // ── Step 4: Invia l'email ─────────────────────────────────────────────────
   const emailResult = await sendDigestEmail(subject, htmlContent);

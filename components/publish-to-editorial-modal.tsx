@@ -166,11 +166,11 @@ export function PublishToEditorialModal({
                                     <SelectValue placeholder="Seleziona formato" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Reel">📹 Reel / Video</SelectItem>
-                                    <SelectItem value="Carosello">🖼️ Carosello Grafico</SelectItem>
-                                    <SelectItem value="Post Singolo">📸 Post Singolo</SelectItem>
-                                    <SelectItem value="Story">🤳 Story Instagram/FB</SelectItem>
-                                    <SelectItem value="Articolo">📰 Articolo / Blog</SelectItem>
+                                    <SelectItem value="Reel"> Reel / Video</SelectItem>
+                                    <SelectItem value="Carosello"> Carosello Grafico</SelectItem>
+                                    <SelectItem value="Post Singolo"> Post Singolo</SelectItem>
+                                    <SelectItem value="Story"> Story Instagram/FB</SelectItem>
+                                    <SelectItem value="Articolo"> Articolo / Blog</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -193,27 +193,27 @@ export function PublishToEditorialModal({
                         <div className="grid grid-cols-3 gap-2 text-xs">
                             <label className="flex items-center gap-2 p-2 rounded border bg-card hover:bg-muted/40 cursor-pointer">
                                 <Checkbox checked={channels.instagram} onCheckedChange={() => handleChannelToggle('instagram')} />
-                                <span>📸 Instagram</span>
+                                <span> Instagram</span>
                             </label>
                             <label className="flex items-center gap-2 p-2 rounded border bg-card hover:bg-muted/40 cursor-pointer">
                                 <Checkbox checked={channels.facebook} onCheckedChange={() => handleChannelToggle('facebook')} />
-                                <span>👥 Facebook</span>
+                                <span> Facebook</span>
                             </label>
                             <label className="flex items-center gap-2 p-2 rounded border bg-card hover:bg-muted/40 cursor-pointer">
                                 <Checkbox checked={channels.igStories} onCheckedChange={() => handleChannelToggle('igStories')} />
-                                <span>🤳 IG Stories</span>
+                                <span> IG Stories</span>
                             </label>
                             <label className="flex items-center gap-2 p-2 rounded border bg-card hover:bg-muted/40 cursor-pointer">
                                 <Checkbox checked={channels.linkedin} onCheckedChange={() => handleChannelToggle('linkedin')} />
-                                <span>💼 LinkedIn</span>
+                                <span> LinkedIn</span>
                             </label>
                             <label className="flex items-center gap-2 p-2 rounded border bg-card hover:bg-muted/40 cursor-pointer">
                                 <Checkbox checked={channels.tiktok} onCheckedChange={() => handleChannelToggle('tiktok')} />
-                                <span>🎵 TikTok</span>
+                                <span> TikTok</span>
                             </label>
                             <label className="flex items-center gap-2 p-2 rounded border bg-card hover:bg-muted/40 cursor-pointer">
                                 <Checkbox checked={channels.youtube} onCheckedChange={() => handleChannelToggle('youtube')} />
-                                <span>🎥 YouTube</span>
+                                <span> YouTube</span>
                             </label>
                         </div>
                     </div>

@@ -259,7 +259,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
             .sort((a, b) => (a.title || '').localeCompare(b.title || '', 'it', { sensitivity: 'base' }));
     }, [allTasks, watchedClientId, task?.id]);
 
-    // 🤖 AI: Calcola tempo suggerito basato su task simili (stesso tipo attività e cliente)
+    //  AI: Calcola tempo suggerito basato su task simili (stesso tipo attività e cliente)
     const watchedActivityType = form.watch("activityType")
     const watchedPriority = form.watch("priority")
 
@@ -300,7 +300,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
         }
     }, [watchedActivityType, watchedClientId, allTasks, task]);
 
-    // 🗓️ Calcola scadenza automatica basata su priorità
+    //  Calcola scadenza automatica basata su priorità
     React.useEffect(() => {
         if (!task && useAutoDueDate && taskPrioritySettings && watchedPriority) {
             const daysToAdd = taskPrioritySettings[watchedPriority] || 7;
@@ -392,14 +392,14 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                 return clean;
             });
 
-            // ⚠️ Rimuovi allegati con blob: URL — sono temporanei e non accessibili ad altri utenti.
+            //  Rimuovi allegati con blob: URL — sono temporanei e non accessibili ad altri utenti.
             // Questo può succedere se l'utente ha aggiunto un file ma non è stato caricato correttamente.
             const invalidBlobs = cleanedAttachments.filter((att: any) => att.url?.startsWith('blob:'));
             const validAttachments = cleanedAttachments.filter((att: any) => !att.url?.startsWith('blob:'));
 
             if (invalidBlobs.length > 0) {
                 toast({
-                    title: `⚠️ ${invalidBlobs.length} file non caricato`,
+                    title: ` ${invalidBlobs.length} file non caricato`,
                     description: 'Alcuni file non erano stati caricati correttamente e sono stati rimossi. Aggiungili di nuovo.',
                     variant: 'destructive',
                 });
@@ -491,12 +491,12 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     className="h-6 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                                     onClick={() => {
                                         const current = form.getValues('description') || '';
-                                        const suggestion = '<p><strong>✨ Suggerimento AI:</strong></p><ul><li>Obiettivo: </li><li>Passaggi: </li><li>Scadenza: </li></ul>';
+                                        const suggestion = '<p><strong> Suggerimento AI:</strong></p><ul><li>Obiettivo: </li><li>Passaggi: </li><li>Scadenza: </li></ul>';
                                         form.setValue('description', current + (current ? '<br/>' : '') + suggestion);
                                         toast({ title: "AI Assist", description: "Suggerimento generato!" });
                                     }}
                                 >
-                                    ✨ AI Assist
+                                     AI Assist
                                 </Button>
                             </div>
                             <FormControl>
@@ -687,7 +687,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                 </div>
                                 {suggestedDuration && (
                                     <FormDescription className="text-xs text-primary">
-                                        💡 Suggerito in base a task simili completati
+                                         Suggerito in base a task simili completati
                                     </FormDescription>
                                 )}
                                 <FormMessage />
@@ -904,7 +904,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     return (
                                         <div className="mt-3 p-3 rounded-xl border bg-muted/30 text-xs">
                                             <p className="font-semibold text-foreground mb-2.5 flex items-center gap-1.5">
-                                                <span>⏱️</span> Carico utente
+                                                <span>⏱</span> Carico utente
                                                 <span className="ml-1 text-[10px] font-normal text-muted-foreground">
                                                     ({totalActiveTasks} task attivi{undatedCount > 0 ? `, ${undatedCount} senza data` : ''})
                                                 </span>
@@ -986,7 +986,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
 
                                         {attachment.url?.startsWith('blob:') ? (
                                             <span className="text-sm text-amber-500 truncate flex items-center gap-1">
-                                                ⚠️ File non disponibile — carica di nuovo
+                                                 File non disponibile — carica di nuovo
                                             </span>
                                         ) : (
                                             <a href={getAttachmentUrl(attachment.url, authToken)} target="_blank" rel="noopener noreferrer" className="text-sm truncate hover:underline underline-offset-4 decoration-primary">

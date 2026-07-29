@@ -366,7 +366,7 @@ export default function AdminSoundsSettings() {
         }
 
         new Notification('Test Notifica - W[r]Digital Hub', {
-            body: 'Questa è una notifica di test! 🔔',
+            body: 'Questa è una notifica di test! ',
             icon: '/favicon.ico',
             tag: 'test-notification',
         });
@@ -418,8 +418,8 @@ export default function AdminSoundsSettings() {
                                 variant={browserPermission === 'granted' ? 'default' : 'secondary'}
                                 className={browserPermission === 'granted' ? 'bg-green-500' : browserPermission === 'denied' ? 'bg-red-500' : ''}
                             >
-                                {browserPermission === 'granted' && '✓ Attive'}
-                                {browserPermission === 'denied' && '✗ Bloccate'}
+                                {browserPermission === 'granted' && ' Attive'}
+                                {browserPermission === 'denied' && ' Bloccate'}
                                 {browserPermission === 'default' && '○ Non richiesto'}
                             </Badge>
                         </div>
@@ -454,7 +454,7 @@ export default function AdminSoundsSettings() {
 
                     {browserPermission === 'granted' && (
                         <Button variant="outline" size="sm" onClick={sendTestNotification}>
-                            🔔 Invia Notifica di Test
+                             Invia Notifica di Test
                         </Button>
                     )}
                 </CardContent>
@@ -570,7 +570,7 @@ export default function AdminSoundsSettings() {
                                                     {soundConfig.customUrl && (
                                                         <>
                                                             <Badge variant="secondary" className="text-xs">
-                                                                ✓ Personalizzato
+                                                                 Personalizzato
                                                             </Badge>
                                                             <Button
                                                                 variant="ghost"

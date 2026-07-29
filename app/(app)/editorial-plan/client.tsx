@@ -1915,7 +1915,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="w-full justify-between p-2 h-auto text-sm font-semibold">
                                     <div className="flex items-center gap-2">
-                                        <span>⚙️ Preimpostazioni globali</span>
+                                        <span> Preimpostazioni globali</span>
                                         <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">Nuovo</Badge>
                                     </div>
                                     <ChevronDown className="h-4 w-4" />

@@ -209,7 +209,7 @@ function ArchiveModal({ selectedUrls, onConfirm, onClose, multiple }: {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(0,0,0,0.07)' }}>
           <div>
-            <h3 style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '2px' }}>📁 Archivio Media</h3>
+            <h3 style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '2px' }}> Archivio Media</h3>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
               {multiple ? 'Seleziona più file per il carosello' : 'Seleziona un file'}
             </p>

@@ -649,7 +649,7 @@ export default function ClientDetailPage() {
   if (fetchError || !client)
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-        <div className="text-5xl opacity-30">🔍</div>
+        <div className="text-5xl opacity-30"></div>
         <h2 className="text-xl font-bold text-destructive">
           Cliente non trovato
         </h2>
@@ -1255,7 +1255,7 @@ export default function ClientDetailPage() {
                       size="sm"
                       className="w-full active:scale-[0.97] transition-all rounded-xl font-bold bg-primary text-primary-foreground shadow-md"
                     >
-                      🔄 Richiedi Audit AI
+                       Richiedi Audit AI
                     </Button>
                   )}
                 </div>
@@ -1677,7 +1677,7 @@ export default function ClientDetailPage() {
                       </div>
                       {!loadingGa4 && !ga4Data ? (
                         <div className="text-center py-4 text-muted-foreground text-xs flex-1 flex flex-col items-center justify-center">
-                          <div className="text-2xl mb-2">📊</div>
+                          <Globe className="w-8 h-8 text-blue-400 mb-2 opacity-80" />
                           <div className="font-bold mb-1 text-foreground">
                             GA4 non collegato
                           </div>
@@ -1775,7 +1775,7 @@ export default function ClientDetailPage() {
                         </div>
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
-                        <div className="text-2xl mb-2">📱</div>
+                        <Instagram className="w-8 h-8 text-pink-400 mb-2 opacity-80" />
                         <div className="font-bold text-xs mb-1 text-foreground">
                           Instagram non collegato
                         </div>
@@ -1803,7 +1803,7 @@ export default function ClientDetailPage() {
                         </div>
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
-                        <div className="text-2xl mb-2">▶️</div>
+                        <Youtube className="w-8 h-8 text-rose-500 mb-2 opacity-80" />
                         <div className="font-bold text-xs mb-1 text-foreground">
                           YouTube non collegato
                         </div>
@@ -1823,7 +1823,7 @@ export default function ClientDetailPage() {
                         </span>
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-center py-6 text-center text-muted-foreground">
-                        <div className="text-2xl mb-2">🎵</div>
+                        <Music className="w-8 h-8 text-cyan-400 mb-2 opacity-80" />
                         <div className="font-bold text-xs mb-1 text-foreground">
                           TikTok non collegato
                         </div>
@@ -1853,7 +1853,7 @@ export default function ClientDetailPage() {
                     onClick={() => setActiveTab("settings")}
                     className="mt-2 text-xs bg-primary hover:bg-primary/90 text-white border-none py-1.5 px-4 rounded-lg cursor-pointer font-bold active:scale-95 transition-all"
                   >
-                    ⚙️ Setup API
+                     Setup API
                   </button>
                 </div>
               </div>
@@ -1996,7 +1996,7 @@ export default function ClientDetailPage() {
                     </h3>
                     {client.intelligence.websiteScraped && (
                       <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
-                        ✓ Sito Analizzato
+                         Sito Analizzato
                       </span>
                     )}
                   </div>
@@ -2192,7 +2192,7 @@ export default function ClientDetailPage() {
                                   <div className="text-primary text-xs font-bold flex items-center gap-1.5 mt-1 animate-pulse">
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     <span>
-                                      🤖 Lettura Vision in corso... (10s)
+                                       Lettura Vision in corso... (10s)
                                     </span>
                                   </div>
                                 )}

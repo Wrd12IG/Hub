@@ -960,9 +960,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             await updateTask(task.id, { status: 'Approvato', rejectionReason: '' }, currentUser.id, canApprove, sendEmail);
             playSound('task_approval');
             window.dispatchEvent(new Event('taskCompleted'));
-            // 🎉 Trigger sparkle celebration
+            //  Trigger sparkle celebration
             setCelebrationTrigger(prev => prev + 1);
-            toast.success("Task Approvato 🎉", { description: `"${task.title}" è stato approvato.` });
+            toast.success("Task Approvato ", { description: `"${task.title}" è stato approvato.` });
         } catch (error: any) {
             console.error("Failed to approve task:", error);
             if (error.message.startsWith('Impossibile completare.')) {
@@ -981,7 +981,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         const { task, sendEmail } = approvalState;
         try {
             await updateTask(task.id, { status: 'In Approvazione Cliente', rejectionReason: '' }, currentUser.id, canApprove, sendEmail);
-            toast.success("Inviato al Cliente 📤", { description: `"${task.title}" è in attesa di approvazione cliente.` });
+            toast.success("Inviato al Cliente ", { description: `"${task.title}" è in attesa di approvazione cliente.` });
         } catch (error: any) {
             console.error("Failed to send to client:", error);
             toast.error("Impossibile inviare al cliente.");
@@ -1004,7 +1004,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         if (task.skipAttachmentOnApproval) {
             try {
                 await updateTask(task.id, { status: targetStatus }, currentUser.id, canApprove, true);
-                toast.info(targetStatus === 'In Approvazione Cliente' ? "Task inviato al cliente 📤" : "Task inviato in approvazione.");
+                toast.info(targetStatus === 'In Approvazione Cliente' ? "Task inviato al cliente " : "Task inviato in approvazione.");
             } catch (error: any) {
                 console.error("Failed to send task for approval:", error);
                 toast.error("Impossibile inviare il task in approvazione.");
@@ -1027,7 +1027,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         } else {
             try {
                 await updateTask(task.id, { status: targetStatus }, currentUser.id, canApprove, true);
-                toast.info(targetStatus === 'In Approvazione Cliente' ? "Task inviato al cliente 📤" : "Task inviato in approvazione.");
+                toast.info(targetStatus === 'In Approvazione Cliente' ? "Task inviato al cliente " : "Task inviato in approvazione.");
             } catch (error: any) {
                 console.error("Failed to send task for approval:", error);
                 toast.error("Impossibile inviare il task in approvazione.");
@@ -1322,7 +1322,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                         <div className="flex justify-between items-center mb-4">
                             <div className="flex items-center gap-2">
                                 <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                                <h2 className="font-semibold text-lg text-red-500">⚠️ Scaduti</h2>
+                                <h2 className="font-semibold text-lg text-red-500"> Scaduti</h2>
                             </div>
                             <Badge variant="destructive" className="px-3 py-1 text-sm">{overdueTasks.length}</Badge>
                         </div>
@@ -1535,7 +1535,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
         >
-            {/* 🎉 Sparkle celebration — fires on task approval */}
+            {/*  Sparkle celebration — fires on task approval */}
             <TaskApprovedCelebration trigger={celebrationTrigger > 0} />
             <div className="flex-shrink-0">
                 <div className="flex flex-col md:flex-row gap-4 justify-between md:items-center mb-4">
@@ -1825,7 +1825,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                             <Send className="h-3.5 w-3.5" />
                             Invia al Cliente
                         </button>
-                        <AlertDialogAction onClick={handleApprove}>Approva ✓</AlertDialogAction>
+                        <AlertDialogAction onClick={handleApprove}>Approva </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -1840,7 +1840,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                     </AlertDialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="approval_url">📎 Incolla un Link</Label>
+                            <Label htmlFor="approval_url"> Incolla un Link</Label>
                             <Input
                                 id="approval_url"
                                 placeholder="https://drive.google.com/... oppure https://figma.com/..."
@@ -1860,7 +1860,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="approval_file">📁 Carica un File</Label>
+                            <Label htmlFor="approval_file"> Carica un File</Label>
                             <Input
                                 id="approval_file"
                                 type="file"
@@ -1891,7 +1891,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                     <p className="text-sm font-medium text-green-700 dark:text-green-300">File pronto per il caricamento</p>
                                 </div>
                                 <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                                    📁 {fileAttachmentModalState.attachmentFilename}
+                                     {fileAttachmentModalState.attachmentFilename}
                                     <span className="ml-2 text-xs opacity-70">
                                         ({(fileAttachmentModalState.attachmentFile.size / 1024).toFixed(1)} KB)
                                     </span>
@@ -2228,7 +2228,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                         return (
                                                             <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-secondary">
                                                                 <FileText className="h-4 w-4 flex-shrink-0 text-amber-500" />
-                                                                <span className="text-sm text-amber-500 truncate">⚠️ File non disponibile</span>
+                                                                <span className="text-sm text-amber-500 truncate"> File non disponibile</span>
                                                             </div>
                                                         );
                                                     }

@@ -302,7 +302,7 @@ export function Leaderboard({ users, currentUserId, limit = 10 }: LeaderboardPro
                                 )}
                             >
                                 <div className="absolute -top-3 px-3 py-0.5 rounded-full text-xs font-bold shadow-md bg-background border flex items-center gap-1">
-                                    <span>{['🥇 1°', '🥈 2°', '🥉 3°'][rank - 1]}</span>
+                                    <span>{[' 1°', ' 2°', ' 3°'][rank - 1]}</span>
                                 </div>
 
                                 <div className="mt-2 relative">

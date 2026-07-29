@@ -824,8 +824,8 @@ export default function CalendarPage() {
                                                                 {item.type === 'project' && item.original?.status && (
                                                                     <p><span className="font-medium">Stato:</span> {item.original.status}</p>
                                                                 )}
-                                                                {item.isStart && <p className="text-green-600">📍 Inizio progetto</p>}
-                                                                {!item.isStart && item.type === 'project' && <p className="text-red-600">🏁 Fine progetto</p>}
+                                                                {item.isStart && <p className="text-green-600"> Inizio progetto</p>}
+                                                                {!item.isStart && item.type === 'project' && <p className="text-red-600"> Fine progetto</p>}
                                                             </div>
                                                             <p className="text-[10px] text-muted-foreground/70 pt-1 border-t">
                                                                 Clicca per modificare • Trascina per spostare

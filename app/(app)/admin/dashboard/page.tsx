@@ -1726,13 +1726,13 @@ export default function Dashboard() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                         <Badge className="bg-primary/20 text-primary border-primary/30">
-                            📁 Progetti: <AnimatedCounter value={globalKpis.activeProjects} duration={800} />
+                             Progetti: <AnimatedCounter value={globalKpis.activeProjects} duration={800} />
                         </Badge>
                         <Badge className="bg-destructive/20 text-destructive border-destructive/30">
-                            ⚠️ Rischio: <AnimatedCounter value={globalKpis.atRiskProjects} duration={800} />
+                             Rischio: <AnimatedCounter value={globalKpis.atRiskProjects} duration={800} />
                         </Badge>
                         <Badge className="bg-primary/20 text-primary border-primary/30">
-                            🔄 Attivi: <AnimatedCounter value={globalKpis.inProgressTasks} duration={800} />
+                             Attivi: <AnimatedCounter value={globalKpis.inProgressTasks} duration={800} />
                         </Badge>
                         <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30">
                             ⏰ Scadenze: <AnimatedCounter value={globalKpis.upcomingDeadlines} duration={800} />
@@ -2165,7 +2165,7 @@ export default function Dashboard() {
                                             efficiencyStatus === 'good' ? '#3b82f6' :
                                                 efficiencyStatus === 'over' ? '#f59e0b' : '#9ca3af';
                                         const isTopPerformer = index < 3 && user.completedCount > 0;
-                                        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+                                        const rankEmoji = index === 0 ? '' : index === 1 ? '' : index === 2 ? '' : '';
 
                                         return (
                                             <Card key={user.id} className={`relative overflow-hidden transition-all hover:shadow-lg ${isTopPerformer ? 'ring-2 ring-primary/20' : ''}`}>
@@ -2250,7 +2250,7 @@ export default function Dashboard() {
                                                             {user.overrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-red-500/5 border border-red-500/10 text-xs">
                                                                     <div className="flex justify-between font-semibold text-[10px] text-red-500 uppercase">
-                                                                        <span>📈 Sforamento Maggiore</span>
+                                                                        <span> Sforamento Maggiore</span>
                                                                         <span className="font-mono">
                                                                             +{(user.overrunDetails.actualHours - user.overrunDetails.estimatedHours).toFixed(1)}h
                                                                         </span>
@@ -2266,7 +2266,7 @@ export default function Dashboard() {
                                                             {user.underrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs">
                                                                     <div className="flex justify-between font-semibold text-[10px] text-emerald-600 uppercase">
-                                                                        <span>📉 Risparmio Maggiore</span>
+                                                                        <span> Risparmio Maggiore</span>
                                                                         <span className="font-mono">
                                                                             {(user.underrunDetails.actualHours - user.underrunDetails.estimatedHours).toFixed(1)}h
                                                                         </span>
@@ -2286,7 +2286,7 @@ export default function Dashboard() {
                                                     {(user.totalNoTimeCount ?? 0) > 0 && (
                                                         <div className="pt-2 border-t">
                                                             <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
-                                                                ⏱️ Tempo non registrato
+                                                                ⏱ Tempo non registrato
                                                             </div>
                                                             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
                                                                 <div className="text-2xl font-bold text-amber-500">
@@ -2311,7 +2311,7 @@ export default function Dashboard() {
                                                     {(user.reworkedTasksCount ?? 0) > 0 && (
                                                         <div className="pt-2 border-t">
                                                             <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
-                                                                🔁 Rilavorazione
+                                                                 Rilavorazione
                                                             </div>
                                                             <div className="grid grid-cols-3 gap-1.5 text-center">
                                                                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
@@ -2437,7 +2437,7 @@ export default function Dashboard() {
                                                     {/* Warning Indicator */}
                                                     {isRed && (
                                                         <div className="text-[10px] text-red-500 font-medium text-center bg-red-500/10 rounded-md py-1 px-2 border border-red-500/20">
-                                                            ⚠️ Tempo richiesto superiore a effettivo
+                                                             Tempo richiesto superiore a effettivo
                                                         </div>
                                                     )}
 
@@ -2450,7 +2450,7 @@ export default function Dashboard() {
                                                             {user.overrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-red-500/5 border border-red-500/10 text-xs">
                                                                     <div className="flex justify-between font-semibold text-[10px] text-red-500 uppercase">
-                                                                        <span>📈 Sforamento Maggiore</span>
+                                                                        <span> Sforamento Maggiore</span>
                                                                         <span className="font-mono">
                                                                             +{ (user.overrunDetails.actualHours - user.overrunDetails.estimatedHours).toFixed(1) }h
                                                                         </span>
@@ -2467,7 +2467,7 @@ export default function Dashboard() {
                                                             {user.underrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs">
                                                                     <div className="flex justify-between font-semibold text-[10px] text-emerald-600 uppercase">
-                                                                        <span>📉 Risparmio Maggiore</span>
+                                                                        <span> Risparmio Maggiore</span>
                                                                         <span className="font-mono">
                                                                             { (user.underrunDetails.actualHours - user.underrunDetails.estimatedHours).toFixed(1) }h
                                                                         </span>
@@ -2547,7 +2547,7 @@ export default function Dashboard() {
                                                 {project.priority === 'Critica' && (
                                                     <div className="absolute top-2 right-2">
                                                         <Badge variant="destructive" className="text-[10px] uppercase font-bold animate-pulse">
-                                                            🔥 Critico
+                                                             Critico
                                                         </Badge>
                                                     </div>
                                                 )}
@@ -3380,13 +3380,13 @@ export default function Dashboard() {
                                         <div className="flex items-start justify-between gap-2">
                                             <h4 className="font-semibold text-sm truncate" title={prediction.task.title}>{prediction.task.title}</h4>
                                             <Badge variant={prediction.risk === 'high' ? 'destructive' : prediction.risk === 'medium' ? 'default' : 'secondary'} className="text-[10px] shrink-0 font-bold">
-                                                {prediction.risk === 'high' ? '🔴 Alto' : prediction.risk === 'medium' ? '🟡 Medio' : '🟢 Basso'}
+                                                {prediction.risk === 'high' ? ' Alto' : prediction.risk === 'medium' ? ' Medio' : ' Basso'}
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
                                             <span>Scadenza: <strong className="text-foreground">{format(prediction.originalDue, 'dd/MM')}</strong></span>
                                             <span>Previsione: <strong className={cn(prediction.predictedDelay > 0 ? "text-red-500 font-bold" : "text-emerald-500")}>
-                                                {prediction.predictedDelay > 0 ? format(prediction.predictedDue, 'dd/MM') : '✓ In tempo'}
+                                                {prediction.predictedDelay > 0 ? format(prediction.predictedDue, 'dd/MM') : ' In tempo'}
                                             </strong></span>
                                         </div>
                                     </Card>
@@ -3441,7 +3441,7 @@ export default function Dashboard() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <TrendingUp className="h-5 w-5 text-blue-600" />
-                            📈 Trend Efficienza Mensile
+                             Trend Efficienza Mensile
                         </CardTitle>
                         <CardDescription>Rapporto tempo stimato vs tempo effettivo negli ultimi mesi</CardDescription>
                     </CardHeader>
@@ -3507,7 +3507,7 @@ export default function Dashboard() {
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Trophy className="h-5 w-5 text-amber-500" />
-                            🏆 Classifica Team
+                             Classifica Team
                         </CardTitle>
                         <CardDescription>
                             Performance del team basata su task completati, ore lavorate e puntualità
@@ -3538,7 +3538,7 @@ export default function Dashboard() {
                                 <p className="text-2xl font-bold text-red-500">
                                     {gamificationLeaderboard.reduce((sum, u) => sum + u.streak, 0)}
                                 </p>
-                                <p className="text-xs text-muted-foreground">🔥 Streak Totali</p>
+                                <p className="text-xs text-muted-foreground"> Streak Totali</p>
                             </div>
                         </div>
                     </CardContent>

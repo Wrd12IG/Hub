@@ -59,12 +59,12 @@ export function TeamWorkloadChart({ data, avgWorkload }: TeamWorkloadChartProps)
                         </p>
                         {data.percentage > 150 && (
                             <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                                ⚠️ Sovraccarico
+                                 Sovraccarico
                             </p>
                         )}
                         {data.percentage < 50 && data.activeTasks > 0 && (
                             <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                ℹ️ Sottoutilizzato
+                                 Sottoutilizzato
                             </p>
                         )}
                     </div>
@@ -135,12 +135,12 @@ export function TeamWorkloadChart({ data, avgWorkload }: TeamWorkloadChartProps)
                     <div className="mb-3 p-3 bg-white/50 dark:bg-black/20 rounded-md">
                         {overloaded > 0 && (
                             <p className="text-sm text-red-600 dark:text-red-400 mb-1">
-                                ⚠️ {overloaded} {overloaded === 1 ? 'utente sovraccarico' : 'utenti sovraccarichi'}
+                                 {overloaded} {overloaded === 1 ? 'utente sovraccarico' : 'utenti sovraccarichi'}
                             </p>
                         )}
                         {underutilized > 0 && (
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                ℹ️ {underutilized} {underutilized === 1 ? 'utente sottoutilizzato' : 'utenti sottoutilizzati'}
+                                 {underutilized} {underutilized === 1 ? 'utente sottoutilizzato' : 'utenti sottoutilizzati'}
                             </p>
                         )}
                     </div>

@@ -41,7 +41,7 @@ export function WeeklyTrendChart({ data }: WeeklyTrendChartProps) {
                     <p className="font-semibold text-sm mb-2">{data.date} ({data.fullDate})</p>
                     <div className="space-y-1">
                         <p className="text-sm text-green-600 dark:text-green-400">
-                            ✓ {data.completed} completati
+                             {data.completed} completati
                         </p>
                         <p className="text-sm text-yellow-600 dark:text-yellow-400">
                             + {data.created} creati

@@ -63,7 +63,7 @@ export default function DemoPage() {
                 {/* Header */}
                 <div className="text-center space-y-4">
                     <h1 className="text-4xl font-bold gradient-text">
-                        🎨 Demo Nuovi Stili Premium
+                         Demo Nuovi Stili Premium
                     </h1>
                     <p className="text-muted-foreground max-w-2xl mx-auto">
                         Questa pagina mostra tutti i nuovi elementi visivi: glassmorphism, gradient buttons,
@@ -73,12 +73,12 @@ export default function DemoPage() {
 
                 {/* SEZIONE 1: Glassmorphism Cards */}
                 <section className="space-y-6">
-                    <h2 className="text-2xl font-bold">✨ Glassmorphism Cards</h2>
+                    <h2 className="text-2xl font-bold"> Glassmorphism Cards</h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {/* Glass Card Base */}
                         <div className="glass-card rounded-xl p-6 space-y-2">
-                            <div className="text-4xl">🎯</div>
+                            <div className="text-4xl"></div>
                             <h3 className="font-semibold">Glass Card Base</h3>
                             <p className="text-sm text-muted-foreground">
                                 Effetto vetro con blur e bordi luminosi
@@ -87,7 +87,7 @@ export default function DemoPage() {
 
                         {/* Glass Card Primary */}
                         <div className="glass-card glass-card-primary rounded-xl p-6 space-y-2">
-                            <div className="text-4xl">💜</div>
+                            <div className="text-4xl"></div>
                             <h3 className="font-semibold">Glass Primary</h3>
                             <p className="text-sm text-muted-foreground">
                                 Variante con sfumatura viola
@@ -96,7 +96,7 @@ export default function DemoPage() {
 
                         {/* Glass Card Success */}
                         <div className="glass-card glass-card-success rounded-xl p-6 space-y-2">
-                            <div className="text-4xl">💚</div>
+                            <div className="text-4xl"></div>
                             <h3 className="font-semibold">Glass Success</h3>
                             <p className="text-sm text-muted-foreground">
                                 Variante con sfumatura verde
@@ -105,7 +105,7 @@ export default function DemoPage() {
 
                         {/* Glass Card Warning */}
                         <div className="glass-card glass-card-warning rounded-xl p-6 space-y-2">
-                            <div className="text-4xl">🧡</div>
+                            <div className="text-4xl"></div>
                             <h3 className="font-semibold">Glass Warning</h3>
                             <p className="text-sm text-muted-foreground">
                                 Variante con sfumatura arancione
@@ -116,7 +116,7 @@ export default function DemoPage() {
 
                 {/* SEZIONE 2: Gradient Buttons */}
                 <section className="space-y-6">
-                    <h2 className="text-2xl font-bold">🎨 Gradient Buttons</h2>
+                    <h2 className="text-2xl font-bold"> Gradient Buttons</h2>
 
                     <div className="flex flex-wrap gap-4">
                         <button className="btn-gradient-primary px-6 py-3 rounded-lg font-medium">
@@ -132,14 +132,14 @@ export default function DemoPage() {
                             Dark Gradient
                         </button>
                         <button className="btn-gradient-gold px-6 py-3 rounded-lg font-medium">
-                            Gold Gradient ✨
+                            Gold Gradient 
                         </button>
                     </div>
                 </section>
 
                 {/* SEZIONE 3: Count-Up Animations */}
                 <section className="space-y-6">
-                    <h2 className="text-2xl font-bold">🔢 Animazioni Count-Up</h2>
+                    <h2 className="text-2xl font-bold"> Animazioni Count-Up</h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="glass-card kpi-card rounded-xl p-6">
@@ -188,7 +188,7 @@ export default function DemoPage() {
 
                 {/* SEZIONE 4: Sparkline Charts */}
                 <section className="space-y-6">
-                    <h2 className="text-2xl font-bold">📈 Sparkline Mini Charts</h2>
+                    <h2 className="text-2xl font-bold"> Sparkline Mini Charts</h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <div className="glass-card rounded-xl p-4">
@@ -279,7 +279,7 @@ export default function DemoPage() {
 
                 {/* SEZIONE 6: Progress Bar Animata */}
                 <section className="space-y-6">
-                    <h2 className="text-2xl font-bold">📊 Progress Bar Animate</h2>
+                    <h2 className="text-2xl font-bold"> Progress Bar Animate</h2>
 
                     <div className="glass-card rounded-xl p-6 space-y-4">
                         <div className="space-y-2">
@@ -316,7 +316,7 @@ export default function DemoPage() {
 
                 {/* SEZIONE 7: Gamification - Badges */}
                 <section className="space-y-6">
-                    <h2 className="text-2xl font-bold">🏆 Sistema Gamification</h2>
+                    <h2 className="text-2xl font-bold"> Sistema Gamification</h2>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Badge Sbloccati */}
@@ -362,7 +362,7 @@ export default function DemoPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Streak */}
                         <div className="glass-card rounded-xl p-6 space-y-4">
-                            <h3 className="font-semibold">Streak 🔥</h3>
+                            <h3 className="font-semibold">Streak </h3>
                             <div className="flex flex-wrap gap-6">
                                 <StreakDisplay currentStreak={0} size="lg" />
                                 <StreakDisplay currentStreak={3} size="lg" />
@@ -396,7 +396,7 @@ export default function DemoPage() {
                             className="btn-gradient-gold px-6 py-3 rounded-lg font-medium"
                             onClick={() => setShowBadgeUnlock(true)}
                         >
-                            🎉 Mostra Animazione Sblocco Badge
+                             Mostra Animazione Sblocco Badge
                         </button>
                     </div>
 

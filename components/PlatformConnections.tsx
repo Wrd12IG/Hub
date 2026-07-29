@@ -355,7 +355,7 @@ function GoogleAdsModal({
       <div className="space-y-4">
         {!hasGoogleToken && (
           <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400">
-            ⚠️ Configura prima il <strong>Google OAuth Token</strong> nella card Google Analytics.
+             Configura prima il <strong>Google OAuth Token</strong> nella card Google Analytics.
           </div>
         )}
         <div className="space-y-1.5">
@@ -511,7 +511,7 @@ function GbpAddModal({
                     <span className="font-semibold text-foreground">{loc.title}</span>
                     {(alreadyAdded || isSelected) && <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />}
                   </div>
-                  <span className="text-[11px] text-muted-foreground">{loc.address} {loc.isVerified ? "✅" : ""}</span>
+                  <span className="text-[11px] text-muted-foreground">{loc.address} {loc.isVerified ? "" : ""}</span>
                 </button>
               );
             })}

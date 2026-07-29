@@ -120,12 +120,12 @@ export default function MetaCampaignReportModal({ onClose, campaignTitle, object
         {/* Content */}
         <div style={{ padding: '2.5rem' }}>
           
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.25rem' }}>🔥 KPI Primari ({objective})</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.25rem' }}> KPI Primari ({objective})</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
             {renderSpecifics()}
           </div>
 
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.25rem' }}>📊 Metriche Base (Delivery)</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.25rem' }}> Metriche Base (Delivery)</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
             {metricCard('Spesa Totale', `€${baseMetrics.spend.toFixed(2)}`)}
             {metricCard('Impression', baseMetrics.impressions.toLocaleString())}

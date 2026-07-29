@@ -154,7 +154,7 @@ export function BukowskiMode({ active, onClose }: BukowskiModeProps) {
                                 onClick={onClose}
                                 className="ml-2 hover:bg-red-800 rounded px-2 py-1 transition-colors"
                             >
-                                ✕
+                                
                             </button>
                         )}
                     </div>
@@ -251,7 +251,7 @@ export function BukowskiConfetti() {
                 >
                     {/* Emoji casuali a tema Bukowski */}
                     <span className="text-4xl">
-                        {['🍺', '📚', '🚬', '✍️', '🎭', '💀'][Math.floor(Math.random() * 6)]}
+                        {['', '', '', '', '', ''][Math.floor(Math.random() * 6)]}
                     </span>
                 </motion.div>
             ))}

@@ -146,7 +146,7 @@ function MessageBubble({
           "px-3 py-2 rounded-lg text-sm italic text-muted-foreground bg-black/5 dark:bg-white/5",
           isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"
         )}>
-          🚫 {message.text}
+           {message.text}
         </div>
       </div>
     );
@@ -317,7 +317,7 @@ function MessageBubble({
           </PopoverTrigger>
           <PopoverContent className="w-auto p-1 border-0" side="top">
             <div className="flex gap-1">
-              {['👍', '❤️', '😂', '😮', '😢', '🙏'].map(emoji => (
+              {['', '', '', '', '', ''].map(emoji => (
                 <button
                   key={emoji}
                   className="p-1.5 hover:bg-black/5 rounded-full transition text-lg"

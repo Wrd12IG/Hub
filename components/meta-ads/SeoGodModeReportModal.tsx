@@ -386,7 +386,7 @@ export default function SeoGodModeReportModal({ isOpen, onClose, clientId, clien
                                 ))}
                               </div>
                               <div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 10, padding: '0.9rem 1rem' }}>
-                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fca5a5', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔥 3 Quick Win Urgenti</div>
+                                <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#fca5a5', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}> 3 Quick Win Urgenti</div>
                                 {sec.quickWins!.map((w, i) => (
                                   <div key={i} style={{ display: 'flex', gap: '0.5rem', fontSize: '0.82rem', color: 'rgba(255,255,255,0.75)', marginBottom: i < sec.quickWins!.length - 1 ? '0.5rem' : 0 }}>
                                     <span style={{ color: '#ef4444', fontWeight: 700 }}>{i + 1}.</span> {w}

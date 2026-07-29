@@ -252,7 +252,7 @@ export const TaskCard = memo(function TaskCard({
                                 className="mb-2 ml-2 text-xs font-bold shadow-md flex items-center gap-1 animate-breathing-custom bg-red-600 hover:bg-red-700"
                             >
                                 <Timer className="h-3 w-3" aria-hidden="true" />
-                                ⚠️ In attesa da {approvalDaysPending} giorn{approvalDaysPending === 1 ? 'o' : 'i'}
+                                 In attesa da {approvalDaysPending} giorn{approvalDaysPending === 1 ? 'o' : 'i'}
                             </Badge>
                         )}
 

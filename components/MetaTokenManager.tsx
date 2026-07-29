@@ -92,7 +92,7 @@ export function MetaTokenManager({ clientId }: MetaTokenManagerProps) {
 
   const getBadge = () => {
     if (loading) return <Badge variant="secondary" className="text-xs"><RefreshCw className="h-3 w-3 mr-1 animate-spin" />Verifica...</Badge>;
-    if (!status?.configured) return <Badge variant="secondary" className="text-xs">⚪ Non configurato</Badge>;
+    if (!status?.configured) return <Badge variant="secondary" className="text-xs"> Non configurato</Badge>;
     if (!status.valid || status.expired) return <Badge variant="destructive" className="text-xs"><AlertCircle className="h-3 w-3 mr-1" />Token scaduto</Badge>;
     if (status.daysLeft !== null && status.daysLeft !== undefined && status.daysLeft < 7) {
       return <Badge className="bg-amber-500 text-white text-xs"><Clock className="h-3 w-3 mr-1" />Scade in {status.daysLeft}gg</Badge>;
@@ -164,7 +164,7 @@ export function MetaTokenManager({ clientId }: MetaTokenManagerProps) {
 
           {/* Guide */}
           <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3 space-y-1">
-            <div className="font-semibold text-foreground mb-1">📖 Come ottenere un token che non scade:</div>
+            <div className="font-semibold text-foreground mb-1"> Come ottenere un token che non scade:</div>
             <div>1. Vai su <a href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline inline-flex items-center gap-0.5">Business Manager → System Users <ExternalLink className="h-2.5 w-2.5"/></a></div>
             <div>2. Crea un System User → assegna il tuo account Ads e la Pagina</div>
             <div>3. Genera token → seleziona permessi: <code className="bg-muted px-1 rounded">ads_read</code>, <code className="bg-muted px-1 rounded">pages_read_engagement</code>, <code className="bg-muted px-1 rounded">instagram_basic</code></div>

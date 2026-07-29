@@ -130,9 +130,9 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
               <span>Profilo Ottimizzato al {healthScore}%</span>
             </div>
             <ul style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✅ NAP Sincronizzato</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>❌ Rispondi a {reviews.unansweredCount} recensioni</li>
-              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✅ Prodotti/Servizi Aggiornati</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}> NAP Sincronizzato</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}> Rispondi a {reviews.unansweredCount} recensioni</li>
+              <li style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}> Prodotti/Servizi Aggiornati</li>
             </ul>
           </div>
         </div>
@@ -260,15 +260,15 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}>🤖</span> <strong>ChatGPT</strong></div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}></span> <strong>ChatGPT</strong></div>
                <span style={{ color: '#10b981', fontWeight: 'bold' }}>Raccomandato (Score: 78/100)</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}>🧠</span> <strong>Perplexity</strong></div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}></span> <strong>Perplexity</strong></div>
                <span style={{ color: '#10b981', fontWeight: 'bold' }}>Raccomandato (Score: 82/100)</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', background: 'rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}>✨</span> <strong>Google Gemini</strong></div>
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}><span style={{ fontSize: '1.2rem' }}></span> <strong>Google Gemini</strong></div>
                <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Non Raccomandato (Score: 35/100)</span>
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         <div style={{ padding: '1.5rem', border: '1px solid rgba(0,0,0,0.1)', borderRadius: '12px', display: 'flex', gap: '1.5rem' }}>
           <div style={{ width: 120, height: 120, background: 'rgba(0,0,0,0.05)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            📸 Immagine
+             Immagine
           </div>
           <div style={{ flex: 1 }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
@@ -359,8 +359,8 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
              <h4 style={{ fontWeight: 600, fontSize: '1.1rem', marginBottom: '0.5rem' }}>Menu Speciale Weekend: Sconto 20%</h4>
              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Vieni a provare il nostro nuovo menu speciale questo weekend! Approfitta del 20% di sconto mostrando questo post alla cassa.</p>
              <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
-               <span>👁️ 145 Visualizzazioni</span>
-               <span>👆 12 Click</span>
+               <span> 145 Visualizzazioni</span>
+               <span> 12 Click</span>
              </div>
           </div>
         </div>
@@ -373,7 +373,7 @@ export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
     <div style={{ maxWidth: '1200px' }}>
       {/* TODO: rimuovere quando API Google Business Profile è approvata */}
       <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-        <span>⚠️</span>
+        <span></span>
         <span>Dati dimostrativi — API Google Business Profile non ancora attiva</span>
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>

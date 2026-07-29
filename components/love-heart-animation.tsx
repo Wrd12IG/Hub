@@ -67,7 +67,7 @@ export function LoveHeartAnimation() {
     return (
         <div className="love-heart-container">
             <div className="love-heart-inner">
-                <span className="love-heart">❤️</span>
+                <span className="love-heart"></span>
             </div>
         </div>
     );

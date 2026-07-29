@@ -14,9 +14,9 @@ interface BreakLog {
 }
 
 const BREAK_OPTIONS: { type: BreakType; icon: React.ElementType; label: string; color: string }[] = [
-  { type: 'caffè', icon: Coffee, label: 'Pausa Caffè ☕', color: '#f59e0b' },
-  { type: 'pranzo', icon: Utensils, label: 'Pausa Pranzo 🍽️', color: '#22c55e' },
-  { type: 'meeting', icon: Phone, label: 'Meeting 📞', color: '#6366f1' },
+  { type: 'caffè', icon: Coffee, label: 'Pausa Caffè ', color: '#f59e0b' },
+  { type: 'pranzo', icon: Utensils, label: 'Pausa Pranzo ', color: '#22c55e' },
+  { type: 'meeting', icon: Phone, label: 'Meeting ', color: '#6366f1' },
   { type: 'altro', icon: Clock, label: 'Altro', color: '#94a3b8' },
 ]
 
@@ -107,7 +107,7 @@ export function IdleBreakPopup({ idleMinutes = 5, onBreakLogged }: IdleBreakPopu
 
       {!activeBreak ? (
         <>
-          <p style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>Sei in pausa? 🤔</p>
+          <p style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>Sei in pausa? </p>
           <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 1.25rem' }}>Nessuna attività rilevata negli ultimi {idleMinutes} minuti.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {BREAK_OPTIONS.map(({ type, icon: Icon, label, color }) => (
@@ -140,7 +140,7 @@ export function IdleBreakPopup({ idleMinutes = 5, onBreakLogged }: IdleBreakPopu
             onClick={handleEndBreak}
             style={{ width: '100%', padding: '0.75rem', borderRadius: 12, border: 'none', background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
           >
-            Torna al Lavoro ✅
+            Torna al Lavoro 
           </button>
         </>
       )}

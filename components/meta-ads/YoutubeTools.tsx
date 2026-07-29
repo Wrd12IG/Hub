@@ -16,7 +16,7 @@ export function YoutubeTitleOptimizer({ currentTitle, onAply }: { currentTitle: 
     // SIMULATED AI ACTION: in production this calls Google Vertex/Gemini
     setTimeout(() => {
       setSuggestions([
-        `🔥 ${currentTitle || 'Il video incredibile'} (Novità 2026)`,
+        ` ${currentTitle || 'Il video incredibile'} (Novità 2026)`,
         `${currentTitle || 'Come fare'} | Guida definitiva step-by-step`,
         `Perché TUTTI sbagliano su: ${currentTitle || 'questo argomento'}`
       ])
@@ -61,7 +61,7 @@ export function YoutubeAutoChapters({ onApply }: { onApply: (chaptersText: strin
     setLoading(true)
     // SIMULATED AI ACTION: reads video audio and maps timestamps
     setTimeout(() => {
-      const chapters = `\n\n📌 Capitoli del video:\n00:00 - Introduzione\n01:15 - Il problema principale\n03:30 - La soluzione (Passo 1)\n05:45 - Errore da evitare\n08:00 - Conclusione`
+      const chapters = `\n\n Capitoli del video:\n00:00 - Introduzione\n01:15 - Il problema principale\n03:30 - La soluzione (Passo 1)\n05:45 - Errore da evitare\n08:00 - Conclusione`
       onApply(chapters)
       setDone(true)
       setLoading(false)
@@ -93,11 +93,11 @@ export function YoutubeFormatWarning({ isShort }: { isShort: boolean }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '0.5rem' }}>
       {isShort ? (
         <div style={{ padding: '0.6rem', background: 'rgba(255,152,0,0.1)', borderLeft: '3px solid #ff9800', fontSize: '0.7rem', color: '#e65100' }}>
-          📱 <strong>Formato Short:</strong> Assicurati che il video sia in formato verticale (9:16) e duri meno di 60 secondi. Verrà pubblicato tramite l'infrastruttura YouTube Shorts.
+           <strong>Formato Short:</strong> Assicurati che il video sia in formato verticale (9:16) e duri meno di 60 secondi. Verrà pubblicato tramite l'infrastruttura YouTube Shorts.
         </div>
       ) : (
         <div style={{ padding: '0.6rem', background: 'rgba(33,150,243,0.1)', borderLeft: '3px solid #2196f3', fontSize: '0.7rem', color: '#0d47a1' }}>
-          📺 <strong>Long-Form Video:</strong> La thumbnail personalizzata è fondamentale. L'A/B test delle thumbnail (Youtube Test & Compare) verrà applicato se ne carichi più di una.
+           <strong>Long-Form Video:</strong> La thumbnail personalizzata è fondamentale. L'A/B test delle thumbnail (Youtube Test & Compare) verrà applicato se ne carichi più di una.
         </div>
       )}
       <div style={{ padding: '0.6rem', background: 'rgba(244,67,54,0.05)', borderLeft: '3px solid #f44336', fontSize: '0.7rem', color: '#c62828', display: 'flex', gap: '6px' }}>

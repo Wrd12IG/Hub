@@ -36,7 +36,7 @@ export async function GET(
         error: error.message,
         _meta: {
           source: 'empty',
-          hint: 'Vai su ⚙️ Setup API e inserisci il GA4 Property ID e le credenziali Google.',
+          hint: 'Vai su  Setup API e inserisci il GA4 Property ID e le credenziali Google.',
         },
       },
       { status: 503 }
