@@ -697,22 +697,24 @@ export default function ClientDetailPage() {
     );
 
   const tabs = [
-    { id: "overview", label: "Overview & Audit", icon: LayoutDashboard },
-    { id: "intelligence", label: "AI Intelligence", icon: Brain },
+    { id: "overview", label: "Overview & Audit", icon: LayoutDashboard, iconColor: "text-amber-500" },
+    { id: "intelligence", label: "AI Intelligence", icon: Brain, iconColor: "text-purple-400" },
     {
       id: "campaigns",
       label: `Campagne (${client.campaigns?.length || 0})`,
       icon: Target,
+      iconColor: "text-emerald-400",
     },
     {
       id: "assets",
       label: `Brand Assets (${client.brandAssets?.length || 0})`,
       icon: ImageIcon,
+      iconColor: "text-cyan-400",
     },
-    { id: "heatmaps", label: "Heatmaps & Registrazioni", icon: Eye },
-    { id: "gbp", label: "Profilo GBP", icon: MapPin },
-    { id: "report", label: "Report Mensile", icon: FileBarChart },
-    { id: "settings", label: "Setup API", icon: Settings },
+    { id: "heatmaps", label: "Heatmaps & Registrazioni", icon: Eye, iconColor: "text-rose-400" },
+    { id: "gbp", label: "Profilo GBP", icon: MapPin, iconColor: "text-blue-400" },
+    { id: "report", label: "Report Mensile", icon: FileBarChart, iconColor: "text-violet-400" },
+    { id: "settings", label: "Setup API", icon: Settings, iconColor: "text-amber-400" },
   ];
 
   const growthHref = `/clients/${id}/growth`;
@@ -914,7 +916,7 @@ export default function ClientDetailPage() {
                     : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={cn("h-4 w-4 transition-colors", tab.iconColor)} />
                 {tab.label}
               </button>
             );
