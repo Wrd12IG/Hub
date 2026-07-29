@@ -93,7 +93,7 @@ import {
 } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil } from 'lucide-react';
+import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -777,12 +777,12 @@ function AdminPageContent() {
                     <TabsTrigger value="calendar_activities" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">Tipi Attività Calendario</TabsTrigger>
                     <TabsTrigger value="brief_services" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">Servizi Brief</TabsTrigger>
                     <TabsTrigger value="editorial-plan" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">Piano Editoriale</TabsTrigger>
-                    <TabsTrigger value="dashboard_widgets" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">📊 Widget Dashboard</TabsTrigger>
-                    <TabsTrigger value="email_templates" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">📧 Template Email</TabsTrigger>
-                    <TabsTrigger value="sounds" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">🔊 Suoni</TabsTrigger>
-                    <TabsTrigger value="automations" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">⚡ Automazioni</TabsTrigger>
-                    <TabsTrigger value="company_costs" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">💰 Costi Aziendali</TabsTrigger>
-                    <TabsTrigger value="site_icons" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all">🖼️ Icone Sito</TabsTrigger>
+                    <TabsTrigger value="dashboard_widgets" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><LayoutDashboard className="h-4 w-4 text-primary" /> Widget Dashboard</TabsTrigger>
+                    <TabsTrigger value="email_templates" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Mail className="h-4 w-4 text-primary" /> Template Email</TabsTrigger>
+                    <TabsTrigger value="sounds" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Volume2 className="h-4 w-4 text-primary" /> Suoni</TabsTrigger>
+                    <TabsTrigger value="automations" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Zap className="h-4 w-4 text-primary" /> Automazioni</TabsTrigger>
+                    <TabsTrigger value="company_costs" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Coins className="h-4 w-4 text-primary" /> Costi Aziendali</TabsTrigger>
+                    <TabsTrigger value="site_icons" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><ImageIcon className="h-4 w-4 text-primary" /> Icone Sito</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users">

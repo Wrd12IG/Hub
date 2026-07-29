@@ -82,7 +82,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div><Label htmlFor="startDate">Data Inizio</Label><Input id="startDate" name="startDate" type="date" defaultValue={editingUser?.startDate ? editingUser.startDate.split('T')[0] : ''} /></div>
-                        <div><Label htmlFor="birthDate">Data di Nascita 🎂</Label><Input id="birthDate" name="birthDate" type="date" defaultValue={editingUser?.birthDate ? editingUser.birthDate.split('T')[0] : ''} /></div>
+                        <div><Label htmlFor="birthDate">Data di Nascita</Label><Input id="birthDate" name="birthDate" type="date" defaultValue={editingUser?.birthDate ? editingUser.birthDate.split('T')[0] : ''} /></div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div><Label htmlFor="color">Colore Accent</Label><Input id="color" name="color" type="color" defaultValue={editingUser?.color || '#4285F4'} /></div>

@@ -52,22 +52,22 @@ interface AutomationRuleWithFirestore extends AutomationRule {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-    'task_created': '📝 Task Creato',
-    'task_updated': '✏️ Task Aggiornato',
-    'task_due_soon': '⏰ Task in Scadenza',
-    'task_overdue': '🚨 Task Scaduto',
-    'task_stuck': '⏳ Task Bloccato',
-    'project_status_change': '📊 Cambio Stato Progetto',
-    'brief_approved': '✅ Brief Approvato',
-    'time_based': '🕐 Schedulato',
+    'task_created': 'Task Creato',
+    'task_updated': 'Task Aggiornato',
+    'task_due_soon': 'Task in Scadenza',
+    'task_overdue': 'Task Scaduto',
+    'task_stuck': 'Task Bloccato',
+    'project_status_change': 'Cambio Stato Progetto',
+    'brief_approved': 'Brief Approvato',
+    'time_based': 'Schedulato',
 };
 
 const ACTION_LABELS: Record<string, string> = {
-    'send_notification': '🔔 Invia Notifica',
-    'send_email': '📧 Invia Email',
-    'update_field': '📝 Aggiorna Campo',
-    'create_task': '➕ Crea Task',
-    'add_label': '🏷️ Aggiungi Etichetta',
+    'send_notification': 'Invia Notifica',
+    'send_email': 'Invia Email',
+    'update_field': 'Aggiorna Campo',
+    'create_task': 'Crea Task',
+    'add_label': 'Aggiungi Etichetta',
 };
 
 export function AdminAutomations() {

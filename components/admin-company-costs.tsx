@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { getCompanyCosts, updateCompanyCosts } from '@/lib/actions';
 import { CompanyCosts, User } from '@/lib/data';
-import { Building2, Users, Calculator, Save, Loader2, TrendingUp, Euro, Clock, Info } from 'lucide-react';
+import { Building2, Users, Calculator, Save, Loader2, TrendingUp, Euro, Clock, Info, Briefcase, ClipboardList } from 'lucide-react';
 import {
     Tooltip,
     TooltipContent,
@@ -142,7 +142,7 @@ export default function AdminCompanyCosts({ users }: AdminCompanyCostsProps) {
                         {/* Dirigenza */}
                         <div className="space-y-2">
                             <Label htmlFor="dirigenza" className="flex items-center gap-2">
-                                <span className="text-lg">👔</span>
+                                <Briefcase className="h-4 w-4 text-primary" />
                                 Dirigenza
                                 <TooltipProvider>
                                     <Tooltip>
@@ -176,7 +176,7 @@ export default function AdminCompanyCosts({ users }: AdminCompanyCostsProps) {
                         {/* Struttura */}
                         <div className="space-y-2">
                             <Label htmlFor="struttura" className="flex items-center gap-2">
-                                <span className="text-lg">🏢</span>
+                                <Building2 className="h-4 w-4 text-primary" />
                                 Struttura
                                 <TooltipProvider>
                                     <Tooltip>
@@ -210,7 +210,7 @@ export default function AdminCompanyCosts({ users }: AdminCompanyCostsProps) {
                         {/* Varie */}
                         <div className="space-y-2">
                             <Label htmlFor="varie" className="flex items-center gap-2">
-                                <span className="text-lg">📋</span>
+                                <ClipboardList className="h-4 w-4 text-primary" />
                                 Varie
                                 <TooltipProvider>
                                     <Tooltip>

@@ -494,7 +494,7 @@ export default function CommandMenu() {
 
                         {/* Projects */}
                         {results.projects.length > 0 && (
-                            <CommandGroup heading={`📁 Progetti (${results.projects.length})`}>
+                            <CommandGroup heading={`Progetti (${results.projects.length})`}>
                                 {results.projects.map((project) => (
                                     <CommandItem
                                         key={project.id}
@@ -525,7 +525,7 @@ export default function CommandMenu() {
 
                         {/* Clients */}
                         {results.clients.length > 0 && (
-                            <CommandGroup heading={`🏢 Clienti (${results.clients.length})`}>
+                            <CommandGroup heading={`Clienti (${results.clients.length})`}>
                                 {results.clients.map((client) => (
                                     <CommandItem
                                         key={client.id}
@@ -552,7 +552,7 @@ export default function CommandMenu() {
 
                         {/* Users */}
                         {results.users.length > 0 && (
-                            <CommandGroup heading={`👤 Utenti (${results.users.length})`}>
+                            <CommandGroup heading={`Utenti (${results.users.length})`}>
                                 {results.users.map((user) => (
                                     <CommandItem
                                         key={user.id}
@@ -579,7 +579,7 @@ export default function CommandMenu() {
 
                         {/* Briefs */}
                         {results.briefs.length > 0 && (
-                            <CommandGroup heading={`📝 Brief (${results.briefs.length})`}>
+                            <CommandGroup heading={`Brief (${results.briefs.length})`}>
                                 {results.briefs.map((brief) => (
                                     <CommandItem
                                         key={brief.id}

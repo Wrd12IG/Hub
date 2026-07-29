@@ -28,17 +28,17 @@ import { WeatherWidget } from '@/components/dashboard/weather-widget';
 import { UpcomingBirthdaysWidget } from '@/components/birthday-celebration';
 
 const WIDGETS = [
-  { id: 'kpi_active_tasks', label: 'KPI: Task Attivi', icon: '📋' },
-  { id: 'kpi_overdue_tasks', label: 'KPI: Task Scaduti', icon: '⚠️' },
-  { id: 'kpi_active_projects', label: 'KPI: Progetti Attivi', icon: '📁' },
-  { id: 'kpi_completed_tasks', label: 'KPI: Task Completati', icon: '✅' },
-  { id: 'kpi_hours_this_week', label: 'KPI: Ore Questa Settimana', icon: '⏱️' },
-  { id: 'kpi_efficiency', label: 'KPI: Efficienza Tempo', icon: '📊' },
-  { id: 'chart_work_summary', label: 'Grafico: Riepilogo Lavoro', icon: '📈' },
-  { id: 'list_deadlines', label: 'Lista: Prossime Scadenze', icon: '📅' },
-  { id: 'calendar_personal', label: 'Calendario Personale', icon: '🗓️' },
-  { id: 'quick_actions', label: 'Azioni Rapide', icon: '⚡' },
-  { id: 'recent_notifications', label: 'Notifiche Recenti', icon: '🔔' },
+  { id: 'kpi_active_tasks', label: 'KPI: Task Attivi' },
+  { id: 'kpi_overdue_tasks', label: 'KPI: Task Scaduti' },
+  { id: 'kpi_active_projects', label: 'KPI: Progetti Attivi' },
+  { id: 'kpi_completed_tasks', label: 'KPI: Task Completati' },
+  { id: 'kpi_hours_this_week', label: 'KPI: Ore Questa Settimana' },
+  { id: 'kpi_efficiency', label: 'KPI: Efficienza Tempo' },
+  { id: 'chart_work_summary', label: 'Grafico: Riepilogo Lavoro' },
+  { id: 'list_deadlines', label: 'Lista: Prossime Scadenze' },
+  { id: 'calendar_personal', label: 'Calendario Personale' },
+  { id: 'quick_actions', label: 'Azioni Rapide' },
+  { id: 'recent_notifications', label: 'Notifiche Recenti' },
 ];
 
 // Animated chart component wrapper
@@ -277,7 +277,7 @@ export default function UserDashboard() {
       <div className="flex items-center justify-between animate-fade-in">
         <div>
           <h1 className="text-3xl font-bold font-headline bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-            Ciao, {(currentUser?.name || "").split(' ')[0]}! 👋
+            Ciao, {(currentUser?.name || "").split(' ')[0]}!
           </h1>
           <p className="text-muted-foreground">Ecco un riepilogo delle tue attività e dei tuoi progetti.</p>
         </div>
@@ -296,7 +296,7 @@ export default function UserDashboard() {
                 Scegli quali elementi visualizzare nella tua dashboard.
                 {currentUser?.visibleDashboardWidgets && currentUser.visibleDashboardWidgets.length > 0 && (
                   <span className="block mt-1 text-xs text-muted-foreground">
-                    ℹ️ Alcuni widget sono stati configurati dall&apos;amministratore.
+                    Alcuni widget sono stati configurati dall&apos;amministratore.
                   </span>
                 )}
               </DialogDescription>

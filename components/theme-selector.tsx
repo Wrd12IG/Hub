@@ -34,11 +34,11 @@ const COLOR_THEMES: { id: ColorTheme; name: string; color: string; description: 
     { id: 'desert', name: 'Desert', color: 'bg-amber-500', description: 'Colori caldi del deserto' },
     { id: 'ice', name: 'Ice', color: 'bg-sky-300', description: 'Toni freddi ghiaccio' },
     { id: 'pink', name: 'Pink', color: 'bg-pink-500', description: 'Rosa elegante e vivace' },
-    { id: 'yellow', name: 'Yellow', color: 'bg-amber-500', description: 'Giallo solare ed energico ☀️' },
-    { id: 'juventus', name: 'Juventus', color: 'bg-gradient-to-r from-black to-white', description: 'Bianconero fino alla fine ⚫⚪' },
-    { id: 'glass', name: 'Glass', color: 'bg-gradient-to-br from-slate-200 to-slate-100 border-2 border-slate-300', description: 'Effetto vetro e trasparenze ✨' },
-    { id: 'audi', name: 'Audi', color: 'bg-gradient-to-r from-black to-red-600', description: 'Vorsprung durch Technik 🏎️' },
-    { id: 'love', name: 'Love', color: 'bg-gradient-to-r from-red-500 to-pink-500', description: 'Romantico e passionale ❤️' },
+    { id: 'yellow', name: 'Yellow', color: 'bg-amber-500', description: 'Giallo solare ed energico' },
+    { id: 'juventus', name: 'Juventus', color: 'bg-gradient-to-r from-black to-white', description: 'Bianconero fino alla fine' },
+    { id: 'glass', name: 'Glass', color: 'bg-gradient-to-br from-slate-200 to-slate-100 border-2 border-slate-300', description: 'Effetto vetro e trasparenze' },
+    { id: 'audi', name: 'Audi', color: 'bg-gradient-to-r from-black to-red-600', description: 'Vorsprung durch Technik' },
+    { id: 'love', name: 'Love', color: 'bg-gradient-to-r from-red-500 to-pink-500', description: 'Romantico e passionale' },
 ];
 
 export function ThemeSelector() {

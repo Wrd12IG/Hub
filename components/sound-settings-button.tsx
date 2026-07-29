@@ -54,7 +54,7 @@ export function SoundSettingsButton() {
                             onClick={testSound}
                             className="text-xs"
                         >
-                            🔊 Test
+                            <Volume2 className="h-3.5 w-3.5 mr-1 text-primary inline" /> Test
                         </Button>
                     </div>
 

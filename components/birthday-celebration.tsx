@@ -179,7 +179,7 @@ export function BirthdayCelebration({ users }: BirthdayCelebrationProps) {
                                     transition={{ delay: 0.8 }}
                                     className="text-xl text-white/90 max-w-md mx-auto"
                                 >
-                                    Che questo sia un anno pieno di successi, gioia e nuove avventure! 🎊
+                                    Che questo sia un anno pieno di successi, gioia e nuove avventure!
                                 </motion.p>
                             </div>
 
@@ -191,7 +191,7 @@ export function BirthdayCelebration({ users }: BirthdayCelebrationProps) {
                                 onClick={() => setShowCelebration(false)}
                                 className="mt-6 px-8 py-3 bg-white text-purple-600 rounded-full font-semibold hover:bg-purple-50 transition-colors shadow-lg"
                             >
-                                Grazie! 💝
+                                Grazie!
                             </motion.button>
                         </div>
 
@@ -299,12 +299,12 @@ export function UpcomingBirthdaysWidget({ users }: { users: User[] }) {
                         <div className="text-right">
                             {daysUntil === 0 && (
                                 <span className="text-xs font-semibold text-pink-600 dark:text-pink-400">
-                                    Oggi! 🎉
+                                    Oggi!
                                 </span>
                             )}
                             {daysUntil === 1 && (
                                 <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">
-                                    Domani 🎂
+                                    Domani
                                 </span>
                             )}
                             {daysUntil > 1 && (
