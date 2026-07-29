@@ -68,7 +68,7 @@ export default function TaskGanttChart({ onTaskClick }: TaskGanttChartProps) {
         }).sort((a, b) => {
             // Sort by due date, then by priority
             const priorityOrder: Record<string, number> = { 'Critica': 0, 'Alta': 1, 'Media': 2, 'Bassa': 3 };
-            const dateCompare = new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime();
+            const dateCompare = (a.dueDate ? new Date(a.dueDate).getTime() : 0) - (b.dueDate ? new Date(b.dueDate).getTime() : 0);
             if (dateCompare !== 0) return dateCompare;
             return (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
         });

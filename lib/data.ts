@@ -33,6 +33,7 @@ export interface Client {
     color?: string;
     notes?: string;
     managedBy?: string[]; // User IDs managing this client
+    socialManagerId?: string; // Social Media Manager assigned to this client
     allowedActivityTypeIds?: string[]; // IDs of activity types allowed for this client
     publicToken?: string; // Token for public secure access
     publicTokenCreatedAt?: string;

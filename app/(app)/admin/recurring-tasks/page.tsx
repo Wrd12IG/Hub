@@ -255,7 +255,7 @@ export default function RecurringTasksPage() {
         projectId: taskForDatePicker.projectId,
         status: 'Da Fare',
         dueDate: dueDateISO,
-        assignedUserId: taskForDatePicker.assignedUserId,
+        assignedUserId: taskForDatePicker.assignedUserId || clients.find(c => c.id === taskForDatePicker.clientId)?.socialManagerId || undefined,
         estimatedDuration: taskForDatePicker.estimatedDuration,
         actualDuration: 0,
         timeSpent: 0,
@@ -479,17 +479,31 @@ interface RecurringTaskFormProps {
 
 function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, projects, activityTypes, allTasks, isActive, onIsActiveChange }: RecurringTaskFormProps) {
   const [recurrenceType, setRecurrenceType] = useState<'daily' | 'weekly' | 'monthly'>((task?.recurrence.type as any) || 'daily');
+  const [selectedClientId, setSelectedClientId] = useState<string>(task?.clientId || '');
+  const [selectedAssignedUserId, setSelectedAssignedUserId] = useState<string>(task?.assignedUserId || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (task) {
       setRecurrenceType(task.recurrence.type as any);
+      setSelectedClientId(task.clientId || '');
+      setSelectedAssignedUserId(task.assignedUserId || '');
       onIsActiveChange(task.isActive);
     } else {
       setRecurrenceType('daily');
+      setSelectedClientId('');
+      setSelectedAssignedUserId('');
       onIsActiveChange(true);
     }
   }, [task]);
+
+  const handleClientSelect = (cId: string) => {
+    setSelectedClientId(cId);
+    const selectedClient = clients.find(c => c.id === cId);
+    if (selectedClient?.socialManagerId) {
+      setSelectedAssignedUserId(selectedClient.socialManagerId);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setIsSubmitting(true);
@@ -532,12 +546,32 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
                 <div><Label htmlFor="estimatedDuration">Durata Stimata (min)</Label><Input id="estimatedDuration" name="estimatedDuration" type="number" required defaultValue={task?.estimatedDuration} /></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><Label htmlFor="clientId">Cliente</Label><Select name="clientId" required defaultValue={task?.clientId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                <div>
+                  <Label htmlFor="clientId">Cliente</Label>
+                  <Select name="clientId" required value={selectedClientId} onValueChange={handleClientSelect}>
+                    <SelectTrigger><SelectValue placeholder="Seleziona cliente..." /></SelectTrigger>
+                    <SelectContent>{[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
                 <div><Label htmlFor="projectId">Progetto (Opzionale)</Label><Select name="projectId" defaultValue={task?.projectId || undefined}><SelectTrigger><SelectValue placeholder="Nessun Progetto" /></SelectTrigger><SelectContent>{[...projects].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label htmlFor="activityType">Tipo Attività</Label><Select name="activityType" required defaultValue={task?.activityType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[...activityTypes].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(at => <SelectItem key={at.id} value={at.name}>{at.name}</SelectItem>)}</SelectContent></Select></div>
-                <div><Label htmlFor="assignedUserId">Assegna a (Opzionale)</Label><Select name="assignedUserId" defaultValue={task?.assignedUserId || undefined}><SelectTrigger><SelectValue placeholder="Nessun utente assegnato" /></SelectTrigger><SelectContent>{[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="assignedUserId">Assegna a (Opzionale)</Label>
+                    {selectedClientId && clients.find(c => c.id === selectedClientId)?.socialManagerId && (
+                      <span className="text-[11px] text-primary font-medium">📱 Auto (Social Manager)</span>
+                    )}
+                  </div>
+                  <Select name="assignedUserId" value={selectedAssignedUserId} onValueChange={setSelectedAssignedUserId}>
+                    <SelectTrigger><SelectValue placeholder="Nessun utente assegnato" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Nessun utente assegnato</SelectItem>
+                      {[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>

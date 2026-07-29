@@ -233,7 +233,7 @@ export default function UserDashboard() {
   const upcomingDeadlines = useMemo(() => {
     return userTasks
       .filter(t => t.dueDate && t.status !== 'Approvato' && t.status !== 'Annullato' && !isPast(parseISO(t.dueDate)))
-      .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime())
+      .sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : 0) - (b.dueDate ? new Date(b.dueDate).getTime() : 0))
       .slice(0, 5);
   }, [userTasks]);
 

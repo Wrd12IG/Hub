@@ -68,7 +68,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                             <Select name="clientId" defaultValue={editingUser?.clientId} required>
                                 <SelectTrigger><SelectValue placeholder="Seleziona un cliente..." /></SelectTrigger>
                                 <SelectContent>
-                                    {clients.sort((a, b) => a.name.localeCompare(b.name)).map(c => (
+                                    {clients.sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(c => (
                                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -77,8 +77,8 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     )}
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div><Label htmlFor="departmentId">Reparto</Label><Select name="departmentId" defaultValue={editingUser?.departmentId || undefined}><SelectTrigger><SelectValue placeholder="Seleziona un reparto" /></SelectTrigger><SelectContent>{[...departments].sort((a, b) => a.name.localeCompare(b.name)).map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
-                        <div><Label htmlFor="teamId">Team</Label><Select name="teamId" defaultValue={editingUser?.teamId || undefined}><SelectTrigger><SelectValue placeholder="Seleziona un team" /></SelectTrigger><SelectContent>{[...teams].sort((a, b) => a.name.localeCompare(b.name)).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label htmlFor="departmentId">Reparto</Label><Select name="departmentId" defaultValue={editingUser?.departmentId || undefined}><SelectTrigger><SelectValue placeholder="Seleziona un reparto" /></SelectTrigger><SelectContent>{[...departments].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
+                        <div><Label htmlFor="teamId">Team</Label><Select name="teamId" defaultValue={editingUser?.teamId || undefined}><SelectTrigger><SelectValue placeholder="Seleziona un team" /></SelectTrigger><SelectContent>{[...teams].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select></div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div><Label htmlFor="startDate">Data Inizio</Label><Input id="startDate" name="startDate" type="date" defaultValue={editingUser?.startDate ? editingUser.startDate.split('T')[0] : ''} /></div>
@@ -124,12 +124,26 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                         <div><Label htmlFor="budget">Budget</Label><Input id="budget" name="budget" type="number" defaultValue={editingClient?.budget || 0} /></div>
                     </div>
                     <div><Label htmlFor="address">Indirizzo</Label><Input id="address" name="address" defaultValue={editingClient?.address} /></div>
+                    <div>
+                        <Label htmlFor="socialManagerId">Social Media Manager Assegnato/a 📱</Label>
+                        <Select name="socialManagerId" defaultValue={editingClient?.socialManagerId || 'none'}>
+                            <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Seleziona Social Media Manager..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Nessuno / Da assegnare</SelectItem>
+                                {[...users].filter(u => u.role !== 'Cliente').sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(u => (
+                                    <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div><Label htmlFor="color">Colore</Label><Input id="color" name="color" type="color" defaultValue={editingClient?.color || "#34A853"} /></div>
                     <div><Label htmlFor="notes">Note</Label><Textarea id="notes" name="notes" defaultValue={editingClient?.notes} /></div>
                     <div>
                         <Label>Utenti Responsabili</Label>
                         <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md">
-                            {[...users].sort((a, b) => a.name.localeCompare(b.name)).map(user => (
+                            {[...users].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(user => (
                                 <div key={user.id} className="flex items-center gap-2">
                                     <Checkbox id={`managedBy-${user.id}`} name="managedBy" value={user.id} defaultChecked={editingClient?.managedBy?.includes(user.id)} />
                                     <Label htmlFor={`managedBy-${user.id}`} className="font-normal">{user.name}</Label>
@@ -141,7 +155,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                         <Label>Attività Autorizzate</Label>
                         <CardDescription className="mb-2">Seleziona le attività che possono essere svolte per questo cliente. Se nessuna è selezionata, tutte saranno disponibili.</CardDescription>
                         <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md">
-                            {[...activityTypes].sort((a, b) => a.name.localeCompare(b.name)).map(activity => (
+                            {[...activityTypes].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(activity => (
                                 <div key={activity.id} className="flex items-center gap-2">
                                     <Checkbox
                                         id={`allowedActivity-${activity.id}`}
@@ -166,7 +180,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     <div>
                         <Label>Membri</Label>
                         <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md">
-                            {[...users].sort((a, b) => a.name.localeCompare(b.name)).map(user => (
+                            {[...users].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(user => (
                                 <div key={user.id} className="flex items-center gap-2">
                                     <Checkbox id={`member-${user.id}`} name="members" value={user.id} />
                                     <Label htmlFor={`member-${user.id}`} className="font-normal">{user.name}</Label>
@@ -183,7 +197,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     <div>
                         <Label>Membri</Label>
                         <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md">
-                            {[...users].sort((a, b) => a.name.localeCompare(b.name)).map(user => (
+                            {[...users].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(user => (
                                 <div key={user.id} className="flex items-center gap-2">
                                     <Checkbox id={`member-edit-${user.id}`} name="members" value={user.id} defaultChecked={editingDepartment.members?.includes(user.id)} />
                                     <Label htmlFor={`member-edit-${user.id}`} className="font-normal">{user.name}</Label>
@@ -200,7 +214,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     <div>
                         <Label>Membri</Label>
                         <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md">
-                            {[...users].sort((a, b) => a.name.localeCompare(b.name)).map(user => (
+                            {[...users].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(user => (
                                 <div key={user.id} className="flex items-center gap-2">
                                     <Checkbox id={`member-team-${user.id}`} name="members" value={user.id} />
                                     <Label htmlFor={`member-team-${user.id}`} className="font-normal">{user.name}</Label>
@@ -217,7 +231,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     <div>
                         <Label>Membri</Label>
                         <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md">
-                            {[...users].sort((a, b) => a.name.localeCompare(b.name)).map(user => (
+                            {[...users].sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(user => (
                                 <div key={user.id} className="flex items-center gap-2">
                                     <Checkbox id={`member-team-edit-${user.id}`} name="members" value={user.id} defaultChecked={editingTeam.members?.includes(user.id)} />
                                     <Label htmlFor={`member-team-edit-${user.id}`} className="font-normal">{user.name}</Label>

@@ -140,7 +140,7 @@ export default function BriefForm({ clients, currentUser, services, categories, 
                             <SelectValue placeholder="Seleziona un cliente..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {[...clients].sort((a, b) => a.name.localeCompare(b.name, 'it')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            {[...clients].sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>

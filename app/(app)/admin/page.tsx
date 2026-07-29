@@ -491,6 +491,7 @@ function AdminPageContent() {
                         address: data.address,
                         color: data.color,
                         notes: data.notes,
+                        socialManagerId: data.socialManagerId && data.socialManagerId !== 'none' ? data.socialManagerId : undefined,
                         managedBy: getMembersFromForm(form, 'managedBy'),
                         allowedActivityTypeIds: getMembersFromForm(form, 'allowedActivityTypeIds'),
                     });
@@ -505,6 +506,7 @@ function AdminPageContent() {
                         address: data.address,
                         color: data.color,
                         notes: data.notes,
+                        socialManagerId: data.socialManagerId && data.socialManagerId !== 'none' ? data.socialManagerId : undefined,
                         managedBy: getMembersFromForm(form, 'managedBy'),
                         allowedActivityTypeIds: getMembersFromForm(form, 'allowedActivityTypeIds'),
                     });
@@ -876,6 +878,7 @@ function AdminPageContent() {
                                         <TableRow>
                                             <TableHead>Cliente</TableHead>
                                             <TableHead className="hidden sm:table-cell">Contatto</TableHead>
+                                            <TableHead className="hidden md:table-cell">Social Manager</TableHead>
                                             <TableHead className="hidden md:table-cell">N. Task</TableHead>
                                             <TableHead className="hidden lg:table-cell">Budget</TableHead>
                                             <TableHead className="text-right">
@@ -886,6 +889,7 @@ function AdminPageContent() {
                                     <TableBody>
                                         {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((client) => {
                                             const stats = getClientStats(client.id);
+                                            const socialManager = client.socialManagerId ? users.find(u => u.id === client.socialManagerId) : null;
                                             return (
                                                 <TableRow key={client.id}>
                                                     <TableCell>
@@ -912,6 +916,21 @@ function AdminPageContent() {
                                                         <p className="text-xs text-muted-foreground">
                                                             {client.phone}
                                                         </p>
+                                                    </TableCell>
+                                                    <TableCell className="hidden md:table-cell">
+                                                        {socialManager ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Avatar className="h-6 w-6">
+                                                                    <AvatarImage src={socialManager.avatar || getUserAvatar(socialManager)} />
+                                                                    <AvatarFallback style={{ backgroundColor: socialManager.color || '#4285F4' }} className="text-[10px] text-white font-bold">
+                                                                        {getInitials(socialManager.name)}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <span className="text-xs font-medium">{socialManager.name}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground italic">Non assegnato</span>
+                                                        )}
                                                     </TableCell>
                                                     <TableCell className="hidden md:table-cell">
                                                         <Badge variant="outline">{stats.taskCount}</Badge>

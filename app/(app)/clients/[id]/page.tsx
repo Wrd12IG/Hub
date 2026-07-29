@@ -53,6 +53,7 @@ import {
   Settings,
   FileBarChart,
 } from "lucide-react";
+import { useLayoutData } from "@/app/(app)/layout-context";
 import ClientMonthlyReport from "@/components/client-monthly-report";
 import MetaCampaignReportModal from "@/components/MetaCampaignReportModal";
 import dynamic from "next/dynamic";
@@ -84,6 +85,7 @@ interface Client {
   id: string;
   name: string;
   websiteUrl: string;
+  socialManagerId?: string | null;
   creativeMode: string;
   targetCPA: number | null;
   targetROAS: number | null;
@@ -243,6 +245,7 @@ function AuditMeter({ score }: { score: number }) {
 
 export default function ClientDetailPage() {
   const { id } = useParams() as { id: string };
+  const { usersById } = useLayoutData();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -765,6 +768,12 @@ export default function ClientDetailPage() {
                   <Globe className="h-3.5 w-3.5 text-primary" />
                   {(client?.websiteUrl || "").replace(/^https?:\/\//, "")}
                 </a>
+              )}
+              {client.socialManagerId && usersById[client.socialManagerId] && (
+                <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  Social Manager: {usersById[client.socialManagerId].name}
+                </div>
               )}
               {client.industry && (
                 <Badge
