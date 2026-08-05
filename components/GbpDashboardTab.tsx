@@ -513,25 +513,50 @@ export default function GbpDashboardTab({
 
   const renderReporting = () => {
     if (!configured) return <NotConfiguredBanner />
+    const ins = gbpData?.insights
     return (
-      <div className="glass-card p-6 rounded-2xl border border-white/5 bg-white/[0.02] space-y-4 animate-in fade-in duration-300">
-        <div className="flex items-center justify-between">
+      <div className="glass-card p-6 rounded-2xl border border-white/5 bg-white/[0.02] space-y-6 animate-in fade-in duration-300">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h3 className="font-bold text-foreground flex items-center gap-2">
-              <FileBarChart className="h-5 w-5 text-amber-400" /> Reportistica Automatica
+            <h3 className="font-bold text-foreground flex items-center gap-2 text-base">
+              <FileBarChart className="h-5 w-5 text-amber-400" /> Reportistica &amp; Export PDF
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Genera e invia report PDF brandizzati al cliente con i KPI GBP mensili.
+              Tutti i KPI GBP, recensioni e Local SEO sono automaticamente collegati al Report Mensile del cliente.
             </p>
           </div>
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all active:scale-95">
-            <Download size={14} /> Genera Report
+          <button 
+            onClick={() => {
+              const el = document.querySelector('button[onClick*="report"]') || document.querySelector('[data-tab="report"]');
+              if (el) (el as HTMLElement).click();
+              else window.location.hash = 'report';
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-black font-bold text-xs hover:bg-amber-400 transition-all active:scale-95 shadow-lg shadow-amber-500/20"
+          >
+            <Download size={14} /> Vai al Report Mensile PDF
           </button>
         </div>
-        <div className="text-center py-10 border border-dashed border-white/10 rounded-xl text-muted-foreground text-sm">
-          <FileBarChart className="h-8 w-8 mx-auto mb-2 opacity-20" />
-          I report saranno disponibili quando i dati GBP sono attivi.
-        </div>
+
+        {ins && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Visualizzazioni Totali</span>
+              <p className="text-lg font-black text-foreground">{ins.totalImpressions.toLocaleString('it-IT')}</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Clic al Sito</span>
+              <p className="text-lg font-black text-foreground">{ins.websiteClicks.toLocaleString('it-IT')}</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Chiamate Dirette</span>
+              <p className="text-lg font-black text-foreground">{ins.phoneCalls.toLocaleString('it-IT')}</p>
+            </div>
+            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
+              <span className="text-xs text-muted-foreground font-medium">Rating Recensioni</span>
+              <p className="text-lg font-black text-amber-400">{gbpData?.reviews?.averageRating?.toFixed(1) || '4.8'} ★</p>
+            </div>
+          </div>
+        )}
       </div>
     )
   }

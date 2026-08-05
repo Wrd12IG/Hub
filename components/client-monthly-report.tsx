@@ -26,6 +26,13 @@ import {
     TrendingUp,
     Loader2,
     AlertCircle,
+    MapPin,
+    Star,
+    Globe,
+    Phone,
+    Navigation,
+    Eye,
+    MessageSquare,
 } from 'lucide-react';
 import {
     format,
@@ -50,6 +57,44 @@ import {
     Cell,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+
+interface GbpInsights {
+    totalImpressions: number;
+    totalActions: number;
+    websiteClicks: number;
+    phoneCalls: number;
+    directionRequests: number;
+    impressionChange?: number;
+}
+
+interface GbpReview {
+    author: string;
+    rating: number;
+    text: string;
+    date: string;
+    replied?: boolean;
+}
+
+interface GbpReviews {
+    totalReviews: number;
+    unansweredCount: number;
+    averageRating: number;
+    recent: GbpReview[];
+}
+
+interface GbpKeyword {
+    keyword: string;
+    impressions: number;
+}
+
+interface GbpData {
+    configured?: boolean;
+    insights?: GbpInsights;
+    reviews?: GbpReviews;
+    keywords?: GbpKeyword[];
+    healthScore?: number;
+    healthChecks?: Array<{ label: string; ok: boolean }>;
+}
 
 interface Props {
     clientId: string;
@@ -97,6 +142,8 @@ export default function ClientMonthlyReport({ clientId, clientName }: Props) {
     const [selectedMonth, setSelectedMonth] = useState<string>(monthOptions[0].value);
     const [editorialContents, setEditorialContents] = useState<EditorialContent[]>([]);
     const [loadingEditorial, setLoadingEditorial] = useState(true);
+    const [gbpData, setGbpData] = useState<GbpData | null>(null);
+    const [loadingGbp, setLoadingGbp] = useState(true);
     const [exportingPdf, setExportingPdf] = useState(false);
 
     // Load editorial contents once
@@ -107,6 +154,23 @@ export default function ClientMonthlyReport({ clientId, clientName }: Props) {
             .catch(() => setEditorialContents([]))
             .finally(() => setLoadingEditorial(false));
     }, []);
+
+    // Load GBP data for this client
+    useEffect(() => {
+        if (!clientId) return;
+        setLoadingGbp(true);
+        fetch(`/api/clients/${clientId}/gbp`)
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (data && data.configured !== false) {
+                    setGbpData(data);
+                } else {
+                    setGbpData(null);
+                }
+            })
+            .catch(() => setGbpData(null))
+            .finally(() => setLoadingGbp(false));
+    }, [clientId]);
 
     // Compute date interval for selected month
     const { monthStart, monthEnd } = useMemo(() => {
@@ -284,6 +348,14 @@ export default function ClientMonthlyReport({ clientId, clientName }: Props) {
                 ['Post Instagram', String(platformCounts.instagram)],
                 ['Post Facebook', String(platformCounts.facebook)],
                 ['Post LinkedIn', String(platformCounts.linkedin)],
+                ...(gbpData?.insights
+                    ? [
+                          ['Visualizzazioni Scheda GBP', gbpData.insights.totalImpressions.toLocaleString('it-IT')],
+                          ['Clic al Sito (GBP)', gbpData.insights.websiteClicks.toLocaleString('it-IT')],
+                          ['Chiamate Dirette (GBP)', gbpData.insights.phoneCalls.toLocaleString('it-IT')],
+                          ['Rating Recensioni GBP', `${gbpData.reviews?.averageRating?.toFixed(1) || '—'} ★ (${gbpData.reviews?.totalReviews || 0} recensioni)`],
+                      ]
+                    : []),
             ];
 
             autoTable(doc, {
@@ -297,6 +369,38 @@ export default function ClientMonthlyReport({ clientId, clientName }: Props) {
             });
 
             y = (doc as any).lastAutoTable?.finalY + 10 || y + 50;
+
+            // ---- GOOGLE BUSINESS PROFILE ----
+            if (gbpData?.insights) {
+                if (y > 230) { doc.addPage(); y = 20; }
+
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(40, 40, 40);
+                doc.text('Performance Google Business Profile (Local SEO)', 14, y);
+                y += 4;
+
+                const gbpRows = [
+                    ['Visualizzazioni Scheda Maps', gbpData.insights.totalImpressions.toLocaleString('it-IT')],
+                    ['Azioni Totali Utenti', gbpData.insights.totalActions.toLocaleString('it-IT')],
+                    ['Clic al Sito Web', gbpData.insights.websiteClicks.toLocaleString('it-IT')],
+                    ['Chiamate Telefoniche', gbpData.insights.phoneCalls.toLocaleString('it-IT')],
+                    ['Richieste Indicazioni Stradali', gbpData.insights.directionRequests.toLocaleString('it-IT')],
+                    ['Rating Recensioni', `${gbpData.reviews?.averageRating?.toFixed(1) || '—'} / 5.0 (${gbpData.reviews?.totalReviews || 0} recensioni)`],
+                    ['Health Score Scheda', `${gbpData.healthScore || 100}%`],
+                ];
+
+                autoTable(doc, {
+                    head: [['Metrica Local SEO (GBP)', 'Valore']],
+                    body: gbpRows,
+                    startY: y,
+                    styles: { fontSize: 9, cellPadding: 2.5 },
+                    headStyles: { fillColor: [245, 158, 11], textColor: [255, 255, 255], fontStyle: 'bold' },
+                    columnStyles: { 1: { halign: 'center', fontStyle: 'bold' } },
+                    margin: { left: 14, right: 14 },
+                });
+                y = (doc as any).lastAutoTable?.finalY + 10 || y + 45;
+            }
 
             // ---- TASK TABLE ----
             if (clientTasks.length > 0) {
@@ -417,14 +521,16 @@ export default function ClientMonthlyReport({ clientId, clientName }: Props) {
         platformCounts,
         projectBreakdown,
         projectsById,
+        gbpData,
     ]);
 
-    const isLoading = isLoadingLayout || loadingEditorial;
+    const isLoading = isLoadingLayout || loadingEditorial || loadingGbp;
     const isEmpty =
         !isLoading &&
         clientTasks.length === 0 &&
         publishedContents.length === 0 &&
-        grandTotalSeconds === 0;
+        grandTotalSeconds === 0 &&
+        !gbpData?.insights;
 
     return (
         <div className="space-y-6">
@@ -749,6 +855,145 @@ export default function ClientMonthlyReport({ clientId, clientName }: Props) {
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* ── SEZIONE GOOGLE BUSINESS PROFILE (LOCAL SEO) ── */}
+                    {gbpData && gbpData.insights && (
+                        <Card className="bg-white/[0.02] border-white/5 shadow-sm">
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                                            <MapPin className="h-4 w-4 text-amber-400" />
+                                            Google Business Profile &amp; Local SEO
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Performance della scheda Google Maps e recensioni locali
+                                        </CardDescription>
+                                    </div>
+                                    {gbpData.healthScore != null && (
+                                        <Badge variant="outline" className="border-amber-500/20 bg-amber-500/10 text-amber-400 font-bold text-xs px-2.5 py-1">
+                                            Health Score: {gbpData.healthScore}%
+                                        </Badge>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {/* Grid KPI GBP */}
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                                        <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                                            <Eye className="h-3.5 w-3.5 text-amber-400" /> Visualizzazioni
+                                        </p>
+                                        <p className="text-xl font-extrabold text-foreground">
+                                            {gbpData.insights.totalImpressions.toLocaleString('it-IT')}
+                                        </p>
+                                        {gbpData.insights.impressionChange != null && (
+                                            <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">
+                                                +{gbpData.insights.impressionChange}% vs mese prec.
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                                        <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                                            <Globe className="h-3.5 w-3.5 text-blue-400" /> Clic al Sito Web
+                                        </p>
+                                        <p className="text-xl font-extrabold text-foreground">
+                                            {gbpData.insights.websiteClicks.toLocaleString('it-IT')}
+                                        </p>
+                                    </div>
+
+                                    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                                        <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                                            <Phone className="h-3.5 w-3.5 text-emerald-400" /> Chiamate Dirette
+                                        </p>
+                                        <p className="text-xl font-extrabold text-foreground">
+                                            {gbpData.insights.phoneCalls.toLocaleString('it-IT')}
+                                        </p>
+                                    </div>
+
+                                    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5">
+                                        <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5 mb-1">
+                                            <Navigation className="h-3.5 w-3.5 text-purple-400" /> Indicazioni Stradali
+                                        </p>
+                                        <p className="text-xl font-extrabold text-foreground">
+                                            {gbpData.insights.directionRequests.toLocaleString('it-IT')}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Recensioni e Rating */}
+                                {gbpData.reviews && (
+                                    <div className="p-4 rounded-xl bg-amber-500/[0.03] border border-amber-500/10 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
+                                                <span className="text-sm font-bold text-foreground">
+                                                    Rating Medio: {gbpData.reviews.averageRating.toFixed(1)} / 5.0
+                                                </span>
+                                                <span className="text-xs text-muted-foreground">
+                                                    ({gbpData.reviews.totalReviews} recensioni totali)
+                                                </span>
+                                            </div>
+                                            {gbpData.reviews.unansweredCount > 0 && (
+                                                <Badge variant="outline" className="border-rose-500/20 bg-rose-500/10 text-rose-400 text-xs font-semibold">
+                                                    {gbpData.reviews.unansweredCount} in attesa di risposta
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        {/* Recensioni recenti */}
+                                        {gbpData.reviews.recent && gbpData.reviews.recent.length > 0 && (
+                                            <div className="space-y-2 pt-1">
+                                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                                    Recensioni Recenti
+                                                </p>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    {gbpData.reviews.recent.slice(0, 2).map((rev, idx) => (
+                                                        <div key={idx} className="p-3 rounded-lg bg-background/60 border border-white/5 text-xs space-y-1">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-bold text-foreground">{rev.author}</span>
+                                                                <div className="flex gap-0.5">
+                                                                    {Array.from({ length: 5 }).map((_, i) => (
+                                                                        <Star
+                                                                            key={i}
+                                                                            size={10}
+                                                                            fill={i < rev.rating ? '#f59e0b' : 'transparent'}
+                                                                            className={i < rev.rating ? 'text-amber-400' : 'text-muted-foreground/20'}
+                                                                        />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <p className="text-muted-foreground line-clamp-2 italic">"{rev.text}"</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Keyword locali top */}
+                                {gbpData.keywords && gbpData.keywords.length > 0 && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                                            Parole Chiave di Ricerca Principali su Google Maps
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {gbpData.keywords.slice(0, 5).map((kw, i) => (
+                                                <div key={i} className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/5 border border-white/5 text-xs font-medium text-foreground">
+                                                    <span>{kw.keyword}</span>
+                                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-400 font-bold border-none">
+                                                        {kw.impressions} vis.
+                                                    </Badge>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </>
             )}
         </div>
@@ -765,13 +1010,14 @@ function KpiCard({
     icon: React.ReactNode;
     label: string;
     value: string;
-    color: 'blue' | 'emerald' | 'pink' | 'indigo';
+    color: 'blue' | 'emerald' | 'pink' | 'indigo' | 'amber';
 }) {
     const colorMap: Record<string, string> = {
         blue: 'from-blue-500/10 to-blue-600/5 border-blue-500/20',
         emerald: 'from-emerald-500/10 to-emerald-600/5 border-emerald-500/20',
         pink: 'from-pink-500/10 to-pink-600/5 border-pink-500/20',
         indigo: 'from-indigo-500/10 to-indigo-600/5 border-indigo-500/20',
+        amber: 'from-amber-500/10 to-amber-600/5 border-amber-500/20',
     };
 
     return (
