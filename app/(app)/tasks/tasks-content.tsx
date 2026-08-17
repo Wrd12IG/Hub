@@ -126,6 +126,8 @@ type DisapprovalModalState = {
     task?: Task;
     reason: string;
     sendEmail: boolean;
+    dateOption: 'keep' | 'postpone';
+    newDueDate: string; // YYYY-MM-DD o ''
 }
 
 type FileAttachmentModalState = {
@@ -535,7 +537,7 @@ const TaskCard = ({
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700"
-                                            onClick={() => setDisapprovalModalState({ isOpen: true, task, reason: '', sendEmail: true })}>
+                                            onClick={() => setDisapprovalModalState({ isOpen: true, task, reason: '', sendEmail: true, dateOption: 'keep', newDueDate: '' })}>
                                             <ThumbsDown className="h-3.5 w-3.5" />
                                         </Button>
                                     </TooltipTrigger>
@@ -615,7 +617,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     const [modalState, setModalState] = useState<ModalState>({ mode: 'create', isOpen: false });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deadlineModalState, setDeadlineModalState] = useState<{ isOpen: boolean; savedTaskData: any; }>({ isOpen: false, savedTaskData: null });
-    const [disapprovalModalState, setDisapprovalModalState] = useState<DisapprovalModalState>({ isOpen: false, task: undefined, reason: '', sendEmail: true });
+    const [disapprovalModalState, setDisapprovalModalState] = useState<DisapprovalModalState>({ isOpen: false, task: undefined, reason: '', sendEmail: true, dateOption: 'keep', newDueDate: '' });
     const [approvalState, setApprovalState] = useState<ApprovalActionState>({ isOpen: false, task: undefined, sendEmail: true });
     const [fileAttachmentModalState, setFileAttachmentModalState] = useState<FileAttachmentModalState>({ isOpen: false, task: undefined, attachmentUrl: '', attachmentFilename: '', attachmentFile: undefined });
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
@@ -1037,7 +1039,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     const handleDisapprove = async () => {
         if (!disapprovalModalState.task || !currentUser) return;
-        const { task, reason, sendEmail } = disapprovalModalState;
+        const { task, reason, sendEmail, dateOption, newDueDate } = disapprovalModalState;
 
         try {
             // Rimuovi gli allegati di approvazione quando si respinge
@@ -1049,11 +1051,21 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 attachments: remainingAttachments,
                 reworkCount: ((task.reworkCount ?? 0) + 1),
             };
+
+            // Se l'utente ha scelto di posticipare la scadenza, aggiorna la dueDate
+            if (dateOption === 'postpone' && newDueDate) {
+                (updateData as any).dueDate = newDueDate;
+            }
+
             await updateTask(task.id, updateData, currentUser.id, canApprove, sendEmail);
             playSound('task_rejected');
 
-            setDisapprovalModalState({ isOpen: false, task: undefined, reason: '', sendEmail: true });
-            toast.warning("Task non approvato", { description: `"${task.title}" è stato riportato in "Da Fare" e gli allegati di approvazione sono stati rimossi.` });
+            setDisapprovalModalState({ isOpen: false, task: undefined, reason: '', sendEmail: true, dateOption: 'keep', newDueDate: '' });
+
+            const dateMsg = dateOption === 'postpone' && newDueDate
+                ? ` La scadenza è stata posticipata al ${format(parseISO(newDueDate), 'd MMM yyyy', { locale: it })}.`
+                : '';
+            toast.warning("Task non approvato", { description: `"${task.title}" è stato riportato in "Da Fare" e gli allegati di approvazione sono stati rimossi.${dateMsg}` });
         } catch (error: any) {
             console.error("Failed to disapprove task:", error);
             toast.error(error.message || "Impossibile respingere il task.");
@@ -1479,7 +1491,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                             <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:bg-green-100 hover:text-green-700" onClick={() => setApprovalState({ isOpen: true, task, sendEmail: true })}>
                                                                 <ThumbsUp />
                                                             </Button>
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true })}>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-600 hover:bg-red-100 hover:text-red-700" onClick={() => setDisapprovalModalState({ isOpen: true, task: task, reason: '', sendEmail: true, dateOption: 'keep', newDueDate: '' })}>
                                                                 <ThumbsDown />
                                                             </Button>
                                                         </>
@@ -1744,7 +1756,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 </AlertDialogContent>
             </AlertDialog>
 
-            <AlertDialog open={disapprovalModalState.isOpen} onOpenChange={(isOpen) => !isOpen && setDisapprovalModalState({ isOpen: false, task: undefined, reason: '', sendEmail: true })}>
+            <AlertDialog open={disapprovalModalState.isOpen} onOpenChange={(isOpen) => !isOpen && setDisapprovalModalState({ isOpen: false, task: undefined, reason: '', sendEmail: true, dateOption: 'keep', newDueDate: '' })}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Rifiuta Task</AlertDialogTitle>
@@ -1771,6 +1783,59 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 onChange={(e) => setDisapprovalModalState(prev => ({ ...prev, reason: e.target.value }))}
                             />
                         </div>
+                        {/* Sezione scadenza */}
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-1.5">
+                                <Calendar className="h-4 w-4" />
+                                Scadenza del task
+                            </Label>
+                            <div className="flex flex-col gap-2 pl-1">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="disapproval-date-option"
+                                        value="keep"
+                                        checked={disapprovalModalState.dateOption === 'keep'}
+                                        onChange={() => setDisapprovalModalState(prev => ({ ...prev, dateOption: 'keep', newDueDate: '' }))}
+                                        className="accent-primary"
+                                    />
+                                    <span className="text-sm">
+                                        Mantieni scadenza attuale
+                                        {disapprovalModalState.task?.dueDate && (
+                                            <span className="ml-1 text-muted-foreground">
+                                                ({format(parseISO(disapprovalModalState.task.dueDate), 'd MMM yyyy', { locale: it })})
+                                            </span>
+                                        )}
+                                        {!disapprovalModalState.task?.dueDate && (
+                                            <span className="ml-1 text-muted-foreground">(nessuna scadenza)</span>
+                                        )}
+                                    </span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="disapproval-date-option"
+                                        value="postpone"
+                                        checked={disapprovalModalState.dateOption === 'postpone'}
+                                        onChange={() => setDisapprovalModalState(prev => ({ ...prev, dateOption: 'postpone' }))}
+                                        className="accent-primary"
+                                    />
+                                    <span className="text-sm">Posticipa scadenza</span>
+                                </label>
+                                {disapprovalModalState.dateOption === 'postpone' && (
+                                    <div className="pl-6">
+                                        <Input
+                                            id="disapproval-new-due-date"
+                                            type="date"
+                                            min={format(new Date(), 'yyyy-MM-dd')}
+                                            value={disapprovalModalState.newDueDate}
+                                            onChange={(e) => setDisapprovalModalState(prev => ({ ...prev, newDueDate: e.target.value }))}
+                                            className="w-44"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                         <div className="flex items-center space-x-2">
                             <Checkbox
                                 id="send-disapproval-email"
@@ -1782,7 +1847,13 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                     </div>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annulla</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDisapprove} disabled={!(disapprovalModalState?.reason || "").trim()}>
+                        <AlertDialogAction
+                            onClick={handleDisapprove}
+                            disabled={
+                                !(disapprovalModalState?.reason || '').trim() ||
+                                (disapprovalModalState.dateOption === 'postpone' && !disapprovalModalState.newDueDate)
+                            }
+                        >
                             Conferma Rifiuto
                         </AlertDialogAction>
                     </AlertDialogFooter>
