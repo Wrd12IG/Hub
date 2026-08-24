@@ -617,6 +617,13 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     const [modalState, setModalState] = useState<ModalState>({ mode: 'create', isOpen: false });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deadlineModalState, setDeadlineModalState] = useState<{ isOpen: boolean; savedTaskData: any; }>({ isOpen: false, savedTaskData: null });
+
+    // Ref per bufferizzare gli aggiornamenti Firestore mentre una modale è aperta.
+    // Evita che il live-sync resetti il form durante la creazione/modifica di un task.
+    const pendingTasksRef = useRef<Task[] | null>(null);
+    const pendingProjectsRef = useRef<Project[] | null>(null);
+    const pendingActivityTypesRef = useRef<ActivityType[] | null>(null);
+    const isModalOpenRef = useRef(false);
     const [disapprovalModalState, setDisapprovalModalState] = useState<DisapprovalModalState>({ isOpen: false, task: undefined, reason: '', sendEmail: true, dateOption: 'keep', newDueDate: '' });
     const [approvalState, setApprovalState] = useState<ApprovalActionState>({ isOpen: false, task: undefined, sendEmail: true });
     const [fileAttachmentModalState, setFileAttachmentModalState] = useState<FileAttachmentModalState>({ isOpen: false, task: undefined, attachmentUrl: '', attachmentFilename: '', attachmentFile: undefined });
@@ -708,19 +715,61 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         const unsubs = [
             onSnapshot(collection(db, "tasks"), (snapshot) => {
                 const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Task);
-                setAllTasks(data);
+                if (isModalOpenRef.current) {
+                    // Modale aperta: bufferizza senza aggiornare la UI
+                    pendingTasksRef.current = data;
+                } else {
+                    setAllTasks(data);
+                }
             }),
             onSnapshot(collection(db, "projects"), (snapshot) => {
                 const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Project);
-                setAllProjects(data);
+                if (isModalOpenRef.current) {
+                    pendingProjectsRef.current = data;
+                } else {
+                    setAllProjects(data);
+                }
             }),
             onSnapshot(collection(db, "activityTypes"), (snapshot) => {
                 const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as ActivityType);
-                setActivityTypes(data);
+                if (isModalOpenRef.current) {
+                    pendingActivityTypesRef.current = data;
+                } else {
+                    setActivityTypes(data);
+                }
             }),
         ];
         return () => unsubs.forEach(unsub => unsub());
     }, []);
+
+    // Aggiorna il ref ogni volta che lo stato delle modali cambia,
+    // e svuota il buffer appena tutte le modali vengono chiuse.
+    const isAnyModalOpen =
+        modalState.isOpen ||
+        deadlineModalState.isOpen ||
+        disapprovalModalState.isOpen ||
+        approvalState.isOpen ||
+        fileAttachmentModalState.isOpen ||
+        !!taskToDelete ||
+        !!previewTask;
+
+    useEffect(() => {
+        isModalOpenRef.current = isAnyModalOpen;
+        if (!isAnyModalOpen) {
+            if (pendingTasksRef.current !== null) {
+                setAllTasks(pendingTasksRef.current);
+                pendingTasksRef.current = null;
+            }
+            if (pendingProjectsRef.current !== null) {
+                setAllProjects(pendingProjectsRef.current);
+                pendingProjectsRef.current = null;
+            }
+            if (pendingActivityTypesRef.current !== null) {
+                setActivityTypes(pendingActivityTypesRef.current);
+                pendingActivityTypesRef.current = null;
+            }
+        }
+    }, [isAnyModalOpen]);
 
     const resetFilters = useCallback(() => {
         const currentPath = window.location.pathname;
