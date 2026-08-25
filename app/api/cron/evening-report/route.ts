@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
       totalOverdue,
       usersDetail: report.users.map((u) => ({
         name: u.userName,
-        todayActivities: u.todayActivities.length,
+        todayItems: u.todayItems.length,
         todayTotalSeconds: u.todayTotalSeconds,
         overdueCount: u.overdueCount,
       })),
