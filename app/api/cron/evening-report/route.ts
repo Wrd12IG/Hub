@@ -104,9 +104,22 @@ export async function GET(request: NextRequest) {
   // ── Step 2: Costruisce il report ─────────────────────────────────────────
   console.log('[evening-report] Avvio raccolta dati...');
 
+  const { searchParams } = new URL(request.url);
+  const isYesterday = searchParams.get('yesterday') === 'true';
+  const customDateParam = searchParams.get('date'); // YYYY-MM-DD
+  
+  let targetDate: Date | undefined;
+  if (customDateParam) {
+    targetDate = new Date(customDateParam);
+  } else if (isYesterday) {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    targetDate = d;
+  }
+
   let report;
   try {
-    report = await buildEveningReport();
+    report = await buildEveningReport(targetDate);
   } catch (error) {
     console.error('[evening-report] Errore costruzione report:', error);
     return NextResponse.json(

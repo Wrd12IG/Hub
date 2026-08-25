@@ -96,24 +96,24 @@ export interface EveningReportSummary {
 
 // ─── Utilità date ─────────────────────────────────────────────────────────────
 
-function getTodayRange(): { start: string; end: string } {
-  const now = new Date();
-  const start = new Date(now);
+function getTodayRange(targetDate?: Date): { start: string; end: string } {
+  const base = targetDate ? new Date(targetDate) : new Date();
+  const start = new Date(base);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(now);
+  const end = new Date(base);
   end.setHours(23, 59, 59, 999);
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
 /**
- * Restituisce i 7 giorni della settimana corrente (lun-dom) come oggetti {start, end}.
+ * Restituisce i 7 giorni della settimana (lun-dom) contenente targetDate come oggetti {start, end}.
  */
-function getCurrentWeekDays(): { isoDate: string; start: string; end: string; label: string; display: string }[] {
-  const now = new Date();
-  // Trova il lunedì della settimana corrente
-  const dayOfWeek = now.getDay(); // 0=dom, 1=lun, …
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+function getCurrentWeekDays(targetDate?: Date): { isoDate: string; start: string; end: string; label: string; display: string }[] {
+  const base = targetDate ? new Date(targetDate) : new Date();
+  // Trova il lunedì della settimana
+  const dayOfWeek = base.getDay(); // 0=dom, 1=lun, …
+  const monday = new Date(base);
+  monday.setDate(base.getDate() - ((dayOfWeek + 6) % 7));
   monday.setHours(0, 0, 0, 0);
 
   const labels = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
@@ -318,15 +318,16 @@ function buildUserReport(
 }
 
 // ─── Funzione principale ───────────────────────────────────────────────────────
-
-export async function buildEveningReport(): Promise<EveningReportSummary> {
+ 
+export async function buildEveningReport(targetDate?: Date): Promise<EveningReportSummary> {
+  const effectiveDate = targetDate || new Date();
   const [users, clientNames] = await Promise.all([
     loadActiveUsers(),
     loadClientNames(),
   ]);
 
-  const todayRange = getTodayRange();
-  const weekDays = getCurrentWeekDays();
+  const todayRange = getTodayRange(effectiveDate);
+  const weekDays = getCurrentWeekDays(effectiveDate);
 
   // Carica i task di tutti gli utenti in parallelo
   const userTasksAll = await Promise.all(
@@ -353,7 +354,7 @@ export async function buildEveningReport(): Promise<EveningReportSummary> {
   const weekLabel = `Settimana ${monday.display} – ${sunday.display}`;
 
   return {
-    date: new Date().toLocaleDateString('it-IT', {
+    date: effectiveDate.toLocaleDateString('it-IT', {
       weekday: 'long',
       day: '2-digit',
       month: 'long',
