@@ -61,7 +61,7 @@ async function sendReportEmail(
     });
 
     const info = await transporter.sendMail({
-      from: `"W[r]Digital HUB" <${user}>`,
+      from: `"W[r]Digital Hub" <${process.env.EMAIL_FROM_ADDRESS || 'hub@wrdigital.it'}>`,
       to: `"${RECIPIENT_NAME}" <${RECIPIENT_EMAIL}>`,
       subject,
       html: htmlContent,
