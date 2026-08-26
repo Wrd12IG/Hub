@@ -77,19 +77,27 @@ async function sendReportEmail(
 
 // ─── Handler principale ───────────────────────────────────────────────────────
 
-export async function GET(request: NextRequest) {
   // ── Step 1: Verifica il segreto ──────────────────────────────────────────
   const cronSecret = process.env.CRON_SECRET;
   const requestSecret = request.headers.get('x-cron-secret');
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
 
   const host = request.headers.get('host') || '';
   const isLocalhost =
     host.startsWith('localhost') || host.startsWith('127.0.0.1');
 
-  if (cronSecret && requestSecret !== cronSecret) {
+  // Vercel Cron invia "Authorization: Bearer <CRON_SECRET>" automaticamente.
+  // Supportiamo sia Authorization Bearer che x-cron-secret.
+  const isValidSecret =
+    !cronSecret ||
+    requestSecret === cronSecret ||
+    bearerToken === cronSecret;
+
+  if (cronSecret && !isValidSecret) {
     console.warn('[evening-report] Accesso non autorizzato da:', host);
     return NextResponse.json(
-      { error: "Unauthorized. Aggiungi l'header x-cron-secret." },
+      { error: "Unauthorized. Secret non valido o mancante." },
       { status: 401 }
     );
   }
