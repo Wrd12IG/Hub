@@ -77,6 +77,7 @@ async function sendReportEmail(
 
 // ─── Handler principale ───────────────────────────────────────────────────────
 
+export async function GET(request: NextRequest) {
   // ── Step 1: Verifica il segreto ──────────────────────────────────────────
   const cronSecret = process.env.CRON_SECRET;
   const requestSecret = request.headers.get('x-cron-secret');

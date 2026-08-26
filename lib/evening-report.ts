@@ -244,13 +244,12 @@ export async function buildEveningReport(targetDate?: Date): Promise<EveningRepo
       }
     });
 
-    // Task del giorno (se aggiornati oggi e con timeSpent > 0 oppure con dueDate oggi)
+    // Task del giorno (solo se aggiornati oggi nella giornata del report e con timeSpent > 0)
     userTasks.forEach((t) => {
       if (t.status === 'Annullato') return;
       const isUpdatedToday = t.updatedAt && t.updatedAt >= dayStart && t.updatedAt <= dayEnd;
-      const isDueToday = t.dueDate && t.dueDate >= dayStart && t.dueDate <= dayEnd;
 
-      if (isUpdatedToday || isDueToday) {
+      if (isUpdatedToday && t.timeSpent && t.timeSpent > 0) {
         todayItems.push({
           id: t.id,
           title: t.title,
@@ -281,7 +280,7 @@ export async function buildEveningReport(targetDate?: Date): Promise<EveningRepo
         clientName: clientNames.get(t.clientId) || '',
       }));
 
-    // 3. Riepilogo settimanale
+    // 3. Riepilogo settimanale (giorno per giorno)
     const weeklyDays: WeeklyDay[] = weekDays.map((wDay) => {
       const wStart = new Date(wDay.start);
       const wEnd = new Date(wDay.end);
@@ -298,12 +297,11 @@ export async function buildEveningReport(targetDate?: Date): Promise<EveningRepo
         }
       });
 
-      // Tasks
+      // Tasks (registrati in quello specifico giorno della settimana)
       userTasks.forEach((t) => {
         if (t.status === 'Annullato') return;
-        const inWeek = (t.updatedAt && t.updatedAt >= wStart && t.updatedAt <= wEnd) ||
-                       (t.dueDate && t.dueDate >= wStart && t.dueDate <= wEnd);
-        if (inWeek && t.timeSpent > 0) {
+        const isUpdatedOnDay = t.updatedAt && t.updatedAt >= wStart && t.updatedAt <= wEnd;
+        if (isUpdatedOnDay && t.timeSpent && t.timeSpent > 0) {
           dayItems.push({ title: t.title, seconds: t.timeSpent, type: 'task' });
         }
       });
