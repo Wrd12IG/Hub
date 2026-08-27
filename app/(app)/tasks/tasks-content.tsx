@@ -184,7 +184,7 @@ const TaskCard = ({
     handleSendForApproval: (task: Task, targetStatus?: 'In Approvazione' | 'In Approvazione Cliente') => void;
     setApprovalState: React.Dispatch<React.SetStateAction<ApprovalActionState>>;
     setDisapprovalModalState: React.Dispatch<React.SetStateAction<DisapprovalModalState>>;
-    setRejectionReasonToShow: (reason: string) => void;
+    setRejectionReasonToShow: (reason: string, task?: Task) => void;
     setPreviewTask: React.Dispatch<React.SetStateAction<Task | null>>;
     setPreviewProject: React.Dispatch<React.SetStateAction<Project | null>>;
     handleChatOpen: (task: Task) => void;
@@ -420,6 +420,20 @@ const TaskCard = ({
                             {approvalDaysPending}gg
                         </span>
                     )}
+                    {task.rejectionReason && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setRejectionReasonToShow(task.rejectionReason || '', task);
+                            }}
+                            className="text-[10px] font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/25 px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
+                            title="Visualizza o modifica il motivo del rifiuto"
+                        >
+                            <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                            <span>Rifiutato{task.reworkCount && task.reworkCount > 0 ? ` (${task.reworkCount})` : ''}</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Riga 2: Creazione · Tempo · Progress% · Allegati · Commenti · Data approv. */}
@@ -653,7 +667,34 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     const [previewProject, setPreviewProject] = useState<Project | null>(null);
     const [dependencyError, setDependencyError] = useState<string[] | null>(null);
-    const [rejectionReasonToShow, setRejectionReasonToShow] = useState<string | null>(null);
+    const [rejectionReasonToShow, setRejectionReasonToShowState] = useState<string | null>(null);
+    const [rejectionReasonTask, setRejectionReasonTask] = useState<Task | null>(null);
+    const [rejectionReasonText, setRejectionReasonText] = useState<string>('');
+    const [isSavingRejectionReason, setIsSavingRejectionReason] = useState(false);
+
+    const setRejectionReasonToShow = useCallback((reason: string | null, task?: Task) => {
+        setRejectionReasonToShowState(reason);
+        setRejectionReasonText(reason || '');
+        setRejectionReasonTask(task || null);
+    }, []);
+
+    const handleSaveRejectionReason = async () => {
+        if (!rejectionReasonTask?.id || !currentUser?.id) return;
+        setIsSavingRejectionReason(true);
+        try {
+            await updateTask(rejectionReasonTask.id, { rejectionReason: rejectionReasonText }, currentUser.id, canApprove);
+            toast.success("Motivo del rifiuto aggiornato con successo.");
+            if (previewTask && previewTask.id === rejectionReasonTask.id) {
+                setPreviewTask(prev => prev ? { ...prev, rejectionReason: rejectionReasonText } : null);
+            }
+            setRejectionReasonToShow(null);
+        } catch (error) {
+            console.error("Errore durante l'aggiornamento del motivo di rifiuto:", error);
+            toast.error("Impossibile aggiornare il motivo del rifiuto.");
+        } finally {
+            setIsSavingRejectionReason(false);
+        }
+    };
     const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
     const [celebrationTrigger, setCelebrationTrigger] = useState(0);
 
@@ -1531,7 +1572,23 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                 <Badge className={`${priorityColors[task.priority]} text-white`}>{task.priority}</Badge>
                                             </TableCell>
                                             <TableCell>
-                                                <Badge variant="outline" className={`${statusColors[task.status].bg} ${statusColors[task.status].text}`}>{task.status}</Badge>
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <Badge variant="outline" className={`${statusColors[task.status].bg} ${statusColors[task.status].text}`}>{task.status}</Badge>
+                                                    {task.rejectionReason && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setRejectionReasonToShow(task.rejectionReason || '', task);
+                                                            }}
+                                                            className="text-[10px] font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/25 px-1.5 py-0.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
+                                                            title="Visualizza o modifica il motivo del rifiuto"
+                                                        >
+                                                            <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                                                            <span>Rifiutato{task.reworkCount && task.reworkCount > 0 ? ` (${task.reworkCount})` : ''}</span>
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex gap-1 justify-end items-center">
@@ -2076,27 +2133,55 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 </AlertDialogContent>
             </AlertDialog>
 
-            <AlertDialog open={!!rejectionReasonToShow} onOpenChange={() => setRejectionReasonToShow(null)}>
-                <AlertDialogContent>
+            <AlertDialog open={!!rejectionReasonToShow} onOpenChange={(open) => !open && setRejectionReasonToShow(null)}>
+                <AlertDialogContent className="max-w-lg">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Motivo del Rifiuto</AlertDialogTitle>
+                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                            <AlertTriangle className="h-5 w-5" />
+                            Motivo del Rifiuto
+                        </AlertDialogTitle>
                         <AlertDialogDescription>
-                            Il task è stato precedentemente rifiutato per la seguente ragione.
+                            Visualizza o modifica la motivazione del rifiuto di questo task.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <div className="my-4 p-4 bg-secondary rounded-md text-sm whitespace-pre-wrap">
-                        {rejectionReasonToShow}
+                    <div className="my-2 space-y-2">
+                        <Label htmlFor="edit-rejection-reason" className="text-xs font-semibold text-muted-foreground">Testo / Motivazione del Rifiuto</Label>
+                        <Textarea
+                            id="edit-rejection-reason"
+                            value={rejectionReasonText}
+                            onChange={(e) => setRejectionReasonText(e.target.value)}
+                            placeholder="Inserisci la motivazione del rifiuto..."
+                            rows={5}
+                            className="text-sm font-normal leading-relaxed"
+                        />
                     </div>
-                    <AlertDialogFooter>
-                        <Button variant="secondary" onClick={() => {
-                            if (rejectionReasonToShow) {
-                                navigator.clipboard.writeText(rejectionReasonToShow);
-                                toast.success("Testo copiato negli appunti.");
-                            }
-                        }}>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:justify-between items-stretch sm:items-center">
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                                if (rejectionReasonText) {
+                                    navigator.clipboard.writeText(rejectionReasonText);
+                                    toast.success("Testo copiato negli appunti.");
+                                }
+                            }}
+                        >
                             Copia Testo
                         </Button>
-                        <AlertDialogAction onClick={() => setRejectionReasonToShow(null)}>Chiudi</AlertDialogAction>
+                        <div className="flex items-center gap-2 justify-end">
+                            <AlertDialogCancel onClick={() => setRejectionReasonToShow(null)}>Chiudi</AlertDialogCancel>
+                            {rejectionReasonTask && (
+                                <Button
+                                    size="sm"
+                                    onClick={handleSaveRejectionReason}
+                                    disabled={isSavingRejectionReason}
+                                >
+                                    {isSavingRejectionReason ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                                    Salva Modifiche
+                                </Button>
+                            )}
+                        </div>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -2315,11 +2400,21 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                     {/* Motivo Rifiuto - mostrato solo se presente */}
                                     {previewTask.rejectionReason && (
                                         <Card className="border-destructive bg-destructive/5">
-                                            <CardHeader className="pb-2">
+                                            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
                                                 <CardTitle className="text-sm flex items-center gap-2 text-destructive">
                                                     <AlertTriangle className="h-4 w-4" />
                                                     Motivo Rifiuto
                                                 </CardTitle>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-xs text-destructive hover:bg-destructive/10"
+                                                    onClick={() => setRejectionReasonToShow(previewTask.rejectionReason || '', previewTask)}
+                                                >
+                                                    <Pencil className="h-3 w-3 mr-1" />
+                                                    Modifica
+                                                </Button>
                                             </CardHeader>
                                             <CardContent>
                                                 <p className="text-sm whitespace-pre-wrap text-destructive">
