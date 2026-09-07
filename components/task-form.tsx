@@ -50,6 +50,7 @@ import { Task, User, allTaskStatuses, allTaskPriorities } from "@/lib/data"
 import { addTask, updateTask, uploadFilesAndGetAttachments } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { WorkloadSphere } from "@/components/WorkloadSphere"
+import { UserWorkloadPreview } from "@/components/UserWorkloadPreview"
 import { motion } from "framer-motion"
 import { useAuthToken } from "@/hooks/use-auth-token"
 import { getAttachmentUrl } from "@/lib/attachment-url"
@@ -750,187 +751,14 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     </SelectContent>
                                 </Select>
 
-                                {/* ─── Workload indicators ─── */}
-                                {field.value && field.value !== 'nessuno' ? (() => {
-                                    const WORK_HOURS_DAY = 8;
-                                    const WORK_DAYS_WEEK = 5;
-                                    const now = new Date();
-
-                                    // Period boundaries
-                                    const startOfDay  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                                    const endOfDay    = new Date(startOfDay); endOfDay.setHours(23, 59, 59, 999);
-                                    const dayOfWeek   = now.getDay();
-                                    const diffToMon   = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                                    const startOfWeek = new Date(startOfDay); startOfWeek.setDate(startOfDay.getDate() + diffToMon);
-                                    const endOfWeek   = new Date(startOfWeek); endOfWeek.setDate(startOfWeek.getDate() + 4); endOfWeek.setHours(23,59,59,999);
-                                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                                    const endOfMonth   = new Date(now.getFullYear(), now.getMonth() + 1, 0); endOfMonth.setHours(23,59,59,999);
-
-                                    // Working days this month (Mon–Fri)
-                                    let workDaysMonth = 0;
-                                    for (let d = new Date(startOfMonth); d <= endOfMonth; d.setDate(d.getDate() + 1)) {
-                                        if (d.getDay() !== 0 && d.getDay() !== 6) workDaysMonth++;
-                                    }
-
-                                    const maxDay   = WORK_HOURS_DAY;
-                                    const maxWeek  = WORK_HOURS_DAY * WORK_DAYS_WEEK;
-                                    const maxMonth = WORK_HOURS_DAY * workDaysMonth;
-
-                                    // All active tasks for this user (same filter as admin dashboard)
-                                    // estimatedDuration is stored in MINUTES → divide by 60 for hours
-                                    const activeTasks = allTasks.filter(t =>
-                                        t.assignedUserId === field.value &&
-                                        t.status !== 'Approvato' &&
-                                        t.status !== 'Annullato' &&
-                                        t.id !== task?.id
-                                    );
-
-                                    // Calendar activities for this user (startTime/endTime → seconds → hours)
-                                    // Same logic as reports page and admin dashboard activityHours
-                                    const userActivities = (calendarActivities || []).filter((a: any) =>
-                                        a.userId === field.value && a.startTime && a.endTime
-                                    );
-
-                                    const activityHoursInRange = (start: Date, end: Date): number =>
-                                        userActivities
-                                            .filter((a: any) => {
-                                                const d = new Date(a.startTime);
-                                                return d >= start && d <= end;
-                                            })
-                                            .reduce((acc: number, a: any) => {
-                                                const dur = (new Date(a.endTime).getTime() - new Date(a.startTime).getTime()) / 1000; // seconds
-                                                return acc + dur / 3600;
-                                            }, 0);
-
-                                    // Helper: resolve the reference date of a task (same as reports page)
-                                    const taskRefDate = (t: typeof activeTasks[0]): Date => {
-                                        if (t.dueDate) return new Date(t.dueDate);
-                                        if (t.updatedAt) return new Date(t.updatedAt as string);
-                                        return now;
-                                    };
-
-                                    const inRange = (d: Date, start: Date, end: Date) => d >= start && d <= end;
-
-                                    // TODAY: tasks + activities with refDate = today
-                                    const dayTaskHours = activeTasks
-                                        .filter(t => inRange(taskRefDate(t), startOfDay, endOfDay))
-                                        .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
-                                    const dayHours = dayTaskHours + activityHoursInRange(startOfDay, endOfDay);
-
-                                    // THIS WEEK: tasks due this week + undated tasks + activities this week
-                                    const weekTasksWithDate = activeTasks.filter(t => t.dueDate && inRange(new Date(t.dueDate), startOfWeek, endOfWeek));
-                                    const weekTasksNoDate   = activeTasks.filter(t => !t.dueDate);
-                                    const weekTaskHours = [...weekTasksWithDate, ...weekTasksNoDate]
-                                        .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
-                                    const weekHours = weekTaskHours + activityHoursInRange(startOfWeek, endOfWeek);
-
-                                    // THIS MONTH: tasks in month + undated tasks + activities this month
-                                    const monthTasksWithDate = activeTasks.filter(t => t.dueDate && inRange(new Date(t.dueDate), startOfMonth, endOfMonth));
-                                    const monthTasksNoDate   = activeTasks.filter(t => !t.dueDate);
-                                    const monthTaskHours = [...monthTasksWithDate, ...monthTasksNoDate]
-                                        .reduce((acc, t) => acc + (t.estimatedDuration || 0) / 60, 0);
-                                    const monthHours = monthTaskHours + activityHoursInRange(startOfMonth, endOfMonth);
-
-                                    // ── Live preview from current form fields ──
-                                    const previewH = Math.max(0, (parseFloat(watchedDuration) || 0) / 60); // min → ore
-
-                                    const due = watchedDueDate ? new Date(watchedDueDate) : null;
-                                    const inDay   = due ? inRange(due, startOfDay, endOfDay)    : false;
-                                    const inWeek  = due ? inRange(due, startOfWeek, endOfWeek)  : previewH > 0; // no date → counts as undated backlog
-                                    const inMonth = due ? inRange(due, startOfMonth, endOfMonth): previewH > 0;
-
-                                    const previewDay   = (previewH > 0 && inDay)   ? previewH : 0;
-                                    const previewWeek  = (previewH > 0 && inWeek)  ? previewH : 0;
-                                    const previewMonth = (previewH > 0 && inMonth) ? previewH : 0;
-
-                                    // ── Helpers ──
-                                    const pct   = (val: number, max: number) => Math.min((val / max) * 100, 100);
-                                    const color = (p: number) => p < 60 ? '#22c55e' : p < 85 ? '#f59e0b' : '#ef4444';
-                                    const badge = (p: number) => p < 60 ? 'Libero' : p < 85 ? 'Quasi pieno' : 'Sovraccarico';
-
-                                    const WorkloadBar = ({
-                                        hours, preview, max, label: lbl
-                                    }: { hours: number; preview: number; max: number; label: string }) => {
-                                        const pBase    = pct(hours, max);
-                                        const pTotal   = pct(hours + preview, max);
-                                        const cBase    = color(pBase);
-                                        const cTotal   = color(pTotal);
-                                        const hasPreview = preview > 0;
-                                        return (
-                                            <div className="mb-2.5">
-                                                <div className="flex justify-between items-center mb-0.5">
-                                                    <span className="font-medium text-foreground">{lbl}</span>
-                                                    <span className="flex items-center gap-1 font-semibold tabular-nums" style={{ color: hasPreview ? cTotal : cBase }}>
-                                                        {hasPreview ? (
-                                                            <>
-                                                                {hours.toFixed(1)}
-                                                                <span style={{ color: cTotal, opacity: 0.85 }}>+{preview.toFixed(1)}</span>
-                                                                h / {max}h
-                                                            </>
-                                                        ) : (
-                                                            <>{hours.toFixed(1)}h / {max}h</>
-                                                        )}
-                                                        <span className="ml-0.5 text-[10px] opacity-60">({badge(pTotal)})</span>
-                                                    </span>
-                                                </div>
-                                                <div className="relative w-full h-2.5 rounded-full bg-secondary overflow-hidden">
-                                                    {/* existing load */}
-                                                    <div
-                                                        className="absolute left-0 top-0 h-full rounded-full transition-all duration-300"
-                                                        style={{ width: `${pBase}%`, backgroundColor: cBase }}
-                                                    />
-                                                    {/* preview segment — striped */}
-                                                    {hasPreview && (
-                                                        <div
-                                                            className="absolute top-0 h-full rounded-r-full transition-all duration-300"
-                                                            style={{
-                                                                left: `${pBase}%`,
-                                                                width: `${Math.min(pct(preview, max), 100 - pBase)}%`,
-                                                                backgroundColor: cTotal,
-                                                                opacity: 0.45,
-                                                                backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.35) 3px, rgba(255,255,255,0.35) 5px)',
-                                                            }}
-                                                        />
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    };
-
-                                    const hasAnyPreview = previewDay > 0 || previewWeek > 0 || previewMonth > 0;
-                                    const totalActiveTasks = activeTasks.length;
-                                    const undatedCount = activeTasks.filter(t => !t.dueDate).length;
-
-                                    return (
-                                        <div className="mt-3 p-3 rounded-xl border bg-muted/30 text-xs">
-                                            <p className="font-semibold text-foreground mb-2.5 flex items-center gap-1.5">
-                                                <span>⏱</span> Carico utente
-                                                <span className="ml-1 text-[10px] font-normal text-muted-foreground">
-                                                    ({totalActiveTasks} task attivi{undatedCount > 0 ? `, ${undatedCount} senza data` : ''})
-                                                </span>
-                                                {hasAnyPreview && (
-                                                    <span className="ml-auto text-[10px] font-normal text-muted-foreground italic">
-                                                        Anteprima +{previewH.toFixed(1)}h
-                                                    </span>
-                                                )}
-                                            </p>
-                                            {/* Sphere visual summary */}
-                                            <div className="flex gap-4 justify-around mb-3 py-1">
-                                                <WorkloadSphere load={pct(dayHours + previewDay, maxDay)} label="Oggi" size={44} />
-                                                <WorkloadSphere load={pct(weekHours + previewWeek, maxWeek)} label="Settimana" size={44} />
-                                                <WorkloadSphere load={pct(monthHours + previewMonth, maxMonth)} label="Mese" size={44} />
-                                            </div>
-                                            <WorkloadBar hours={dayHours}   preview={previewDay}   max={maxDay}   label="Oggi" />
-                                            <WorkloadBar hours={weekHours}  preview={previewWeek}  max={maxWeek}  label="Questa settimana" />
-                                            <WorkloadBar hours={monthHours} preview={previewMonth} max={maxMonth} label="Questo mese" />
-                                        </div>
-                                    );
-                                })() : (
-                                    <p className="text-xs text-muted-foreground mt-2">
-                                        Seleziona un utente per vedere il carico di lavoro
-                                    </p>
-                                )}
-
+                                <UserWorkloadPreview
+                                    userId={field.value}
+                                    selectedDate={watchedDueDate || new Date()}
+                                    previewHours={Math.max(0, (parseFloat(watchedDuration) || 0) / 60)}
+                                    excludeTaskId={task?.id}
+                                    allTasks={allTasks}
+                                    calendarActivities={calendarActivities}
+                                />
 
                                 <FormMessage />
                             </FormItem>

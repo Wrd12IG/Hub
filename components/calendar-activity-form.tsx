@@ -46,6 +46,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CalendarActivity } from '@/lib/data';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { UserWorkloadPreview } from '@/components/UserWorkloadPreview';
 
 const ClientMultiSelect = ({
     value = [],
@@ -171,7 +172,7 @@ interface CalendarActivityFormProps {
 }
 
 export function CalendarActivityForm({ activity, initialDate, onSuccess, onCancel }: CalendarActivityFormProps) {
-    const { users, clients, calendarActivityPresets, refetchData, currentUser } = useLayoutData();
+    const { users, clients, calendarActivityPresets, refetchData, currentUser, allTasks, calendarActivities } = useLayoutData();
     const { toast } = useToast();
 
     // Initial values - supporta sia startTime/endTime che start/end (legacy)
@@ -206,6 +207,24 @@ export function CalendarActivityForm({ activity, initialDate, onSuccess, onCance
         resolver: zodResolver(formSchema),
         defaultValues,
     });
+
+    const watchedUserId = form.watch("userId");
+    const watchedStartDate = form.watch("startDate");
+    const watchedStartTime = form.watch("startTime");
+    const watchedEndDate = form.watch("endDate");
+    const watchedEndTime = form.watch("endTime");
+
+    const previewHours = React.useMemo(() => {
+        if (!watchedStartDate || !watchedStartTime || !watchedEndDate || !watchedEndTime) return 0;
+        try {
+            const start = new Date(`${watchedStartDate}T${watchedStartTime}`).getTime();
+            const end = new Date(`${watchedEndDate}T${watchedEndTime}`).getTime();
+            if (isNaN(start) || isNaN(end) || end <= start) return 0;
+            return (end - start) / (1000 * 3600);
+        } catch {
+            return 0;
+        }
+    }, [watchedStartDate, watchedStartTime, watchedEndDate, watchedEndTime]);
 
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
@@ -342,6 +361,17 @@ export function CalendarActivityForm({ activity, initialDate, onSuccess, onCance
                             )}
                         />
                     </div>
+
+                    {watchedUserId && (
+                        <UserWorkloadPreview
+                            userId={watchedUserId}
+                            selectedDate={watchedStartDate || new Date()}
+                            previewHours={previewHours}
+                            excludeActivityId={activity?.id}
+                            allTasks={allTasks}
+                            calendarActivities={calendarActivities}
+                        />
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
