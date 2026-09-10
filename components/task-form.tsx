@@ -751,20 +751,21 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     </SelectContent>
                                 </Select>
 
-                                <UserWorkloadPreview
-                                    userId={field.value}
-                                    selectedDate={watchedDueDate || new Date()}
-                                    previewHours={Math.max(0, (parseFloat(watchedDuration) || 0) / 60)}
-                                    excludeTaskId={task?.id}
-                                    allTasks={allTasks}
-                                    calendarActivities={calendarActivities}
-                                />
-
                                 <FormMessage />
                             </FormItem>
                         )}
                     />
                 </div>
+
+                {/* ─── Workload 3-day + week/month — full width ─── */}
+                <UserWorkloadPreview
+                    userId={form.watch("assignedUserId")}
+                    selectedDate={watchedDueDate || new Date()}
+                    previewHours={Math.max(0, (parseFloat(watchedDuration) || 0) / 60)}
+                    excludeTaskId={task?.id}
+                    allTasks={allTasks}
+                    calendarActivities={calendarActivities}
+                />
 
                 <div className="space-y-2 pt-4 border-t">
                     <FormLabel className="text-base font-semibold">Allegati</FormLabel>
