@@ -37,22 +37,61 @@ export interface PlatformReport {
     rows: Record<string, string | number | undefined>[];
 }
 
+// ⚠️ Every field id below must exist in that connector's Windsor catalogue.
+// Windsor does NOT reject an unknown field id — it returns the column filled
+// with nulls, so a typo shows up as an empty dashboard with no error anywhere.
+// Verify ids against the connector's field list (MCP get_fields, or
+// GET /{connector}/fields) before adding any; several of these were wrong in
+// the first pass precisely because they were guessed from the platforms' own
+// API naming (activeUsers, totalRevenue, followers, actions... none exist).
 const PLATFORM_FIELDS: Record<PlatformReport['platform'], { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
-    facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc', 'actions'] },
-    instagram: { connector: 'instagram', fields: ['followers', 'reach', 'impressions', 'profile_views'] },
+    facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc'] },
+    instagram: { connector: 'instagram', fields: ['followers_count', 'reach', 'profile_views', 'likes'] },
     google_ads: { connector: 'google_ads', fields: ['clicks', 'impressions', 'cost', 'conversions', 'ctr', 'cpc'] },
-    ga4: { connector: 'googleanalytics4', fields: ['sessions', 'activeUsers', 'conversions', 'totalRevenue'] },
+    ga4: { connector: 'googleanalytics4', fields: ['sessions', 'active_users', 'conversions', 'purchase_revenue'] },
     searchconsole: { connector: 'searchconsole', fields: ['clicks', 'impressions', 'ctr', 'position'] },
-    linkedin_organic: { connector: 'linkedin_organic', fields: ['impressions', 'clicks', 'likes', 'shares'] },
-    // ⚠️ UNVERIFIED field names. Windsor refuses to serve its field catalogue
-    // for a connector with no account attached ("No google_my_business accounts
-    // are configured"), so these could not be checked the way every other
-    // platform's were. The moment GBP is connected on Windsor, confirm them
-    // with the connector's /fields endpoint (or the MCP get_fields tool) and
-    // correct this line. Until then a wrong name surfaces as a visible
-    // per-platform error in the UI — not as silent zeroes.
+    linkedin_organic: {
+        connector: 'linkedin_organic',
+        fields: [
+            'account_analytics_impression_count',
+            'account_analytics_click_count',
+            'account_analytics_like_count',
+            'organization_follower_count',
+        ],
+    },
+    // ⚠️ STILL UNVERIFIED, unlike every other line above. Windsor refuses to
+    // serve a connector's field catalogue while no account is attached to it
+    // ("No google_my_business accounts are configured"), so these four are
+    // guesses. Given Windsor returns nulls rather than an error for unknown
+    // ids, a wrong guess here shows up as an empty GBP section, not as a
+    // visible error — so verify them with get_fields the moment GBP is
+    // connected, before trusting anything this section displays.
     gbp: { connector: 'google_my_business', fields: ['impressions', 'website_clicks', 'call_clicks', 'direction_requests'] },
 };
+
+/**
+ * Windsor returns one row per underlying table/day/post, each carrying only the
+ * subset of requested fields that table knows about — Instagram, for example,
+ * comes back as ~30 rows where `likes` is per-post, while `followers_count`
+ * and `reach` each sit alone on their own row. Reading rows[0] therefore reads
+ * an almost-empty row. Summing every non-null numeric per field collapses that
+ * into one total, and is correct for the single-row connectors too (a lone
+ * value sums to itself).
+ */
+function aggregateRows(rows: Record<string, string | number | undefined>[]): Record<string, string | number | undefined> {
+    const totals: Record<string, string | number | undefined> = {};
+    for (const row of rows) {
+        for (const [key, value] of Object.entries(row)) {
+            if (value === null || value === undefined) continue;
+            if (typeof value === 'number') {
+                totals[key] = ((totals[key] as number) || 0) + value;
+            } else if (totals[key] === undefined) {
+                totals[key] = value; // account_id / account_name and friends
+            }
+        }
+    }
+    return totals;
+}
 
 /**
  * Fetch every platform this client has connected on Windsor, in parallel.
@@ -96,7 +135,9 @@ export async function getClientMarketingReport(
                 platform,
                 connected: true,
                 accountLabel: (rows[0]?.account_name as string) || undefined,
-                rows,
+                // One aggregated row — see aggregateRows for why raw rows can't
+                // be read positionally.
+                rows: rows.length > 0 ? [aggregateRows(rows)] : [],
             };
         } catch (err: any) {
             console.error(`[reporting] ${platform} failed for account ${accountId}:`, err.message);
