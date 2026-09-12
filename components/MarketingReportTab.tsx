@@ -133,11 +133,15 @@ export function MarketingReportTab({ clientId }: { clientId: string }) {
                   <h3 className="font-semibold">{meta.label}</h3>
                   {!p.connected && <span className="text-xs text-red-600">Errore: {p.error}</span>}
                 </div>
-                {p.connected ? (
+                {p.connected && p.rows.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {meta.metrics.map(m => (
                       <MetricoolCard key={m.key} title={m.label} value={(row[m.key] as number) ?? 0} variant={meta.variant} />
                     ))}
+                  </div>
+                ) : p.connected ? (
+                  <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
+                    Account collegato correttamente, ma nessuna attività registrata negli ultimi 30 giorni.
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
