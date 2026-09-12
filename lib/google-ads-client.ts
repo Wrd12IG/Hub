@@ -14,6 +14,8 @@ export interface GoogleAdsCampaign {
   id: string;
   name: string;
   status: 'ENABLED' | 'PAUSED' | 'REMOVED' | 'UNKNOWN';
+  startDate?: string;
+  endDate?: string;
   spend: number;
   impressions: number;
   clicks: number;
@@ -90,20 +92,26 @@ export async function getGoogleAdsCampaigns(clientId: string): Promise<{ campaig
 
   // Query GAQL (Google Ads Query Language)
   // Selezioniamo le campagne NON eliminate, coi dati degli ultimi 30 giorni
+  // LAST_365_DAYS (rather than the original LAST_30_DAYS) so campaigns that
+  // ended or were paused earlier this year still show up for the Campagne tab
+  // (filterable by status/date there) instead of disappearing once a campaign
+  // has no activity in the trailing 30 days.
   const query = `
-    SELECT 
-      campaign.id, 
-      campaign.name, 
-      campaign.status, 
-      metrics.cost_micros, 
-      metrics.impressions, 
-      metrics.clicks, 
-      metrics.average_cpc, 
-      metrics.conversions, 
+    SELECT
+      campaign.id,
+      campaign.name,
+      campaign.status,
+      campaign.start_date,
+      campaign.end_date,
+      metrics.cost_micros,
+      metrics.impressions,
+      metrics.clicks,
+      metrics.average_cpc,
+      metrics.conversions,
       metrics.cost_per_conversion,
       metrics.conversions_value
-    FROM campaign 
-    WHERE segments.date DURING LAST_30_DAYS
+    FROM campaign
+    WHERE segments.date DURING LAST_365_DAYS
       AND campaign.status != 'REMOVED'
   `;
 
@@ -138,6 +146,8 @@ export async function getGoogleAdsCampaigns(clientId: string): Promise<{ campaig
         id: String(row.campaign.id),
         name: row.campaign.name,
         status: (statusMap[row.campaign.status] || 'UNKNOWN') as any,
+        startDate: row.campaign.start_date || undefined,
+        endDate: row.campaign.end_date || undefined,
         spend,
         impressions: row.metrics.impressions || 0,
         clicks: row.metrics.clicks || 0,
