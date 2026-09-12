@@ -73,6 +73,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { MetricoolDatePicker } from "@/components/metricool/MetricoolDatePicker";
+import type { DateRange } from "react-day-picker";
+import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -278,8 +282,11 @@ export default function ClientDetailPage() {
   }[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
   const [campaignStatusFilter, setCampaignStatusFilter] = useState<'all' | 'active' | 'paused' | 'ended'>('all');
-  const [campaignDateFrom, setCampaignDateFrom] = useState('');
-  const [campaignDateTo, setCampaignDateTo] = useState('');
+  // Same DateRange + MetricoolDatePicker the Instagram/Facebook/LinkedIn pages
+  // use, rather than native <input type="date"> which looked foreign here.
+  const [campaignRange, setCampaignRange] = useState<DateRange | undefined>(undefined);
+  const campaignDateFrom = campaignRange?.from ? format(campaignRange.from, 'yyyy-MM-dd') : '';
+  const campaignDateTo = campaignRange?.to ? format(campaignRange.to, 'yyyy-MM-dd') : '';
   const [reportModalData, setReportModalData] = useState<any | null>(null);
   const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
   const [reportModalDatePreset, setReportModalDatePreset] =
@@ -1798,32 +1805,42 @@ export default function ClientDetailPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <input
-                type="text"
-                placeholder="Filtra per nome..."
-                value={campaignFilter}
-                onChange={(e) => setCampaignFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 text-xs w-full sm:w-56 outline-none transition-all placeholder:text-muted-foreground/50 text-foreground"
-              />
-              <select
-                value={campaignStatusFilter}
-                onChange={(e) => setCampaignStatusFilter(e.target.value as any)}
-                className="px-3 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 text-xs outline-none text-foreground"
-              >
-                <option value="all">Tutti gli stati</option>
-                <option value="active">Attive</option>
-                <option value="paused">In pausa</option>
-                <option value="ended">Finite</option>
-              </select>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>Dal</span>
-                <input type="date" value={campaignDateFrom} onChange={(e) => setCampaignDateFrom(e.target.value)}
-                  className="px-2 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 outline-none text-foreground" />
-                <span>al</span>
-                <input type="date" value={campaignDateTo} onChange={(e) => setCampaignDateTo(e.target.value)}
-                  className="px-2 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 outline-none text-foreground" />
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                <Input
+                  placeholder="Filtra per nome..."
+                  value={campaignFilter}
+                  onChange={(e) => setCampaignFilter(e.target.value)}
+                  className="pl-9"
+                />
               </div>
-              {loadingCampaigns && <span className="text-xs text-muted-foreground/60 animate-pulse">Caricamento...</span>}
+
+              <Select
+                value={campaignStatusFilter}
+                onValueChange={(v) => setCampaignStatusFilter(v as typeof campaignStatusFilter)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tutti gli stati</SelectItem>
+                  <SelectItem value="active">Attive</SelectItem>
+                  <SelectItem value="paused">In pausa</SelectItem>
+                  <SelectItem value="ended">Finite</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <MetricoolDatePicker date={campaignRange} setDate={setCampaignRange} />
+
+              {campaignRange && (
+                <Button variant="ghost" size="sm" onClick={() => setCampaignRange(undefined)}>
+                  Azzera periodo
+                </Button>
+              )}
+
+              {loadingCampaigns && (
+                <span className="text-xs text-muted-foreground/60 animate-pulse">Caricamento...</span>
+              )}
             </div>
 
             {!loadingCampaigns && filtered.length === 0 ? (
