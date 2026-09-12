@@ -48,6 +48,18 @@ export interface Client {
     tiktokDisplayName?: string;
     hasLinkedinToken?: boolean;
     linkedinOrgName?: string;
+    // Maps this client to its accounts on Windsor.ai (used for marketing reporting —
+    // see lib/windsor-client.ts). Account ids come from Windsor's own dashboard,
+    // not from the platform's native id format in every case (e.g. GA4 uses the
+    // property id, Search Console uses the verified site URL).
+    windsorAccounts?: {
+        facebook?: string;       // Meta Ads account id
+        instagram?: string;      // Instagram business account id
+        google_ads?: string;     // Google Ads customer id
+        ga4?: string;            // GA4 property id
+        searchconsole?: string;  // Verified site URL
+        linkedin_organic?: string; // LinkedIn organization id
+    };
 }
 
 export interface SocialProfile {
