@@ -1375,7 +1375,11 @@ export default function ClientDetailPage() {
           {/* pipeline n8n (clients/{id}/performance), mai popolata */}
           {/* ==================================================== */}
           <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg">
-            <MarketingReportTab clientId={id as string} daysBack={overviewDaysBack} />
+            <MarketingReportTab
+              clientId={id as string}
+              daysBack={overviewDaysBack}
+              compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
+            />
           </div>
         </div>
       )}
