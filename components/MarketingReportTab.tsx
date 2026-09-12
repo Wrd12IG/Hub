@@ -1,10 +1,9 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, Settings2 } from 'lucide-react'
+import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useLayoutData } from '@/app/(app)/layout-context'
 
 // Matches lib/reporting.ts's PlatformReport shape.
 type PlatformKey = 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic'
@@ -14,15 +13,6 @@ interface PlatformReport {
   connected: boolean
   error?: string
   rows: Record<string, string | number | undefined>[]
-}
-
-interface WindsorAccounts {
-  facebook?: string
-  instagram?: string
-  google_ads?: string
-  ga4?: string
-  searchconsole?: string
-  linkedin_organic?: string
 }
 
 const PLATFORM_META: Record<PlatformKey, { label: string; icon: any; variant: 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gray'; metrics: { key: string; label: string }[] }> = {
@@ -39,13 +29,9 @@ function authHeaders() {
 }
 
 export function MarketingReportTab({ clientId }: { clientId: string }) {
-  const { currentUser } = useLayoutData()
-  const isStaff = currentUser?.role !== 'Cliente'
-
   const [platforms, setPlatforms] = useState<PlatformReport[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
 
   const fetchReport = useCallback(async () => {
     setLoading(true)
@@ -77,27 +63,13 @@ export function MarketingReportTab({ clientId }: { clientId: string }) {
           <h2 className="text-lg font-bold">Report Marketing</h2>
           <p className="text-sm text-muted-foreground">Dati aggregati da Windsor.ai — ultimi 30 giorni</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchReport}
-            className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
-          >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Aggiorna
-          </button>
-          {isStaff && (
-            <button
-              onClick={() => setShowSettings(s => !s)}
-              className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
-            >
-              <Settings2 size={14} /> Collega account
-            </button>
-          )}
-        </div>
+        <button
+          onClick={fetchReport}
+          className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Aggiorna
+        </button>
       </div>
-
-      {isStaff && showSettings && (
-        <WindsorAccountsForm clientId={clientId} onSaved={() => { setShowSettings(false); fetchReport() }} />
-      )}
 
       {loading && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -116,7 +88,7 @@ export function MarketingReportTab({ clientId }: { clientId: string }) {
           <AlertCircle className="h-10 w-10 text-muted-foreground/40" />
           <h3 className="font-semibold">Nessuna piattaforma collegata</h3>
           <p className="text-sm text-muted-foreground max-w-sm">
-            {isStaff ? 'Collega almeno un account Windsor.ai per questo cliente per vedere i primi dati.' : 'Il tuo referente sta ancora configurando la reportistica.'}
+            Vai nella tab <strong>Setup API</strong> e collega almeno un account (Meta Ads, Google Ads, GA4, Instagram, Search Console o LinkedIn) per vedere i primi dati qui.
           </p>
         </div>
       )}
@@ -151,99 +123,9 @@ export function MarketingReportTab({ clientId }: { clientId: string }) {
               </div>
             )
           })}
-          <p className="text-xs text-muted-foreground pt-2">{connectedCount} di {platforms.length} piattaforme con dati disponibili.</p>
+          <p className="text-xs text-muted-foreground pt-2">{connectedCount} di {platforms.length} piattaforme con dati disponibili. Per aggiungerne altre, vai in <strong>Setup API</strong>.</p>
         </div>
       )}
-    </div>
-  )
-}
-
-/** Staff-only inline form to map this client's Windsor.ai account ids per platform. */
-function WindsorAccountsForm({ clientId, onSaved }: { clientId: string; onSaved: () => void }) {
-  const [values, setValues] = useState<WindsorAccounts>({})
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch(`/api/clients/${clientId}`, { headers: authHeaders() })
-      .then(res => res.json())
-      .then(data => setValues({
-        facebook: data.metaAdAccountId || data.windsorAccounts?.facebook || '',
-        google_ads: data.googleAdAccountId || data.windsorAccounts?.google_ads || '',
-        ga4: data.ga4PropertyId || data.windsorAccounts?.ga4 || '',
-        instagram: data.windsorAccounts?.instagram || '',
-        searchconsole: data.windsorAccounts?.searchconsole || '',
-        linkedin_organic: data.windsorAccounts?.linkedin_organic || '',
-      }))
-      .catch(() => {})
-  }, [clientId])
-
-  async function save() {
-    setSaving(true)
-    setError(null)
-    try {
-      // facebook/google_ads/ga4 reuse the client's existing platform-id fields
-      // (already used by Setup API / PlatformConnections) rather than duplicating
-      // them — only instagram/searchconsole/linkedin_organic are Windsor-only.
-      const res = await fetch(`/api/clients/${clientId}`, {
-        method: 'PUT',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metaAdAccountId: values.facebook,
-          googleAdAccountId: values.google_ads,
-          ga4PropertyId: values.ga4,
-          windsorAccounts: {
-            instagram: values.instagram,
-            searchconsole: values.searchconsole,
-            linkedin_organic: values.linkedin_organic,
-          },
-        }),
-      })
-      if (!res.ok) throw new Error('Salvataggio fallito')
-      onSaved()
-    } catch (err: any) {
-      setError(err.message)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const fields: { key: keyof WindsorAccounts; label: string; hint: string }[] = [
-    { key: 'facebook', label: 'Meta Ads — Account ID', hint: 'es. 2531167240443137' },
-    { key: 'instagram', label: 'Instagram — Business Account ID', hint: 'es. 17841403614009161' },
-    { key: 'google_ads', label: 'Google Ads — Customer ID', hint: 'es. 457-802-1266' },
-    { key: 'ga4', label: 'GA4 — Property ID', hint: 'es. 467876662' },
-    { key: 'searchconsole', label: 'Search Console — URL sito verificato', hint: 'es. https://www.esempio.it/' },
-    { key: 'linkedin_organic', label: 'LinkedIn — Organization ID', hint: 'es. 53113725' },
-  ]
-
-  return (
-    <div className="p-4 border rounded-xl bg-muted/30 space-y-3">
-      <p className="text-xs text-muted-foreground">
-        Gli ID si trovano nel pannello Windsor.ai (onboard.windsor.ai) sotto ogni connector collegato. Meta/Google Ads/GA4 sono condivisi con la tab "Setup API". Lascia vuoto un campo per non collegare quella piattaforma.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {fields.map(f => (
-          <div key={f.key} className="space-y-1">
-            <label htmlFor={`windsor-${f.key}`} className="text-xs font-semibold text-muted-foreground">{f.label}</label>
-            <input
-              id={`windsor-${f.key}`}
-              value={values[f.key] || ''}
-              onChange={e => setValues(v => ({ ...v, [f.key]: e.target.value }))}
-              placeholder={f.hint}
-              className="w-full text-sm bg-background border px-3 py-2 rounded-lg outline-none focus:border-blue-500/50"
-            />
-          </div>
-        ))}
-      </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <button
-        onClick={save}
-        disabled={saving}
-        className="text-sm px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold disabled:opacity-50"
-      >
-        {saving ? 'Salvataggio…' : 'Salva mappatura'}
-      </button>
     </div>
   )
 }
