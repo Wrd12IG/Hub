@@ -155,6 +155,7 @@ interface Client {
     instagram?: string;
     searchconsole?: string;
     linkedin_organic?: string;
+    gbp?: string[];
   };
 }
 
