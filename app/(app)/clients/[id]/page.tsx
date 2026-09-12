@@ -1668,7 +1668,7 @@ export default function ClientDetailPage() {
               <div>
                 <h2 className="text-xl font-extrabold text-foreground">Campagne</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Tutte le campagne reali su Meta Ads e Google Ads per questo cliente
+                  Campagne reali su Meta Ads e Google Ads — ultimi 90 giorni
                 </p>
               </div>
               <Link
