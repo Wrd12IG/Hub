@@ -237,21 +237,21 @@ function MetaModal({
     <ModalWrapper title="Meta Ads — Configura" onClose={onClose}>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Ad Account ID</label>
-          <input value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="act_123456789"
+          <label htmlFor="meta-ad-account-id" className="text-xs font-bold text-muted-foreground">Ad Account ID</label>
+          <input id="meta-ad-account-id" value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="act_123456789"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Page ID (Facebook)</label>
-          <input value={pageId} onChange={(e) => setPageId(e.target.value)} placeholder="es. 104345345345"
+          <label htmlFor="meta-page-id" className="text-xs font-bold text-muted-foreground">Page ID (Facebook)</label>
+          <input id="meta-page-id" value={pageId} onChange={(e) => setPageId(e.target.value)} placeholder="es. 104345345345"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+          <label htmlFor="meta-system-user-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
             System User Token
             {hasToken && <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
-          <input type="password" value={token} onChange={(e) => setToken(e.target.value)}
+          <input id="meta-system-user-token" type="password" value={token} onChange={(e) => setToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "EAAB... (System User Token)"}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
@@ -301,16 +301,16 @@ function GA4Modal({
     <ModalWrapper title="Google Analytics 4" onClose={onClose}>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">GA4 Property ID</label>
-          <input value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="es. 345678901"
+          <label htmlFor="ga4-property-id" className="text-xs font-bold text-muted-foreground">GA4 Property ID</label>
+          <input id="ga4-property-id" value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="es. 345678901"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+          <label htmlFor="ga4-refresh-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
             Google OAuth Refresh Token
             {hasGoogleToken && <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
-          <input type="password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <input id="ga4-refresh-token" type="password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder={hasGoogleToken ? "Lascia vuoto per mantenere" : "1//04ABCD..."}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground/40" />
           <p className="text-[10px] text-muted-foreground/60">Il token è condiviso tra Google Ads, GA4 e GBP.</p>
@@ -359,8 +359,8 @@ function GoogleAdsModal({
           </div>
         )}
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Customer ID</label>
-          <input value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="es. 123-456-7890"
+          <label htmlFor="google-ads-customer-id" className="text-xs font-bold text-muted-foreground">Customer ID</label>
+          <input id="google-ads-customer-id" value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="es. 123-456-7890"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
           <p className="text-[10px] text-muted-foreground/60">Trovalo su ads.google.com in alto a destra.</p>
         </div>
@@ -403,8 +403,8 @@ function ClarityModal({
     <ModalWrapper title="Microsoft Clarity — Project ID" onClose={onClose}>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Project ID</label>
-          <input value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="es. 8abc123def"
+          <label htmlFor="clarity-project-id" className="text-xs font-bold text-muted-foreground">Project ID</label>
+          <input id="clarity-project-id" value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="es. 8abc123def"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-violet-500/50 transition-all placeholder:text-muted-foreground/40" />
           <p className="text-[10px] text-muted-foreground/60">
             Trovalo su{" "}
@@ -622,14 +622,14 @@ function YoutubeModal({
           </ol>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Access Token *</label>
-          <input value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+          <label htmlFor="youtube-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
+          <input id="youtube-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "ya29.a0..."}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato per rinnovo automatico)</label>
-          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <label htmlFor="youtube-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato per rinnovo automatico)</label>
+          <input id="youtube-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="1//0e..."
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
@@ -742,14 +742,14 @@ function TikTokModal({
           </ol>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Access Token *</label>
-          <input value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+          <label htmlFor="tiktok-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
+          <input id="tiktok-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "act.xxx..."}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato)</label>
-          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <label htmlFor="tiktok-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato)</label>
+          <input id="tiktok-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="rft.xxx..."
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
@@ -867,20 +867,20 @@ function LinkedinModal({
           </ol>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Access Token *</label>
-          <input value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+          <label htmlFor="linkedin-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
+          <input id="linkedin-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "AQV..."}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Refresh Token (se disponibile)</label>
-          <input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <label htmlFor="linkedin-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (se disponibile)</label>
+          <input id="linkedin-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="AQW..."
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-muted-foreground">Organization ID (numero della pagina)</label>
-          <input value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
+          <label htmlFor="linkedin-org-id" className="text-xs font-bold text-muted-foreground">Organization ID (numero della pagina)</label>
+          <input id="linkedin-org-id" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
             placeholder="es. 12345678"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
           <p className="text-[10px] text-muted-foreground/60">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>

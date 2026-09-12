@@ -87,10 +87,10 @@ export const MetricoolTable = ({
           </div>
           <div>1-{Math.min(5, safeData.length)} di {safeData.length}</div>
           <div className="flex gap-1">
-            <button className="p-1 rounded-full hover:bg-muted text-muted-foreground"><ChevronsLeft size={16} /></button>
-            <button className="p-1 rounded-full hover:bg-muted text-muted-foreground"><ChevronLeft size={16} /></button>
-            <button className="p-1 rounded-full hover:bg-muted text-foreground"><ChevronRight size={16} /></button>
-            <button className="p-1 rounded-full hover:bg-muted text-foreground"><ChevronsRight size={16} /></button>
+            <button type="button" aria-label="Prima pagina" className="p-1 rounded-full hover:bg-muted text-muted-foreground"><ChevronsLeft size={16} /></button>
+            <button type="button" aria-label="Pagina precedente" className="p-1 rounded-full hover:bg-muted text-muted-foreground"><ChevronLeft size={16} /></button>
+            <button type="button" aria-label="Pagina successiva" className="p-1 rounded-full hover:bg-muted text-foreground"><ChevronRight size={16} /></button>
+            <button type="button" aria-label="Ultima pagina" className="p-1 rounded-full hover:bg-muted text-foreground"><ChevronsRight size={16} /></button>
           </div>
         </div>
       </div>

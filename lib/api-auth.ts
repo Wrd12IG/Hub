@@ -32,14 +32,14 @@ export async function verifyAuth(request: Request): Promise<AuthUser | null> {
         const decoded = await adminAuth.verifyIdToken(token);
         return { uid: decoded.uid, email: decoded.email };
       } catch (err: any) {
-        console.warn('[api-auth] Firebase verifyIdToken check failed or firebase-admin unconfigured, accepting token:', err.message);
-        return { uid: 'authenticated_user', email: 'user@wrdigital.it' };
+        // Firebase Admin not configured (missing env vars) is an operational/deploy
+        // problem, not a signal to trust the caller — never treat a failed
+        // verification as "authenticated". Any invalid/expired/forged token must
+        // be rejected, otherwise `Authorization: Bearer <anything>` would pass
+        // on every API route that relies on this check.
+        console.error('[api-auth] Firebase verifyIdToken failed — rejecting request:', err.message);
+        return null;
       }
-    }
-
-    const userIdHeader = request.headers.get('x-user-id');
-    if (userIdHeader) {
-      return { uid: userIdHeader };
     }
 
     return null;

@@ -1258,13 +1258,35 @@
   /* Glass theme specific - even more transparent */
   .theme-glass .glass-card {
     background-color: rgba(255, 255, 255, 0.18) !important;
-    backdrop-filter: blur(28px) saturate(220%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(220%) !important;
+    /* Was blur(28px) saturate(220%) — that GPU cost tanked mobile FPS across every
+       cascaded glass card. 16px reads almost identically but is much cheaper. */
+    backdrop-filter: blur(16px) saturate(220%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(220%) !important;
     border: 1px solid rgba(255, 255, 255, 0.35) !important;
     box-shadow:
       0 8px 32px 0 rgba(31, 38, 135, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.6),
       inset 0 -1px 0 rgba(255, 255, 255, 0.1) !important;
+  }
+
+  /* Fallback for browsers/contexts without backdrop-filter support: fall back to a
+     solid, sufficiently opaque background instead of a see-through, unreadable
+     surface with no blur applied. */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background-color: rgba(255, 255, 255, 0.92) !important;
+    }
+    .dark .glass {
+      background-color: rgba(20, 20, 25, 0.92) !important;
+    }
+    .glass-card,
+    .theme-glass .glass-card {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+    }
+    .dark .glass-card,
+    .dark .theme-glass .glass-card {
+      background-color: rgba(30, 30, 40, 0.95) !important;
+    }
   }
 
   .theme-glass .glass-card:hover {

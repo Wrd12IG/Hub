@@ -42,6 +42,10 @@ export function SkeletonKPICard({ className }: SkeletonProps) {
     );
 }
 
+// Fixed bar heights for the chart skeleton — deterministic on every render/mount
+// so the layout doesn't shift (CLS) once real data replaces the placeholder.
+const CHART_SKELETON_BAR_HEIGHTS = [120, 170, 90, 150, 110, 190];
+
 // Chart Card Skeleton
 export function SkeletonChartCard({ className }: SkeletonProps) {
     return (
@@ -55,11 +59,11 @@ export function SkeletonChartCard({ className }: SkeletonProps) {
                 <Skeleton className="h-4 w-64" />
             </div>
             <div className="flex items-end justify-between h-[250px] gap-4 px-4">
-                {[...Array(6)].map((_, i) => (
+                {CHART_SKELETON_BAR_HEIGHTS.map((height, i) => (
                     <div key={i} className="flex-1 flex flex-col items-center gap-2">
                         <Skeleton
                             className="w-full rounded-t-md"
-                            style={{ height: `${Math.random() * 150 + 50}px` }}
+                            style={{ height: `${height}px` }}
                         />
                         <Skeleton className="h-3 w-12" />
                     </div>
