@@ -104,19 +104,31 @@ function PlacementSelector({ config, onChange }: { config: PlacementConfig; onCh
     <div style={{ marginTop: '0' }}>
       {/* Mode toggle */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <div onClick={() => setMode('ADVANTAGE_PLUS')} style={{
-          padding: '1rem 1.25rem', borderRadius: '12px', cursor: 'pointer',
-          border: `1px solid ${config.mode === 'ADVANTAGE_PLUS' ? 'var(--brand-fuchsia)' : 'rgba(0, 0, 0,0.08)'}`,
-          background: config.mode === 'ADVANTAGE_PLUS' ? 'rgba(236,72,153,0.08)' : 'rgba(0, 0, 0,0.02)',
-        }}>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-pressed={config.mode === 'ADVANTAGE_PLUS'}
+          onClick={() => setMode('ADVANTAGE_PLUS')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('ADVANTAGE_PLUS'); } }}
+          style={{
+            padding: '1rem 1.25rem', borderRadius: '12px', cursor: 'pointer',
+            border: `1px solid ${config.mode === 'ADVANTAGE_PLUS' ? 'var(--brand-fuchsia)' : 'rgba(0, 0, 0,0.08)'}`,
+            background: config.mode === 'ADVANTAGE_PLUS' ? 'rgba(236,72,153,0.08)' : 'rgba(0, 0, 0,0.02)',
+          }}>
           <div style={{ fontWeight: 700, marginBottom: '0.3rem' }}><Sparkles size={16} /> Advantage+ Placement</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Meta ottimizza automaticamente i placement per ridurre il CPA. Consigliato.</div>
         </div>
-        <div onClick={() => setMode('MANUAL')} style={{
-          padding: '1rem 1.25rem', borderRadius: '12px', cursor: 'pointer',
-          border: `1px solid ${config.mode === 'MANUAL' ? 'var(--brand-cyan)' : 'rgba(0, 0, 0,0.08)'}`,
-          background: config.mode === 'MANUAL' ? 'rgba(6,182,212,0.06)' : 'rgba(0, 0, 0,0.02)',
-        }}>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-pressed={config.mode === 'MANUAL'}
+          onClick={() => setMode('MANUAL')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMode('MANUAL'); } }}
+          style={{
+            padding: '1rem 1.25rem', borderRadius: '12px', cursor: 'pointer',
+            border: `1px solid ${config.mode === 'MANUAL' ? 'var(--brand-cyan)' : 'rgba(0, 0, 0,0.08)'}`,
+            background: config.mode === 'MANUAL' ? 'rgba(6,182,212,0.06)' : 'rgba(0, 0, 0,0.02)',
+          }}>
           <div style={{ fontWeight: 700, marginBottom: '0.3rem' }}><Sliders size={16} /> Placement Manuale</div>
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Scegli tu esattamente dove mostrare le inserzioni.</div>
         </div>

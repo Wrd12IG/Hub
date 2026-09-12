@@ -1,0 +1,154 @@
+// firestore.rules
+//
+// ⚠️ DRAFT — this file did not exist in the repository before this patch, so
+// there is no previous ruleset to diff against or confirm this matches. Data
+// access for this app was previously governed only by whatever rules are
+// currently live in the Firebase console (unknown/unverified) plus ad-hoc
+// client-side query filtering. Review this against the Firebase Rules
+// Playground / emulator with real sample documents for every collection
+// below BEFORE deploying to production — an incorrect rule here can lock
+// legitimate users out just as easily as it can leave a hole open.
+//
+// Model, inferred from lib/data.ts and app/(app)/layout-context.tsx:
+//   - users/{uid}:            { role: 'Amministratore'|'Project Manager'|'Collaboratore'|'Cliente', clientId?, salary?, hourlyRate?, ... }
+//   - clients/{clientId}:     tenant root; salary/budget-bearing fields live under here and on tasks/projects/serviceContracts
+//   - projects/{id}:          { clientId, ... }
+//   - tasks/{id}:             { clientId, ... }
+//   - serviceContracts/{id}:  { clientId, ... }
+//   - conversations/{id}:     { memberIds: string[], ... }
+//   - users/{uid}/notifications/{id}: per-user, private
+//
+// Collections referenced elsewhere in the app (editorialContents, editorialColumns,
+// briefs, recurringTasks, recurringProjects, teams, departments, emailTemplates,
+// taskTemplateBundles, editorialFormats, editorialPillars, editorialStatuses, ...)
+// are covered by the conservative "staffOnly" fallback further down. Give each of
+// these its own rule once its real field shape (does it carry a clientId? is it
+// ever read directly by a Cliente-role user from the client SDK?) is confirmed —
+// the fallback intentionally denies Cliente-role read/write so nothing leaks by
+// default, but may be stricter than what today's UI actually needs.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function myRole() {
+      return isSignedIn() ? myUserDoc().data.role : null;
+    }
+
+    function myClientId() {
+      return isSignedIn() ? myUserDoc().data.get('clientId', null) : null;
+    }
+
+    function isStaff() {
+      // Amministratore / Project Manager / Collaboratore — everyone except Cliente.
+      return isSignedIn() && myRole() != 'Cliente';
+    }
+
+    function isAdmin() {
+      return isSignedIn() && myRole() == 'Amministratore';
+    }
+
+    function ownsClient(clientId) {
+      return isSignedIn() && myRole() == 'Cliente' && myClientId() == clientId;
+    }
+
+    function canReadClientScoped(clientId) {
+      return isStaff() || ownsClient(clientId);
+    }
+
+    // ── users ────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      // Everyone signed in can read the roster (names/avatars are shown across
+      // the UI for assignees, mentions, etc.). Sensitive fields (salary,
+      // hourlyRate) must NOT be trusted from this read alone — the client
+      // already strips them for Cliente-role in layout-context.tsx, but that
+      // is a UX nicety, not a security boundary; do not add new sensitive
+      // fields to this collection without also field-scoping this rule.
+      allow read: if isSignedIn();
+      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, delete: if isAdmin();
+
+      match /notifications/{notificationId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    // ── clients ──────────────────────────────────────────────────────────
+    match /clients/{clientId} {
+      allow read: if canReadClientScoped(clientId);
+      allow write: if isStaff();
+
+      match /integrations/{platform} {
+        // Encrypted tokens (see lib/api-auth.ts) — server (Admin SDK) only.
+        allow read, write: if false;
+      }
+    }
+
+    // ── projects / tasks / serviceContracts (tenant-scoped by clientId) ──
+    match /projects/{id} {
+      allow read: if canReadClientScoped(resource.data.clientId);
+      allow create: if isStaff() && canReadClientScoped(request.resource.data.clientId);
+      allow update, delete: if isStaff();
+    }
+
+    match /tasks/{id} {
+      allow read: if canReadClientScoped(resource.data.clientId);
+      allow create: if isStaff() && canReadClientScoped(request.resource.data.clientId);
+      allow update: if isStaff() || ownsClient(resource.data.clientId);
+      allow delete: if isStaff();
+    }
+
+    match /serviceContracts/{id} {
+      allow read: if canReadClientScoped(resource.data.clientId);
+      allow write: if isStaff();
+    }
+
+    // ── conversations (participants only) ───────────────────────────────
+    match /conversations/{id} {
+      allow read, update: if isSignedIn() && request.auth.uid in resource.data.memberIds;
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.memberIds;
+      allow delete: if isAdmin();
+    }
+
+    // ── internal/staff-only reference data ──────────────────────────────
+    match /rolePermissions/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /absences/{id} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // Firestore rules don't support a `where collection in [...]` shorthand on a
+    // wildcard match, so this staff-only read-only-for-non-admins policy is
+    // repeated per collection instead of factored into one block.
+    match /activityTypes/{id}            { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /calendarActivities/{id}       { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /calendarActivityPresets/{id}  { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /briefServices/{id}            { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /briefServiceCategories/{id}   { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /departments/{id}              { allow read: if isStaff(); allow write: if isAdmin(); }
+    match /teams/{id}                    { allow read: if isStaff(); allow write: if isAdmin(); }
+
+    // ── Conservative fallback for every other collection ────────────────
+    // (editorialContents, editorialColumns, briefs, recurringTasks,
+    // recurringProjects, emailTemplates, taskTemplateBundles,
+    // editorialFormats, editorialPillars, editorialStatuses, and anything
+    // added later). Staff only until each is reviewed and given its own rule.
+    match /{document=**} {
+      allow read, write: if isStaff();
+    }
+  }
+}

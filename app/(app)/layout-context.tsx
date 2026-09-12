@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { onIdTokenChanged, User as AuthUser, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { getDoc, doc, collection, query, where, orderBy, limit, onSnapshot, getDocs, setDoc, Timestamp } from 'firebase/firestore';
+import { getDoc, doc, collection, query, where, orderBy, limit, onSnapshot, getDocs, setDoc, Timestamp, documentId, type Query } from 'firebase/firestore';
 import type { User, Client, Project, Task, ActivityType, Absence, RolePermissions, Conversation, Notification, CalendarActivity, TaskPrioritySettings, CalendarActivityPreset, BriefService, BriefServiceCategory, ServiceContract } from '@/lib/data';
 import { getUsers, getClients, getProjects, getTasks, getActivityTypes, getAbsences, getRolePermissions, getTask, getProject, createNotification, addUser, getCalendarActivities, getTaskPrioritySettings, getCalendarActivityPresets, getBriefServices, getBriefServiceCategories, getServiceContracts } from '@/lib/actions';
 import { playSound, showBrowserNotification } from '@/lib/sounds';
@@ -265,6 +265,14 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       if (user) {
         const token = await user.getIdToken();
         localStorage.setItem('token', token);
+        // Keep the httpOnly session cookie in sync so middleware.ts can actually
+        // verify who's calling /admin* and /clients* at the edge (it previously
+        // read a cookie that was never set by any part of the app).
+        fetch('/api/auth/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: token }),
+        }).catch((err) => console.error('[layout-context] Failed to sync session cookie:', err));
         setIsLoadingLayout(true);
         try {
           const userDocRef = doc(db, 'users', user.uid);
@@ -291,6 +299,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
         }
       } else {
         localStorage.removeItem('token');
+        fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
         setCurrentUser(null);
         setUsers([]);
         setClients([]);
@@ -316,18 +325,25 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    const collectionsToListen: { name: string, setter: (data: any[]) => void }[] = [
+    // `tenantField` scopes a collection to the signed-in user's own client when
+    // they are a "Cliente". Previously every one of these was an unfiltered
+    // onSnapshot(collection(db, name)) for ALL authenticated users, so a Cliente's
+    // browser received every other client's projects/tasks/contracts (budgets,
+    // internal notes included) over the wire — sanitizing fields client-side
+    // afterwards (see `sanitizedUsers` below) doesn't help here, since the
+    // unwanted data was already fetched. Scoping the query itself is the fix.
+    const collectionsToListen: { name: string, setter: (data: any[]) => void, tenantField?: 'clientId' | 'documentId' }[] = [
       { name: 'users', setter: setUsers },
-      { name: 'clients', setter: setClients },
-      { name: 'projects', setter: setAllProjects },
-      { name: 'tasks', setter: setAllTasks },
+      { name: 'clients', setter: setClients, tenantField: 'documentId' },
+      { name: 'projects', setter: setAllProjects, tenantField: 'clientId' },
+      { name: 'tasks', setter: setAllTasks, tenantField: 'clientId' },
       { name: 'absences', setter: setAbsences },
       { name: 'activityTypes', setter: setActivityTypes },
       { name: 'calendarActivities', setter: setCalendarActivities },
       { name: 'calendarActivityPresets', setter: setCalendarActivityPresets },
       { name: 'briefServices', setter: setBriefServices },
       { name: 'briefServiceCategories', setter: setBriefServiceCategories },
-      { name: 'serviceContracts', setter: setServiceContracts },
+      { name: 'serviceContracts', setter: setServiceContracts, tenantField: 'clientId' },
       {
         name: 'rolePermissions', setter: (data: any[]) => {
           const perms: RolePermissions = {};
@@ -337,12 +353,23 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       },
     ];
 
-    const unsubs = collectionsToListen.map(({ name, setter }) =>
-      onSnapshot(collection(db, name), (snapshot) => {
+    const isClientRole = currentUser.role === 'Cliente';
+    const scopeClientId = currentUser.clientId;
+
+    const unsubs = collectionsToListen.map(({ name, setter, tenantField }) => {
+      let ref: Query = collection(db, name);
+      if (isClientRole && tenantField) {
+        // A Cliente user with no clientId on their profile shouldn't fall back to
+        // seeing everyone's data — scope to an id that matches nothing instead.
+        const value = scopeClientId || '__no_client_assigned__';
+        const field = tenantField === 'documentId' ? documentId() : tenantField;
+        ref = query(collection(db, name), where(field, '==', value));
+      }
+      return onSnapshot(ref, (snapshot) => {
         const data = snapshot.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) }));
         setter(data);
-      }, (error) => console.error(`Error fetching ${name}:`, error))
-    );
+      }, (error) => console.error(`Error fetching ${name}:`, error));
+    });
 
     const qConversations = query(
       collection(db, 'conversations'),
@@ -412,7 +439,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       unsubConversations();
       unsubNotifications();
     };
-  }, [currentUser?.id]);
+  }, [currentUser?.id, currentUser?.role, currentUser?.clientId]);
 
   // Persist sound settings to localStorage
   useEffect(() => {

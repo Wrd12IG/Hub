@@ -121,8 +121,8 @@ export function GbpStoreHoursQuickEditor() {
           
           <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Data (es. Festività)</label>
-              <input type="date" value={specialDate} onChange={e => setSpecialDate(e.target.value)} style={{ width: '100%', borderRadius: '4px', border: '1px solid #ccc', padding: '4px', fontSize: '0.75rem' }} />
+              <label htmlFor="gbp-special-date" style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Data (es. Festività)</label>
+              <input id="gbp-special-date" type="date" value={specialDate} onChange={e => setSpecialDate(e.target.value)} style={{ width: '100%', borderRadius: '4px', border: '1px solid #ccc', padding: '4px', fontSize: '0.75rem' }} />
             </div>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', paddingTop: '14px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', cursor: 'pointer' }}>
@@ -134,12 +134,12 @@ export function GbpStoreHoursQuickEditor() {
           {!isClosed && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Apertura Specifica</label>
-                <input type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} style={{ width: '100%', borderRadius: '4px', border: '1px solid #ccc', padding: '4px', fontSize: '0.75rem' }} />
+                <label htmlFor="gbp-open-time" style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Apertura Specifica</label>
+                <input id="gbp-open-time" type="time" value={openTime} onChange={e => setOpenTime(e.target.value)} style={{ width: '100%', borderRadius: '4px', border: '1px solid #ccc', padding: '4px', fontSize: '0.75rem' }} />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Chiusura Specifica</label>
-                <input type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} style={{ width: '100%', borderRadius: '4px', border: '1px solid #ccc', padding: '4px', fontSize: '0.75rem' }} />
+                <label htmlFor="gbp-close-time" style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Chiusura Specifica</label>
+                <input id="gbp-close-time" type="time" value={closeTime} onChange={e => setCloseTime(e.target.value)} style={{ width: '100%', borderRadius: '4px', border: '1px solid #ccc', padding: '4px', fontSize: '0.75rem' }} />
               </div>
             </div>
           )}

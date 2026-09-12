@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { Users } from 'lucide-react';
 
@@ -12,6 +13,50 @@ interface TeamWorkloadChartProps {
     }>;
     avgWorkload: number;
 }
+
+function getBarColor(percentage: number) {
+    if (percentage > 150) return '#EA4335'; // Rosso - sovraccarico
+    if (percentage > 100) return '#FBBC05'; // Giallo - sopra media
+    if (percentage >= 50) return '#34A853';  // Verde - normale
+    return '#9CA3AF'; // Grigio - sottoutilizzato
+}
+
+// Hoisted out of the component and memoized: recharts re-mounts <Tooltip content>
+// whenever it receives a new component *type*, which happened here on every
+// render since CustomTooltip was redefined inline each time.
+const CustomTooltip = memo(function CustomTooltip({ active, payload }: any) {
+    if (active && payload && payload.length) {
+        const data = payload[0].payload;
+        return (
+            <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                <p className="font-semibold text-sm mb-2">{data.userName}</p>
+                <div className="space-y-1">
+                    <p className="text-sm">
+                        <span className="text-muted-foreground">Task attivi: </span>
+                        <span className="font-semibold">{data.activeTasks}</span>
+                    </p>
+                    <p className="text-sm">
+                        <span className="text-muted-foreground">vs Media: </span>
+                        <span className="font-semibold" style={{ color: getBarColor(data.percentage) }}>
+                            {data.percentage.toFixed(0)}%
+                        </span>
+                    </p>
+                    {data.percentage > 150 && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                             Sovraccarico
+                        </p>
+                    )}
+                    {data.percentage < 50 && data.activeTasks > 0 && (
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                             Sottoutilizzato
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
+    }
+    return null;
+});
 
 export function TeamWorkloadChart({ data, avgWorkload }: TeamWorkloadChartProps) {
     if (!data || data.length === 0) {
@@ -32,47 +77,6 @@ export function TeamWorkloadChart({ data, avgWorkload }: TeamWorkloadChartProps)
 
     // Ordina per numero di task (decrescente)
     const sortedData = [...data].sort((a, b) => b.activeTasks - a.activeTasks);
-
-    const getBarColor = (percentage: number) => {
-        if (percentage > 150) return '#EA4335'; // Rosso - sovraccarico
-        if (percentage > 100) return '#FBBC05'; // Giallo - sopra media
-        if (percentage >= 50) return '#34A853';  // Verde - normale
-        return '#9CA3AF'; // Grigio - sottoutilizzato
-    };
-
-    const CustomTooltip = ({ active, payload }: any) => {
-        if (active && payload && payload.length) {
-            const data = payload[0].payload;
-            return (
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <p className="font-semibold text-sm mb-2">{data.userName}</p>
-                    <div className="space-y-1">
-                        <p className="text-sm">
-                            <span className="text-muted-foreground">Task attivi: </span>
-                            <span className="font-semibold">{data.activeTasks}</span>
-                        </p>
-                        <p className="text-sm">
-                            <span className="text-muted-foreground">vs Media: </span>
-                            <span className="font-semibold" style={{ color: getBarColor(data.percentage) }}>
-                                {data.percentage.toFixed(0)}%
-                            </span>
-                        </p>
-                        {data.percentage > 150 && (
-                            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                                 Sovraccarico
-                            </p>
-                        )}
-                        {data.percentage < 50 && data.activeTasks > 0 && (
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                 Sottoutilizzato
-                            </p>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-        return null;
-    };
 
     // Trova utenti con problemi
     const overloaded = sortedData.filter(u => u.percentage > 150).length;

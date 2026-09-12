@@ -311,7 +311,20 @@ export function SidebarNav() {
       </div>
       {/* MINI BRAND SWITCHER FOR COLLAPSED STATE */}
       <div className="px-3 pt-4 pb-2 hidden group-data-[state=collapsed]:flex justify-center">
-        <div onClick={toggleSidebar} className="h-8 w-8 rounded-md bg-sidebar-accent flex items-center justify-center cursor-pointer" title="Espandi la sidebar per selezionare il cliente">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={toggleSidebar}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              toggleSidebar();
+            }
+          }}
+          aria-label="Espandi la sidebar per selezionare il cliente"
+          className="h-8 w-8 rounded-md bg-sidebar-accent flex items-center justify-center cursor-pointer"
+          title="Espandi la sidebar per selezionare il cliente"
+        >
           <Briefcase className="h-4 w-4 text-sidebar-foreground/70" />
         </div>
       </div>

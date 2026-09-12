@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
 
 export async function POST(request: Request) {
+    const user = await verifyAuth(request);
+    if (!user) return unauthorizedResponse();
+
     try {
         const body = await request.json();
         const { contentId, type, clientId } = body;
