@@ -54,7 +54,6 @@ import {
   FileBarChart,
 } from "lucide-react";
 import { useLayoutData } from "@/app/(app)/layout-context";
-import ClientMonthlyReport from "@/components/client-monthly-report";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import MetaCampaignReportModal from "@/components/MetaCampaignReportModal";
 import dynamic from "next/dynamic";
@@ -259,11 +258,9 @@ export default function ClientDetailPage() {
     | "overview"
     | "intelligence"
     | "campaigns"
-    | "assets"
     | "settings"
     | "heatmaps"
     | "gbp"
-    | "report"
     | "marketing-report"
   >("overview");
   const [newCompetitorName, setNewCompetitorName] = useState("");
@@ -712,20 +709,11 @@ export default function ClientDetailPage() {
       icon: Target,
       iconColor: "text-emerald-400",
     },
-    {
-      id: "assets",
-      label: `Brand Assets (${client.brandAssets?.length || 0})`,
-      icon: ImageIcon,
-      iconColor: "text-cyan-400",
-    },
     { id: "heatmaps", label: "Heatmaps & Registrazioni", icon: Eye, iconColor: "text-rose-400" },
     { id: "gbp", label: "Profilo GBP", icon: MapPin, iconColor: "text-blue-400" },
-    { id: "report", label: "Report Mensile", icon: FileBarChart, iconColor: "text-violet-400" },
     { id: "marketing-report", label: "Report Marketing", icon: TrendingUp, iconColor: "text-green-500" },
     { id: "settings", label: "Setup API", icon: Settings, iconColor: "text-amber-400" },
   ];
-
-  const growthHref = `/clients/${id}/growth`;
 
   // Calcolo reale traffico social da GA4
   const socialChannels =
@@ -2571,79 +2559,6 @@ export default function ClientDetailPage() {
         websiteUrl={client.websiteUrl}
       />
 
-      {/* TAB: BRAND ASSETS */}
-      {activeTab === "assets" && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center mb-6">
-            <p className="text-sm text-muted-foreground">
-              Libreria creativa del cliente
-            </p>
-            <Link
-              href={`/clients/${id}/brand-assets`}
-              className="btn-gorgeous inline-flex items-center gap-2 no-underline text-xs font-bold px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all"
-            >
-              <Plus size={16} /> Gestisci Assets
-            </Link>
-          </div>
-          {(client.brandAssets?.length || 0) === 0 ? (
-            <div className="text-center py-16 text-muted-foreground bg-background/20 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-3">
-              Nessun asset caricato. Vai su "Gestisci Assets" per caricare
-              immagini e video del cliente.
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {(client.brandAssets || []).map((a) => {
-                const isVideo = a.type?.toUpperCase() === "VIDEO";
-                return (
-                  <div
-                    key={a.id}
-                    className="glass-card p-5 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] hover:-translate-y-1 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col gap-4 group"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span
-                        className={cn(
-                          "text-[9px] uppercase font-extrabold tracking-wider border px-2.5 py-0.5 rounded-full",
-                          isVideo
-                            ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
-                            : "bg-pink-500/10 text-pink-400 border-pink-500/20",
-                        )}
-                      >
-                        {a.type} · {a.format}
-                      </span>
-                      {a.isActive ? (
-                        <CheckCircle2
-                          size={16}
-                          className="text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]"
-                        />
-                      ) : (
-                        <AlertTriangle
-                          size={16}
-                          className="text-rose-400 drop-shadow-[0_0_8px_rgba(248,113,113,0.3)]"
-                        />
-                      )}
-                    </div>
-
-                    {/* Visual Asset Container */}
-                    <div className="relative aspect-video rounded-xl bg-gradient-to-br from-neutral-900 to-neutral-950 border border-white/5 flex items-center justify-center overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-pink-500/5 opacity-40 group-hover:opacity-60 transition-opacity" />
-                      {isVideo ? (
-                        <Video className="h-8 w-8 text-indigo-400/80 group-hover:text-indigo-400 transition-colors duration-300" />
-                      ) : (
-                        <ImageIcon className="h-8 w-8 text-pink-400/80 group-hover:text-pink-400 transition-colors duration-300" />
-                      )}
-                    </div>
-
-                    <div className="font-extrabold text-sm text-foreground tracking-tight line-clamp-1">
-                      {a.label}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* TAB: HEATMAPS */}
       {activeTab === "heatmaps" && (
         <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] min-h-[80vh] flex flex-col gap-6 shadow-lg">
@@ -2704,16 +2619,6 @@ export default function ClientDetailPage() {
           locations={client.gbpLocations ?? (client.gbpLocationId ? [{ id: client.gbpLocationId, name: 'Sede Principale' }] : [])}
           activeLocationId={client.gbpActiveLocationId ?? client.gbpLocationId ?? null}
         />
-      )}
-
-      {/* TAB: REPORT MENSILE */}
-      {activeTab === "report" && (
-        <div className="w-full">
-          <ClientMonthlyReport
-            clientId={client.id}
-            clientName={client.name}
-          />
-        </div>
       )}
 
       {/* TAB: REPORT MARKETING (Meta/Google Ads, GA4, Instagram, LinkedIn, GSC via Windsor.ai) */}
