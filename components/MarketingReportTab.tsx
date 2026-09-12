@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
 import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, Settings2 } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -39,8 +38,7 @@ function authHeaders() {
   return { Authorization: `Bearer ${localStorage.getItem('token')}` }
 }
 
-export default function ClientReportPage() {
-  const { id } = useParams<{ id: string }>()
+export function MarketingReportTab({ clientId }: { clientId: string }) {
   const { currentUser } = useLayoutData()
   const isStaff = currentUser?.role !== 'Cliente'
 
@@ -53,7 +51,7 @@ export default function ClientReportPage() {
     setLoading(true)
     setLoadError(null)
     try {
-      const res = await fetch(`/api/clients/${id}/reporting`, { headers: authHeaders() })
+      const res = await fetch(`/api/clients/${clientId}/reporting`, { headers: authHeaders() })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `Errore ${res.status}`)
@@ -65,7 +63,7 @@ export default function ClientReportPage() {
     } finally {
       setLoading(false)
     }
-  }, [id])
+  }, [clientId])
 
   useEffect(() => { fetchReport() }, [fetchReport])
 
@@ -73,10 +71,10 @@ export default function ClientReportPage() {
   const noPlatformsConfigured = platforms !== null && platforms.length === 0
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Report Marketing</h1>
+          <h2 className="text-lg font-bold">Report Marketing</h2>
           <p className="text-sm text-muted-foreground">Dati aggregati da Windsor.ai — ultimi 30 giorni</p>
         </div>
         <div className="flex items-center gap-2">
@@ -98,7 +96,7 @@ export default function ClientReportPage() {
       </div>
 
       {isStaff && showSettings && (
-        <WindsorAccountsForm clientId={id} onSaved={() => { setShowSettings(false); fetchReport() }} />
+        <WindsorAccountsForm clientId={clientId} onSaved={() => { setShowSettings(false); fetchReport() }} />
       )}
 
       {loading && (
@@ -132,7 +130,7 @@ export default function ClientReportPage() {
               <div key={p.platform} className="space-y-3">
                 <div className="flex items-center gap-2">
                   <meta.icon size={18} />
-                  <h2 className="font-semibold">{meta.label}</h2>
+                  <h3 className="font-semibold">{meta.label}</h3>
                   {!p.connected && <span className="text-xs text-red-600">Errore: {p.error}</span>}
                 </div>
                 {p.connected ? (
@@ -165,7 +163,14 @@ function WindsorAccountsForm({ clientId, onSaved }: { clientId: string; onSaved:
   useEffect(() => {
     fetch(`/api/clients/${clientId}`, { headers: authHeaders() })
       .then(res => res.json())
-      .then(data => setValues(data.windsorAccounts || {}))
+      .then(data => setValues({
+        facebook: data.metaAdAccountId || data.windsorAccounts?.facebook || '',
+        google_ads: data.googleAdAccountId || data.windsorAccounts?.google_ads || '',
+        ga4: data.ga4PropertyId || data.windsorAccounts?.ga4 || '',
+        instagram: data.windsorAccounts?.instagram || '',
+        searchconsole: data.windsorAccounts?.searchconsole || '',
+        linkedin_organic: data.windsorAccounts?.linkedin_organic || '',
+      }))
       .catch(() => {})
   }, [clientId])
 
@@ -173,10 +178,22 @@ function WindsorAccountsForm({ clientId, onSaved }: { clientId: string; onSaved:
     setSaving(true)
     setError(null)
     try {
+      // facebook/google_ads/ga4 reuse the client's existing platform-id fields
+      // (already used by Setup API / PlatformConnections) rather than duplicating
+      // them — only instagram/searchconsole/linkedin_organic are Windsor-only.
       const res = await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ windsorAccounts: values }),
+        body: JSON.stringify({
+          metaAdAccountId: values.facebook,
+          googleAdAccountId: values.google_ads,
+          ga4PropertyId: values.ga4,
+          windsorAccounts: {
+            instagram: values.instagram,
+            searchconsole: values.searchconsole,
+            linkedin_organic: values.linkedin_organic,
+          },
+        }),
       })
       if (!res.ok) throw new Error('Salvataggio fallito')
       onSaved()
@@ -199,7 +216,7 @@ function WindsorAccountsForm({ clientId, onSaved }: { clientId: string; onSaved:
   return (
     <div className="p-4 border rounded-xl bg-muted/30 space-y-3">
       <p className="text-xs text-muted-foreground">
-        Gli ID si trovano nel pannello Windsor.ai (onboard.windsor.ai) sotto ogni connector collegato. Lascia vuoto un campo per non collegare quella piattaforma.
+        Gli ID si trovano nel pannello Windsor.ai (onboard.windsor.ai) sotto ogni connector collegato. Meta/Google Ads/GA4 sono condivisi con la tab "Setup API". Lascia vuoto un campo per non collegare quella piattaforma.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {fields.map(f => (

@@ -55,6 +55,7 @@ import {
 } from "lucide-react";
 import { useLayoutData } from "@/app/(app)/layout-context";
 import ClientMonthlyReport from "@/components/client-monthly-report";
+import { MarketingReportTab } from "@/components/MarketingReportTab";
 import MetaCampaignReportModal from "@/components/MetaCampaignReportModal";
 import dynamic from "next/dynamic";
 const SeoGodModeReportModal = dynamic(
@@ -258,6 +259,7 @@ export default function ClientDetailPage() {
     | "heatmaps"
     | "gbp"
     | "report"
+    | "marketing-report"
   >("overview");
   const [newCompetitorName, setNewCompetitorName] = useState("");
   const [uploadingVisionIndex, setUploadingVisionIndex] = useState<
@@ -714,6 +716,7 @@ export default function ClientDetailPage() {
     { id: "heatmaps", label: "Heatmaps & Registrazioni", icon: Eye, iconColor: "text-rose-400" },
     { id: "gbp", label: "Profilo GBP", icon: MapPin, iconColor: "text-blue-400" },
     { id: "report", label: "Report Mensile", icon: FileBarChart, iconColor: "text-violet-400" },
+    { id: "marketing-report", label: "Report Marketing", icon: TrendingUp, iconColor: "text-green-500" },
     { id: "settings", label: "Setup API", icon: Settings, iconColor: "text-amber-400" },
   ];
 
@@ -2705,6 +2708,13 @@ export default function ClientDetailPage() {
             clientId={client.id}
             clientName={client.name}
           />
+        </div>
+      )}
+
+      {/* TAB: REPORT MARKETING (Meta/Google Ads, GA4, Instagram, LinkedIn, GSC via Windsor.ai) */}
+      {activeTab === "marketing-report" && (
+        <div className="w-full">
+          <MarketingReportTab clientId={id as string} />
         </div>
       )}
 
