@@ -152,6 +152,11 @@ interface Client {
   tiktokDisplayName?: string | null;
   hasLinkedinToken?: boolean;
   linkedinOrgName?: string | null;
+  windsorAccounts?: {
+    instagram?: string;
+    searchconsole?: string;
+    linkedin_organic?: string;
+  };
 }
 
 const statusColors: Record<
@@ -2743,6 +2748,7 @@ export default function ClientDetailPage() {
               tiktokDisplayName:  client.tiktokDisplayName  ?? null,
               hasLinkedinToken:   client.hasLinkedinToken   ?? false,
               linkedinOrgName:    client.linkedinOrgName    ?? null,
+              windsorAccounts:    client.windsorAccounts    ?? undefined,
             }}
             onClientUpdated={() => window.location.reload()}
           />
