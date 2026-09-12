@@ -377,6 +377,14 @@ export function SidebarNav() {
                   </Link>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
+                  <Link href={`/clients/${activeClientId}/report`} prefetch={true}>
+                    <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/report`)} tooltip="Report Marketing">
+                      <BarChart3 className="h-5 w-5 flex-shrink-0" />
+                      <span className="group-data-[state=collapsed]:hidden truncate">Report Marketing</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
                   <Link href={`/clients/${activeClientId}/meta-ads`} prefetch={true}>
                     <SidebarMenuButton isActive={pathname.startsWith(`/clients/${activeClientId}/meta-ads`)} tooltip="Meta Ads">
                       <Bot className="h-5 w-5 flex-shrink-0" />
