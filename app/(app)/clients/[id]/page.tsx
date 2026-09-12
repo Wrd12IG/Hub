@@ -76,6 +76,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { computeAdsHealth, overallAdsHealth } from "@/lib/ads-health";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -184,70 +185,6 @@ const statusColors: Record<
   FAILED: { color: "#f87171", bg: "rgba(248,113,113,0.1)", label: "Fallita" },
 };
 
-function AuditMeter({ score }: { score: number }) {
-  const color =
-    score >= 70
-      ? "text-emerald-400"
-      : score >= 40
-        ? "text-amber-400"
-        : "text-rose-400";
-  const strokeColor =
-    score >= 70 ? "#34d399" : score >= 40 ? "#fbbf24" : "#f87171";
-  const label =
-    score >= 70 ? "Ottimo" : score >= 40 ? "Migliorabile" : "Critico";
-  const glowShadow =
-    score >= 70
-      ? "shadow-[0_0_20px_rgba(52,211,153,0.15)]"
-      : score >= 40
-        ? "shadow-[0_0_20px_rgba(251,191,36,0.15)]"
-        : "shadow-[0_0_20px_rgba(248,113,113,0.15)]";
-
-  return (
-    <div className="flex flex-col items-center text-center">
-      <div
-        className={cn(
-          "relative w-28 h-28 flex items-center justify-center rounded-full bg-white/[0.01] border border-white/5 transition-all duration-300",
-          glowShadow,
-        )}
-      >
-        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-          <circle
-            cx="18"
-            cy="18"
-            r="15.9"
-            fill="none"
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth="3"
-          />
-          <circle
-            cx="18"
-            cy="18"
-            r="15.9"
-            fill="none"
-            stroke={strokeColor}
-            strokeWidth="3"
-            strokeDasharray={`${score} ${100 - score}`}
-            strokeLinecap="round"
-            className="transition-all duration-1000 ease-out"
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className={cn("text-2xl font-black tracking-tight", color)}>
-            {score}
-          </span>
-          <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-            Score
-          </span>
-        </div>
-      </div>
-      <div
-        className={cn("text-xs font-bold mt-3 tracking-wide uppercase", color)}
-      >
-        {label}
-      </div>
-    </div>
-  );
-}
 
 export default function ClientDetailPage() {
   const { id } = useParams() as { id: string };
@@ -322,64 +259,6 @@ export default function ClientDetailPage() {
     { name: string; accountName: string; type: string }[]
   >([]);
   const [loadingGbpLocations, setLoadingGbpLocations] = useState(false);
-  const [loadingAudit, setLoadingAudit] = useState(false);
-  const [auditProgress, setAuditProgress] = useState(0);
-
-  useEffect(() => {
-    if (!id) return;
-    const checkAuditStatus = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/clients/${id}/audit/status`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.status === "running") {
-          setLoadingAudit(true);
-          setAuditProgress(data.progress);
-        }
-      } catch (e) {
-        console.error("[audit] Error checking audit status:", e);
-      }
-    };
-    checkAuditStatus();
-  }, [id]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    let isMounted = true;
-    if (loadingAudit) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${API_URL}/api/clients/${id}/audit/status`, {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          });
-          if (!res.ok || !isMounted) return;
-          const data = await res.json();
-          if (!isMounted) return;
-          if (data.status === "running") {
-            setAuditProgress(data.progress);
-          } else if (data.status === "error") {
-            clearInterval(interval);
-            setLoadingAudit(false);
-            console.error("[audit] Background operation failed:", data.error);
-            toast.error("Operazione in background fallita: " + data.error);
-          } else if (data.status === "completed") {
-            clearInterval(interval);
-            window.location.reload();
-          }
-        } catch (e) {
-          console.error("[audit] Error polling audit status:", e);
-        }
-      }, 2000);
-    }
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [loadingAudit, id]);
 
   useEffect(() => {
     if (id) {
@@ -512,26 +391,6 @@ export default function ClientDetailPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleTriggerAudit = async () => {
-    if (!client) return;
-    setLoadingAudit(true);
-    setAuditProgress(0);
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/clients/${client.id}/audit`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "Errore durante la generazione dell'audit.");
-        setLoadingAudit(false);
-      }
-    } catch (e) {
-      toast.error("Errore di connessione.");
-      setLoadingAudit(false);
-    }
-  };
 
   useEffect(() => {
     const fetchClient = async () => {
@@ -686,6 +545,12 @@ export default function ClientDetailPage() {
         )}
       </div>
     );
+
+  // Health Score Ads: derived from the campaigns already fetched for the
+  // Campagne tab, so it costs no extra request. See lib/ads-health.ts for the
+  // (deliberately transparent) formula.
+  const adsHealth = computeAdsHealth(allCampaigns);
+  const adsHealthOverall = overallAdsHealth(adsHealth);
 
   const tabs = [
     { id: "overview", label: "Overview & Audit", icon: LayoutDashboard, iconColor: "text-amber-500" },
@@ -1192,56 +1057,73 @@ export default function ClientDetailPage() {
               ) : null}
             </div>
 
-            {/* CARD 2: Health Score & Audit AI - Spans 1 col */}
-            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-md flex items-center justify-between gap-6">
-              <div className="space-y-1.5 flex-1">
-                <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
-                  Health Score Ads
-                </h3>
-                <div className="text-[10px] text-muted-foreground/60 font-medium">
-                  {client.lastAuditAt
-                    ? `Aggiornato il ${new Date(client.lastAuditAt).toLocaleDateString()}`
-                    : "Mai analizzato"}
+            {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali */}
+            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-md space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
+                    Health Score Ads
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                    Su campagne Meta e Google Ads del periodo selezionato
+                  </p>
                 </div>
-                {client.lastAuditPdfUrl && (
-                  <a
-                    href={client.lastAuditPdfUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 mt-2.5 text-xs text-primary font-bold hover:underline transition-all"
-                  >
-                    <Download className="h-3.5 w-3.5" /> Report PDF
-                  </a>
+                {adsHealthOverall !== null && (
+                  <div className="text-right shrink-0">
+                    <div
+                      className={cn(
+                        "text-3xl font-black leading-none",
+                        adsHealthOverall >= 80 ? "text-emerald-400"
+                          : adsHealthOverall >= 60 ? "text-amber-400"
+                          : "text-rose-400",
+                      )}
+                    >
+                      {adsHealthOverall}
+                    </div>
+                    <div className="text-[10px] font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
+                  </div>
                 )}
               </div>
-              {client.lastAuditScore !== null ? (
-                <div className="scale-95 origin-right">
-                  <AuditMeter score={client.lastAuditScore} />
+
+              {loadingCampaigns ? (
+                <div className="text-xs text-muted-foreground/60 animate-pulse">Calcolo in corso...</div>
+              ) : adsHealth.length === 0 ? (
+                <div className="text-xs text-muted-foreground bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                  Nessuna campagna Meta o Google Ads trovata. Collega le piattaforme in &quot;Setup API&quot;.
                 </div>
               ) : (
-                <div className="flex items-center min-w-[150px] flex-1">
-                  {loadingAudit ? (
-                    <div className="w-full flex flex-col gap-1.5">
-                      <div className="flex justify-between text-[10px] font-bold text-primary">
-                        <span>Analisi AI in corso...</span>
-                        <span>{auditProgress}%</span>
+                <div className="space-y-3">
+                  {adsHealth.map((h) => (
+                    <div key={h.platform} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">{h.label}</span>
+                        <span
+                          className={cn(
+                            "text-sm font-black",
+                            h.score === null ? "text-muted-foreground"
+                              : h.score >= 80 ? "text-emerald-400"
+                              : h.score >= 60 ? "text-amber-400"
+                              : "text-rose-400",
+                          )}
+                        >
+                          {h.score === null ? "n/d" : `${h.score}/100`}
+                        </span>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden border border-white/10">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all duration-500"
-                          style={{ width: `${auditProgress}%` }}
-                        />
-                      </div>
+                      <ul className="space-y-1">
+                        {h.factors.map((f) => (
+                          <li
+                            key={f.id}
+                            className={cn(
+                              "text-[10px] leading-snug",
+                              f.applicable ? "text-muted-foreground" : "text-muted-foreground/40 italic",
+                            )}
+                          >
+                            <span className="font-semibold">{f.label}</span> ({f.weight}%): {f.detail}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  ) : (
-                    <Button
-                      onClick={handleTriggerAudit}
-                      size="sm"
-                      className="w-full active:scale-[0.97] transition-all rounded-xl font-bold bg-primary text-primary-foreground shadow-md"
-                    >
-                       Richiedi Audit AI
-                    </Button>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
