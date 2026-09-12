@@ -52,6 +52,7 @@ export interface ClientConnections {
     instagram?: string;
     searchconsole?: string;
     linkedin_organic?: string;
+    gbp?: string[];
   };
 }
 
@@ -426,6 +427,78 @@ function ClarityModal({
           className="w-full py-2.5 text-sm font-bold bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
           {saving && <Loader2 size={14} className="animate-spin" />}
           Salva Clarity
+        </button>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MODAL: WINDSOR.AI — GBP MULTI-SEDE
+   A client can have several Google Business Profile locations, so this one
+   stores a list (windsorAccounts.gbp) rather than a single id. The sede name
+   shown in the report comes from Windsor's own account_name, so only the ids
+   need entering here.
+───────────────────────────────────────────────────────────────── */
+
+function WindsorGbpModal({
+  clientId, currentValues, onClose, onSaved,
+}: {
+  clientId: string;
+  currentValues?: string[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState((currentValues ?? []).join("\n"));
+  const [saving, setSaving] = useState(false);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+
+  async function save() {
+    setSaving(true);
+    try {
+      const ids = value
+        .split(/[\n,]/)
+        .map((v) => v.trim())
+        .filter(Boolean);
+      const authToken = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/clients/${clientId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ "windsorAccounts.gbp": ids }),
+      });
+      if (!res.ok) throw new Error();
+      toast.success(`${ids.length} sede/i salvate!`);
+      onSaved(); onClose();
+    } catch { toast.error("Impossibile salvare."); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <ModalWrapper title="Google Business Profile — Sedi (Report)" onClose={onClose}>
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <label htmlFor="windsor-gbp" className="text-xs font-bold text-muted-foreground">
+            ID account GBP su Windsor — uno per riga (o separati da virgola)
+          </label>
+          <textarea
+            id="windsor-gbp"
+            rows={5}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={"accounts/123456789/locations/111\naccounts/123456789/locations/222"}
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40 font-mono"
+          />
+          <p className="text-[10px] text-muted-foreground/60">
+            Una riga per ogni sede del cliente. Il nome della sede viene letto automaticamente da Windsor,
+            non serve scriverlo qui. Richiede che il connector Google Business Profile sia collegato su
+            onboard.windsor.ai.
+          </p>
+        </div>
+        <button onClick={save} disabled={saving}
+          className="w-full py-2.5 text-sm font-bold text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+          style={{ backgroundColor: "#34A853" }}>
+          {saving && <Loader2 size={14} className="animate-spin" />}
+          Salva sedi
         </button>
       </div>
     </ModalWrapper>
@@ -980,7 +1053,7 @@ function LinkedinModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | null;
 
 
 export default function PlatformConnections({
@@ -1012,6 +1085,7 @@ export default function PlatformConnections({
     client.windsorAccounts?.instagram,
     client.windsorAccounts?.searchconsole,
     client.windsorAccounts?.linkedin_organic,
+    (client.windsorAccounts?.gbp?.length ?? 0) > 0,
   ].filter(Boolean).length;
 
   async function removeGbpLocation(locationId: string) {
@@ -1056,11 +1130,11 @@ export default function PlatformConnections({
         </div>
         <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/10 rounded-full px-4 py-2 shrink-0">
           <div className="flex gap-1">
-            {Array.from({ length: 11 }).map((_, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className={cn("w-2 h-2 rounded-full transition-all duration-300", i < configuredCount ? "bg-emerald-400" : "bg-white/10")} />
             ))}
           </div>
-          <span className="text-xs font-bold text-muted-foreground">{configuredCount}/11 configurate</span>
+          <span className="text-xs font-bold text-muted-foreground">{configuredCount}/12 configurate</span>
         </div>
       </div>
 
@@ -1257,6 +1331,26 @@ export default function PlatformConnections({
           </button>
         </div>
 
+        {/* ── WINDSOR.AI — GBP MULTI-SEDE (per Report Marketing) ── */}
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle((client.windsorAccounts?.gbp?.length ?? 0) > 0, "#34A853")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
+                <MapPin size={16} />
+              </div>
+              <span className="text-sm font-bold text-foreground">GBP Sedi (Report)</span>
+            </div>
+            {(client.windsorAccounts?.gbp?.length ?? 0) > 0 && <ConnectedBadge />}
+          </div>
+          {(client.windsorAccounts?.gbp?.length ?? 0) > 0 && (
+            <AccountChip name={`${client.windsorAccounts!.gbp!.length} sede/i`} sub="Nel Report Marketing" />
+          )}
+          <button type="button" onClick={() => setActiveModal("windsor-gbp")}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
+            {(client.windsorAccounts?.gbp?.length ?? 0) > 0 ? <><ExternalLink size={11} /> Modifica sedi</> : <><Link2 size={11} /> Collega sedi GBP</>}
+          </button>
+        </div>
+
       </div>
 
       {/* ── MODALS ── */}
@@ -1343,6 +1437,14 @@ export default function PlatformConnections({
           placeholder="es. https://www.esempio.it/"
           hint="L'URL esatto del sito così come verificato in Google Search Console (con lo slash finale se presente su Windsor)."
           accentColor="#4285F4"
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { refreshClient(); setActiveModal(null); }}
+        />
+      )}
+      {activeModal === "windsor-gbp" && (
+        <WindsorGbpModal
+          clientId={clientId}
+          currentValues={client.windsorAccounts?.gbp}
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }}
         />
