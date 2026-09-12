@@ -35,6 +35,8 @@ export interface PlatformReport {
     connected: boolean;
     error?: string;
     rows: Record<string, string | number | undefined>[];
+    /** Same shape as `rows`, for the comparison window. Empty when not comparing. */
+    previousRows?: Record<string, string | number | undefined>[];
 }
 
 // ⚠️ Every field id below must exist in that connector's Windsor catalogue.
@@ -93,15 +95,131 @@ function aggregateRows(rows: Record<string, string | number | undefined>[]): Rec
     return totals;
 }
 
+export type CompareMode = 'prev_period' | 'prev_year' | 'none';
+
+/** Shape the "Performance Dominio" panel reads: a value plus its % change. */
+export interface Metric { val: number; chg: number }
+
+export interface GA4Overview {
+    traffic: { sessions: Metric; users: Metric; newUsers: Metric; returningUsers: Metric };
+    behavior: { bounceRate: Metric; engagementRate: Metric; avgSessionDuration: Metric; pagesPerSession: Metric };
+    conversions: { totalConversions: Metric; conversionRate: Metric; transactions: Metric; revenue: Metric };
+}
+
+// All verified against Windsor's GA4 catalogue — note `newusers` has no
+// underscore, unlike every other id here.
+const GA4_OVERVIEW_FIELDS = [
+    'sessions', 'active_users', 'newusers',
+    'bounce_rate', 'engagement_rate', 'average_session_duration', 'screen_page_views_per_session',
+    'conversions', 'session_conversion_rate', 'transactions', 'purchase_revenue',
+];
+
+/**
+ * GA4 numbers for the "Performance Dominio" panel, via Windsor rather than the
+ * per-client Google OAuth the Hub's own ga4-client requires — most clients only
+ * ever get their GA4 Property ID mapped, never the OAuth token, which is why
+ * that panel was empty.
+ */
+export async function getGA4Overview(
+    propertyId: string,
+    windows: { current: { dateFrom: string; dateTo: string }; previous: { dateFrom: string; dateTo: string } | null }
+): Promise<GA4Overview> {
+    const fetchWindow = async (w: { dateFrom: string; dateTo: string }) => {
+        const rows = await getData({
+            connector: 'googleanalytics4',
+            accountId: propertyId,
+            fields: [...GA4_OVERVIEW_FIELDS, 'account_id', 'account_name'],
+            dateFrom: w.dateFrom,
+            dateTo: w.dateTo,
+        });
+        return aggregateRows(rows);
+    };
+
+    const [cur, prev] = await Promise.all([
+        fetchWindow(windows.current),
+        windows.previous ? fetchWindow(windows.previous) : Promise.resolve({}),
+    ]);
+
+    const num = (r: Record<string, string | number | undefined>, k: string) =>
+        typeof r[k] === 'number' ? (r[k] as number) : 0;
+
+    const metric = (key: string, derive?: (r: Record<string, string | number | undefined>) => number): Metric => {
+        const c = derive ? derive(cur) : num(cur, key);
+        const p = derive ? derive(prev) : num(prev, key);
+        return { val: Math.round(c * 100) / 100, chg: p === 0 ? 0 : Math.round(((c - p) / p) * 1000) / 10 };
+    };
+
+    // GA4 has no "returning users" metric; it's active users minus new ones.
+    const returning = (r: Record<string, string | number | undefined>) =>
+        Math.max(0, num(r, 'active_users') - num(r, 'newusers'));
+    // Windsor returns rates as fractions (0.2761 = 27.61%).
+    const asPercent = (key: string) => (r: Record<string, string | number | undefined>) => num(r, key) * 100;
+
+    return {
+        traffic: {
+            sessions: metric('sessions'),
+            users: metric('active_users'),
+            newUsers: metric('newusers'),
+            returningUsers: metric('', returning),
+        },
+        behavior: {
+            bounceRate: metric('', asPercent('bounce_rate')),
+            engagementRate: metric('', asPercent('engagement_rate')),
+            avgSessionDuration: metric('average_session_duration'),
+            pagesPerSession: metric('screen_page_views_per_session'),
+        },
+        conversions: {
+            totalConversions: metric('conversions'),
+            conversionRate: metric('', asPercent('session_conversion_rate')),
+            transactions: metric('transactions'),
+            revenue: metric('purchase_revenue'),
+        },
+    };
+}
+
+function toIso(d: Date): string {
+    return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Current window and the one it's compared against, as explicit dates.
+ * Windsor's date_preset can't express "the 30 days before the last 30", so
+ * comparison windows are always sent as date_from/date_to instead.
+ */
+export function buildWindows(days: number, compare: CompareMode) {
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - days);
+
+    const current = { dateFrom: toIso(start), dateTo: toIso(end) };
+    if (compare === 'none') return { current, previous: null };
+
+    const prevEnd = new Date(start);
+    const prevStart = new Date(start);
+    if (compare === 'prev_year') {
+        prevEnd.setFullYear(prevEnd.getFullYear() - 1);
+        prevStart.setFullYear(prevStart.getFullYear() - 1);
+        prevEnd.setDate(prevEnd.getDate() + days);
+    } else {
+        prevStart.setDate(prevStart.getDate() - days);
+    }
+    return { current, previous: { dateFrom: toIso(prevStart), dateTo: toIso(prevEnd) } };
+}
+
 /**
  * Fetch every platform this client has connected on Windsor, in parallel.
  * A single platform failing (missing account, Windsor error, etc.) never takes
  * down the whole report — it comes back as its own `{connected:false, error}`
  * entry so the UI can show a per-platform state instead of a blank page.
+ *
+ * When `compare` is set, the same query runs for the comparison window and the
+ * totals land in `previousRows`, so the UI can show deltas without a second
+ * round trip.
  */
 export async function getClientMarketingReport(
     client: ClientReportSource,
-    datePreset = 'last_30d'
+    datePreset = 'last_30d',
+    windows?: { current: { dateFrom: string; dateTo: string }; previous: { dateFrom: string; dateTo: string } | null }
 ): Promise<PlatformReport[]> {
     // facebook/google_ads/ga4 prefer the ids already entered in "Setup API";
     // instagram/searchconsole/linkedin_organic only exist under windsorAccounts.
@@ -129,8 +247,20 @@ export async function getClientMarketingReport(
         accountId: string
     ): Promise<PlatformReport> => {
         const { connector, fields } = PLATFORM_FIELDS[platform];
+        const allFields = [...fields, 'account_id', 'account_name'];
         try {
-            const rows = await getData({ connector, accountId, fields: [...fields, 'account_id', 'account_name'], datePreset });
+            const [rows, previousRows] = await Promise.all([
+                getData({
+                    connector, accountId, fields: allFields,
+                    ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
+                }),
+                windows?.previous
+                    ? getData({
+                        connector, accountId, fields: allFields,
+                        dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
+                    })
+                    : Promise.resolve([]),
+            ]);
             return {
                 platform,
                 connected: true,
@@ -138,10 +268,11 @@ export async function getClientMarketingReport(
                 // One aggregated row — see aggregateRows for why raw rows can't
                 // be read positionally.
                 rows: rows.length > 0 ? [aggregateRows(rows)] : [],
+                previousRows: previousRows.length > 0 ? [aggregateRows(previousRows)] : [],
             };
         } catch (err: any) {
             console.error(`[reporting] ${platform} failed for account ${accountId}:`, err.message);
-            return { platform, connected: false, error: err.message, rows: [] };
+            return { platform, connected: false, error: err.message, rows: [], previousRows: [] };
         }
     };
 

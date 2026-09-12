@@ -16,6 +16,7 @@ interface PlatformReport {
   connected: boolean
   error?: string
   rows: Record<string, string | number | undefined>[]
+  previousRows?: Record<string, string | number | undefined>[]
 }
 
 // `detail` is the existing per-platform deep-dive page, when one exists — the
@@ -34,6 +35,20 @@ function authHeaders() {
   return { Authorization: `Bearer ${localStorage.getItem('token')}` }
 }
 
+/**
+ * Percentage change vs the comparison window. Returns undefined when there's
+ * nothing meaningful to compare (no comparison requested, or a previous value
+ * of zero, where a percentage would be either infinite or misleading).
+ */
+function trendFor(
+  current: string | number | undefined,
+  previous: string | number | undefined
+): { value: number; isPositive: boolean } | undefined {
+  if (typeof current !== 'number' || typeof previous !== 'number' || previous === 0) return undefined
+  const delta = ((current - previous) / previous) * 100
+  return { value: Math.round(delta * 10) / 10, isPositive: delta >= 0 }
+}
+
 /** Maps the page's "Periodo" selector (in days) to a Windsor date_preset. */
 function toDatePreset(daysBack?: number): string {
   switch (daysBack) {
@@ -45,7 +60,15 @@ function toDatePreset(daysBack?: number): string {
   }
 }
 
-export function MarketingReportTab({ clientId, daysBack }: { clientId: string; daysBack?: number }) {
+export function MarketingReportTab({
+  clientId,
+  daysBack,
+  compare = 'none',
+}: {
+  clientId: string
+  daysBack?: number
+  compare?: 'prev_period' | 'prev_year' | 'none'
+}) {
   const datePreset = toDatePreset(daysBack)
   const [platforms, setPlatforms] = useState<PlatformReport[] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -55,7 +78,7 @@ export function MarketingReportTab({ clientId, daysBack }: { clientId: string; d
     setLoading(true)
     setLoadError(null)
     try {
-      const res = await fetch(`/api/clients/${clientId}/reporting?date_preset=${datePreset}`, { headers: authHeaders() })
+      const res = await fetch(`/api/clients/${clientId}/reporting?date_preset=${datePreset}&days=${daysBack ?? 30}&compare=${compare}`, { headers: authHeaders() })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `Errore ${res.status}`)
@@ -67,12 +90,32 @@ export function MarketingReportTab({ clientId, daysBack }: { clientId: string; d
     } finally {
       setLoading(false)
     }
-  }, [clientId, datePreset])
+  }, [clientId, datePreset, daysBack, compare])
 
   useEffect(() => { fetchReport() }, [fetchReport])
 
   const connectedCount = platforms?.filter(p => p.connected).length ?? 0
   const noPlatformsConfigured = platforms !== null && platforms.length === 0
+
+  // Real alerts, derived from the comparison the user already asked for rather
+  // than from a separate source: anything moving more than 25% either way is
+  // worth a line. Only possible when a comparison window was fetched.
+  const alerts = (platforms ?? []).flatMap((p) => {
+    const meta = PLATFORM_META[p.platform]
+    const prev = p.previousRows?.[0]
+    if (!prev || !p.connected) return []
+    return meta.metrics.flatMap((m) => {
+      const t = trendFor(p.rows[0]?.[m.key], prev[m.key])
+      if (!t || Math.abs(t.value) < 25) return []
+      return [{
+        platform: meta.label,
+        label: m.label,
+        value: t.value,
+        // For cost-type metrics a rise is not good news.
+        good: ['spend', 'cost', 'cpc', 'position'].includes(m.key) ? t.value < 0 : t.value > 0,
+      }]
+    })
+  })
 
   return (
     <div className="space-y-6">
@@ -90,6 +133,33 @@ export function MarketingReportTab({ clientId, daysBack }: { clientId: string; d
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Aggiorna
         </button>
       </div>
+
+      {!loading && !loadError && compare !== 'none' && (
+        <div className="rounded-xl border p-4 space-y-2">
+          <h3 className="text-sm font-bold flex items-center gap-2">
+            <AlertCircle size={15} className="text-amber-500" />
+            Anomalie ({compare === 'prev_year' ? 'vs anno prec.' : 'vs periodo prec.'})
+          </h3>
+          {alerts.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              Nessuno scostamento oltre il 25% sulle metriche monitorate. Operatività regolare.
+            </p>
+          ) : (
+            <ul className="space-y-1">
+              {alerts.map((a, i) => (
+                <li key={i} className="text-xs flex items-center gap-2">
+                  <span className={a.good ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>
+                    {a.value > 0 ? '+' : ''}{a.value}%
+                  </span>
+                  <span className="text-muted-foreground">
+                    {a.platform} — {a.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {loading && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -143,7 +213,13 @@ export function MarketingReportTab({ clientId, daysBack }: { clientId: string; d
                 {p.connected && p.rows.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {meta.metrics.map(m => (
-                      <MetricoolCard key={m.key} title={m.label} value={(row[m.key] as number) ?? 0} variant={meta.variant} />
+                      <MetricoolCard
+                        key={m.key}
+                        title={m.label}
+                        value={(row[m.key] as number) ?? 0}
+                        variant={meta.variant}
+                        trend={trendFor(row[m.key], p.previousRows?.[0]?.[m.key])}
+                      />
                     ))}
                   </div>
                 ) : p.connected ? (

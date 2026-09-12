@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource } from '@/lib/api-auth';
-import { getClientMarketingReport } from '@/lib/reporting';
+import { getClientMarketingReport, buildWindows, type CompareMode } from '@/lib/reporting';
 import type { Client } from '@/lib/data';
 
 export async function GET(
@@ -29,10 +29,18 @@ export async function GET(
 
     const { searchParams } = new URL(request.url);
     const datePreset = searchParams.get('date_preset') || 'last_30d';
+    const days = parseInt(searchParams.get('days') || '', 10);
+    const compare = (searchParams.get('compare') || 'none') as CompareMode;
 
-    const report = await getClientMarketingReport(client, datePreset);
+    // Explicit windows are only needed for a comparison; without one the
+    // simpler date_preset path is kept.
+    const windows = Number.isFinite(days) && compare !== 'none'
+        ? buildWindows(days, compare)
+        : undefined;
 
-    return NextResponse.json({ clientId, datePreset, platforms: report });
+    const report = await getClientMarketingReport(client, datePreset, windows);
+
+    return NextResponse.json({ clientId, datePreset, compare, windows: windows ?? null, platforms: report });
   } catch (error: any) {
     console.error(`[reporting] Error building report for client ${clientId}:`, error);
     return NextResponse.json({ error: 'Failed to build marketing report' }, { status: 500 });
