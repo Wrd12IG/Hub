@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -15,13 +16,15 @@ interface PlatformReport {
   rows: Record<string, string | number | undefined>[]
 }
 
-const PLATFORM_META: Record<PlatformKey, { label: string; icon: any; variant: 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gray'; metrics: { key: string; label: string }[] }> = {
-  facebook: { label: 'Meta Ads', icon: Facebook, variant: 'blue', metrics: [{ key: 'spend', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'impressions', label: 'Impression' }, { key: 'ctr', label: 'CTR' }] },
-  instagram: { label: 'Instagram', icon: Instagram, variant: 'pink', metrics: [{ key: 'followers', label: 'Follower' }, { key: 'reach', label: 'Reach' }, { key: 'profile_views', label: 'Visite profilo' }] },
-  google_ads: { label: 'Google Ads', icon: TrendingUp, variant: 'green', metrics: [{ key: 'cost', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'conversions', label: 'Conversioni' }, { key: 'ctr', label: 'CTR' }] },
+// `detail` is the existing per-platform deep-dive page, when one exists — the
+// KPI card here is the summary, that page is the drill-down.
+const PLATFORM_META: Record<PlatformKey, { label: string; icon: any; variant: 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gray'; detail?: string; metrics: { key: string; label: string }[] }> = {
+  facebook: { label: 'Meta Ads', icon: Facebook, variant: 'blue', detail: 'meta-ads', metrics: [{ key: 'spend', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'impressions', label: 'Impression' }, { key: 'ctr', label: 'CTR' }] },
+  instagram: { label: 'Instagram', icon: Instagram, variant: 'pink', detail: 'instagram', metrics: [{ key: 'followers', label: 'Follower' }, { key: 'reach', label: 'Reach' }, { key: 'profile_views', label: 'Visite profilo' }] },
+  google_ads: { label: 'Google Ads', icon: TrendingUp, variant: 'green', detail: 'google-ads', metrics: [{ key: 'cost', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'conversions', label: 'Conversioni' }, { key: 'ctr', label: 'CTR' }] },
   ga4: { label: 'Google Analytics 4', icon: TrendingUp, variant: 'purple', metrics: [{ key: 'sessions', label: 'Sessioni' }, { key: 'activeUsers', label: 'Utenti attivi' }, { key: 'conversions', label: 'Conversioni' }, { key: 'totalRevenue', label: 'Revenue €' }] },
   searchconsole: { label: 'Search Console', icon: SearchIcon, variant: 'gray', metrics: [{ key: 'clicks', label: 'Click organici' }, { key: 'impressions', label: 'Impression' }, { key: 'position', label: 'Posizione media' }] },
-  linkedin_organic: { label: 'LinkedIn', icon: Linkedin, variant: 'blue', metrics: [{ key: 'impressions', label: 'Impression' }, { key: 'clicks', label: 'Click' }, { key: 'likes', label: 'Like' }] },
+  linkedin_organic: { label: 'LinkedIn', icon: Linkedin, variant: 'blue', detail: 'linkedin', metrics: [{ key: 'impressions', label: 'Impression' }, { key: 'clicks', label: 'Click' }, { key: 'likes', label: 'Like' }] },
 }
 
 function authHeaders() {
@@ -60,8 +63,10 @@ export function MarketingReportTab({ clientId }: { clientId: string }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold">Report Marketing</h2>
-          <p className="text-sm text-muted-foreground">Dati aggregati da Windsor.ai — ultimi 30 giorni</p>
+          <h2 className="text-lg font-bold">Performance per Account</h2>
+          <p className="text-sm text-muted-foreground">
+            KPI reali da Windsor.ai — ultimi 30 giorni. Apri &quot;Dettaglio&quot; per la vista completa di un account.
+          </p>
         </div>
         <button
           onClick={fetchReport}
@@ -104,6 +109,14 @@ export function MarketingReportTab({ clientId }: { clientId: string }) {
                   <meta.icon size={18} />
                   <h3 className="font-semibold">{meta.label}</h3>
                   {!p.connected && <span className="text-xs text-red-600">Errore: {p.error}</span>}
+                  {meta.detail && (
+                    <Link
+                      href={`/clients/${clientId}/${meta.detail}`}
+                      className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      Dettaglio <ArrowUpRight size={13} />
+                    </Link>
+                  )}
                 </div>
                 {p.connected && p.rows.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
