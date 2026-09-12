@@ -268,8 +268,18 @@ export default function ClientDetailPage() {
     number | null
   >(null);
 
-  const [metaCampaigns, setMetaCampaigns] = useState<any[]>([]);
-  const [loadingMeta, setLoadingMeta] = useState(false);
+  // Unified Meta + Google Ads campaign list for the "Campagne" tab (see
+  // app/api/clients/[id]/campaigns/route.ts).
+  const [allCampaigns, setAllCampaigns] = useState<{
+    id: string; platform: 'meta' | 'google_ads'; name: string;
+    status: 'active' | 'paused' | 'ended'; objective?: string;
+    startDate?: string; endDate?: string;
+    spend: number; impressions: number; clicks: number; conversions: number;
+  }[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(false);
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState<'all' | 'active' | 'paused' | 'ended'>('all');
+  const [campaignDateFrom, setCampaignDateFrom] = useState('');
+  const [campaignDateTo, setCampaignDateTo] = useState('');
   const [reportModalData, setReportModalData] = useState<any | null>(null);
   const [loadingReportId, setLoadingReportId] = useState<string | null>(null);
   const [reportModalDatePreset, setReportModalDatePreset] =
@@ -566,23 +576,21 @@ export default function ClientDetailPage() {
         const data = await res.json();
         setClient(data);
 
-        // Fetch Meta campaigns in parallel
-        setLoadingMeta(true);
+        // Fetch unified Meta + Google Ads campaigns (Campagne tab)
+        setLoadingCampaigns(true);
         try {
-          const metaRes = await fetch(
-            `${API_URL}/api/clients/${id}/meta/campaigns`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
+          const campaignsRes = await fetch(
+            `${API_URL}/api/clients/${id}/campaigns`,
+            { headers: { Authorization: `Bearer ${token}` } },
           );
-          if (metaRes.ok) {
-            const metaData = await metaRes.json();
-            setMetaCampaigns(metaData.campaigns || []);
+          if (campaignsRes.ok) {
+            const campaignsData = await campaignsRes.json();
+            setAllCampaigns(campaignsData.campaigns || []);
           }
         } catch (e) {
-          console.error("Failed to load meta campaigns", e);
+          console.error("Failed to load unified campaigns", e);
         } finally {
-          setLoadingMeta(false);
+          setLoadingCampaigns(false);
         }
 
         // Fetch GA4 Data logic is now moved to its own isolated useEffect (see below) to react to overviewDaysBack Filter
@@ -705,7 +713,7 @@ export default function ClientDetailPage() {
     { id: "intelligence", label: "AI Intelligence", icon: Brain, iconColor: "text-purple-400" },
     {
       id: "campaigns",
-      label: `Campagne (${client.campaigns?.length || 0})`,
+      label: `Campagne${allCampaigns.length > 0 ? ` (${allCampaigns.length})` : ''}`,
       icon: Target,
       iconColor: "text-emerald-400",
     },
@@ -2304,228 +2312,151 @@ export default function ClientDetailPage() {
       )}
 
       {/* TAB: CAMPAGNE */}
-      {activeTab === "campaigns" && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center mb-5">
-            <h2 className="text-xl font-extrabold text-foreground">
-              Campagne in Piattaforma
-            </h2>
-            <Link
-              href={`/clients/${id}/meta-ads/new`}
-              className="btn-gorgeous inline-flex items-center gap-2 no-underline text-xs font-bold px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all"
-            >
-              <Plus size={16} /> Nuova Campagna
-            </Link>
-          </div>
-          {(client.campaigns?.length || 0) === 0 ? (
-            <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl">
-              <Zap size={40} className="opacity-20 text-muted-foreground" />
-              <h3 className="font-bold text-foreground">
-                Nessuna campagna ancora
-              </h3>
-              <p className="text-xs text-muted-foreground/60">
-                Crea la prima campagna per questo cliente
-              </p>
-            </div>
-          ) : (
-            <div className="border border-white/10 rounded-2xl overflow-hidden glass-card bg-white/[0.02] shadow-md">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-white/15 bg-white/[0.04] text-[10px] font-black uppercase tracking-wider text-muted-foreground/75">
-                    <th className="py-4.5 px-5">Nome Campagna</th>
-                    <th className="py-4.5 px-4">Stato</th>
-                    <th className="py-4.5 px-4">Obiettivo</th>
-                    <th className="py-4.5 px-4">Budget / Giorno</th>
-                    <th className="py-4.5 px-4">Varianti</th>
-                    <th className="py-4.5 px-5 text-right">Azioni</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-xs text-muted-foreground">
-                  {(client.campaigns || []).map((c) => {
-                    const s = statusColors[c.status] ?? {
-                      color: "#94a3b8",
-                      bg: "rgba(148,163,184,0.1)",
-                      label: c.status,
-                    };
-                    return (
-                      <tr
-                        key={c.id}
-                        className="hover:bg-white/[0.05] hover:shadow-md transition-all duration-200"
-                      >
-                        <td className="py-5 px-5 font-bold text-foreground flex items-center gap-2">
-                          <Target className="h-4 w-4 text-primary shrink-0" />
-                          <span>{c.name}</span>
-                        </td>
-                        <td className="py-5 px-4">
-                          <span
-                            style={{
-                              color: s.color,
-                              backgroundColor: s.bg,
-                              borderColor: `${s.color}25`,
-                            }}
-                            className="px-2.5 py-0.5 rounded-full font-extrabold text-[9px] tracking-wide uppercase border"
-                          >
-                            {s.label}
-                          </span>
-                        </td>
-                        <td className="py-5 px-4 font-medium tracking-tight">
-                          {c.objective}
-                        </td>
-                        <td className="py-5 px-4 font-extrabold text-foreground">
-                          €{c.dailyBudget}/gg
-                        </td>
-                        <td className="py-5 px-4 font-semibold text-muted-foreground/90">
-                          {c._count.adVariants} varianti
-                        </td>
-                        <td className="py-5 px-5 text-right">
-                          <Link
-                            href={`/clients/${id}/campaigns/${c.id}/preview`}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-primary/10 text-primary border border-primary/15 hover:bg-primary/20 hover:border-primary/25 transition-all hover:scale-102 hover:shadow-lg hover:shadow-primary/5 active:scale-95 no-underline"
-                          >
-                            Preview{" "}
-                            <ArrowLeft className="h-3.5 w-3.5 rotate-180" />
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+      {activeTab === "campaigns" && (() => {
+        const filtered = allCampaigns.filter((c) => {
+          if (campaignStatusFilter !== 'all' && c.status !== campaignStatusFilter) return false;
+          if (campaignFilter && !c.name.toLowerCase().includes(campaignFilter.toLowerCase())) return false;
+          // Overlap check: keep a campaign if any part of its known date range
+          // (startDate..endDate, whichever are known) falls within the filter
+          // window. A campaign with no dates at all is never hidden by a date
+          // filter — better to over-show than to silently drop it.
+          if (campaignDateFrom && c.endDate && c.endDate < campaignDateFrom) return false;
+          if (campaignDateTo && c.startDate && c.startDate > campaignDateTo) return false;
+          return true;
+        });
 
-          {/* Sezione Campagne Meta Sincronizzate */}
-          <div className="mt-12 pt-8 border-t border-white/5">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        const statusBadge = (status: string) => {
+          const map: Record<string, { label: string; color: string; bg: string }> = {
+            active: { label: 'Attiva', color: '#34d399', bg: 'rgba(52,211,153,0.1)' },
+            paused: { label: 'In pausa', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
+            ended: { label: 'Finita', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' },
+          };
+          const s = map[status] || map.ended;
+          return (
+            <span
+              style={{ color: s.color, backgroundColor: s.bg, borderColor: `${s.color}25` }}
+              className="px-2.5 py-0.5 rounded-full font-extrabold text-[9px] tracking-wide uppercase border"
+            >
+              {s.label}
+            </span>
+          );
+        };
+
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h2 className="text-xl font-extrabold flex items-center gap-2 text-foreground">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <Image
-                    src="https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg"
-                    alt="Meta"
-                    width={42}
-                    height={14}
-                    className="h-3.5 w-auto"
-                    unoptimized
-                  />{" "}
-                  Sincronizzate da Meta
-                </h2>
+                <h2 className="text-xl font-extrabold text-foreground">Campagne</h2>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Campagne attualmente attive sull'Ad Account configurato
+                  Tutte le campagne reali su Meta Ads e Google Ads per questo cliente
                 </p>
               </div>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <input
-                  type="text"
-                  placeholder="Filtra campagne (es. ODC)..."
-                  value={campaignFilter}
-                  onChange={(e) => {
-                    setCampaignFilter(e.target.value);
-                    localStorage.setItem(`meta_filter_${id}`, e.target.value);
-                  }}
-                  className="px-3 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 text-xs w-full sm:w-64 outline-none transition-all placeholder:text-muted-foreground/50 text-foreground"
-                />
-                {loadingMeta && (
-                  <span className="text-xs text-muted-foreground/60 animate-pulse shrink-0">
-                    Sincronizzazione...
-                  </span>
-                )}
-              </div>
+              <Link
+                href={`/clients/${id}/meta-ads/new`}
+                className="btn-gorgeous inline-flex items-center gap-2 no-underline text-xs font-bold px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all shrink-0"
+              >
+                <Plus size={16} /> Nuova Campagna
+              </Link>
             </div>
 
-            {!loadingMeta && metaCampaigns.length === 0 ? (
-              <div className="text-center py-12 bg-background/20 rounded-2xl border border-white/5 text-muted-foreground/60 text-sm">
-                Nessuna campagna trovata sull'account Meta corrente.
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                type="text"
+                placeholder="Filtra per nome..."
+                value={campaignFilter}
+                onChange={(e) => setCampaignFilter(e.target.value)}
+                className="px-3 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 text-xs w-full sm:w-56 outline-none transition-all placeholder:text-muted-foreground/50 text-foreground"
+              />
+              <select
+                value={campaignStatusFilter}
+                onChange={(e) => setCampaignStatusFilter(e.target.value as any)}
+                className="px-3 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 text-xs outline-none text-foreground"
+              >
+                <option value="all">Tutti gli stati</option>
+                <option value="active">Attive</option>
+                <option value="paused">In pausa</option>
+                <option value="ended">Finite</option>
+              </select>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Dal</span>
+                <input type="date" value={campaignDateFrom} onChange={(e) => setCampaignDateFrom(e.target.value)}
+                  className="px-2 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 outline-none text-foreground" />
+                <span>al</span>
+                <input type="date" value={campaignDateTo} onChange={(e) => setCampaignDateTo(e.target.value)}
+                  className="px-2 py-2 rounded-lg border border-white/10 bg-background/50 focus:border-primary/50 outline-none text-foreground" />
+              </div>
+              {loadingCampaigns && <span className="text-xs text-muted-foreground/60 animate-pulse">Caricamento...</span>}
+            </div>
+
+            {!loadingCampaigns && filtered.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <Zap size={40} className="opacity-20 text-muted-foreground" />
+                <h3 className="font-bold text-foreground">
+                  {allCampaigns.length === 0 ? "Nessuna campagna trovata" : "Nessuna campagna corrisponde ai filtri"}
+                </h3>
+                <p className="text-xs text-muted-foreground/60">
+                  {allCampaigns.length === 0
+                    ? "Collega Meta Ads e/o Google Ads in Setup API per vederle qui."
+                    : "Prova ad allargare l'intervallo di date o cambiare stato."}
+                </p>
               </div>
             ) : (
-              <div className="max-h-[500px] overflow-y-auto border border-white/10 rounded-2xl glass-card bg-white/[0.02] shadow-md scrollbar-thin">
+              <div className="max-h-[600px] overflow-y-auto border border-white/10 rounded-2xl glass-card bg-white/[0.02] shadow-md scrollbar-thin">
                 <table className="w-full border-collapse text-left">
                   <thead className="sticky top-0 bg-neutral-950/80 backdrop-blur-md border-b border-white/15 z-10 text-[10px] font-black uppercase tracking-wider text-muted-foreground/75">
                     <tr>
-                      <th className="py-4.5 px-5">Nome (Meta)</th>
+                      <th className="py-4.5 px-5">Nome</th>
+                      <th className="py-4.5 px-4">Piattaforma</th>
                       <th className="py-4.5 px-4">Stato</th>
-                      <th className="py-4.5 px-4">Obiettivo</th>
-                      <th className="py-4.5 px-4">Budget G. / Tot.</th>
+                      <th className="py-4.5 px-4">Periodo</th>
+                      <th className="py-4.5 px-4">Spesa</th>
+                      <th className="py-4.5 px-4">Click</th>
+                      <th className="py-4.5 px-4">Conversioni</th>
                       <th className="py-4.5 px-5 text-right">Azioni</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-xs text-muted-foreground">
-                    {metaCampaigns
-                      .filter((mc: any) =>
-                        mc.name
-                          .toLowerCase()
-                          .includes(campaignFilter.toLowerCase()),
-                      )
-                      .map((mc: any) => {
-                        const isActive = mc.status === "ACTIVE";
-                        return (
-                          <tr
-                            key={mc.id}
-                            className="hover:bg-white/[0.05] hover:shadow-md transition-all duration-200"
-                          >
-                            <td className="py-5 px-5 font-bold text-foreground">
-                              {mc.name}
-                            </td>
-                            <td className="py-5 px-4">
-                              <span
-                                className={cn(
-                                  "px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wide uppercase border",
-                                  isActive
-                                    ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/25"
-                                    : "text-muted-foreground bg-white/5 border-white/10",
-                                )}
-                              >
-                                {mc.status}
-                              </span>
-                            </td>
-                            <td className="py-5 px-4 font-semibold tracking-tight">
-                              {mc.objective?.replace("OUTCOME_", "")}
-                            </td>
-                            <td className="py-5 px-4 font-extrabold text-foreground">
-                              {mc.daily_budget
-                                ? `€${(parseInt(mc.daily_budget) / 100).toFixed(2)}/gg`
-                                : mc.lifetime_budget
-                                  ? `€${(parseInt(mc.lifetime_budget) / 100).toFixed(2)} Tot`
-                                  : "-"}
-                            </td>
-                            <td className="py-5 px-5 text-right">
-                              <button
-                                onClick={() =>
-                                  handleOpenReport(mc.id, mc.objective, mc.name)
-                                }
-                                disabled={loadingReportId === mc.id}
-                                className={cn(
-                                  "py-2 px-4 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-95 cursor-pointer hover:-translate-y-0.5",
-                                  loadingReportId === mc.id
-                                    ? "bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5"
-                                    : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/15 hover:bg-cyan-500/20 hover:border-cyan-500/25 hover:shadow-lg hover:shadow-cyan-500/5",
-                                )}
-                              >
-                                {loadingReportId === mc.id ? (
-                                  <Loader2
-                                    size={12}
-                                    className="animate-spin animate-duration-1000"
-                                  />
-                                ) : (
-                                  <BarChart2 size={12} />
-                                )}
-                                <span>
-                                  {loadingReportId === mc.id
-                                    ? "Sincronizzazione..."
-                                    : "Report KPI"}
-                                </span>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                    {filtered.map((c) => (
+                      <tr key={`${c.platform}-${c.id}`} className="hover:bg-white/[0.05] hover:shadow-md transition-all duration-200">
+                        <td className="py-5 px-5 font-bold text-foreground">{c.name}</td>
+                        <td className="py-5 px-4 font-semibold">
+                          {c.platform === 'meta' ? 'Meta Ads' : 'Google Ads'}
+                        </td>
+                        <td className="py-5 px-4">{statusBadge(c.status)}</td>
+                        <td className="py-5 px-4 font-medium tracking-tight">
+                          {c.startDate || '—'} {c.endDate ? `→ ${c.endDate}` : ''}
+                        </td>
+                        <td className="py-5 px-4 font-extrabold text-foreground">€{c.spend.toFixed(2)}</td>
+                        <td className="py-5 px-4">{c.clicks.toLocaleString('it-IT')}</td>
+                        <td className="py-5 px-4">{c.conversions.toLocaleString('it-IT')}</td>
+                        <td className="py-5 px-5 text-right">
+                          {c.platform === 'meta' ? (
+                            <button
+                              onClick={() => handleOpenReport(c.id, c.objective || 'Sconosciuto', c.name)}
+                              disabled={loadingReportId === c.id}
+                              className={cn(
+                                "py-2 px-4 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-95 cursor-pointer hover:-translate-y-0.5",
+                                loadingReportId === c.id
+                                  ? "bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5"
+                                  : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/15 hover:bg-cyan-500/20 hover:border-cyan-500/25 hover:shadow-lg hover:shadow-cyan-500/5",
+                              )}
+                            >
+                              {loadingReportId === c.id ? <Loader2 size={12} className="animate-spin animate-duration-1000" /> : <BarChart2 size={12} />}
+                              <span>{loadingReportId === c.id ? "Sincronizzazione..." : "Report KPI"}</span>
+                            </button>
+                          ) : (
+                            <span className="text-muted-foreground/40">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* RENDER MODAL REPORT */}
       {reportModalData && (
