@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
-import { saveClientToken } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource, saveClientToken } from '@/lib/api-auth';
 
 export async function GET(
   request: Request,
@@ -9,6 +8,12 @@ export async function GET(
 ) {
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
+
+  // A client can view their own profile; anyone else needs to be staff. Before
+  // this check, any authenticated user — any role, any client — could read any
+  // other client's full record here.
+  const user = await getAppUser(auth.uid);
+  if (!isStaffUser(user) && !ownsClientResource(user, params.id)) return forbiddenResponse();
 
   try {
     const id = params.id;
@@ -55,6 +60,7 @@ export async function PUT(
 ) {
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
+  if (!isStaffUser(await getAppUser(auth.uid))) return forbiddenResponse();
 
   try {
     const id = params.id;
@@ -93,6 +99,7 @@ export async function DELETE(
 ) {
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
+  if (!isStaffUser(await getAppUser(auth.uid))) return forbiddenResponse();
 
   try {
     const id = params.id;
@@ -120,6 +127,7 @@ export async function PATCH(
 ) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
+  if (!isStaffUser(await getAppUser(auth.uid))) return forbiddenResponse();
 
   try {
     const id = params.id;

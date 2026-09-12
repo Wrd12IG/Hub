@@ -59,6 +59,38 @@ export function forbiddenResponse(message = 'Forbidden') {
   return NextResponse.json({ error: message }, { status: 403 });
 }
 
+// ─── Role / Ownership Checks ──────────────────────────────────────────────────
+//
+// verifyAuth() only proves the caller is a signed-in user — it says nothing
+// about what they're allowed to do. Most API routes in this app currently skip
+// this second step entirely (see app/api/clients/[id]/route.ts before this
+// helper existed: any authenticated user, any role, could PUT/DELETE/PATCH any
+// client). Use these helpers in every route that touches another party's data,
+// and prefer extending them over re-deriving role checks ad hoc per route.
+
+export interface AppUser {
+  id: string;
+  role?: 'Amministratore' | 'Project Manager' | 'Collaboratore' | 'Cliente';
+  clientId?: string;
+}
+
+/** Look up the Firestore profile (role, clientId) for an authenticated caller. */
+export async function getAppUser(uid: string): Promise<AppUser | null> {
+  const snap = await adminDb.collection('users').doc(uid).get();
+  if (!snap.exists) return null;
+  return { id: snap.id, ...(snap.data() as Omit<AppUser, 'id'>) };
+}
+
+/** True for every role except "Cliente" (Amministratore/Project Manager/Collaboratore). */
+export function isStaffUser(user: AppUser | null): boolean {
+  return !!user && user.role !== 'Cliente';
+}
+
+/** True when a "Cliente"-role user's own clientId matches the resource's client id. */
+export function ownsClientResource(user: AppUser | null, clientId: string): boolean {
+  return !!user && user.role === 'Cliente' && user.clientId === clientId;
+}
+
 // ─── Token Store (AES-256-CBC) ────────────────────────────────────────────────
 
 const ENCRYPTION_KEY_HEX = process.env.ENCRYPTION_KEY || '';
