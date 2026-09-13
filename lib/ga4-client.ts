@@ -35,6 +35,32 @@ function getGa4Client() {
 // ─── Funzione Principale ─────────────────────────────────────────────────────
 
 
+// ─── Errori leggibili ────────────────────────────────────────────────────────
+
+/**
+ * L'errore che conta davvero qui è uno solo: la proprietà esiste ma il service
+ * account non è ancora stato autorizzato su di essa. Google lo riporta come un
+ * PERMISSION_DENIED generico che in UI non dice a nessuno cosa fare, mentre la
+ * soluzione è sempre la stessa e richiede trenta secondi in GA4 → Accesso.
+ * Meglio scriverlo per esteso, con l'email da autorizzare già dentro.
+ */
+function explainGa4Error(err: any, propertyId: string): string {
+  const email = process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL || 'il service account del Hub';
+  const code = err?.code;
+  const msg = String(err?.message || err);
+
+  if (code === 7 || /permission|insufficient|does not have access/i.test(msg)) {
+    return `Il service account non è autorizzato sulla proprietà GA4 ${propertyId}. `
+      + `Vai su GA4 → Amministrazione → Gestione accessi alla proprietà e aggiungi `
+      + `${email} come Visualizzatore.`;
+  }
+  if (code === 5 || /not found/i.test(msg)) {
+    return `Proprietà GA4 ${propertyId} inesistente o non raggiungibile. `
+      + `Controlla il Property ID in Setup API (è il numero, non "G-XXXX").`;
+  }
+  return msg;
+}
+
 // ─── Totali per il reporting (service account, nessun OAuth per cliente) ─────
 
 /**
@@ -63,9 +89,13 @@ export async function getGA4Totals(
   // GA4 rejects more than 10 metrics per request ("Requests are limited to 10
   // metrics within a nested request"), so this goes out as two parallel calls.
   const run = async (names: string[]) => {
-    const [res] = await client.runReport({ property, dateRanges, metrics: names.map((name) => ({ name })) });
-    const values = res.rows?.[0]?.metricValues ?? [];
-    return Object.fromEntries(names.map((n, i) => [n, Number(values[i]?.value ?? 0) || 0]));
+    try {
+      const [res] = await client.runReport({ property, dateRanges, metrics: names.map((name) => ({ name })) });
+      const values = res.rows?.[0]?.metricValues ?? [];
+      return Object.fromEntries(names.map((n, i) => [n, Number(values[i]?.value ?? 0) || 0]));
+    } catch (err: any) {
+      throw new Error(explainGa4Error(err, propertyId));
+    }
   };
 
   const [a, b] = await Promise.all([

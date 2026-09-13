@@ -46,7 +46,7 @@ export async function GET(
     }
 
     const analytics = await getGA4Overview(propertyId, buildWindows(days, compare));
-    return NextResponse.json({ ...analytics, _meta: { source: 'windsor', days, compare } });
+    return NextResponse.json({ ...analytics, _meta: { source: 'ga4', days, compare } });
   } catch (error: any) {
     console.error(`[analytics] GA4 overview failed for client ${clientId}:`, error.message);
     return NextResponse.json(
