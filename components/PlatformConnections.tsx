@@ -14,6 +14,7 @@ import {
   Instagram,
   Search,
   BarChart3,
+  Mail,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -45,6 +46,8 @@ export interface ClientConnections {
   hasTiktokToken?: boolean;
   tiktokDisplayName?: string | null;
   hasLinkedinToken?: boolean;
+  hasKlaviyoToken?: boolean;
+  klaviyoAccountName?: string | null;
   linkedinOrgName?: string | null;
   // Windsor.ai-only reporting ids (Report Marketing tab) — see lib/data.ts's
   // Client.windsorAccounts and lib/reporting.ts.
@@ -499,6 +502,77 @@ function WindsorGbpModal({
           style={{ backgroundColor: "#34A853" }}>
           {saving && <Loader2 size={14} className="animate-spin" />}
           Salva sedi
+        </button>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MODAL: KLAVIYO — Private API Key (API diretta, non Windsor)
+   La chiave viene provata contro Klaviyo prima di essere salvata: una chiave
+   sbagliata o con scope insufficienti viene rifiutata qui, invece di essere
+   accettata e produrre una scheda vuota nel report giorni dopo.
+───────────────────────────────────────────────────────────────── */
+
+function KlaviyoModal({
+  clientId, connected, accountName, onClose, onSaved,
+}: {
+  clientId: string;
+  connected: boolean;
+  accountName?: string | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [apiKey, setApiKey] = useState("");
+  const [saving, setSaving] = useState(false);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+
+  async function save() {
+    setSaving(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/clients/${clientId}/klaviyo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ apiKey: apiKey.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Chiave rifiutata da Klaviyo.");
+      toast.success(`Collegato: ${data.accountName}`);
+      // L'account può non avere una metrica di conversione: il report gira
+      // comunque, ma senza fatturato — meglio dirlo subito.
+      if (data.warning) toast.warning(data.warning);
+      onSaved(); onClose();
+    } catch (e: any) {
+      toast.error(e.message || "Impossibile salvare.");
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <ModalWrapper title="Klaviyo — Private API Key" onClose={onClose}>
+      <div className="space-y-4">
+        {connected && accountName && (
+          <p className="text-xs text-muted-foreground">
+            Attualmente collegato a <strong className="text-foreground">{accountName}</strong>.
+            Inserendo una nuova chiave sostituisci quella esistente.
+          </p>
+        )}
+        <div className="space-y-1.5">
+          <label htmlFor="klaviyo-key" className="text-xs font-bold text-muted-foreground">Private API Key</label>
+          <input id="klaviyo-key" type="password" autoComplete="off" value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)} placeholder="pk_..."
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
+          <p className="text-[10px] text-muted-foreground/60">
+            In Klaviyo: Settings → Account → API keys → Create Private API Key. Scegli <strong>Custom Key</strong> e dai
+            la sola lettura su <code>accounts</code>, <code>metrics</code>, <code>campaigns</code>, <code>flows</code>,
+            <code>lists</code> e <code>segments</code>. La chiave viene cifrata prima di essere salvata e non è più
+            rileggibile da qui.
+          </p>
+        </div>
+        <button onClick={save} disabled={saving || !apiKey.trim()}
+          className="w-full text-sm font-semibold py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all disabled:opacity-40 cursor-pointer">
+          {saving ? "Verifico la chiave…" : "Verifica e salva"}
         </button>
       </div>
     </ModalWrapper>
@@ -1053,7 +1127,7 @@ function LinkedinModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | null;
 
 
 export default function PlatformConnections({
@@ -1296,6 +1370,26 @@ export default function PlatformConnections({
           </button>
         </div>
 
+        {/* ── KLAVIYO — API diretta, non Windsor ── */}
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasKlaviyoToken, "#F59E0B")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#fbbf24")}>
+                <Mail size={16} />
+              </div>
+              <span className="text-sm font-bold text-foreground">Klaviyo (Email)</span>
+            </div>
+            {client.hasKlaviyoToken && <ConnectedBadge />}
+          </div>
+          {client.klaviyoAccountName && (
+            <p className="text-[11px] text-muted-foreground/70">Account: {client.klaviyoAccountName}</p>
+          )}
+          <button type="button" onClick={() => setActiveModal("klaviyo")}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-amber-500/20 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 transition-all cursor-pointer">
+            {client.hasKlaviyoToken ? <><ExternalLink size={11} /> Modifica chiave</> : <><Link2 size={11} /> Collega Klaviyo</>}
+          </button>
+        </div>
+
         {/* ── WINDSOR.AI — SEARCH CONSOLE (per Report Marketing) ── */}
         <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.searchconsole, "#4285F4")}>
           <div className="flex items-center justify-between">
@@ -1413,6 +1507,15 @@ export default function PlatformConnections({
             setClient((prev) => ({ ...prev, hasLinkedinToken: !!name, linkedinOrgName: name || null }));
             setActiveModal(null);
           }}
+        />
+      )}
+      {activeModal === "klaviyo" && (
+        <KlaviyoModal
+          clientId={clientId}
+          connected={!!client.hasKlaviyoToken}
+          accountName={client.klaviyoAccountName}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { refreshClient(); setActiveModal(null); }}
         />
       )}
       {activeModal === "windsor-instagram" && (

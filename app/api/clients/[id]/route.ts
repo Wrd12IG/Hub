@@ -26,15 +26,17 @@ export async function GET(
 
     // Leggi le integrazioni social in parallelo (solo presence, nessun token in chiaro)
     const integrationsRef = docRef.collection('integrations');
-    const [youtubeSnap, tiktokSnap, linkedinSnap] = await Promise.all([
+    const [youtubeSnap, tiktokSnap, linkedinSnap, klaviyoSnap] = await Promise.all([
       integrationsRef.doc('youtube').get(),
       integrationsRef.doc('tiktok').get(),
       integrationsRef.doc('linkedin').get(),
+      integrationsRef.doc('klaviyo').get(),
     ]);
 
     const youtubeData = youtubeSnap.exists ? youtubeSnap.data() : null;
     const tiktokData  = tiktokSnap.exists  ? tiktokSnap.data()  : null;
     const linkedinData = linkedinSnap.exists ? linkedinSnap.data() : null;
+    const klaviyoData = klaviyoSnap.exists ? klaviyoSnap.data() : null;
 
     return NextResponse.json({
       id: doc.id,
@@ -46,6 +48,8 @@ export async function GET(
       tiktokDisplayName:  tiktokData?.extra?.displayName ?? null,
       hasLinkedinToken:   !!linkedinData?.accessToken,
       linkedinOrgName:    linkedinData?.extra?.organizationName ?? linkedinData?.extra?.orgName ?? null,
+      hasKlaviyoToken:    !!klaviyoData?.accessToken,
+      klaviyoAccountName: klaviyoData?.extra?.accountName ?? null,
     });
   } catch (error) {
     console.error(`Error fetching client ${params.id}:`, error);

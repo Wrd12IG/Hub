@@ -16,6 +16,7 @@
 import { getData } from './windsor-client';
 import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
+import { getKlaviyoTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
 import type { Client } from './data';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup
@@ -28,10 +29,16 @@ type ClientReportSource = Pick<Client, 'windsorAccounts'> & {
     metaAdAccountId?: string;
     googleAdAccountId?: string;
     ga4PropertyId?: string;
+    /**
+     * Klaviyo non sta sul documento del cliente come gli altri: la chiave è
+     * cifrata nella sottocollection `integrations`. La risolve la route e la
+     * passa qui, così questo modulo resta senza dipendenze da Firestore.
+     */
+    klaviyo?: { apiKey: string; conversionMetricId?: string; cacheKey?: string };
 };
 
 export interface PlatformReport {
-    platform: 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp';
+    platform: 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo';
     /** Set for platforms that can have several accounts per client (GBP: one per sede). */
     accountLabel?: string;
     connected: boolean;
@@ -48,10 +55,11 @@ export interface PlatformReport {
 // GET /{connector}/fields) before adding any; several of these were wrong in
 // the first pass precisely because they were guessed from the platforms' own
 // API naming (activeUsers, totalRevenue, followers, actions... none exist).
-// ga4 e searchconsole sono letti nativi da Google col service account
-// dell'agenzia, non da Windsor: restano nel tipo PlatformReport (la UI li
+// ga4, searchconsole e klaviyo NON passano da Windsor: i primi due sono letti
+// nativi da Google col service account dell'agenzia, il terzo dall'API Klaviyo
+// con una chiave privata per cliente. Restano nel tipo PlatformReport (la UI li
 // mostra come gli altri) ma non hanno un connector qui.
-type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole'>;
+type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo'>;
 
 const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
     facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc'] },
@@ -302,7 +310,8 @@ export async function getClientMarketingReport(
     // piattaforme Windsor: da quando quelle due sono native, un cliente che ha
     // *soltanto* Analytics e/o Search Console collegati usciva di qui con un
     // report vuoto senza alcun errore, pur avendo dati validi.
-    if (platforms.length === 0 && gbpAccountIds.length === 0 && !client.ga4PropertyId && !searchConsoleSite) {
+    if (platforms.length === 0 && gbpAccountIds.length === 0
+        && !client.ga4PropertyId && !searchConsoleSite && !client.klaviyo) {
         return [];
     }
 
@@ -385,6 +394,36 @@ export async function getClientMarketingReport(
         }
     };
 
+    // Klaviyo: API diretta con la chiave privata del cliente, non Windsor.
+    const fetchKlaviyo = async (
+        cfg: { apiKey: string; conversionMetricId?: string; cacheKey?: string }
+    ): Promise<PlatformReport> => {
+        try {
+            if (!cfg.conversionMetricId) {
+                // Senza metrica di conversione l'endpoint dei report rifiuta la
+                // chiamata: meglio dirlo che mostrare una scheda vuota.
+                throw new Error(
+                    'Nessuna metrica di conversione "Placed Order" su questo account Klaviyo. '
+                    + 'Ricollega la chiave da Setup API dopo aver collegato l\'e-commerce.'
+                );
+            }
+            // In sequenza, non in parallelo: Klaviyo limita questo endpoint a 1
+            // richiesta al secondo (burst) e 2 al minuto (steady). Due chiamate
+            // simultanee sfondano il burst e la seconda torna 429.
+            const cur = await getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId, windows
+                ? toKlaviyoTimeframe(windows.current.dateFrom, windows.current.dateTo)
+                : presetToKlaviyoTimeframe(datePreset), cfg.cacheKey);
+            const prev = windows?.previous
+                ? await getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId,
+                    toKlaviyoTimeframe(windows.previous.dateFrom, windows.previous.dateTo), cfg.cacheKey)
+                : null;
+            return { platform: 'klaviyo', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
+        } catch (err: any) {
+            console.error('[reporting] klaviyo failed:', err.message);
+            return { platform: 'klaviyo', connected: false, error: err.message, rows: [], previousRows: [] };
+        }
+    };
+
     // Le sedi GBP passano da un pool: sono l'unico caso in cui un cliente ha
     // molti account sulla stessa piattaforma, e in parallelo Windsor le rifiuta.
     const [single, gbp] = await Promise.all([
@@ -392,6 +431,7 @@ export async function getClientMarketingReport(
             ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
             ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
             ...(searchConsoleSite ? [fetchSearchConsole(searchConsoleSite)] : []),
+            ...(client.klaviyo ? [fetchKlaviyo(client.klaviyo)] : []),
         ]),
         mapWithConcurrency(gbpAccountIds, 2, async (accountId) => {
             const report = await fetchOne('gbp', accountId);
