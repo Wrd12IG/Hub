@@ -66,14 +66,21 @@ const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-cl
             'organization_follower_count',
         ],
     },
-    // ⚠️ STILL UNVERIFIED, unlike every other line above. Windsor refuses to
-    // serve a connector's field catalogue while no account is attached to it
-    // ("No google_my_business accounts are configured"), so these four are
-    // guesses. Given Windsor returns nulls rather than an error for unknown
-    // ids, a wrong guess here shows up as an empty GBP section, not as a
-    // visible error — so verify them with get_fields the moment GBP is
-    // connected, before trusting anything this section displays.
-    gbp: { connector: 'google_my_business', fields: ['impressions', 'website_clicks', 'call_clicks', 'direction_requests'] },
+    // Verificati con get_fields e contro i dati reali delle sedi appena GBP è
+    // stato collegato: i quattro id di performance c'erano già giusti. Le due
+    // voci sulle recensioni sono nuove — GBP le espone su una riga a parte,
+    // dove i campi di performance sono null e viceversa.
+    // `review_count` è il numero di recensioni *nel periodo* (segue il
+    // selettore Periodo), `review_average_rating_total` è il rating
+    // complessivo di sempre: è il numero che un cliente si aspetta di vedere,
+    // mentre la media del solo periodo su due recensioni non dice nulla.
+    gbp: {
+        connector: 'google_my_business',
+        fields: [
+            'impressions', 'website_clicks', 'call_clicks', 'direction_requests',
+            'review_count', 'review_average_rating_total',
+        ],
+    },
 };
 
 /**
@@ -85,19 +92,65 @@ const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-cl
  * into one total, and is correct for the single-row connectors too (a lone
  * value sums to itself).
  */
+/**
+ * Campi che NON vanno sommati anche se numerici, perché non sono quantità per
+ * riga ma tassi, medie o totali già calcolati da chi ce li manda. Sommarli dà
+ * numeri assurdi in silenzio: un rating 4,5 ripetuto su due righe diventa 9,0,
+ * un totale recensioni di 117 diventa 234, un CTR dell'1% diventa 30% su
+ * trenta giorni. Per questi si tiene il primo valore non nullo.
+ *
+ * Oggi la maggior parte di questi connector risponde con una riga sola e il
+ * problema non si vede — ma è esattamente il tipo di bug che compare mesi dopo,
+ * quando Windsor cambia granularità, e che nessuno collega alla causa.
+ */
+const NON_SUMMABLE = new Set([
+    'ctr', 'cpc', 'position',
+    'bounce_rate', 'engagement_rate', 'session_conversion_rate',
+    'average_session_duration', 'screen_page_views_per_session',
+    'followers_count', 'organization_follower_count',
+    'review_count', 'review_total_count',
+    'review_average_rating', 'review_average_rating_total',
+]);
+
 function aggregateRows(rows: Record<string, string | number | undefined>[]): Record<string, string | number | undefined> {
     const totals: Record<string, string | number | undefined> = {};
     for (const row of rows) {
         for (const [key, value] of Object.entries(row)) {
             if (value === null || value === undefined) continue;
-            if (typeof value === 'number') {
+            if (typeof value === 'number' && !NON_SUMMABLE.has(key)) {
                 totals[key] = ((totals[key] as number) || 0) + value;
             } else if (totals[key] === undefined) {
-                totals[key] = value; // account_id / account_name and friends
+                totals[key] = value; // account_id / account_name, tassi e medie
             }
         }
     }
     return totals;
+}
+
+/**
+ * Esegue al massimo `limit` operazioni alla volta.
+ *
+ * Serve per GBP, l'unica piattaforma con molti account per cliente: una sede
+ * risponde in 10-12 secondi, e lanciando tutte le sedi × due finestre insieme
+ * Windsor comincia a chiudere le connessioni (ETIMEDOUT) — misurato su un
+ * cliente con 4 sedi, dove due richieste su otto morivano mentre le stesse,
+ * eseguite in sequenza, rispondevano entrambe.
+ */
+async function mapWithConcurrency<T, R>(
+    items: T[],
+    limit: number,
+    fn: (item: T) => Promise<R>
+): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let next = 0;
+    const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+        while (next < items.length) {
+            const i = next++;
+            results[i] = await fn(items[i]);
+        }
+    });
+    await Promise.all(workers);
+    return results;
 }
 
 export type CompareMode = 'prev_period' | 'prev_year' | 'none';
@@ -332,11 +385,15 @@ export async function getClientMarketingReport(
         }
     };
 
-    const results = await Promise.all([
-        ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
-        ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
-        ...(searchConsoleSite ? [fetchSearchConsole(searchConsoleSite)] : []),
-        ...gbpAccountIds.map(async (accountId) => {
+    // Le sedi GBP passano da un pool: sono l'unico caso in cui un cliente ha
+    // molti account sulla stessa piattaforma, e in parallelo Windsor le rifiuta.
+    const [single, gbp] = await Promise.all([
+        Promise.all([
+            ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
+            ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
+            ...(searchConsoleSite ? [fetchSearchConsole(searchConsoleSite)] : []),
+        ]),
+        mapWithConcurrency(gbpAccountIds, 2, async (accountId) => {
             const report = await fetchOne('gbp', accountId);
             // Keep the sede identifiable even when the fetch failed and there
             // are no rows to read a name from.
@@ -344,5 +401,5 @@ export async function getClientMarketingReport(
         }),
     ]);
 
-    return results;
+    return [...single, ...gbp];
 }
