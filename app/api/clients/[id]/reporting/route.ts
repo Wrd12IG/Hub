@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource } from '@/lib/api-auth';
 import { getClientMarketingReport, buildWindows, type CompareMode } from '@/lib/reporting';
+import { getClientToken } from '@/lib/api-auth';
 import type { Client } from '@/lib/data';
 
 export async function GET(
@@ -38,7 +39,23 @@ export async function GET(
         ? buildWindows(days, compare)
         : undefined;
 
-    const report = await getClientMarketingReport(client, datePreset, windows);
+    // La chiave Klaviyo vive cifrata nella sottocollection `integrations`, non
+    // sul documento del cliente: la si risolve qui e la si passa, così
+    // lib/reporting.ts resta senza dipendenze da Firestore. Un errore nel
+    // leggerla non deve far cadere tutto il resto del report.
+    const klaviyoToken = await getClientToken(clientId, 'klaviyo').catch(() => null);
+    const klaviyo = klaviyoToken?.accessToken
+      ? {
+          apiKey: klaviyoToken.accessToken,
+          conversionMetricId: klaviyoToken.extra?.conversionMetricId,
+          // Chiave di cache: l'endpoint dei report Klaviyo accetta 2 richieste
+          // al minuto, quindi senza cache la scheda sarebbe in errore quasi
+          // sempre. Vedi lib/klaviyo-client.ts.
+          cacheKey: clientId,
+        }
+      : undefined;
+
+    const report = await getClientMarketingReport({ ...client, klaviyo }, datePreset, windows);
 
     return NextResponse.json({ clientId, datePreset, compare, windows: windows ?? null, platforms: report });
   } catch (error: any) {

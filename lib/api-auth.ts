@@ -136,7 +136,7 @@ export function decryptToken(encryptedToken: string): string {
 
 // ─── Client Integration Token Helpers ────────────────────────────────────────
 
-export type IntegrationPlatform = 'meta' | 'google' | 'linkedin' | 'tiktok' | 'youtube' | 'gbp';
+export type IntegrationPlatform = 'meta' | 'google' | 'linkedin' | 'tiktok' | 'youtube' | 'gbp' | 'klaviyo';
 
 export interface IntegrationToken {
   accessToken: string;
