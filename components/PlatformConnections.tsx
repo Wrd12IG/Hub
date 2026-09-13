@@ -90,6 +90,34 @@ function GBPIcon({ size = 16 }: { size?: number }) {
   );
 }
 
+/**
+ * Trasforma una risposta fallita in un messaggio che dice qualcosa.
+ *
+ * Ogni modal di questa pagina faceva `if (!res.ok) throw new Error()` e poi
+ * mostrava "Impossibile salvare.": sessione scaduta, permesso negato, campo
+ * rifiutato e server down erano tutti lo stesso identico toast, quindi
+ * l'unico modo per capire cosa fosse successo era aprire la console del
+ * browser. Un salvataggio rifiutato in Setup API costa un giro di debug.
+ */
+async function describeFailure(res: Response): Promise<string> {
+  let detail = '';
+  try {
+    const body = await res.json();
+    detail = body?.error || body?.message || '';
+  } catch { /* risposta non JSON: restano status e testo standard */ }
+
+  if (res.status === 401) {
+    return 'Sessione scaduta. Ricarica la pagina e rifai il login, poi riprova.';
+  }
+  if (res.status === 403) {
+    return 'Non hai i permessi per modificare questo cliente.';
+  }
+  if (res.status === 404) {
+    return 'Cliente non trovato: potrebbe essere stato eliminato.';
+  }
+  return detail || `Il server ha risposto ${res.status}.`;
+}
+
 function ClarityIcon({ size = 16 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
@@ -239,11 +267,11 @@ function MetaModal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await describeFailure(res));
       toast.success("Meta Ads configurato!");
       onSaved();
       onClose();
-    } catch { toast.error("Impossibile salvare. Riprova."); }
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare. Riprova."); }
     finally { setSaving(false); }
   }
 
@@ -304,10 +332,10 @@ function GA4Modal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await describeFailure(res));
       toast.success("Google Analytics configurato!");
       onSaved(); onClose();
-    } catch { toast.error("Impossibile salvare."); }
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
     finally { setSaving(false); }
   }
 
@@ -357,10 +385,10 @@ function GoogleAdsModal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ googleAdAccountId: customerId }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await describeFailure(res));
       toast.success("Google Ads configurato!");
       onSaved(); onClose();
-    } catch { toast.error("Impossibile salvare."); }
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
     finally { setSaving(false); }
   }
 
@@ -406,10 +434,10 @@ function ClarityModal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ clarityProjectId: projectId }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await describeFailure(res));
       toast.success("Microsoft Clarity configurato!");
       onSaved(); onClose();
-    } catch { toast.error("Impossibile salvare."); }
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
     finally { setSaving(false); }
   }
 
@@ -469,10 +497,10 @@ function WindsorGbpModal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ "windsorAccounts.gbp": ids }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await describeFailure(res));
       toast.success(`${ids.length} sede/i salvate!`);
       onSaved(); onClose();
-    } catch { toast.error("Impossibile salvare."); }
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
     finally { setSaving(false); }
   }
 
@@ -615,10 +643,10 @@ function WindsorFieldModal({
         // saved from its own modal, independently of the other two).
         body: JSON.stringify({ [`windsorAccounts.${fieldKey}`]: value }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await describeFailure(res));
       toast.success("Salvato!");
       onSaved(); onClose();
-    } catch { toast.error("Impossibile salvare."); }
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
     finally { setSaving(false); }
   }
 
@@ -669,7 +697,7 @@ function GbpAddModal({
       const data = await res.json();
       setApiLocations(data.locations || []);
       setStep("select");
-    } catch { toast.error("Errore di rete"); }
+    } catch (e: any) { toast.error(e?.message || "Errore di rete"); }
     finally { setLoading(false); }
   }
 
@@ -690,11 +718,11 @@ function GbpAddModal({
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ gbpLocations: merged }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(await describeFailure(res));
       toast.success(`${newLocs.length} sede/i aggiunta/e!`);
       onSaved(merged);
       onClose();
-    } catch { toast.error("Impossibile salvare."); }
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
     finally { setSaving(false); }
   }
 
