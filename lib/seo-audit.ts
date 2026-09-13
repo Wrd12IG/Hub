@@ -17,7 +17,7 @@
  * scored zero.
  */
 
-import { getData } from './windsor-client';
+import { getSearchConsoleTotals } from './search-console-client';
 
 export interface SeoFactor {
     id: 'technical' | 'performance' | 'position' | 'ctr';
@@ -72,16 +72,19 @@ export async function runSeoAudit(
     psiUrl.searchParams.set('key', key);
     for (const c of ['performance', 'seo']) psiUrl.searchParams.append('category', c);
 
-    const [psiRes, gscRows] = await Promise.all([
+    // Search Console nativa (service account), non più Windsor — vedi
+    // lib/search-console-client.ts. Un errore qui non deve far fallire l'audit:
+    // PageSpeed da solo produce comunque due fattori su quattro.
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+    const [psiRes, gsc] = await Promise.all([
         fetch(psiUrl.toString()),
         searchConsoleAccountId
-            ? getData({
-                connector: 'searchconsole',
-                accountId: searchConsoleAccountId,
-                fields: ['clicks', 'impressions', 'ctr', 'position', 'account_id'],
-                datePreset: 'last_30d',
-            }).catch(() => [])
-            : Promise.resolve([]),
+            ? getSearchConsoleTotals(searchConsoleAccountId, iso(thirtyDaysAgo), iso(new Date()))
+                .catch(() => null)
+            : Promise.resolve(null),
     ]);
 
     if (!psiRes.ok) {
@@ -121,20 +124,6 @@ export async function runSeoAudit(
             title: a.title as string,
             detail: (a.displayValue as string) || '',
         }));
-
-    const gsc: { clicks: number; impressions: number; ctr: number; position: number } | null =
-        gscRows.length > 0
-            ? gscRows.reduce<{ clicks: number; impressions: number; ctr: number; position: number }>(
-                (acc, r) => ({
-                    clicks: acc.clicks + (typeof r.clicks === 'number' ? r.clicks : 0),
-                    impressions: acc.impressions + (typeof r.impressions === 'number' ? r.impressions : 0),
-                    // Rates aren't summable: keep the value Windsor reports.
-                    ctr: typeof r.ctr === 'number' ? r.ctr : acc.ctr,
-                    position: typeof r.position === 'number' ? r.position : acc.position,
-                }),
-                { clicks: 0, impressions: 0, ctr: 0, position: 0 }
-            )
-            : null;
 
     const factors: SeoFactor[] = [
         {
