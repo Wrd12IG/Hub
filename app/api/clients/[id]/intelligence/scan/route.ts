@@ -3,7 +3,7 @@
  * Avvia un'analisi AI dei competitor del cliente (Gemini)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -15,6 +15,8 @@ export async function POST(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
 

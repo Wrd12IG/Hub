@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse, getClientToken } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, getClientToken, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getMockGBPData } from '@/lib/gbp-client';
 
@@ -9,6 +9,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
   const { id: clientId } = params;
 
   if (!clientId) {

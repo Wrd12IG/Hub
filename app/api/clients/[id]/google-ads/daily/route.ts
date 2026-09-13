@@ -11,7 +11,7 @@
  * i dati mock deterministici con _meta.source='mock'.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import {
   getGoogleAdsDailyMetrics,
   getMockGoogleAdsDailyMetrics,
@@ -81,6 +81,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
   if (!clientId) {

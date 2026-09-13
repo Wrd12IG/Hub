@@ -3,7 +3,7 @@
  * Lista campagne Meta (view dedicata, separata da /meta-ads)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse, getClientToken } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, getClientToken, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { getCampaigns } from '@/lib/meta-client';
 
 export async function GET(
@@ -12,6 +12,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
   const datePreset = request.nextUrl.searchParams.get('datePreset') || 'last_30d';

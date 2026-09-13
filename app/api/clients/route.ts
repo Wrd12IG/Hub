@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(request: NextRequest) {
@@ -7,7 +7,19 @@ export async function GET(request: NextRequest) {
   if (!user) return unauthorizedResponse();
 
   try {
+    // Questa route restituiva l'anagrafica di **tutti** i clienti a chiunque
+    // fosse autenticato. Lo staff continua a vederli tutti; un utente con
+    // ruolo "Cliente" riceve soltanto il proprio, così l'elenco non diventa la
+    // scorciatoia per aggirare i controlli sulle singole route /clients/[id].
+    const appUser = await getAppUser(user.uid);
     const clientsRef = adminDb.collection('clients');
+
+    if (!isStaffUser(appUser)) {
+      if (!appUser?.clientId) return NextResponse.json([]);
+      const own = await clientsRef.doc(appUser.clientId).get();
+      return NextResponse.json(own.exists ? [{ id: own.id, ...own.data() }] : []);
+    }
+
     const snapshot = await clientsRef.get();
     
     if (snapshot.empty) {
@@ -29,6 +41,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  // Creare un cliente è un'operazione di staff, mai di un cliente.
+  if (!isStaffUser(await getAppUser(user.uid))) return forbiddenResponse();
 
   try {
     const body = await request.json();

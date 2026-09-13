@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Max duration for Vercel
@@ -14,6 +14,8 @@ const GEMINI_MODELS = [
 export async function POST(req: NextRequest) {
     const auth = await verifyAuth(req);
     if (!auth) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(auth.uid);
+  if (denied) return denied;
 
     try {
         const { prompt, systemPrompt } = await req.json();

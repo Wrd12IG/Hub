@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
     // API call: /api/social-strategy/media-brief
     const auth = await verifyAuth(req);
     if (!auth) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(auth.uid);
+  if (denied) return denied;
 
     try {
         const { topic, platform, mediaType, caption, clientName, toneOfVoice } = await req.json();

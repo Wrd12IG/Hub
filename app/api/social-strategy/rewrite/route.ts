@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -7,6 +7,8 @@ export const maxDuration = 30;
 export async function POST(req: NextRequest) {
     const auth = await verifyAuth(req);
     if (!auth) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(auth.uid);
+  if (denied) return denied;
 
     try {
         const { originalCaption, targetTone, topic, clientName, toneOfVoice } = await req.json();

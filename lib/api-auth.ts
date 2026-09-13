@@ -75,6 +75,36 @@ export interface AppUser {
 }
 
 /** Look up the Firestore profile (role, clientId) for an authenticated caller. */
+/**
+ * Solo staff. Per le route che *scrivono credenziali* (i token OAuth di
+ * LinkedIn, Meta, TikTok, YouTube): oggi nessun flusso permette a un cliente
+ * di collegare da sé i propri account, quindi non c'è motivo perché un utente
+ * con ruolo "Cliente" possa scrivere o cancellare token — nemmeno i propri.
+ * Se un domani quel flusso esisterà, questa è la riga da allentare
+ * deliberatamente, non per distrazione.
+ */
+export async function denyUnlessStaff(uid: string): Promise<NextResponse | null> {
+  if (!isStaffUser(await getAppUser(uid))) return forbiddenResponse();
+  return null;
+}
+
+/**
+ * Autorizzazione per tutte le route sotto /api/clients/[id]: lo staff vede
+ * qualunque cliente, un utente con ruolo "Cliente" solo il proprio.
+ *
+ * Restituisce la Response da ritornare quando l'accesso va negato, oppure
+ * `null` quando è consentito — così a ogni route bastano due righe subito
+ * dopo verifyAuth, senza ripetere la stessa logica trenta volte (e senza
+ * dimenticarsene, che è esattamente quello che era successo).
+ *
+ * Non ri-verifica il token: prende l'uid già validato da verifyAuth.
+ */
+export async function denyUnlessClientAllowed(uid: string, clientId: string): Promise<NextResponse | null> {
+  const user = await getAppUser(uid);
+  if (!isStaffUser(user) && !ownsClientResource(user, clientId)) return forbiddenResponse();
+  return null;
+}
+
 export async function getAppUser(uid: string): Promise<AppUser | null> {
   const snap = await adminDb.collection('users').doc(uid).get();
   if (!snap.exists) return null;

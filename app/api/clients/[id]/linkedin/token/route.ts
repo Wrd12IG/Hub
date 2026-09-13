@@ -4,7 +4,7 @@
  * DELETE /api/clients/[id]/linkedin/token → rimuovi integrazione
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse, getClientToken, saveClientToken } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, getClientToken, saveClientToken, denyUnlessStaff } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 
 const LINKEDIN_TOKEN_URL = 'https://www.linkedin.com/oauth/v2/accessToken';
@@ -32,6 +32,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
   const { id: clientId } = params;
 
   try {
@@ -82,6 +84,8 @@ export async function POST(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
   const { id: clientId } = params;
 
   const body = await request.json();
@@ -155,6 +159,8 @@ export async function DELETE(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
   const { id: clientId } = params;
 
   await adminDb
