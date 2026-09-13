@@ -15,13 +15,42 @@ import { BetaAnalyticsDataClient } from '@google-analytics/data';
 
 // ─── Autenticazione Client GA4 ───────────────────────────────────────────────
 
+/**
+ * Normalizza la chiave privata così come arriva dall'ambiente.
+ *
+ * Copiando il campo `private_key` da un JSON di service account è facilissimo
+ * portarsi dietro le virgolette esterne, oppure incollare il valore con i
+ * ritorni a capo già espansi. In entrambi i casi Node fallisce con
+ * `error:1E08010C:DECODER routines::unsupported`, un messaggio che non dice
+ * niente a nessuno e che è costato un pomeriggio di ricerca nel posto
+ * sbagliato. Qui i due casi si correggono, e quello che resta illeggibile
+ * viene segnalato dicendo cosa controllare.
+ */
+function readPrivateKey(): string {
+  const raw = process.env.GOOGLE_ANALYTICS_PRIVATE_KEY;
+  if (!raw) return '';
+
+  const key = raw
+    .trim()
+    .replace(/^["']|["']$/g, '')   // virgolette copiate insieme al valore
+    .replace(/\\n/g, '\n');        // \n testuali → ritorni a capo veri
+
+  if (!key.includes('BEGIN') || !key.includes('PRIVATE KEY')) {
+    throw new Error(
+      'GOOGLE_ANALYTICS_PRIVATE_KEY non è una chiave privata valida: deve iniziare con '
+      + '"-----BEGIN PRIVATE KEY-----". Ricopia il campo private_key dal JSON del service '
+      + 'account, senza le virgolette esterne, e ridistribuisci (è compilata nel deploy).'
+    );
+  }
+  return key;
+}
+
 function getGa4Client() {
   const clientEmail = process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL;
-  // Gestiamo correttamente gli \n che potrebbero essere passati malamente dal .env
-  const privateKey = process.env.GOOGLE_ANALYTICS_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const privateKey = readPrivateKey();
 
   if (!clientEmail || !privateKey) {
-    throw new Error('Mancano credenziali Service Account GA4 in .env.local');
+    throw new Error('Mancano le credenziali del service account GA4 (GOOGLE_ANALYTICS_*).');
   }
 
   return new BetaAnalyticsDataClient({
@@ -82,6 +111,18 @@ export async function getGA4Totals(
   startDate: string,
   endDate: string
 ): Promise<Record<string, number>> {
+  // Il Property ID è un numero. Un valore diverso — il "G-XXXXXXX" del tag, un
+  // nome, un'email — arriverebbe a Google come property inesistente, con un
+  // errore che sembra un problema di permessi. Su un cliente reale c'era
+  // finito un indirizzo email, e il report restava vuoto senza spiegazioni.
+  if (!/^\d+$/.test(String(propertyId).trim())) {
+    throw new Error(
+      `"${propertyId}" non è un GA4 Property ID valido: dev'essere il numero della proprietà `
+      + `(es. 266597631), non il codice "G-XXXXXXX" del tag né un indirizzo email. `
+      + `Lo trovi in GA4 → Amministrazione → Impostazioni proprietà.`
+    );
+  }
+
   const client = getGa4Client();
   const property = `properties/${propertyId}`;
   const dateRanges = [{ startDate, endDate }];
