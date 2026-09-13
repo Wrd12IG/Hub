@@ -15,6 +15,7 @@ import {
   Search,
   BarChart3,
   Mail,
+  Handshake,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ export interface ClientConnections {
   tiktokDisplayName?: string | null;
   hasLinkedinToken?: boolean;
   hasKlaviyoToken?: boolean;
+  awinAdvertiserId?: string | null;
   klaviyoAccountName?: string | null;
   linkedinOrgName?: string | null;
   // Windsor.ai-only reporting ids (Report Marketing tab) — see lib/data.ts's
@@ -619,7 +621,7 @@ function WindsorFieldModal({
 }: {
   clientId: string;
   title: string;
-  fieldKey: 'instagram' | 'searchconsole' | 'linkedin_organic';
+  fieldKey: 'instagram' | 'searchconsole' | 'linkedin_organic' | 'awinAdvertiserId';
   currentValue?: string | null;
   placeholder: string;
   hint: React.ReactNode;
@@ -641,7 +643,13 @@ function WindsorFieldModal({
         // Dot-notation path: merges just this one nested field instead of
         // overwriting the whole windsorAccounts map (each of the 3 fields is
         // saved from its own modal, independently of the other two).
-        body: JSON.stringify({ [`windsorAccounts.${fieldKey}`]: value }),
+        // awinAdvertiserId non è un id Windsor: vive sul documento del cliente
+        // come metaAdAccountId e soci, non dentro la mappa windsorAccounts.
+        body: JSON.stringify(
+          fieldKey === 'awinAdvertiserId'
+            ? { awinAdvertiserId: value }
+            : { [`windsorAccounts.${fieldKey}`]: value }
+        ),
       });
       if (!res.ok) throw new Error(await describeFailure(res));
       toast.success("Salvato!");
@@ -1155,7 +1163,7 @@ function LinkedinModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | null;
 
 
 export default function PlatformConnections({
@@ -1398,6 +1406,24 @@ export default function PlatformConnections({
           </button>
         </div>
 
+        {/* ── AWIN — API diretta, token di agenzia ── */}
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.awinAdvertiserId, "#8B5CF6")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#a78bfa")}>
+                <Handshake size={16} />
+              </div>
+              <span className="text-sm font-bold text-foreground">Awin</span>
+            </div>
+            {client.awinAdvertiserId && <ConnectedBadge />}
+          </div>
+          {client.awinAdvertiserId && <AccountChip name={client.awinAdvertiserId} sub="Advertiser ID" />}
+          <button type="button" onClick={() => setActiveModal("awin")}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-violet-500/20 text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 transition-all cursor-pointer">
+            {client.awinAdvertiserId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Awin</>}
+          </button>
+        </div>
+
         {/* ── KLAVIYO — API diretta, non Windsor ── */}
         <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasKlaviyoToken, "#F59E0B")}>
           <div className="flex items-center justify-between">
@@ -1535,6 +1561,19 @@ export default function PlatformConnections({
             setClient((prev) => ({ ...prev, hasLinkedinToken: !!name, linkedinOrgName: name || null }));
             setActiveModal(null);
           }}
+        />
+      )}
+      {activeModal === "awin" && (
+        <WindsorFieldModal
+          clientId={clientId}
+          title="Awin — Advertiser ID"
+          fieldKey="awinAdvertiserId"
+          currentValue={client.awinAdvertiserId}
+          placeholder="es. 28157"
+          hint="Il token Awin è di agenzia e sta sul server: qui serve solo l'Advertiser ID del cliente, che trovi su Awin → Toolbox → API credentials."
+          accentColor="#8B5CF6"
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { refreshClient(); setActiveModal(null); }}
         />
       )}
       {activeModal === "klaviyo" && (

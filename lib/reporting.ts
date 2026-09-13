@@ -17,6 +17,7 @@ import { getData } from './windsor-client';
 import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
+import { getAwinTotals } from './awin-client';
 import type { Client } from './data';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup
@@ -35,10 +36,12 @@ type ClientReportSource = Pick<Client, 'windsorAccounts'> & {
      * passa qui, così questo modulo resta senza dipendenze da Firestore.
      */
     klaviyo?: { apiKey: string; conversionMetricId?: string; cacheKey?: string };
+    /** Id advertiser Awin del cliente; il token è di agenzia (AWIN_API_TOKEN). */
+    awinAdvertiserId?: string;
 };
 
 export interface PlatformReport {
-    platform: 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo';
+    platform: 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo' | 'awin';
     /** Set for platforms that can have several accounts per client (GBP: one per sede). */
     accountLabel?: string;
     connected: boolean;
@@ -59,7 +62,7 @@ export interface PlatformReport {
 // nativi da Google col service account dell'agenzia, il terzo dall'API Klaviyo
 // con una chiave privata per cliente. Restano nel tipo PlatformReport (la UI li
 // mostra come gli altri) ma non hanno un connector qui.
-type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo'>;
+type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo' | 'awin'>;
 
 const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
     facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc'] },
@@ -311,7 +314,7 @@ export async function getClientMarketingReport(
     // *soltanto* Analytics e/o Search Console collegati usciva di qui con un
     // report vuoto senza alcun errore, pur avendo dati validi.
     if (platforms.length === 0 && gbpAccountIds.length === 0
-        && !client.ga4PropertyId && !searchConsoleSite && !client.klaviyo) {
+        && !client.ga4PropertyId && !searchConsoleSite && !client.klaviyo && !client.awinAdvertiserId) {
         return [];
     }
 
@@ -487,6 +490,32 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
         }
     };
 
+    // Awin: API diretta con il token di agenzia, id advertiser per cliente.
+    const fetchAwin = async (advertiserId: string): Promise<PlatformReport> => {
+        const token = process.env.AWIN_API_TOKEN;
+        if (!token) {
+            return {
+                platform: 'awin', connected: false, rows: [], previousRows: [],
+                error: 'AWIN_API_TOKEN non configurato sul server.',
+            };
+        }
+        const range = windows
+            ? windows.current
+            : { dateFrom: isoDaysAgo(presetToDays(datePreset)), dateTo: isoDaysAgo(0) };
+        try {
+            const [cur, prev] = await Promise.all([
+                getAwinTotals(token, advertiserId, range.dateFrom, range.dateTo),
+                windows?.previous
+                    ? getAwinTotals(token, advertiserId, windows.previous.dateFrom, windows.previous.dateTo)
+                    : Promise.resolve(null),
+            ]);
+            return { platform: 'awin', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
+        } catch (err: any) {
+            console.error(`[reporting] awin failed for advertiser ${advertiserId}:`, err.message);
+            return { platform: 'awin', connected: false, error: err.message, rows: [], previousRows: [] };
+        }
+    };
+
     // Le sedi GBP passano da un pool: sono l'unico caso in cui un cliente ha
     // molti account sulla stessa piattaforma, e in parallelo Windsor le rifiuta.
     const [single, gbp] = await Promise.all([
@@ -495,6 +524,7 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
             ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
             ...(searchConsoleSite ? [fetchSearchConsole(searchConsoleSite)] : []),
             ...(client.klaviyo ? [fetchKlaviyo(client.klaviyo)] : []),
+            ...(client.awinAdvertiserId ? [fetchAwin(client.awinAdvertiserId)] : []),
         ]),
         mapWithConcurrency(gbpAccountIds, 2, async (accountId) => {
             const report = await fetchOne('gbp', accountId);
