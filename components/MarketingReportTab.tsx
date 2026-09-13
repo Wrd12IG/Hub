@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail } from 'lucide-react'
+import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail, Handshake } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
 
 // Matches lib/reporting.ts's PlatformReport shape.
-type PlatformKey = 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo'
+type PlatformKey = 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo' | 'awin'
 
 interface PlatformReport {
   platform: PlatformKey
@@ -29,6 +29,7 @@ const PLATFORM_META: Record<PlatformKey, { label: string; icon: any; variant: 'b
   searchconsole: { label: 'Search Console', icon: SearchIcon, variant: 'gray', metrics: [{ key: 'clicks', label: 'Click organici' }, { key: 'impressions', label: 'Impression' }, { key: 'position', label: 'Posizione media' }] },
   linkedin_organic: { label: 'LinkedIn', icon: Linkedin, variant: 'blue', detail: 'linkedin', metrics: [{ key: 'organization_follower_count', label: 'Follower' }, { key: 'account_analytics_impression_count', label: 'Impression' }, { key: 'account_analytics_click_count', label: 'Click' }, { key: 'account_analytics_like_count', label: 'Like' }] },
   klaviyo: { label: 'Klaviyo (Email)', icon: Mail, variant: 'orange', metrics: [{ key: 'recipients', label: 'Destinatari' }, { key: 'open_rate', label: 'Tasso apertura %' }, { key: 'conversion_value', label: 'Fatturato totale €' }, { key: 'flow_value', label: 'di cui flussi €' }, { key: 'campaign_value', label: 'di cui campagne €' }, { key: 'unsubscribe_rate', label: 'Disiscrizioni %' }] },
+  awin: { label: 'Awin (Affiliazione)', icon: Handshake, variant: 'purple', metrics: [{ key: 'sale_amount', label: 'Ordini €' }, { key: 'transactions', label: 'Transazioni' }, { key: 'total_cost', label: 'Costo canale €' }, { key: 'roas', label: 'ROAS' }, { key: 'average_order_value', label: 'Scontrino medio €' }, { key: 'pending_sale_amount', label: 'Non confermato €' }] },
   gbp: { label: 'Google Business Profile', icon: MapPin, variant: 'green', detail: 'gbp', metrics: [{ key: 'impressions', label: 'Visualizzazioni' }, { key: 'website_clicks', label: 'Click sito' }, { key: 'call_clicks', label: 'Chiamate' }, { key: 'direction_requests', label: 'Indicazioni' }, { key: 'review_count', label: 'Nuove recensioni' }, { key: 'review_average_rating_total', label: 'Rating' }] },
 }
 
@@ -113,7 +114,7 @@ export function MarketingReportTab({
         label: m.label,
         value: t.value,
         // For cost-type metrics a rise is not good news.
-        good: ['spend', 'cost', 'cpc', 'position', 'unsubscribe_rate', 'bounced', 'spam_complaints'].includes(m.key) ? t.value < 0 : t.value > 0,
+        good: ['spend', 'cost', 'cpc', 'position', 'unsubscribe_rate', 'bounced', 'spam_complaints', 'total_cost', 'pending_sale_amount'].includes(m.key) ? t.value < 0 : t.value > 0,
       }]
     })
   })
