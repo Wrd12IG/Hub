@@ -1,29 +1,17 @@
 /**
  * lib/ga4-client.ts
- * 
- * Interfaccia per la BetaAnalyticsDataClient ufficiale di Google.
- * Estrae traffico, sessioni e pagine viste da una Proprietà GA4.
+ *
+ * GA4 letto direttamente dall'API ufficiale di Google, autenticandosi con il
+ * **service account dell'agenzia** — non con un OAuth per singolo cliente.
+ * Per collegare un nuovo cliente basta autorizzare l'email del service account
+ * come Visualizzatore sulla sua proprietà GA4: nessun consenso da raccogliere,
+ * nessun refresh token da gestire, nessun costo.
+ *
+ * Sostituisce GA4 su Windsor: stessi numeri (verificati fianco a fianco sulla
+ * proprietà pilota) senza occupare uno slot account del piano Windsor.
  */
 
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
-import { getClientToken } from '@/lib/api-auth';
-
-// ─── Strutture Dati Output ───────────────────────────────────────────────────
-
-export interface GA4AnalyticsData {
-  summary: {
-    sessions: number;
-    users: number;
-    newUsers: number;
-    pageviews: number;
-    bounceRate: number;
-    avgSessionDuration: number; // in secondi
-    conversionRate: number;
-  };
-  chartData: { date: string; sessions: number; users: number; pageviews: number }[];
-  topPages: { path: string; pageviews: number; avgTime: number }[];
-  trafficSources: { source: string; sessions: number; percentage: number }[];
-}
 
 // ─── Autenticazione Client GA4 ───────────────────────────────────────────────
 
@@ -46,108 +34,86 @@ function getGa4Client() {
 
 // ─── Funzione Principale ─────────────────────────────────────────────────────
 
-export async function getGA4Analytics(clientId: string, dateRangeDays: number = 30): Promise<GA4AnalyticsData> {
-  // Cerchiamo la proprietà (Property ID) salvata per questo cliente su Firestore
-  const tokenData = await getClientToken(clientId, 'google');
-  const propertyId = tokenData?.extra?.ga4PropertyId;
 
-  if (!propertyId) {
-    throw new Error(`Nessuna Property GA4 configurata per il cliente ${clientId}`);
+// ─── Errori leggibili ────────────────────────────────────────────────────────
+
+/**
+ * L'errore che conta davvero qui è uno solo: la proprietà esiste ma il service
+ * account non è ancora stato autorizzato su di essa. Google lo riporta come un
+ * PERMISSION_DENIED generico che in UI non dice a nessuno cosa fare, mentre la
+ * soluzione è sempre la stessa e richiede trenta secondi in GA4 → Accesso.
+ * Meglio scriverlo per esteso, con l'email da autorizzare già dentro.
+ */
+function explainGa4Error(err: any, propertyId: string): string {
+  const email = process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL || 'il service account del Hub';
+  const code = err?.code;
+  const msg = String(err?.message || err);
+
+  if (code === 7 || /permission|insufficient|does not have access/i.test(msg)) {
+    return `Il service account non è autorizzato sulla proprietà GA4 ${propertyId}. `
+      + `Vai su GA4 → Amministrazione → Gestione accessi alla proprietà e aggiungi `
+      + `${email} come Visualizzatore.`;
   }
+  if (code === 5 || /not found/i.test(msg)) {
+    return `Proprietà GA4 ${propertyId} inesistente o non raggiungibile. `
+      + `Controlla il Property ID in Setup API (è il numero, non "G-XXXX").`;
+  }
+  return msg;
+}
 
-  const analyticsDataClient = getGa4Client();
+// ─── Totali per il reporting (service account, nessun OAuth per cliente) ─────
+
+/**
+ * Metriche GA4 aggregate su un intervallo, lette direttamente dall'API Google
+ * con il service account dell'agenzia — non serve alcun token per-cliente:
+ * basta autorizzare l'email del service account come Visualizzatore sulla
+ * proprietà.
+ *
+ * Le chiavi restituite sono volutamente quelle già usate dalla UI
+ * (`active_users`, `purchase_revenue`, ...) e non i nomi camelCase dell'API
+ * GA4, così le schede esistenti continuano a funzionare senza modifiche.
+ *
+ * Nomi delle metriche verificati contro l'API reale: `keyEvents` e
+ * `sessionKeyEventRate` sono i nomi attuali (ex "conversions" /
+ * "sessionConversionRate", che restano accettati per compatibilità).
+ */
+export async function getGA4Totals(
+  propertyId: string,
+  startDate: string,
+  endDate: string
+): Promise<Record<string, number>> {
+  const client = getGa4Client();
   const property = `properties/${propertyId}`;
+  const dateRanges = [{ startDate, endDate }];
 
-  // 1. Report Riassuntivo (Summary)
-  const [summaryResponse] = await analyticsDataClient.runReport({
-    property,
-    dateRanges: [{ startDate: `${dateRangeDays}daysAgo`, endDate: 'today' }],
-    metrics: [
-      { name: 'sessions' },
-      { name: 'totalUsers' },
-      { name: 'newUsers' },
-      { name: 'screenPageViews' },
-      { name: 'bounceRate' },
-      { name: 'averageSessionDuration' },
-      { name: 'sessionConversionRate' }
-    ],
-  });
-
-  // 2. Dati per il grafico temporale (per giorno)
-  const [timelineResponse] = await analyticsDataClient.runReport({
-    property,
-    dateRanges: [{ startDate: `${dateRangeDays}daysAgo`, endDate: 'today' }],
-    dimensions: [{ name: 'date' }],
-    metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'screenPageViews' }],
-    orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }]
-  });
-
-  // 3. Pagine più visitate
-  const [pagesResponse] = await analyticsDataClient.runReport({
-    property,
-    dateRanges: [{ startDate: `${dateRangeDays}daysAgo`, endDate: 'today' }],
-    dimensions: [{ name: 'pagePath' }],
-    metrics: [{ name: 'screenPageViews' }, { name: 'userEngagementDuration' }],
-    limit: 10,
-    orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }]
-  });
-
-  // 4. Sorgenti di traffico (Organic, Direct, ecc)
-  const [sourcesResponse] = await analyticsDataClient.runReport({
-    property,
-    dateRanges: [{ startDate: `${dateRangeDays}daysAgo`, endDate: 'today' }],
-    dimensions: [{ name: 'sessionDefaultChannelGroup' }],
-    metrics: [{ name: 'sessions' }],
-    orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
-  });
-
-  // --- Parsing Risposte ---
-  const sumRow = summaryResponse.rows?.[0];
-  const summary = {
-    sessions: parseInt(sumRow?.metricValues?.[0]?.value || '0'),
-    users: parseInt(sumRow?.metricValues?.[1]?.value || '0'),
-    newUsers: parseInt(sumRow?.metricValues?.[2]?.value || '0'),
-    pageviews: parseInt(sumRow?.metricValues?.[3]?.value || '0'),
-    bounceRate: parseFloat(sumRow?.metricValues?.[4]?.value || '0'),
-    avgSessionDuration: Math.round(parseFloat(sumRow?.metricValues?.[5]?.value || '0')),
-    conversionRate: parseFloat(sumRow?.metricValues?.[6]?.value || '0'),
+  // GA4 rejects more than 10 metrics per request ("Requests are limited to 10
+  // metrics within a nested request"), so this goes out as two parallel calls.
+  const run = async (names: string[]) => {
+    try {
+      const [res] = await client.runReport({ property, dateRanges, metrics: names.map((name) => ({ name })) });
+      const values = res.rows?.[0]?.metricValues ?? [];
+      return Object.fromEntries(names.map((n, i) => [n, Number(values[i]?.value ?? 0) || 0]));
+    } catch (err: any) {
+      throw new Error(explainGa4Error(err, propertyId));
+    }
   };
 
-  const chartData = (timelineResponse.rows || []).map(row => {
-    // Trasforma '20260504' in '2026-05-04'
-    const d = row.dimensionValues?.[0]?.value || '';
-    const dateFormatted = d.length === 8 ? `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}` : d;
-    return {
-      date: dateFormatted,
-      sessions: parseInt(row.metricValues?.[0]?.value || '0'),
-      users: parseInt(row.metricValues?.[1]?.value || '0'),
-      pageviews: parseInt(row.metricValues?.[2]?.value || '0'),
-    };
-  });
+  const [a, b] = await Promise.all([
+    run(['sessions', 'activeUsers', 'newUsers', 'bounceRate', 'engagementRate', 'averageSessionDuration']),
+    run(['screenPageViewsPerSession', 'keyEvents', 'sessionKeyEventRate', 'transactions', 'purchaseRevenue']),
+  ]);
 
-  const topPages = (pagesResponse.rows || []).map(row => {
-    const views = parseInt(row.metricValues?.[0]?.value || '0');
-    // userEngagementDuration in GA4 è il tempo totale. Diviso per le view dà una media grezza
-    const totalTime = parseFloat(row.metricValues?.[1]?.value || '0');
-    return {
-      path: row.dimensionValues?.[0]?.value || '/',
-      pageviews: views,
-      avgTime: views > 0 ? Math.round(totalTime / views) : 0,
-    };
-  });
-
-  const totalSourcesSessions = (sourcesResponse.rows || []).reduce(
-    (sum, row) => sum + parseInt(row.metricValues?.[0]?.value || '0'), 0
-  );
-
-  const trafficSources = (sourcesResponse.rows || []).map(row => {
-    const sess = parseInt(row.metricValues?.[0]?.value || '0');
-    return {
-      source: row.dimensionValues?.[0]?.value || 'Unknown',
-      sessions: sess,
-      percentage: totalSourcesSessions > 0 ? (sess / totalSourcesSessions) * 100 : 0,
-    };
-  });
-
-  return { summary, chartData, topPages, trafficSources };
+  return {
+    sessions: a.sessions,
+    active_users: a.activeUsers,
+    newusers: a.newUsers,
+    bounce_rate: a.bounceRate,
+    engagement_rate: a.engagementRate,
+    average_session_duration: a.averageSessionDuration,
+    screen_page_views_per_session: b.screenPageViewsPerSession,
+    conversions: b.keyEvents,
+    session_conversion_rate: b.sessionKeyEventRate,
+    transactions: b.transactions,
+    purchase_revenue: b.purchaseRevenue,
+  };
 }

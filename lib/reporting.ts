@@ -14,6 +14,7 @@
  */
 
 import { getData } from './windsor-client';
+import { getGA4Totals } from './ga4-client';
 import type { Client } from './data';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup
@@ -46,11 +47,12 @@ export interface PlatformReport {
 // GET /{connector}/fields) before adding any; several of these were wrong in
 // the first pass precisely because they were guessed from the platforms' own
 // API naming (activeUsers, totalRevenue, followers, actions... none exist).
-const PLATFORM_FIELDS: Record<PlatformReport['platform'], { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
+type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4'>;
+
+const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
     facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc'] },
     instagram: { connector: 'instagram', fields: ['followers_count', 'reach', 'profile_views', 'likes'] },
     google_ads: { connector: 'google_ads', fields: ['clicks', 'impressions', 'cost', 'conversions', 'ctr', 'cpc'] },
-    ga4: { connector: 'googleanalytics4', fields: ['sessions', 'active_users', 'conversions', 'purchase_revenue'] },
     searchconsole: { connector: 'searchconsole', fields: ['clicks', 'impressions', 'ctr', 'position'] },
     linkedin_organic: {
         connector: 'linkedin_organic',
@@ -97,6 +99,12 @@ function aggregateRows(rows: Record<string, string | number | undefined>[]): Rec
 
 export type CompareMode = 'prev_period' | 'prev_year' | 'none';
 
+/** GA4's API takes "Ndaysago", not Windsor's presets. */
+function presetToDays(preset: string): number {
+    const m = /^last_(\d+)d$/.exec(preset);
+    return m ? parseInt(m[1], 10) : 30;
+}
+
 /** Shape the "Performance Dominio" panel reads: a value plus its % change. */
 export interface Metric { val: number; chg: number }
 
@@ -106,34 +114,20 @@ export interface GA4Overview {
     conversions: { totalConversions: Metric; conversionRate: Metric; transactions: Metric; revenue: Metric };
 }
 
-// All verified against Windsor's GA4 catalogue — note `newusers` has no
-// underscore, unlike every other id here.
-const GA4_OVERVIEW_FIELDS = [
-    'sessions', 'active_users', 'newusers',
-    'bounce_rate', 'engagement_rate', 'average_session_duration', 'screen_page_views_per_session',
-    'conversions', 'session_conversion_rate', 'transactions', 'purchase_revenue',
-];
-
 /**
- * GA4 numbers for the "Performance Dominio" panel, via Windsor rather than the
- * per-client Google OAuth the Hub's own ga4-client requires — most clients only
- * ever get their GA4 Property ID mapped, never the OAuth token, which is why
- * that panel was empty.
+ * GA4 numbers for the "Performance Dominio" panel, read natively from Google's
+ * own API with the agency service account (see lib/ga4-client.ts) rather than
+ * through Windsor. Same numbers — verified side by side on the pilot property,
+ * 5536 vs 5517 sessions, a difference explained entirely by the rolling window
+ * shifting between the two calls — but free, unlimited by Windsor's connected
+ * account count, and with the full GA4 metric catalogue available.
  */
 export async function getGA4Overview(
     propertyId: string,
     windows: { current: { dateFrom: string; dateTo: string }; previous: { dateFrom: string; dateTo: string } | null }
 ): Promise<GA4Overview> {
-    const fetchWindow = async (w: { dateFrom: string; dateTo: string }) => {
-        const rows = await getData({
-            connector: 'googleanalytics4',
-            accountId: propertyId,
-            fields: [...GA4_OVERVIEW_FIELDS, 'account_id', 'account_name'],
-            dateFrom: w.dateFrom,
-            dateTo: w.dateTo,
-        });
-        return aggregateRows(rows);
-    };
+    const fetchWindow = (w: { dateFrom: string; dateTo: string }) =>
+        getGA4Totals(propertyId, w.dateFrom, w.dateTo);
 
     const [cur, prev] = await Promise.all([
         fetchWindow(windows.current),
@@ -152,7 +146,7 @@ export async function getGA4Overview(
     // GA4 has no "returning users" metric; it's active users minus new ones.
     const returning = (r: Record<string, string | number | undefined>) =>
         Math.max(0, num(r, 'active_users') - num(r, 'newusers'));
-    // Windsor returns rates as fractions (0.2761 = 27.61%).
+    // GA4 returns rates as fractions (0.2761 = 27.61%).
     const asPercent = (key: string) => (r: Record<string, string | number | undefined>) => num(r, key) * 100;
 
     return {
@@ -232,7 +226,7 @@ export async function getClientMarketingReport(
         linkedin_organic: client.windsorAccounts?.linkedin_organic,
     };
 
-    const platforms = (Object.keys(PLATFORM_FIELDS) as PlatformReport['platform'][])
+    const platforms = (Object.keys(PLATFORM_FIELDS) as WindsorPlatform[])
         .filter((platform) => mapping[platform]);
 
     // GBP is the one platform a client can have several of (one account per
@@ -243,7 +237,7 @@ export async function getClientMarketingReport(
     if (platforms.length === 0 && gbpAccountIds.length === 0) return [];
 
     const fetchOne = async (
-        platform: PlatformReport['platform'],
+        platform: WindsorPlatform,
         accountId: string
     ): Promise<PlatformReport> => {
         const { connector, fields } = PLATFORM_FIELDS[platform];
@@ -276,8 +270,34 @@ export async function getClientMarketingReport(
         }
     };
 
+    // GA4 is read natively from Google (service account), not through Windsor:
+    // free, no per-client OAuth, and it doesn't consume a Windsor account slot.
+    // It still emits the same keys the UI reads, so nothing downstream changes.
+    const fetchGa4 = async (propertyId: string): Promise<PlatformReport> => {
+        try {
+            const [cur, prev] = await Promise.all([
+                windows
+                    ? getGA4Totals(propertyId, windows.current.dateFrom, windows.current.dateTo)
+                    : getGA4Totals(propertyId, `${presetToDays(datePreset)}daysAgo`, 'today'),
+                windows?.previous
+                    ? getGA4Totals(propertyId, windows.previous.dateFrom, windows.previous.dateTo)
+                    : Promise.resolve(null),
+            ]);
+            return {
+                platform: 'ga4',
+                connected: true,
+                rows: [cur],
+                previousRows: prev ? [prev] : [],
+            };
+        } catch (err: any) {
+            console.error(`[reporting] ga4 failed for property ${propertyId}:`, err.message);
+            return { platform: 'ga4', connected: false, error: err.message, rows: [], previousRows: [] };
+        }
+    };
+
     const results = await Promise.all([
         ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
+        ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
         ...gbpAccountIds.map(async (accountId) => {
             const report = await fetchOne('gbp', accountId);
             // Keep the sede identifiable even when the fetch failed and there
