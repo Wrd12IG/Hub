@@ -5,6 +5,14 @@ import { getClientMarketingReport, buildWindows, type CompareMode } from '@/lib/
 import { getClientToken } from '@/lib/api-auth';
 import type { Client } from '@/lib/data';
 
+// Il report interroga più piattaforme insieme e alcune sono lente (Google Ads
+// su Windsor risponde in ~13s, misurato). Senza un tetto esplicito Vercel usa
+// il default e uccide la richiesta a metà: il client non riceve una risposta
+// parziale, non ne riceve nessuna. Il limite per singola piattaforma sta in
+// lib/reporting.ts; questo è il tetto complessivo.
+export const maxDuration = 60;
+
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }

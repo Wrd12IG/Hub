@@ -3,6 +3,11 @@ import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaf
 import { adminDb } from '@/lib/firebase-admin';
 import { getData } from '@/lib/windsor-client';
 
+// Le query a livello campagna su Windsor sono le più lente dell'applicazione
+// (~4s a 90 giorni, oltre vanno in timeout): serve un tetto esplicito.
+export const maxDuration = 60;
+
+
 export type CampaignStatus = 'active' | 'paused' | 'ended';
 
 export interface UnifiedCampaign {

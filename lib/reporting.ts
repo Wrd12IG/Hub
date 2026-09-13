@@ -164,6 +164,43 @@ async function mapWithConcurrency<T, R>(
     return results;
 }
 
+/**
+ * Tempo massimo concesso a una singola piattaforma.
+ *
+ * Senza questo limite una sorgente lenta si porta dietro tutte le altre: le
+ * fetch stanno in un Promise.all dentro un'unica funzione serverless, quindi
+ * quando il totale supera la durata massima Vercel uccide la richiesta e il
+ * client non riceve **niente** — non un report parziale, proprio nessuna
+ * risposta, con la pagina che resta a caricare all'infinito.
+ *
+ * È successo davvero: Google Ads su Windsor risponde in ~13 secondi (misurato),
+ * e aggiungerlo a un cliente che aveva già Klaviyo — che per i rate limit deve
+ * chiamare in sequenza — più Awin e Meta ha spinto il totale oltre il limite.
+ * Da fuori sembrava che il Hub si fosse rotto.
+ *
+ * Con il limite, una piattaforma lenta diventa la **sua** scheda in errore e
+ * tutte le altre arrivano.
+ */
+const PLATFORM_TIMEOUT_MS = 20_000;
+
+async function withTimeout<T>(label: string, promise: Promise<T>): Promise<T> {
+    let timer: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+            () => reject(new Error(
+                `${label} non ha risposto entro ${PLATFORM_TIMEOUT_MS / 1000} secondi. `
+                + 'Le altre piattaforme sono state caricate: riprova, oppure restringi il periodo.'
+            )),
+            PLATFORM_TIMEOUT_MS
+        );
+    });
+    try {
+        return await Promise.race([promise, timeout]);
+    } finally {
+        clearTimeout(timer!);
+    }
+}
+
 export type CompareMode = 'prev_period' | 'prev_year' | 'none';
 
 /** yyyy-MM-dd, N giorni fa: la Search Console API non accetta "Ndaysago". */
@@ -325,7 +362,7 @@ export async function getClientMarketingReport(
         const { connector, fields } = PLATFORM_FIELDS[platform];
         const allFields = [...fields, 'account_id', 'account_name'];
         try {
-            const [rows, previousRows] = await Promise.all([
+            const [rows, previousRows] = await withTimeout(platform, Promise.all([
                 getData({
                     connector, accountId, fields: allFields,
                     ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
@@ -336,7 +373,7 @@ export async function getClientMarketingReport(
                         dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
                     })
                     : Promise.resolve([]),
-            ]);
+            ]));
             return {
                 platform,
                 connected: true,
@@ -357,14 +394,14 @@ export async function getClientMarketingReport(
     // It still emits the same keys the UI reads, so nothing downstream changes.
     const fetchGa4 = async (propertyId: string): Promise<PlatformReport> => {
         try {
-            const [cur, prev] = await Promise.all([
+            const [cur, prev] = await withTimeout('GA4', Promise.all([
                 windows
                     ? getGA4Totals(propertyId, windows.current.dateFrom, windows.current.dateTo)
                     : getGA4Totals(propertyId, `${presetToDays(datePreset)}daysAgo`, 'today'),
                 windows?.previous
                     ? getGA4Totals(propertyId, windows.previous.dateFrom, windows.previous.dateTo)
                     : Promise.resolve(null),
-            ]);
+            ]));
             return {
                 platform: 'ga4',
                 connected: true,
@@ -382,14 +419,14 @@ export async function getClientMarketingReport(
     // vale tale e quale sia per Windsor sia per l'API nativa.
     const fetchSearchConsole = async (siteUrl: string): Promise<PlatformReport> => {
         try {
-            const [cur, prev] = await Promise.all([
+            const [cur, prev] = await withTimeout('Search Console', Promise.all([
                 windows
                     ? getSearchConsoleTotals(siteUrl, windows.current.dateFrom, windows.current.dateTo)
                     : getSearchConsoleTotals(siteUrl, isoDaysAgo(presetToDays(datePreset)), isoDaysAgo(0)),
                 windows?.previous
                     ? getSearchConsoleTotals(siteUrl, windows.previous.dateFrom, windows.previous.dateTo)
                     : Promise.resolve(null),
-            ]);
+            ]));
             return { platform: 'searchconsole', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
         } catch (err: any) {
             console.error(`[reporting] searchconsole failed for ${siteUrl}:`, err.message);
@@ -471,7 +508,7 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
                 try { return await fn(); } catch { return null; }
             };
 
-            const campaigns = await getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId, tfCur, cfg.cacheKey);
+            const campaigns = await withTimeout('Klaviyo', getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId, tfCur, cfg.cacheKey));
             const flows = await optional(() =>
                 getKlaviyoFlowTotals(cfg.apiKey, cfg.conversionMetricId!, tfCur, cfg.cacheKey));
             const campaignsPrev = tfPrev
@@ -503,12 +540,12 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
             ? windows.current
             : { dateFrom: isoDaysAgo(presetToDays(datePreset)), dateTo: isoDaysAgo(0) };
         try {
-            const [cur, prev] = await Promise.all([
+            const [cur, prev] = await withTimeout('Awin', Promise.all([
                 getAwinTotals(token, advertiserId, range.dateFrom, range.dateTo),
                 windows?.previous
                     ? getAwinTotals(token, advertiserId, windows.previous.dateFrom, windows.previous.dateTo)
                     : Promise.resolve(null),
-            ]);
+            ]));
             return { platform: 'awin', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
         } catch (err: any) {
             console.error(`[reporting] awin failed for advertiser ${advertiserId}:`, err.message);
