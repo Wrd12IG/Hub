@@ -186,13 +186,23 @@ export async function getKlaviyoTotals(
     timeframe: Timeframe,
     cacheKey?: string
 ): Promise<KlaviyoTotals> {
-    const cacheId = cacheKey ? cacheDocId(cacheKey, timeframe, conversionMetricId) : null;
+    return valuesReport(apiKey, conversionMetricId, timeframe, 'campaign', cacheKey);
+}
+
+async function valuesReport(
+    apiKey: string,
+    conversionMetricId: string,
+    timeframe: Timeframe,
+    kind: 'campaign' | 'flow',
+    cacheKey?: string
+): Promise<KlaviyoTotals> {
+    const cacheId = cacheKey ? cacheDocId(`${cacheKey}__${kind}`, timeframe, conversionMetricId) : null;
     const cached = cacheId ? await readCache(cacheId) : null;
     if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return cached.totals;
 
     let json: any;
     try {
-        json = await callReport(apiKey, conversionMetricId, timeframe);
+        json = await callReport(apiKey, conversionMetricId, timeframe, kind);
     } catch (err: any) {
         // Rate limit: meglio un dato vecchio di un errore in faccia al cliente.
         if (cached && /rate limit/i.test(err.message)) return cached.totals;
@@ -231,12 +241,17 @@ export async function getKlaviyoTotals(
     return totals;
 }
 
-function callReport(apiKey: string, conversionMetricId: string, timeframe: Timeframe): Promise<any> {
-    return call(apiKey, '/campaign-values-reports', {
+function callReport(
+    apiKey: string,
+    conversionMetricId: string,
+    timeframe: Timeframe,
+    kind: 'campaign' | 'flow' = 'campaign'
+): Promise<any> {
+    return call(apiKey, `/${kind}-values-reports`, {
         method: 'POST',
         body: JSON.stringify({
             data: {
-                type: 'campaign-values-report',
+                type: `${kind}-values-report`,
                 attributes: {
                     statistics: [...STATISTICS],
                     timeframe,
@@ -245,6 +260,27 @@ function callReport(apiKey: string, conversionMetricId: string, timeframe: Timef
             },
         }),
     });
+}
+
+
+/**
+ * Totali dei **flussi** (automazioni: carrello abbandonato, benvenuto,
+ * post-acquisto), sommati su tutti i flussi attivi nel periodo.
+ *
+ * Per un e-commerce i flussi generano spesso più fatturato delle campagne:
+ * vanno da soli, tutti i giorni, su chi ha già mostrato un'intenzione. Un
+ * report email che mostra solo le campagne racconta la metà meno interessante.
+ *
+ * Stesso endpoint-gemello delle campagne, stessi identici limiti (2 richieste
+ * al minuto), quindi passa dalla stessa cache — con una chiave distinta.
+ */
+export async function getKlaviyoFlowTotals(
+    apiKey: string,
+    conversionMetricId: string,
+    timeframe: Timeframe,
+    cacheKey?: string
+): Promise<KlaviyoTotals> {
+    return valuesReport(apiKey, conversionMetricId, timeframe, 'flow', cacheKey);
 }
 
 /** Le date della UI (yyyy-MM-dd) nel formato datetime che Klaviyo richiede. */
