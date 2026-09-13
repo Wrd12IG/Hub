@@ -15,6 +15,7 @@
 
 import { getData } from './windsor-client';
 import { getGA4Totals } from './ga4-client';
+import { getSearchConsoleTotals } from './search-console-client';
 import type { Client } from './data';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup
@@ -47,13 +48,15 @@ export interface PlatformReport {
 // GET /{connector}/fields) before adding any; several of these were wrong in
 // the first pass precisely because they were guessed from the platforms' own
 // API naming (activeUsers, totalRevenue, followers, actions... none exist).
-type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4'>;
+// ga4 e searchconsole sono letti nativi da Google col service account
+// dell'agenzia, non da Windsor: restano nel tipo PlatformReport (la UI li
+// mostra come gli altri) ma non hanno un connector qui.
+type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole'>;
 
 const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
     facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc'] },
     instagram: { connector: 'instagram', fields: ['followers_count', 'reach', 'profile_views', 'likes'] },
     google_ads: { connector: 'google_ads', fields: ['clicks', 'impressions', 'cost', 'conversions', 'ctr', 'cpc'] },
-    searchconsole: { connector: 'searchconsole', fields: ['clicks', 'impressions', 'ctr', 'position'] },
     linkedin_organic: {
         connector: 'linkedin_organic',
         fields: [
@@ -98,6 +101,13 @@ function aggregateRows(rows: Record<string, string | number | undefined>[]): Rec
 }
 
 export type CompareMode = 'prev_period' | 'prev_year' | 'none';
+
+/** yyyy-MM-dd, N giorni fa: la Search Console API non accetta "Ndaysago". */
+function isoDaysAgo(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d.toISOString().slice(0, 10);
+}
 
 /** GA4's API takes "Ndaysago", not Windsor's presets. */
 function presetToDays(preset: string): number {
@@ -216,13 +226,12 @@ export async function getClientMarketingReport(
     windows?: { current: { dateFrom: string; dateTo: string }; previous: { dateFrom: string; dateTo: string } | null }
 ): Promise<PlatformReport[]> {
     // facebook/google_ads/ga4 prefer the ids already entered in "Setup API";
-    // instagram/searchconsole/linkedin_organic only exist under windsorAccounts.
+    // instagram/linkedin_organic only exist under windsorAccounts.
     const mapping: Record<string, string | undefined> = {
         facebook: client.metaAdAccountId,
         google_ads: client.googleAdAccountId,
         ga4: client.ga4PropertyId,
         instagram: client.windsorAccounts?.instagram,
-        searchconsole: client.windsorAccounts?.searchconsole,
         linkedin_organic: client.windsorAccounts?.linkedin_organic,
     };
 
@@ -234,7 +243,15 @@ export async function getClientMarketingReport(
     // sede becomes its own entry, labelled with the name Windsor returns.
     const gbpAccountIds = (client.windsorAccounts?.gbp || []).filter(Boolean);
 
-    if (platforms.length === 0 && gbpAccountIds.length === 0) return [];
+    const searchConsoleSite = client.windsorAccounts?.searchconsole;
+
+    // ⚠️ Questa guardia deve contare anche GA4 e Search Console, non solo le
+    // piattaforme Windsor: da quando quelle due sono native, un cliente che ha
+    // *soltanto* Analytics e/o Search Console collegati usciva di qui con un
+    // report vuoto senza alcun errore, pur avendo dati validi.
+    if (platforms.length === 0 && gbpAccountIds.length === 0 && !client.ga4PropertyId && !searchConsoleSite) {
+        return [];
+    }
 
     const fetchOne = async (
         platform: WindsorPlatform,
@@ -295,9 +312,30 @@ export async function getClientMarketingReport(
         }
     };
 
+    // Search Console: stessa storia di GA4 — API ufficiale di Google col service
+    // account dell'agenzia. L'id salvato è già l'URL della proprietà, quindi
+    // vale tale e quale sia per Windsor sia per l'API nativa.
+    const fetchSearchConsole = async (siteUrl: string): Promise<PlatformReport> => {
+        try {
+            const [cur, prev] = await Promise.all([
+                windows
+                    ? getSearchConsoleTotals(siteUrl, windows.current.dateFrom, windows.current.dateTo)
+                    : getSearchConsoleTotals(siteUrl, isoDaysAgo(presetToDays(datePreset)), isoDaysAgo(0)),
+                windows?.previous
+                    ? getSearchConsoleTotals(siteUrl, windows.previous.dateFrom, windows.previous.dateTo)
+                    : Promise.resolve(null),
+            ]);
+            return { platform: 'searchconsole', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
+        } catch (err: any) {
+            console.error(`[reporting] searchconsole failed for ${siteUrl}:`, err.message);
+            return { platform: 'searchconsole', connected: false, error: err.message, rows: [], previousRows: [] };
+        }
+    };
+
     const results = await Promise.all([
         ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
         ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
+        ...(searchConsoleSite ? [fetchSearchConsole(searchConsoleSite)] : []),
         ...gbpAccountIds.map(async (accountId) => {
             const report = await fetchOne('gbp', accountId);
             // Keep the sede identifiable even when the fetch failed and there
