@@ -2,7 +2,7 @@
  * GET  /api/clients/[id]/seo-reports  → Lista report SEO salvati
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(
@@ -11,6 +11,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
   const limit = parseInt(request.nextUrl.searchParams.get('limit') || '10');

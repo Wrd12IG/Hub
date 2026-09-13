@@ -3,7 +3,7 @@
  * POST /api/clients/[id]/meta/token  → salva/aggiorna il token Meta
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse, getClientToken, saveClientToken } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, getClientToken, saveClientToken, denyUnlessStaff } from '@/lib/api-auth';
 
 const META_GRAPH_BASE = 'https://graph.facebook.com/v21.0';
 
@@ -26,6 +26,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
   const { id: clientId } = params;
 
@@ -93,6 +95,8 @@ export async function POST(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
   const { id: clientId } = params;
 

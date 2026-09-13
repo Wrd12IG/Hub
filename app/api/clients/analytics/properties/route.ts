@@ -8,7 +8,7 @@
  * Risposta: { properties: [{ name, displayName, createTime }] }
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
 /** Ottieni un access token Google tramite Service Account JSON */
 async function getGoogleAccessToken(): Promise<string> {
@@ -72,6 +72,8 @@ async function getGoogleAccessToken(): Promise<string> {
 export async function GET(request: NextRequest) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
   try {
     const accessToken = await getGoogleAccessToken();

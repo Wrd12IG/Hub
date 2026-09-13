@@ -7,13 +7,15 @@
  * Risposta: { accounts: [{ id, name, currency, account_status }] }
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
 const META_GRAPH_BASE = 'https://graph.facebook.com/v21.0';
 
 export async function GET(request: NextRequest) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
   // Accetta sia META_SYSTEM_USER_TOKEN (ideale) sia META_ACCESS_TOKEN come fallback
   const systemToken = process.env.META_SYSTEM_USER_TOKEN || process.env.META_ACCESS_TOKEN;

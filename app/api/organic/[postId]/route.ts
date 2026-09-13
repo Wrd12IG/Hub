@@ -3,7 +3,7 @@
  * DELETE /api/organic/[postId]  — Elimina un post del piano editoriale
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -15,6 +15,8 @@ export async function PATCH(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
   const { postId } = params;
 
@@ -57,6 +59,8 @@ export async function DELETE(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
   const { postId } = params;
 

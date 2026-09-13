@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
 export async function POST(request: Request) {
     const user = await verifyAuth(request);
     if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
     try {
         const body = await request.json();

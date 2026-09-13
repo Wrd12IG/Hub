@@ -3,7 +3,7 @@
  * POST /api/clients/[id]/assets   → Upload metadata (file su Firebase Storage)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb, adminStorage } from '@/lib/firebase-admin';
 
 export async function GET(
@@ -12,6 +12,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
   const type = request.nextUrl.searchParams.get('type'); // 'image' | 'video' | 'document' | null
@@ -49,6 +51,8 @@ export async function POST(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
 

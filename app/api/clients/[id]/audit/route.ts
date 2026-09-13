@@ -3,7 +3,7 @@
  * GET  /api/clients/[id]/audit/status → Controlla lo stato dell'ultimo audit
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 
 // ── POST: Start audit ──────────────────────────────────────────────────────────
@@ -13,6 +13,8 @@ export async function POST(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
 

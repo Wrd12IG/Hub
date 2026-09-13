@@ -3,7 +3,7 @@
  * Lista sedi Google Business Profile del cliente
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { getGBPLocations } from '@/lib/gbp-client';
 
 export async function GET(
@@ -12,6 +12,8 @@ export async function GET(
 ) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  if (denied) return denied;
 
   const { id: clientId } = params;
 

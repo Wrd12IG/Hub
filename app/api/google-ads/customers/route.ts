@@ -12,7 +12,7 @@
  * Risposta: { customers: [{ id, name, currency, timeZone, descriptiveName }] }
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
 async function getGoogleAccessToken(): Promise<string> {
   const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
@@ -63,6 +63,8 @@ async function getGoogleAccessToken(): Promise<string> {
 export async function GET(request: NextRequest) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
+  const denied = await denyUnlessStaff(user.uid);
+  if (denied) return denied;
 
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
   const managerAccountId = process.env.GOOGLE_ADS_MANAGER_ACCOUNT_ID?.replace(/-/g, '');
