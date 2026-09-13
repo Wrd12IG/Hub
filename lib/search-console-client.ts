@@ -15,14 +15,15 @@
  */
 
 import { JWT } from 'google-auth-library';
+import { readPrivateKey } from './google-private-key';
 
 const API = 'https://searchconsole.googleapis.com/webmasters/v3';
 
 function getClient(): JWT {
     const email = process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL;
-    // Stesso service account di GA4: le \n della chiave possono arrivare
-    // escapate dall'env, come lì.
-    const key = process.env.GOOGLE_ANALYTICS_PRIVATE_KEY?.replace(/\\n/g, '\n');
+    // Stesso service account di GA4, stessa normalizzazione: la chiave arriva
+    // rotta in molti modi diversi e tutti danno lo stesso errore illeggibile.
+    const key = readPrivateKey('GOOGLE_ANALYTICS_PRIVATE_KEY');
     if (!email || !key) throw new Error('Mancano credenziali Service Account Google (GOOGLE_ANALYTICS_*)');
 
     return new JWT({

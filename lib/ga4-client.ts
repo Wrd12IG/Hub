@@ -12,42 +12,13 @@
  */
 
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
+import { readPrivateKey } from './google-private-key';
 
 // ─── Autenticazione Client GA4 ───────────────────────────────────────────────
 
-/**
- * Normalizza la chiave privata così come arriva dall'ambiente.
- *
- * Copiando il campo `private_key` da un JSON di service account è facilissimo
- * portarsi dietro le virgolette esterne, oppure incollare il valore con i
- * ritorni a capo già espansi. In entrambi i casi Node fallisce con
- * `error:1E08010C:DECODER routines::unsupported`, un messaggio che non dice
- * niente a nessuno e che è costato un pomeriggio di ricerca nel posto
- * sbagliato. Qui i due casi si correggono, e quello che resta illeggibile
- * viene segnalato dicendo cosa controllare.
- */
-function readPrivateKey(): string {
-  const raw = process.env.GOOGLE_ANALYTICS_PRIVATE_KEY;
-  if (!raw) return '';
-
-  const key = raw
-    .trim()
-    .replace(/^["']|["']$/g, '')   // virgolette copiate insieme al valore
-    .replace(/\\n/g, '\n');        // \n testuali → ritorni a capo veri
-
-  if (!key.includes('BEGIN') || !key.includes('PRIVATE KEY')) {
-    throw new Error(
-      'GOOGLE_ANALYTICS_PRIVATE_KEY non è una chiave privata valida: deve iniziare con '
-      + '"-----BEGIN PRIVATE KEY-----". Ricopia il campo private_key dal JSON del service '
-      + 'account, senza le virgolette esterne, e ridistribuisci (è compilata nel deploy).'
-    );
-  }
-  return key;
-}
-
 function getGa4Client() {
   const clientEmail = process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = readPrivateKey();
+  const privateKey = readPrivateKey('GOOGLE_ANALYTICS_PRIVATE_KEY');
 
   if (!clientEmail || !privateKey) {
     throw new Error('Mancano le credenziali del service account GA4 (GOOGLE_ANALYTICS_*).');
