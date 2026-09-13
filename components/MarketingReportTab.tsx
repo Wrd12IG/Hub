@@ -28,7 +28,7 @@ const PLATFORM_META: Record<PlatformKey, { label: string; icon: any; variant: 'b
   ga4: { label: 'Google Analytics 4', icon: TrendingUp, variant: 'purple', metrics: [{ key: 'sessions', label: 'Sessioni' }, { key: 'active_users', label: 'Utenti attivi' }, { key: 'conversions', label: 'Conversioni' }, { key: 'purchase_revenue', label: 'Revenue €' }] },
   searchconsole: { label: 'Search Console', icon: SearchIcon, variant: 'gray', metrics: [{ key: 'clicks', label: 'Click organici' }, { key: 'impressions', label: 'Impression' }, { key: 'position', label: 'Posizione media' }] },
   linkedin_organic: { label: 'LinkedIn', icon: Linkedin, variant: 'blue', detail: 'linkedin', metrics: [{ key: 'organization_follower_count', label: 'Follower' }, { key: 'account_analytics_impression_count', label: 'Impression' }, { key: 'account_analytics_click_count', label: 'Click' }, { key: 'account_analytics_like_count', label: 'Like' }] },
-  gbp: { label: 'Google Business Profile', icon: MapPin, variant: 'green', detail: 'gbp', metrics: [{ key: 'impressions', label: 'Visualizzazioni' }, { key: 'website_clicks', label: 'Click sito' }, { key: 'call_clicks', label: 'Chiamate' }, { key: 'direction_requests', label: 'Indicazioni' }] },
+  gbp: { label: 'Google Business Profile', icon: MapPin, variant: 'green', detail: 'gbp', metrics: [{ key: 'impressions', label: 'Visualizzazioni' }, { key: 'website_clicks', label: 'Click sito' }, { key: 'call_clicks', label: 'Chiamate' }, { key: 'direction_requests', label: 'Indicazioni' }, { key: 'review_count', label: 'Nuove recensioni' }, { key: 'review_average_rating_total', label: 'Rating' }] },
 }
 
 function authHeaders() {
@@ -224,7 +224,7 @@ export function MarketingReportTab({
                   </div>
                 ) : p.connected ? (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
-                    Account collegato correttamente, ma nessuna attività registrata nel periodo selezionato. Prova ad allargare il "Periodo" qui sopra.
+                    Nessun dato nel periodo selezionato. Può voler dire che l'account non ha avuto attività — prova ad allargare il "Periodo" — oppure che l'id inserito in Setup API non corrisponde a un account collegato su Windsor: da lì i due casi non sono distinguibili.
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
