@@ -57,8 +57,8 @@ import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import MetaCampaignReportModal from "@/components/MetaCampaignReportModal";
 import dynamic from "next/dynamic";
-const SeoGodModeReportModal = dynamic(
-  () => import("@/components/SeoGodModeReportModal"),
+const SeoAuditModal = dynamic(
+  () => import("@/components/SeoAuditModal").then((m) => m.SeoAuditModal),
   { ssr: false },
 );
 import GbpDashboardTab from "@/components/GbpDashboardTab";
@@ -100,6 +100,8 @@ interface Client {
   metaPixelId: string | null;
   hasMetaToken: boolean;
   lastAuditScore: number | null;
+  lastSeoScore?: number | null;
+  lastSeoAuditAt?: string | null;
   lastAuditWaste: number | null;
   lastAuditAt: string | null;
   lastAuditPdfUrl: string | null;
@@ -1143,15 +1145,30 @@ export default function ClientDetailPage() {
                   <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
                     <Sparkles className="h-4 w-4" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="text-base font-extrabold text-foreground tracking-tight">
-                      Intelligenza Artificiale: Audit Godmode SEO
+                      Audit SEO
                     </h3>
                     <p className="text-[11px] text-muted-foreground/80 mt-0.5">
-                      Scansione tecnica automatizzata simulando i crawler Google
-                      e l'algoritmo semantico di ranking.
+                      Performance e Core Web Vitals reali da Google PageSpeed, più i dati
+                      di Search Console.
                     </p>
                   </div>
+                  {typeof client.lastSeoScore === "number" && (
+                    <div className="text-right shrink-0">
+                      <div
+                        className={cn(
+                          "text-3xl font-black leading-none",
+                          client.lastSeoScore >= 80 ? "text-emerald-400"
+                            : client.lastSeoScore >= 60 ? "text-amber-400"
+                            : "text-rose-400",
+                        )}
+                      >
+                        {client.lastSeoScore}
+                      </div>
+                      <div className="text-[10px] font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pt-2">
@@ -1159,7 +1176,8 @@ export default function ClientDetailPage() {
                     onClick={() => setSeoReportOpen(true)}
                     className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 text-white border-0 py-4.5 px-6 rounded-xl font-bold shadow-lg shadow-indigo-500/20 active:scale-98 transition-all flex items-center justify-center gap-2"
                   >
-                    <Sparkles className="h-4 w-4" /> Genera Report SEO (GODMODE)
+                    <Sparkles className="h-4 w-4" />
+                    {typeof client.lastSeoScore === "number" ? "Apri audit SEO" : "Esegui audit SEO"}
                   </Button>
 
                   {seoReportsList.length > 0 && (
@@ -1819,12 +1837,12 @@ export default function ClientDetailPage() {
         />
       )}
 
-      <SeoGodModeReportModal
+      <SeoAuditModal
         isOpen={seoReportOpen}
         onClose={() => setSeoReportOpen(false)}
         clientId={client.id}
         clientName={client.name}
-        websiteUrl={client.websiteUrl}
+        onSaved={(score) => setClient((prev) => (prev ? { ...prev, lastSeoScore: score } : prev))}
       />
 
       {/* TAB: HEATMAPS */}
