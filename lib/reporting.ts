@@ -16,7 +16,7 @@
 import { getData } from './windsor-client';
 import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
-import { getKlaviyoTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
+import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
 import type { Client } from './data';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup
@@ -394,6 +394,48 @@ export async function getClientMarketingReport(
         }
     };
 
+
+type KlaviyoLike = Record<string, number>;
+
+/**
+ * Campagne e flussi in una scheda sola.
+ *
+ * I flussi non sono un dettaglio: su un e-commerce reale generano il 77% del
+ * fatturato email con il 3% degli invii (misurato sull'account pilota —
+ * €84.115 da 12.933 invii contro €25.435 da 370.486). Mostrare le sole
+ * campagne significa raccontare al cliente meno di un quarto di quello che
+ * l'email gli porta.
+ *
+ * I totali sommabili si sommano; i tassi si ricalcolano sui totali uniti,
+ * perché la media fra un invio da 12.000 e uno da 370.000 non vuole dire nulla.
+ */
+function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): KlaviyoLike {
+    const f = flows || {};
+    const sum = (k: string) => (campaigns[k] || 0) + (f[k] || 0);
+    const delivered = sum('delivered');
+    const rate = (n: number) => (delivered > 0 ? (n / delivered) * 100 : 0);
+
+    return {
+        campaigns: campaigns.campaigns || 0,
+        flows: f.campaigns || 0,
+        recipients: sum('recipients'),
+        delivered,
+        opens_unique: sum('opens_unique'),
+        clicks_unique: sum('clicks_unique'),
+        unsubscribes: sum('unsubscribes'),
+        bounced: sum('bounced'),
+        spam_complaints: sum('spam_complaints'),
+        conversions: sum('conversions'),
+        conversion_value: Math.round(sum('conversion_value') * 100) / 100,
+        // Separati, perché è la loro proporzione a dire dove sta il valore.
+        campaign_value: campaigns.conversion_value || 0,
+        flow_value: f.conversion_value || 0,
+        open_rate: rate(sum('opens_unique')),
+        click_rate: rate(sum('clicks_unique')),
+        unsubscribe_rate: rate(sum('unsubscribes')),
+    };
+}
+
     // Klaviyo: API diretta con la chiave privata del cliente, non Windsor.
     const fetchKlaviyo = async (
         cfg: { apiKey: string; conversionMetricId?: string; cacheKey?: string }
@@ -407,16 +449,37 @@ export async function getClientMarketingReport(
                     + 'Ricollega la chiave da Setup API dopo aver collegato l\'e-commerce.'
                 );
             }
-            // In sequenza, non in parallelo: Klaviyo limita questo endpoint a 1
-            // richiesta al secondo (burst) e 2 al minuto (steady). Due chiamate
-            // simultanee sfondano il burst e la seconda torna 429.
-            const cur = await getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId, windows
+            const tfCur = windows
                 ? toKlaviyoTimeframe(windows.current.dateFrom, windows.current.dateTo)
-                : presetToKlaviyoTimeframe(datePreset), cfg.cacheKey);
-            const prev = windows?.previous
-                ? await getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId,
-                    toKlaviyoTimeframe(windows.previous.dateFrom, windows.previous.dateTo), cfg.cacheKey)
+                : presetToKlaviyoTimeframe(datePreset);
+            const tfPrev = windows?.previous
+                ? toKlaviyoTimeframe(windows.previous.dateFrom, windows.previous.dateTo)
                 : null;
+
+            // Klaviyo limita i report a 1 richiesta al secondo e **2 al minuto**.
+            // Un report completo ne vorrebbe quattro (campagne e flussi, periodo
+            // corrente e precedente), quindi le chiamate partono in sequenza e
+            // nell'ordine di importanza: prima i totali del periodo corrente,
+            // poi i confronti. Se il budget finisce, si perde la variazione
+            // percentuale — non i numeri che il cliente deve leggere.
+            // Dal secondo caricamento in poi risponde la cache (vedi
+            // lib/klaviyo-client.ts) e il problema non si pone.
+            const optional = async (fn: () => Promise<KlaviyoLike>): Promise<KlaviyoLike | null> => {
+                try { return await fn(); } catch { return null; }
+            };
+
+            const campaigns = await getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId, tfCur, cfg.cacheKey);
+            const flows = await optional(() =>
+                getKlaviyoFlowTotals(cfg.apiKey, cfg.conversionMetricId!, tfCur, cfg.cacheKey));
+            const campaignsPrev = tfPrev
+                ? await optional(() => getKlaviyoTotals(cfg.apiKey, cfg.conversionMetricId!, tfPrev, cfg.cacheKey))
+                : null;
+            const flowsPrev = tfPrev
+                ? await optional(() => getKlaviyoFlowTotals(cfg.apiKey, cfg.conversionMetricId!, tfPrev, cfg.cacheKey))
+                : null;
+
+            const cur = mergeKlaviyo(campaigns, flows);
+            const prev = campaignsPrev ? mergeKlaviyo(campaignsPrev, flowsPrev) : null;
             return { platform: 'klaviyo', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
         } catch (err: any) {
             console.error('[reporting] klaviyo failed:', err.message);
