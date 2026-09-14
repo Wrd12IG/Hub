@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Search, Download, FileText, Image as ImageIcon, Link as LinkIcon, ExternalLink, X, Loader2, AlertCircle, Video } from 'lucide-react';
 import { Client } from '@/lib/data';
+import { useSearchParams } from 'next/navigation';
 
 // Component for handling image loading with fallback
 function AssetPreview({ asset, isImg, onImageClick }: { asset: any; isImg: boolean; onImageClick: () => void }) {
@@ -85,7 +86,10 @@ function AssetPreview({ asset, isImg, onImageClick }: { asset: any; isImg: boole
 export default function AssetsPage() {
     const { allTasks, clients, allProjects } = useLayoutData();
     const [searchQuery, setSearchQuery] = useState('');
-    const [clientFilter, setClientFilter] = useState('all');
+    // Come per /reports: se si arriva da una pagina cliente, si parte filtrati
+    // su quel cliente invece che su tutti.
+    const searchParams = useSearchParams();
+    const [clientFilter, setClientFilter] = useState(() => searchParams.get('client') || 'all');
     const [typeFilter, setTypeFilter] = useState('all');
     const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
