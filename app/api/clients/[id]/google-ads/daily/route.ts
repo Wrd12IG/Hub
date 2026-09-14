@@ -91,7 +91,9 @@ export async function GET(
 
   // ── Tentativo con dati reali ──────────────────────────────────────────────
   try {
-    const rows = await getGoogleAdsDailyMetrics(clientId);
+    const raw = request.nextUrl.searchParams.get('days');
+    const days: 7 | 30 | 90 = raw === '7' ? 7 : raw === '90' ? 90 : 30;
+    const rows = await getGoogleAdsDailyMetrics(clientId, days);
     const chartData = aggregateByDate(rows);
 
     return NextResponse.json({

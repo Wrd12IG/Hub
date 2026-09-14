@@ -17,6 +17,7 @@ import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { MetricoolTable } from '@/components/metricool/MetricoolTable'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 // --- Types ---
 interface Campaign {
@@ -101,6 +102,9 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
   const [chartLoading, setChartLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
+  // Le query Google Ads accettano 7, 30 o 90 giorni: sono le uniche finestre
+  // che l'API espone come costanti, e coprono i casi d'uso reali.
+  const [days, setDays] = useState<'7' | '30' | '90'>('30');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,7 +113,7 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
         const headers = { Authorization: `Bearer ${token}` };
 
         // Fetch summary + campagne
-        const response = await fetch(`/api/clients/${id}/google-ads`, { headers });
+        const response = await fetch(`/api/clients/${id}/google-ads?days=${days}`, { headers });
         if (!response.ok) throw new Error('Failed to fetch Google Ads data');
         const result = await response.json();
 
@@ -119,7 +123,7 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
         // Fetch breakdown giornaliero separato
         setChartLoading(true);
         try {
-          const dailyRes = await fetch(`/api/clients/${id}/google-ads/daily`, { headers });
+          const dailyRes = await fetch(`/api/clients/${id}/google-ads/daily?days=${days}`, { headers });
           if (dailyRes.ok) {
             const dailyJson = await dailyRes.json();
             setIsMock(dailyJson._meta?.source === 'mock');
@@ -139,7 +143,7 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, days]);
 
   if (loading || !data) {
     return (
@@ -240,6 +244,22 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+
+      {/* Selettore periodo — le tabelle e il grafico seguono questa scelta */}
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold tracking-tight">Google Ads</h1>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Periodo</span>
+          <Select value={days} onValueChange={(v) => setDays(v as '7' | '30' | '90')}>
+            <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Ultimi 7 giorni</SelectItem>
+              <SelectItem value="30">Ultimi 30 giorni</SelectItem>
+              <SelectItem value="90">Ultimi 90 giorni</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {/* Banner dati mock — visibile solo in development */}
       {isMock && (
