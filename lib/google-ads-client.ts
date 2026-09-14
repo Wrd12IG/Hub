@@ -314,10 +314,10 @@ export async function getGoogleAdsKeywords(
       ad_group_criterion.keyword.match_type,
       metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions
     FROM keyword_view
-    WHERE segments.date BETWEEN '${'${isoDaysAgo(days)}'}' AND '${'${isoDaysAgo(0)}'}'
+    WHERE segments.date BETWEEN '${isoDaysAgo(days)}' AND '${isoDaysAgo(0)}'
       AND metrics.impressions > 0
     ORDER BY metrics.impressions DESC
-    LIMIT ${'${limit}'}
+    LIMIT ${limit}
   `);
 
   // Una riga per giorno per keyword: si sommano, e le medie si ricalcolano.
@@ -327,7 +327,7 @@ export async function getGoogleAdsKeywords(
     const m = row.metrics || {};
     const text = String(k.text ?? '');
     if (!text) continue;
-    const key = `${'${text}'}|${'${k.matchType ?? ""}'}`;
+    const key = `${text}|${k.matchType ?? ''}`;
 
     const e = byKeyword.get(key) || {
       keyword: text, matchType: String(k.matchType ?? ''),
