@@ -32,6 +32,18 @@ export interface GoogleAdsSummary {
   totalConversions: number;
 }
 
+export interface GoogleAdsKeyword {
+  keyword: string;
+  matchType: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  conversions: number;
+  cpc: number;
+  ctr: number;
+  cpm: number;
+}
+
 export interface GoogleAdsDailyMetric {
   date: string;          // YYYY-MM-DD
   campaignId: string;
@@ -120,7 +132,12 @@ async function query(customerId: string, gaql: string): Promise<any[]> {
   );
   const json = await res.json();
   if (!res.ok) {
-    const detail = json?.error?.message || `HTTP ${res.status}`;
+    // Il messaggio di primo livello è sempre lo stesso inutile "Request
+    // contains an invalid argument": quello che serve — *quale* campo è
+    // sbagliato — sta annidato nei details. Senza estrarlo, un refuso in una
+    // GAQL costa tre tentativi alla cieca (ed è costato esattamente quello).
+    const nested = json?.error?.details?.[0]?.errors?.[0]?.message;
+    const detail = nested || json?.error?.message || `HTTP ${res.status}`;
     if (res.status === 403 || /PERMISSION|not permitted/i.test(detail)) {
       throw new Error(
         `L'account Google Ads ${customerId} non è accessibile con le credenziali del Hub. `
@@ -177,7 +194,7 @@ export async function getGoogleAdsCampaigns(
   const rows = await query(customerId, `
     SELECT
       campaign.id, campaign.name, campaign.status,
-      campaign.start_date, campaign.end_date,
+      campaign.start_date_time, campaign.end_date_time,
       metrics.cost_micros, metrics.impressions, metrics.clicks,
       metrics.average_cpc, metrics.conversions,
       metrics.cost_per_conversion, metrics.conversions_value
@@ -212,8 +229,10 @@ export async function getGoogleAdsCampaigns(
         id,
         name: String(c.name ?? id),
         status: (c.status as GoogleAdsCampaign['status']) ?? 'UNKNOWN',
-        startDate: c.startDate || undefined,
-        endDate: c.endDate || undefined,
+        // v24 le espone come *_date_time ("2025-09-01 09:26:43"): la UI
+        // confronta yyyy-MM-dd, quindi si tiene solo la parte data.
+        startDate: c.startDateTime ? String(c.startDateTime).slice(0, 10) : undefined,
+        endDate: c.endDateTime ? String(c.endDateTime).slice(0, 10) : undefined,
         spend, impressions, clicks, conversions,
         conversionsValue,
         // Ricalcolati sotto sui totali: le medie non si sommano.
@@ -268,6 +287,67 @@ export async function getGoogleAdsDailyMetrics(
       conversions: Number(row.metrics?.conversions || 0),
     }))
     .filter((r) => r.date);
+}
+
+
+/**
+ * Parole chiave con le loro metriche.
+ *
+ * La tabella "Lista di parole chiave" esisteva già nella pagina ma la route
+ * restituiva `keywords: []` fisso, con un commento che diceva "richiedono una
+ * query separata": non era mai stata scritta, quindi quella tabella era vuota
+ * per costruzione, per ogni cliente, da sempre.
+ *
+ * Le campagne Performance Max e Shopping non hanno parole chiave: un account
+ * che gira solo su quelle restituirà legittimamente una lista vuota.
+ */
+export async function getGoogleAdsKeywords(
+  clientId: string,
+  days: 7 | 30 | 90 = 30,
+  limit = 100
+): Promise<GoogleAdsKeyword[]> {
+  const customerId = await getCustomerId(clientId);
+
+  const rows = await query(customerId, `
+    SELECT
+      ad_group_criterion.keyword.text,
+      ad_group_criterion.keyword.match_type,
+      metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions
+    FROM keyword_view
+    WHERE segments.date BETWEEN '${isoDaysAgo(days)}' AND '${isoDaysAgo(0)}'
+      AND metrics.impressions > 0
+    ORDER BY metrics.impressions DESC
+    LIMIT ${limit}
+  `);
+
+  // Una riga per giorno per keyword: si sommano, e le medie si ricalcolano.
+  const byKeyword = new Map<string, GoogleAdsKeyword>();
+  for (const row of rows) {
+    const k = row.adGroupCriterion?.keyword || {};
+    const m = row.metrics || {};
+    const text = String(k.text ?? '');
+    if (!text) continue;
+    const key = `${text}|${k.matchType ?? ''}`;
+
+    const e = byKeyword.get(key) || {
+      keyword: text, matchType: String(k.matchType ?? ''),
+      impressions: 0, clicks: 0, spend: 0, conversions: 0, cpc: 0, ctr: 0, cpm: 0,
+    };
+    e.impressions += Number(m.impressions || 0);
+    e.clicks += Number(m.clicks || 0);
+    e.spend += fromMicros(m.costMicros);
+    e.conversions += Number(m.conversions || 0);
+    byKeyword.set(key, e);
+  }
+
+  return Array.from(byKeyword.values())
+    .map((k) => ({
+      ...k,
+      cpc: k.clicks > 0 ? k.spend / k.clicks : 0,
+      ctr: k.impressions > 0 ? (k.clicks / k.impressions) * 100 : 0,
+      cpm: k.impressions > 0 ? (k.spend / k.impressions) * 1000 : 0,
+    }))
+    .sort((a, b) => b.impressions - a.impressions);
 }
 
 export function getMockGoogleAdsDailyMetrics(clientId: string): GoogleAdsDailyMetric[] {
