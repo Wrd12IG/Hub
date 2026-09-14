@@ -31,10 +31,45 @@ const DEAD_STATUSES = new Set(['declined', 'deleted']);
 
 interface AwinMoney { amount?: number; currency?: string }
 interface AwinTransaction {
+    id?: number | string;
     commissionStatus?: string;
     saleAmount?: AwinMoney;
     commissionAmount?: AwinMoney;
     networkFee?: AwinMoney;
+    siteName?: string;
+    publisherId?: number | string;
+    transactionDate?: string;
+    transactionDevice?: string;
+    voucherCodeUsed?: boolean;
+    voucherCode?: string;
+    customerAcquisition?: string;
+    declineReason?: string;
+}
+
+export interface AwinPublisherRow {
+    publisher: string;
+    publisherId: string;
+    transactions: number;
+    sale_amount: number;
+    commission_amount: number;
+    network_fee: number;
+    total_cost: number;
+    roas: number;
+    average_order_value: number;
+    pending_transactions: number;
+}
+
+export interface AwinTransactionRow {
+    id: string;
+    date: string;
+    publisher: string;
+    status: string;
+    sale_amount: number;
+    commission_amount: number;
+    device: string;
+    voucher: string;
+    new_customer: boolean;
+    decline_reason: string;
 }
 
 export interface AwinTotals {
@@ -85,10 +120,7 @@ export async function getAwinTotals(
     dateFrom: string,
     dateTo: string
 ): Promise<AwinTotals> {
-    const transactions: AwinTransaction[] = [];
-    for (const chunk of splitRange(dateFrom, dateTo, 31)) {
-        transactions.push(...await fetchTransactions(apiToken, advertiserId, chunk.from, chunk.to));
-    }
+    const transactions = await fetchAllTransactions(apiToken, advertiserId, dateFrom, dateTo);
 
     const live = transactions.filter((t) => !DEAD_STATUSES.has(String(t.commissionStatus || '').toLowerCase()));
     const pending = live.filter((t) => String(t.commissionStatus || '').toLowerCase() === 'pending');
@@ -110,6 +142,100 @@ export async function getAwinTotals(
         pending_transactions: pending.length,
         pending_sale_amount: round(pending.reduce((s, t) => s + money(t.saleAmount), 0)),
     };
+}
+
+
+/**
+ * Le transazioni del periodo, grezze e già normalizzate per la tabella.
+ *
+ * Le `declined` restano nell'elenco — con il loro motivo di rifiuto — invece
+ * di sparire: quando una commissione viene respinta, sapere *perché* è
+ * esattamente l'informazione che serve. Sono però escluse da qualsiasi totale.
+ */
+export async function getAwinTransactionRows(
+    apiToken: string,
+    advertiserId: string,
+    dateFrom: string,
+    dateTo: string
+): Promise<AwinTransactionRow[]> {
+    const all = await fetchAllTransactions(apiToken, advertiserId, dateFrom, dateTo);
+    return all
+        .map((t) => ({
+            id: String(t.id ?? ''),
+            date: String(t.transactionDate ?? '').slice(0, 16).replace('T', ' '),
+            publisher: String(t.siteName ?? t.publisherId ?? '—'),
+            status: String(t.commissionStatus ?? ''),
+            sale_amount: money(t.saleAmount),
+            commission_amount: money(t.commissionAmount),
+            device: String(t.transactionDevice ?? ''),
+            voucher: t.voucherCodeUsed ? String(t.voucherCode ?? 'sì') : '',
+            new_customer: String(t.customerAcquisition ?? '').toUpperCase() === 'NEW',
+            decline_reason: String(t.declineReason ?? ''),
+        }))
+        .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
+ * Ripartizione per publisher: quali affiliati portano fatturato e a che costo.
+ *
+ * È la domanda vera dell'affiliazione — un publisher può generare molti ordini
+ * e costare poco, o pochissimi e prendersi una commissione alta. Il totale
+ * aggregato non lo mostra, la ripartizione sì.
+ */
+export async function getAwinByPublisher(
+    apiToken: string,
+    advertiserId: string,
+    dateFrom: string,
+    dateTo: string
+): Promise<AwinPublisherRow[]> {
+    const all = await fetchAllTransactions(apiToken, advertiserId, dateFrom, dateTo);
+    const live = all.filter((t) => !DEAD_STATUSES.has(String(t.commissionStatus || '').toLowerCase()));
+
+    const byPublisher = new Map<string, AwinPublisherRow>();
+    for (const t of live) {
+        const key = String(t.siteName ?? t.publisherId ?? '—');
+        const e = byPublisher.get(key) || {
+            publisher: key, publisherId: String(t.publisherId ?? ''),
+            transactions: 0, sale_amount: 0, commission_amount: 0, network_fee: 0,
+            total_cost: 0, roas: 0, average_order_value: 0, pending_transactions: 0,
+        };
+        e.transactions += 1;
+        e.sale_amount += money(t.saleAmount);
+        e.commission_amount += money(t.commissionAmount);
+        e.network_fee += money(t.networkFee);
+        if (String(t.commissionStatus || '').toLowerCase() === 'pending') e.pending_transactions += 1;
+        byPublisher.set(key, e);
+    }
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    return Array.from(byPublisher.values())
+        .map((p) => {
+            const cost = p.commission_amount + p.network_fee;
+            return {
+                ...p,
+                sale_amount: round(p.sale_amount),
+                commission_amount: round(p.commission_amount),
+                network_fee: round(p.network_fee),
+                total_cost: round(cost),
+                roas: cost > 0 ? round(p.sale_amount / cost) : 0,
+                average_order_value: p.transactions > 0 ? round(p.sale_amount / p.transactions) : 0,
+            };
+        })
+        .sort((a, b) => b.sale_amount - a.sale_amount);
+}
+
+/** Scarica tutte le transazioni del periodo, rispettando il limite di 31 giorni. */
+async function fetchAllTransactions(
+    apiToken: string,
+    advertiserId: string,
+    dateFrom: string,
+    dateTo: string
+): Promise<AwinTransaction[]> {
+    const out: AwinTransaction[] = [];
+    for (const chunk of splitRange(dateFrom, dateTo, 31)) {
+        out.push(...await fetchTransactions(apiToken, advertiserId, chunk.from, chunk.to));
+    }
+    return out;
 }
 
 async function fetchTransactions(
