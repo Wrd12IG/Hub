@@ -15,13 +15,17 @@ interface Campaign {
   status: string;
   spend: number;
   cpa: number;
-  roas: number;
+  roas: number | null;
 }
 
 export default function MetaAdsPage({ params: propsParams }: { params?: { id: string } }) {
   const params = useParams();
   const id = (propsParams?.id || params.id) as string;
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [apiSummary, setApiSummary] = useState<{ totalSpend: number; avgCpa: number; avgRoas: number | null; activeCampaigns: number } | null>(null);
+  // Su quale azione l'account conta le conversioni: senza dirlo, un CPA è un
+  // numero senza unità di misura.
+  const [conversionLabel, setConversionLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,11 +33,18 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
     const fetchCampaigns = async () => {
       try {
         const response = await fetch(`/api/clients/${id}/meta-ads`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        if (!response.ok) {
-          throw new Error('Failed to fetch Meta Ads campaigns');
-        }
         const data = await response.json();
-        setCampaigns(data);
+        if (!response.ok) {
+          // Il messaggio della route dice *cosa* manca (id account, token…);
+          // "Failed to fetch" non diceva niente a nessuno.
+          throw new Error(data?.error || `Il server ha risposto ${response.status}.`);
+        }
+        // La route restituisce { campaigns, summary, … }: prima qui finiva
+        // l'intero oggetto nello stato delle campagne, quindi la tabella
+        // riceveva un oggetto invece di un array e i totali erano sempre zero.
+        setCampaigns(Array.isArray(data.campaigns) ? data.campaigns : []);
+        setApiSummary(data.summary ?? null);
+        setConversionLabel(data.conversionLabel ?? null);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -44,16 +55,16 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
     fetchCampaigns();
   }, [id]);
 
-  const summary = useMemo(() => {
-    if (!campaigns.length) return { spend: 0, cpa: 0, roas: 0, active: 0 };
-    
-    const active = campaigns.filter(c => c.status === 'ACTIVE').length;
-    const spend = campaigns.reduce((acc, c) => acc + c.spend, 0);
-    const avgCpa = campaigns.reduce((acc, c) => acc + c.cpa, 0) / campaigns.length;
-    const avgRoas = campaigns.reduce((acc, c) => acc + c.roas, 0) / campaigns.length;
-
-    return { spend, cpa: avgCpa, roas: avgRoas, active };
-  }, [campaigns]);
+  // I totali arrivano dalla route, non ricalcolati qui: la versione
+  // precedente faceva la media semplice dei CPA fra campagne, così una da €10
+  // pesava quanto una da €500. Il CPA di un account è spesa totale diviso
+  // conversioni totali, non la media di rapporti.
+  const summary = useMemo(() => ({
+    spend: apiSummary?.totalSpend ?? 0,
+    cpa: apiSummary?.avgCpa ?? 0,
+    roas: apiSummary?.avgRoas ?? null,
+    active: apiSummary?.activeCampaigns ?? 0,
+  }), [apiSummary]);
 
   if (loading) {
     return (
@@ -121,7 +132,9 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
       key: 'roas', 
       label: 'ROAS', 
       sortable: true,
-      render: (row: Campaign) => `${row.roas.toFixed(2)}x`
+      // null = nessun valore conversione dall'account: uno zero si
+      // leggerebbe come "pessimo", un trattino come "non misurabile".
+      render: (row: Campaign) => row.roas === null ? '—' : `${row.roas.toFixed(2)}x`
     }
   ];
 
@@ -136,6 +149,12 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
           <h1 className="text-2xl font-bold tracking-tight">Dashboard Meta Ads</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Monitoraggio e gestione delle campagne Meta Ads (Facebook/Instagram).
+            {/* Quale azione stiamo contando come conversione: cambia da account
+                ad account (acquisti, lead, carrello…) e senza dirlo il CPA è
+                un numero senza unità di misura. */}
+            {conversionLabel && (
+              <> Conversioni misurate su <strong className="text-foreground">{conversionLabel.toLowerCase()}</strong>.</>
+            )}
           </p>
         </div>
       </div>
@@ -161,7 +180,7 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
         />
         <MetricoolCard 
           title="ROAS Medio" 
-          value={`${summary.roas.toFixed(2)}x`} 
+          value={summary.roas === null ? '—' : `${summary.roas.toFixed(2)}x`} 
           icon={TrendingUp} 
           variant="green" 
         />
