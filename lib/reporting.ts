@@ -18,6 +18,7 @@ import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
 import { getAwinTotals } from './awin-client';
+import { getGoogleAdsAccountTotals } from './google-ads-client';
 import type { Client } from './data';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup
@@ -58,16 +59,15 @@ export interface PlatformReport {
 // GET /{connector}/fields) before adding any; several of these were wrong in
 // the first pass precisely because they were guessed from the platforms' own
 // API naming (activeUsers, totalRevenue, followers, actions... none exist).
-// ga4, searchconsole e klaviyo NON passano da Windsor: i primi due sono letti
+// ga4, searchconsole, klaviyo, awin e google_ads NON passano da Windsor: i primi due sono letti
 // nativi da Google col service account dell'agenzia, il terzo dall'API Klaviyo
 // con una chiave privata per cliente. Restano nel tipo PlatformReport (la UI li
 // mostra come gli altri) ma non hanno un connector qui.
-type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo' | 'awin'>;
+type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo' | 'awin' | 'google_ads'>;
 
 const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
     facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc'] },
     instagram: { connector: 'instagram', fields: ['followers_count', 'reach', 'profile_views', 'likes'] },
-    google_ads: { connector: 'google_ads', fields: ['clicks', 'impressions', 'cost', 'conversions', 'ctr', 'cpc'] },
     linkedin_organic: {
         connector: 'linkedin_organic',
         fields: [
@@ -330,7 +330,6 @@ export async function getClientMarketingReport(
     // instagram/linkedin_organic only exist under windsorAccounts.
     const mapping: Record<string, string | undefined> = {
         facebook: client.metaAdAccountId,
-        google_ads: client.googleAdAccountId,
         ga4: client.ga4PropertyId,
         instagram: client.windsorAccounts?.instagram,
         linkedin_organic: client.windsorAccounts?.linkedin_organic,
@@ -527,6 +526,28 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
         }
     };
 
+    // Google Ads: API ufficiale con le credenziali d'agenzia, non Windsor.
+    // Stesse chiavi di prima per la UI, ma 0,7 secondi invece di ~13 — era la
+    // voce più lenta del report e con tre piattaforme Windsor attive rendeva
+    // la pagina insopportabile.
+    const fetchGoogleAds = async (customerId: string): Promise<PlatformReport> => {
+        const range = windows
+            ? windows.current
+            : { dateFrom: isoDaysAgo(presetToDays(datePreset)), dateTo: isoDaysAgo(0) };
+        try {
+            const [cur, prev] = await withTimeout('Google Ads', Promise.all([
+                getGoogleAdsAccountTotals(customerId, range.dateFrom, range.dateTo),
+                windows?.previous
+                    ? getGoogleAdsAccountTotals(customerId, windows.previous.dateFrom, windows.previous.dateTo)
+                    : Promise.resolve(null),
+            ]));
+            return { platform: 'google_ads', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
+        } catch (err: any) {
+            console.error(`[reporting] google_ads failed for ${customerId}:`, err.message);
+            return { platform: 'google_ads', connected: false, error: err.message, rows: [], previousRows: [] };
+        }
+    };
+
     // Awin: API diretta con il token di agenzia, id advertiser per cliente.
     const fetchAwin = async (advertiserId: string): Promise<PlatformReport> => {
         const token = process.env.AWIN_API_TOKEN;
@@ -558,6 +579,7 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
     const [single, gbp] = await Promise.all([
         Promise.all([
             ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
+            ...(client.googleAdAccountId ? [fetchGoogleAds(client.googleAdAccountId)] : []),
             ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
             ...(searchConsoleSite ? [fetchSearchConsole(searchConsoleSite)] : []),
             ...(client.klaviyo ? [fetchKlaviyo(client.klaviyo)] : []),
