@@ -283,6 +283,119 @@ export async function getKlaviyoFlowTotals(
     return valuesReport(apiKey, conversionMetricId, timeframe, 'flow', cacheKey);
 }
 
+
+export interface KlaviyoRow {
+    id: string;
+    name: string;
+    channel: string;
+    recipients: number;
+    delivered: number;
+    opens_unique: number;
+    clicks_unique: number;
+    unsubscribes: number;
+    conversions: number;
+    conversion_value: number;
+    open_rate: number;
+    click_rate: number;
+    revenue_per_recipient: number;
+}
+
+/**
+ * Il dettaglio riga per riga di campagne e flussi.
+ *
+ * ⚠️ Costa **una sola** chiamata al report, non una per riga: la risposta di
+ * `campaign-values-reports` è già raggruppata per `campaign_id` — finora la
+ * stavamo sommando e buttando via il dettaglio. Con 2 richieste al minuto
+ * questa è la differenza fra una pagina che si apre e una che va in errore.
+ *
+ * I nomi arrivano da un endpoint separato (`/campaigns`, `/flows`), che non
+ * condivide il limite stretto dei report. Se quella chiamata fallisce si
+ * mostra comunque la riga, con l'id al posto del nome: meglio un dato con
+ * un'etichetta brutta che nessun dato.
+ */
+export async function getKlaviyoBreakdown(
+    apiKey: string,
+    conversionMetricId: string,
+    timeframe: Timeframe,
+    kind: 'campaign' | 'flow',
+    cacheKey?: string
+): Promise<KlaviyoRow[]> {
+    const [report, names] = await Promise.all([
+        callReport(apiKey, conversionMetricId, timeframe, kind),
+        // I nomi sono cosmetici: se falliscono si mostrano gli id, ma
+        // l'errore va almeno registrato invece di sparire.
+        fetchNames(apiKey, kind).catch((err) => {
+            console.warn(`[klaviyo] nomi ${kind} non risolti:`, err.message);
+            return new Map<string, string>();
+        }),
+    ]);
+
+    const results: any[] = report.data?.attributes?.results || [];
+    const byId = new Map<string, KlaviyoRow>();
+
+    for (const r of results) {
+        const g = r.groupings || {};
+        const id = String(g[`${kind}_id`] ?? '');
+        if (!id) continue;
+        const st = r.statistics || {};
+
+        // Un flusso ha più messaggi: le righe con lo stesso id vanno sommate.
+        const e = byId.get(id) || {
+            id, name: names.get(id) || id, channel: String(g.send_channel ?? ''),
+            recipients: 0, delivered: 0, opens_unique: 0, clicks_unique: 0,
+            unsubscribes: 0, conversions: 0, conversion_value: 0,
+            open_rate: 0, click_rate: 0, revenue_per_recipient: 0,
+        };
+        e.recipients += Number(st.recipients || 0);
+        e.delivered += Number(st.delivered || 0);
+        e.opens_unique += Number(st.opens_unique || 0);
+        e.clicks_unique += Number(st.clicks_unique || 0);
+        e.unsubscribes += Number(st.unsubscribes || 0);
+        e.conversions += Number(st.conversions || 0);
+        e.conversion_value += Number(st.conversion_value || 0);
+        byId.set(id, e);
+    }
+
+    const round = (n: number) => Math.round(n * 100) / 100;
+    return Array.from(byId.values())
+        .map((r) => ({
+            ...r,
+            conversion_value: round(r.conversion_value),
+            open_rate: r.delivered > 0 ? round((r.opens_unique / r.delivered) * 100) : 0,
+            click_rate: r.delivered > 0 ? round((r.clicks_unique / r.delivered) * 100) : 0,
+            revenue_per_recipient: r.recipients > 0 ? round(r.conversion_value / r.recipients) : 0,
+        }))
+        .sort((a, b) => b.conversion_value - a.conversion_value);
+}
+
+/**
+ * Nomi leggibili per id, da un endpoint separato che non condivide il limite
+ * stretto dei report.
+ *
+ * ⚠️ `page[size]` massimo è **50**: con 100 Klaviyo risponde 400, non una
+ * lista troncata. Con un catch silenzioso quell'errore diventava
+ * semplicemente "nessun nome", e il dettaglio flussi mostrava id come
+ * `RZz74a` al posto di "Carrello abbandonato" senza che nulla lo segnalasse.
+ * Si pagina finché ci sono pagine, e un fallimento viene almeno registrato.
+ */
+async function fetchNames(apiKey: string, kind: 'campaign' | 'flow'): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    let path: string | null = kind === 'campaign'
+        ? '/campaigns?filter=equals(messages.channel,"email")&page[size]=50'
+        : '/flows?page[size]=50';
+
+    // Tetto di sicurezza: senza, un `next` sempre valorizzato girerebbe a vuoto.
+    for (let page = 0; path && page < 10; page++) {
+        const json: any = await call(apiKey, path);
+        for (const x of (json.data || [])) {
+            if (x?.id && x?.attributes?.name) map.set(String(x.id), String(x.attributes.name));
+        }
+        const next: string | undefined = json.links?.next;
+        path = next ? next.replace('https://a.klaviyo.com/api', '') : null;
+    }
+    return map;
+}
+
 /** Le date della UI (yyyy-MM-dd) nel formato datetime che Klaviyo richiede. */
 export function toKlaviyoTimeframe(dateFrom: string, dateTo: string): Timeframe {
     return { start: `${dateFrom}T00:00:00Z`, end: `${dateTo}T23:59:59Z` };
