@@ -18,7 +18,12 @@ export async function GET(
 
   try {
     // Prova a recuperare i dati reali da Google Ads
-    const result = await getGoogleAdsCampaigns(clientId);
+    // Il periodo arriva dal selettore della pagina. Valori ammessi 7/30/90:
+    // qualunque altra cosa ricade su 30 invece di propagarsi nella GAQL.
+    const raw = request.nextUrl.searchParams.get('days');
+    const days: 7 | 30 | 90 = raw === '7' ? 7 : raw === '90' ? 90 : 30;
+
+    const result = await getGoogleAdsCampaigns(clientId, days);
 
     // Mappa le campagne dal formato backend (GoogleAdsCampaign) al formato frontend (Campaign)
     const campaigns = (result.campaigns || []).map((c) => {
@@ -77,7 +82,7 @@ export async function GET(
     }> = [];
 
     try {
-      const dailyRows = await getGoogleAdsDailyMetrics(clientId);
+      const dailyRows = await getGoogleAdsDailyMetrics(clientId, days);
 
       // Aggrega per data (più campagne nello stesso giorno)
       const byDate = new Map<string, { spend: number; impressions: number; clicks: number; conversions: number }>();
@@ -118,7 +123,7 @@ export async function GET(
       campaigns,
       // Le parole chiave sono una query a parte: un errore lì non deve far
       // sparire le campagne, quindi si degrada a lista vuota.
-      keywords: await getGoogleAdsKeywords(clientId).catch((err) => {
+      keywords: await getGoogleAdsKeywords(clientId, days).catch((err) => {
         console.warn(`[google-ads] keywords non disponibili per ${clientId}:`, err.message);
         return [];
       }),

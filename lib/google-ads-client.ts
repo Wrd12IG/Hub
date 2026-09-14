@@ -178,13 +178,15 @@ async function getCustomerId(clientId: string): Promise<string> {
  * Interroga la tabella 'campaign' e la unisce a 'metrics'.
  */
 export async function getGoogleAdsCampaigns(
-  clientId: string
+  clientId: string,
+  days: 7 | 30 | 90 | 365 = 365
 ): Promise<{ campaigns: GoogleAdsCampaign[]; summary: GoogleAdsSummary }> {
   const customerId = await getCustomerId(clientId);
 
-  // Un anno indietro, e non 30 giorni: la tab Campagne filtra poi per stato e
-  // data, e una campagna finita a marzo deve restare visibile invece di
-  // sparire perché non ha speso nell'ultimo mese.
+  // Il periodo di default è un anno, non 30 giorni: la tab Campagne filtra poi
+  // per stato e data, e una campagna finita a marzo deve restare visibile
+  // invece di sparire perché non ha speso nell'ultimo mese. La pagina di
+  // dettaglio passa invece la finestra scelta nel selettore.
   //
   // ⚠️ Con date esplicite, non con `DURING LAST_365_DAYS`: quella costante
   // **non esiste** in GAQL e l'API rifiuta l'intera query con un generico
@@ -199,7 +201,7 @@ export async function getGoogleAdsCampaigns(
       metrics.average_cpc, metrics.conversions,
       metrics.cost_per_conversion, metrics.conversions_value
     FROM campaign
-    WHERE segments.date BETWEEN '${isoDaysAgo(365)}' AND '${isoDaysAgo(0)}'
+    WHERE segments.date BETWEEN '${isoDaysAgo(days)}' AND '${isoDaysAgo(0)}'
       AND campaign.status != 'REMOVED'
   `);
 
