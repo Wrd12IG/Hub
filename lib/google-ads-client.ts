@@ -352,6 +352,47 @@ export async function getGoogleAdsKeywords(
     .sort((a, b) => b.impressions - a.impressions);
 }
 
+/**
+ * Totali a livello di account per la scheda "Performance per Account".
+ *
+ * Stesse chiavi che la UI leggeva quando questi numeri arrivavano da Windsor
+ * (`clicks`, `impressions`, `cost`, `conversions`, `ctr`, `cpc`), così la
+ * scheda non cambia — cambia solo da dove arrivano: **0,8 secondi invece di
+ * ~13**, misurati sullo stesso account. Con tre piattaforme Windsor attive era
+ * la singola voce più lenta dell'intero report.
+ *
+ * Prende l'id account direttamente invece di rileggerlo da Firestore: chi
+ * chiama ce l'ha già in mano.
+ */
+export async function getGoogleAdsAccountTotals(
+  customerId: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<Record<string, number>> {
+  const rows = await query(customerId, `
+    SELECT metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions
+    FROM customer
+    WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
+  `);
+
+  let cost = 0, impressions = 0, clicks = 0, conversions = 0;
+  for (const row of rows) {
+    const m = row.metrics || {};
+    cost += fromMicros(m.costMicros);
+    impressions += Number(m.impressions || 0);
+    clicks += Number(m.clicks || 0);
+    conversions += Number(m.conversions || 0);
+  }
+
+  return {
+    cost: Math.round(cost * 100) / 100,
+    impressions, clicks, conversions,
+    // Ricalcolati sui totali: sommare i tassi giornalieri non avrebbe senso.
+    ctr: impressions > 0 ? clicks / impressions : 0,
+    cpc: clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0,
+  };
+}
+
 export function getMockGoogleAdsDailyMetrics(clientId: string): GoogleAdsDailyMetric[] {
   // Pesi giornalieri fissi per giorno della settimana (0=dom … 6=sab)
   const dayWeights = [0.08, 0.18, 0.20, 0.20, 0.18, 0.12, 0.04];
