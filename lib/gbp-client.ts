@@ -130,66 +130,13 @@ export interface GBPData {
   healthChecks?: Array<{ label: string; ok: boolean }>;
 }
 
-export function getMockGBPData(clientId: string): GBPData {
-  // Deterministic values based on clientId to keep them stable
-  const hash = clientId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const baseImpressions = 5400 + (hash % 3000);
-  const websiteClicks = 320 + (hash % 150);
-  const phoneCalls = 90 + (hash % 60);
-  const directionRequests = 180 + (hash % 100);
-  const totalActions = websiteClicks + phoneCalls + directionRequests;
-  
-  return {
-    insights: {
-      totalImpressions: baseImpressions,
-      totalActions,
-      websiteClicks,
-      phoneCalls,
-      directionRequests,
-      impressionChange: 12.4 + (hash % 5),
-    },
-    reviews: {
-      totalReviews: 48 + (hash % 20),
-      unansweredCount: hash % 3,
-      averageRating: 4.8,
-      recent: [
-        {
-          author: 'Andrea Rossi',
-          rating: 5,
-          text: 'Servizio eccellente! Ho collaborato con W[r]Digital per il lancio del mio ecommerce e i risultati sono stati superiori alle aspettative. Team molto professionale.',
-          date: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-          replied: true
-        },
-        {
-          author: 'Marco Bianchi',
-          rating: 5,
-          text: 'Esperti SEO di altissimo livello. Consigliatissimi.',
-          date: new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString(),
-          replied: true
-        },
-        {
-          author: 'Elena Verdi',
-          rating: 4,
-          text: 'Molto soddisfatta della gestione delle campagne social e Google Ads. Sempre disponibili e pronti a proporre nuove idee strategiche.',
-          date: new Date(Date.now() - 15 * 24 * 3600 * 1000).toISOString(),
-          replied: false
-        }
-      ]
-    },
-    keywords: [
-      { keyword: 'agenzia marketing milano', impressions: 450 + (hash % 100) },
-      { keyword: 'consulenza seo monza', impressions: 320 + (hash % 50) },
-      { keyword: 'social media manager brianza', impressions: 210 + (hash % 40) },
-      { keyword: 'creazione siti web monza', impressions: 180 + (hash % 30) },
-      { keyword: 'gestione google ads', impressions: 150 + (hash % 20) }
-    ],
-    healthScore: 92,
-    healthChecks: [
-      { label: 'Orari di apertura aggiornati', ok: true },
-      { label: 'Numero di telefono verificato', ok: true },
-      { label: 'Link sito web attivo', ok: true },
-      { label: 'Foto del profilo caricate di recente', ok: true },
-      { label: 'Risposte alle recensioni rapide', ok: false }
-    ]
-  };
-}
+/*
+ * getMockGBPData è stata rimossa.
+ *
+ * Generava numeri da un hash dell'id cliente — stabili nel tempo, quindi
+ * indistinguibili da dati veri — e la route GBP li restituiva **anche in
+ * produzione**, in un ramo addirittura etichettandoli "Dati GBP attivi da
+ * account collegato". Ora quella route legge da Windsor; se la configurazione
+ * manca risponde con un errore che dice cosa fare, invece di inventare.
+ */
+

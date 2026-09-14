@@ -201,9 +201,9 @@ export default function GbpPage() {
         <h2 className="text-xl font-semibold tracking-tight">Copertura</h2>
         
         <div className="flex justify-end gap-2 mb-4">
-          <MetricoolCard title="Google Maps" value={data.coperturaSummary.googleMaps} variant="blue" trend={{value: -2, isPositive: false}} className="w-48" />
-          <MetricoolCard title="Ricerca Google" value={data.coperturaSummary.ricercaGoogle} variant="pink" trend={{value: 5, isPositive: true}} className="w-48" />
-          <MetricoolCard title="Totale" value={data.coperturaSummary.totale} variant="orange" trend={{value: -1, isPositive: false}} className="w-48" />
+          <MetricoolCard title="Google Maps" value={data.coperturaSummary.googleMaps} variant="blue" className="w-48" />
+          <MetricoolCard title="Ricerca Google" value={data.coperturaSummary.ricercaGoogle} variant="pink" className="w-48" />
+          <MetricoolCard title="Totale" value={data.coperturaSummary.totale} variant="orange" className="w-48" />
         </div>
 
         <div className="h-[300px] w-full bg-card border rounded-xl p-4 shadow-sm">
@@ -272,10 +272,10 @@ export default function GbpPage() {
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-xl font-semibold tracking-tight">Clic</h2>
           <div className="flex gap-2">
-            <MetricoolCard title="Sito Web" value={data.clicSummary.sitoWeb} variant="blue" trend={{value: 5, isPositive: true}} className="w-32" size="sm"/>
-            <MetricoolCard title="Telefono" value={data.clicSummary.telefono} variant="green" trend={{value: -2, isPositive: false}} className="w-32" size="sm"/>
-            <MetricoolCard title="Indirizzo" value={data.clicSummary.indirizzo} variant="pink" trend={{value: -1, isPositive: false}} className="w-32" size="sm"/>
-            <MetricoolCard title="Totale" value={data.clicSummary.totale} variant="orange" trend={{value: -3, isPositive: false}} className="w-32" size="sm"/>
+            <MetricoolCard title="Sito Web" value={data.clicSummary.sitoWeb} variant="blue" className="w-32" size="sm"/>
+            <MetricoolCard title="Telefono" value={data.clicSummary.telefono} variant="green" className="w-32" size="sm"/>
+            <MetricoolCard title="Indirizzo" value={data.clicSummary.indirizzo} variant="pink" className="w-32" size="sm"/>
+            <MetricoolCard title="Totale" value={data.clicSummary.totale} variant="orange" className="w-32" size="sm"/>
           </div>
         </div>
         <div className="h-[250px] w-full bg-card border rounded-xl p-4 shadow-sm">
@@ -300,8 +300,8 @@ export default function GbpPage() {
         <div className="flex justify-between items-end mb-4">
           <h2 className="text-xl font-semibold tracking-tight">Recensioni</h2>
           <div className="flex gap-2">
-            <MetricoolCard title="Valutazione" value={data.recensioniSummary.valutazione} variant="blue" trend={{value: -0.1, isPositive: false}} className="w-36" size="sm"/>
-            <MetricoolCard title="Totale" value={data.recensioniSummary.totale} variant="orange" trend={{value: 2, isPositive: true}} className="w-36" size="sm"/>
+            <MetricoolCard title="Valutazione" value={data.recensioniSummary.valutazione} variant="blue" className="w-36" size="sm"/>
+            <MetricoolCard title="Totale" value={data.recensioniSummary.totale} variant="orange" className="w-36" size="sm"/>
           </div>
         </div>
         <div className="h-[250px] w-full bg-card border rounded-xl p-4 shadow-sm">
