@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
-import { getGoogleAdsCampaigns, getGoogleAdsDailyMetrics } from '@/lib/google-ads-client';
+import { getGoogleAdsCampaigns, getGoogleAdsDailyMetrics, getGoogleAdsKeywords } from '@/lib/google-ads-client';
 
 export async function GET(
   request: NextRequest,
@@ -116,7 +116,12 @@ export async function GET(
       summary,
       chartData,
       campaigns,
-      keywords: [],   // Le keyword richiedono una query separata; non vengono simulate
+      // Le parole chiave sono una query a parte: un errore lì non deve far
+      // sparire le campagne, quindi si degrada a lista vuota.
+      keywords: await getGoogleAdsKeywords(clientId).catch((err) => {
+        console.warn(`[google-ads] keywords non disponibili per ${clientId}:`, err.message);
+        return [];
+      }),
       _meta: {
         source: 'live',
         adAccountId: result.summary.accountId,
