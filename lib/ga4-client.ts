@@ -129,3 +129,113 @@ export async function getGA4Totals(
     purchase_revenue: b.purchaseRevenue,
   };
 }
+
+export interface GA4Row {
+  key: string;
+  sessions: number;
+  users: number;
+  conversions: number;
+  revenue: number;
+}
+
+export interface GA4EventRow {
+  event: string;
+  count: number;
+  /** Quanto incide sulle sessioni del periodo. */
+  per_session: number;
+}
+
+type GA4Dimension = 'sessionSourceMedium' | 'sessionDefaultChannelGroup' | 'pagePath' | 'deviceCategory' | 'country';
+
+/**
+ * Ripartizione per dimensione: da dove arriva il traffico, quali pagine vede,
+ * con che dispositivo, da quale paese.
+ *
+ * Sono i tagli che la scheda nella Overview non può mostrare — lì ci sono i
+ * totali — e che nella vecchia dashboard esistevano solo per sorgente/mezzo.
+ */
+export async function getGA4Breakdown(
+  propertyId: string,
+  startDate: string,
+  endDate: string,
+  dimension: GA4Dimension,
+  limit = 25
+): Promise<GA4Row[]> {
+  const client = getGa4Client();
+  const metrics = ['sessions', 'totalUsers', 'keyEvents', 'purchaseRevenue'];
+
+  try {
+    const [res] = await client.runReport({
+      property: `properties/${propertyId}`,
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: dimension }],
+      metrics: metrics.map((name) => ({ name })),
+      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit,
+    });
+    return (res.rows || []).map((r) => {
+      const v = (i: number) => Number(r.metricValues?.[i]?.value ?? 0) || 0;
+      return {
+        key: String(r.dimensionValues?.[0]?.value ?? ''),
+        sessions: v(0), users: v(1), conversions: v(2),
+        revenue: Math.round(v(3) * 100) / 100,
+      };
+    });
+  } catch (err: any) {
+    throw new Error(explainGa4Error(err, propertyId));
+  }
+}
+
+/**
+ * Eventi e-commerce del periodo.
+ *
+ * ⚠️ Volutamente **non** presentati come imbuto sequenziale. Su un sito reale
+ * i conteggi non rispettano l'ordine: misurato sull'account pilota,
+ * `begin_checkout` (17.664) supera `add_to_cart` (10.537), perché si può
+ * acquistare senza passare dal carrello. Calcolare un "calo fra step" su quei
+ * numeri produrrebbe percentuali sopra il 100% e un grafico che mente.
+ * Qui ogni evento sta per sé, con la sua incidenza sulle sessioni.
+ */
+export async function getGA4EcommerceEvents(
+  propertyId: string,
+  startDate: string,
+  endDate: string
+): Promise<GA4EventRow[]> {
+  const client = getGa4Client();
+  const WANTED = ['view_item', 'add_to_cart', 'begin_checkout', 'add_shipping_info', 'add_payment_info', 'purchase'];
+
+  try {
+    const [events, totals] = await Promise.all([
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'eventName' }],
+        metrics: [{ name: 'eventCount' }],
+        limit: 200,
+      }),
+      client.runReport({
+        property: `properties/${propertyId}`,
+        dateRanges: [{ startDate, endDate }],
+        metrics: [{ name: 'sessions' }],
+      }),
+    ]);
+
+    const sessions = Number(totals[0].rows?.[0]?.metricValues?.[0]?.value ?? 0) || 0;
+    const counts = new Map<string, number>();
+    for (const r of events[0].rows || []) {
+      counts.set(String(r.dimensionValues?.[0]?.value ?? ''), Number(r.metricValues?.[0]?.value ?? 0) || 0);
+    }
+
+    // Solo gli eventi che il sito manda davvero: elencare a zero quelli mai
+    // inviati farebbe sembrare rotto un tracciamento che semplicemente non li usa.
+    return WANTED
+      .filter((e) => counts.has(e))
+      .map((e) => ({
+        event: e,
+        count: counts.get(e)!,
+        per_session: sessions > 0 ? Math.round((counts.get(e)! / sessions) * 10000) / 100 : 0,
+      }));
+  } catch (err: any) {
+    throw new Error(explainGa4Error(err, propertyId));
+  }
+}
