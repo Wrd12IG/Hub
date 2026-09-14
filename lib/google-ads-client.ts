@@ -5,8 +5,7 @@
  * Utilizza la libreria ufficiale "google-ads-api" per Node.js.
  */
 
-import { GoogleAdsApi, enums } from 'google-ads-api';
-import { getClientToken } from '@/lib/api-auth';
+import { adminDb } from '@/lib/firebase-admin';
 
 // ─── Tipi di dato in uscita per il frontend ───────────────────────────────────
 
@@ -43,25 +42,116 @@ export interface GoogleAdsDailyMetric {
   conversions: number;
 }
 
-// ─── Configurazione Client API ───────────────────────────────────────────────
+// ─── Autenticazione a livello di agenzia ─────────────────────────────────────
 
 /**
- * Istanzia il client Google Ads utilizzando i token del cliente.
+ * ⚠️ **Google Ads non accetta i service account** (salvo delega a livello di
+ * dominio Workspace). L'unica strada è un OAuth fatto una volta dall'account
+ * che amministra gli account pubblicitari, che produce un refresh token
+ * d'agenzia valido per tutti i clienti.
+ *
+ * La versione precedente pretendeva invece un refresh token **per singolo
+ * cliente**, letto da `getClientToken(clientId, 'google')`. Praticamente
+ * nessun cliente ce l'aveva, quindi le pagine Google Ads del Hub erano vuote
+ * da sempre e nessuno sapeva perché: la route rispondeva "non configurato"
+ * senza distinguere fra "questo cliente non usa Google Ads" e "il Hub non ha
+ * mai avuto le credenziali per leggerlo".
+ *
+ * Qui l'id account del cliente arriva dal campo `googleAdAccountId` inserito
+ * in Setup API, esattamente come per Meta.
  */
-function getAdsClient(refreshToken: string) {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
+const API_VERSION = 'v24';
 
-  if (!clientId || !clientSecret || !developerToken) {
-    throw new Error('Google Ads API credentials missing in .env.local');
+async function getAccessToken(): Promise<string> {
+  const clientId = process.env.GOOGLE_ADS_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_ADS_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_ADS_REFRESH_TOKEN;
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error(
+      'Credenziali Google Ads d\'agenzia mancanti: servono GOOGLE_ADS_CLIENT_ID, '
+      + 'GOOGLE_ADS_CLIENT_SECRET e GOOGLE_ADS_REFRESH_TOKEN.'
+    );
   }
 
-  return new GoogleAdsApi({
-    client_id: clientId,
-    client_secret: clientSecret,
-    developer_token: developerToken,
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId, client_secret: clientSecret,
+      refresh_token: refreshToken, grant_type: 'refresh_token',
+    }),
   });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(
+      `Il refresh token Google Ads non è più valido (${json.error || res.status}). `
+      + 'Va rifatto il consenso OAuth con l\'account che amministra gli account pubblicitari.'
+    );
+  }
+  return json.access_token as string;
+}
+
+/** L'id account senza trattini, come lo vuole l'API. */
+function normalizeCustomerId(raw: string): string {
+  return String(raw).replace(/[^0-9]/g, '');
+}
+
+/** Esegue una query GAQL su un account. */
+async function query(customerId: string, gaql: string): Promise<any[]> {
+  const [token, developerToken] = [await getAccessToken(), process.env.GOOGLE_ADS_DEVELOPER_TOKEN];
+  if (!developerToken) throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN mancante.');
+
+  const res = await fetch(
+    `https://googleads.googleapis.com/${API_VERSION}/customers/${normalizeCustomerId(customerId)}/googleAds:search`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'developer-token': developerToken,
+        'content-type': 'application/json',
+        // Serve solo quando si legge attraverso un account manager.
+        ...(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID
+          ? { 'login-customer-id': normalizeCustomerId(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) }
+          : {}),
+      },
+      body: JSON.stringify({ query: gaql }),
+    }
+  );
+  const json = await res.json();
+  if (!res.ok) {
+    const detail = json?.error?.message || `HTTP ${res.status}`;
+    if (res.status === 403 || /PERMISSION|not permitted/i.test(detail)) {
+      throw new Error(
+        `L'account Google Ads ${customerId} non è accessibile con le credenziali del Hub. `
+        + 'Controlla l\'id in Setup API e che l\'account sia sotto lo stesso amministratore.'
+      );
+    }
+    throw new Error(`Google Ads ha risposto: ${detail}`);
+  }
+  return json.results || [];
+}
+
+/** yyyy-MM-dd di N giorni fa, per le date esplicite nelle GAQL. */
+function isoDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Il costo arriva in micro-unità di valuta. */
+function fromMicros(v: unknown): number {
+  return Number(v || 0) / 1_000_000;
+}
+
+/** Id account del cliente, dal campo compilato in Setup API. */
+async function getCustomerId(clientId: string): Promise<string> {
+  const snap = await adminDb.collection('clients').doc(clientId).get();
+  const id = snap.exists ? (snap.data() as any)?.googleAdAccountId : null;
+  if (!id) {
+    throw new Error('Questo cliente non ha un ID account Google Ads: inseriscilo in Setup API.');
+  }
+  return String(id);
 }
 
 // ─── Funzioni Principali ─────────────────────────────────────────────────────
@@ -70,173 +160,116 @@ function getAdsClient(refreshToken: string) {
  * Scarica le campagne Google Ads per un determinato cliente.
  * Interroga la tabella 'campaign' e la unisce a 'metrics'.
  */
-export async function getGoogleAdsCampaigns(clientId: string): Promise<{ campaigns: GoogleAdsCampaign[], summary: GoogleAdsSummary }> {
-  const tokenData = await getClientToken(clientId, 'google');
+export async function getGoogleAdsCampaigns(
+  clientId: string
+): Promise<{ campaigns: GoogleAdsCampaign[]; summary: GoogleAdsSummary }> {
+  const customerId = await getCustomerId(clientId);
 
-  // Verifica che esista un token con il refreshToken (essenziale per Google Ads) e l'accountId (Customer ID)
-  if (!tokenData?.refreshToken || !tokenData?.accountId) {
-    throw new Error('Google Ads non configurato per questo cliente o refresh_token mancante.');
-  }
-
-  // Costruiamo il client e agganciamoci all'account del cliente
-  const client = getAdsClient(tokenData.refreshToken);
-  
-  // Rimuove gli eventuali trattini dal Customer ID (es. 123-456-7890 -> 1234567890)
-  const customerId = tokenData.accountId.replace(/-/g, '');
-  const customer = client.Customer({
-    customer_id: customerId,
-    refresh_token: tokenData.refreshToken,
-    // Se c'è un MCC (Account amministratore), lo usiamo
-    login_customer_id: process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID,
-  });
-
-  // Query GAQL (Google Ads Query Language)
-  // Selezioniamo le campagne NON eliminate, coi dati degli ultimi 30 giorni
-  // LAST_365_DAYS (rather than the original LAST_30_DAYS) so campaigns that
-  // ended or were paused earlier this year still show up for the Campagne tab
-  // (filterable by status/date there) instead of disappearing once a campaign
-  // has no activity in the trailing 30 days.
-  const query = `
+  // Un anno indietro, e non 30 giorni: la tab Campagne filtra poi per stato e
+  // data, e una campagna finita a marzo deve restare visibile invece di
+  // sparire perché non ha speso nell'ultimo mese.
+  //
+  // ⚠️ Con date esplicite, non con `DURING LAST_365_DAYS`: quella costante
+  // **non esiste** in GAQL e l'API rifiuta l'intera query con un generico
+  // "Request contains an invalid argument". Era nel codice fin dall'inizio ed
+  // è una delle ragioni per cui questa pagina non ha mai mostrato nulla.
+  // Le uniche costanti valide sono LAST_7_DAYS, LAST_14_DAYS e LAST_30_DAYS.
+  const rows = await query(customerId, `
     SELECT
-      campaign.id,
-      campaign.name,
-      campaign.status,
-      campaign.start_date,
-      campaign.end_date,
-      metrics.cost_micros,
-      metrics.impressions,
-      metrics.clicks,
-      metrics.average_cpc,
-      metrics.conversions,
-      metrics.cost_per_conversion,
-      metrics.conversions_value
+      campaign.id, campaign.name, campaign.status,
+      campaign.start_date, campaign.end_date,
+      metrics.cost_micros, metrics.impressions, metrics.clicks,
+      metrics.average_cpc, metrics.conversions,
+      metrics.cost_per_conversion, metrics.conversions_value
     FROM campaign
-    WHERE segments.date DURING LAST_365_DAYS
+    WHERE segments.date BETWEEN '${isoDaysAgo(365)}' AND '${isoDaysAgo(0)}'
       AND campaign.status != 'REMOVED'
-  `;
+  `);
 
-  try {
-    const report = await customer.query(query);
+  // Una riga per campagna *per giorno*: vanno sommate, non lette una per una.
+  const byCampaign = new Map<string, GoogleAdsCampaign & { conversionsValue: number }>();
+  for (const row of rows) {
+    const c = row.campaign || {};
+    const m = row.metrics || {};
+    const id = String(c.id ?? '');
+    if (!id) continue;
 
-    let totalSpend = 0;
-    let totalImpressions = 0;
-    let totalClicks = 0;
-    let totalConversions = 0;
+    const existing = byCampaign.get(id);
+    const spend = fromMicros(m.costMicros);
+    const impressions = Number(m.impressions || 0);
+    const clicks = Number(m.clicks || 0);
+    const conversions = Number(m.conversions || 0);
+    const conversionsValue = Number(m.conversionsValue || 0);
 
-    const campaigns: GoogleAdsCampaign[] = report.map((row: any) => {
-      // I costi in Google Ads arrivano in "micros" (1 milione = 1 moneta)
-      const spend = (row.metrics.cost_micros || 0) / 1000000;
-      const cpc = (row.metrics.average_cpc || 0) / 1000000;
-      const cpa = (row.metrics.cost_per_conversion || 0) / 1000000;
-      const convValue = row.metrics.conversions_value || 0;
-      const roas = spend > 0 ? convValue / spend : null;
-      
-      const statusMap: Record<number, string> = {
-        [enums.CampaignStatus.ENABLED]: 'ENABLED',
-        [enums.CampaignStatus.PAUSED]: 'PAUSED',
-        [enums.CampaignStatus.REMOVED]: 'REMOVED',
-      };
-
-      totalSpend += spend;
-      totalImpressions += row.metrics.impressions || 0;
-      totalClicks += row.metrics.clicks || 0;
-      totalConversions += row.metrics.conversions || 0;
-
-      return {
-        id: String(row.campaign.id),
-        name: row.campaign.name,
-        status: (statusMap[row.campaign.status] || 'UNKNOWN') as any,
-        startDate: row.campaign.start_date || undefined,
-        endDate: row.campaign.end_date || undefined,
-        spend,
-        impressions: row.metrics.impressions || 0,
-        clicks: row.metrics.clicks || 0,
-        cpc,
-        conversions: row.metrics.conversions || 0,
-        costPerConversion: cpa,
-        roas,
-      };
-    });
-
-    return {
-      campaigns,
-      summary: {
-        accountId: tokenData.accountId,
-        totalSpend,
-        totalImpressions,
-        totalClicks,
-        totalConversions,
-      }
-    };
-  } catch (error) {
-    console.error('[google-ads-client] Query failed:', error);
-    throw error;
+    if (existing) {
+      existing.spend += spend;
+      existing.impressions += impressions;
+      existing.clicks += clicks;
+      existing.conversions += conversions;
+      existing.conversionsValue += conversionsValue;
+    } else {
+      byCampaign.set(id, {
+        id,
+        name: String(c.name ?? id),
+        status: (c.status as GoogleAdsCampaign['status']) ?? 'UNKNOWN',
+        startDate: c.startDate || undefined,
+        endDate: c.endDate || undefined,
+        spend, impressions, clicks, conversions,
+        conversionsValue,
+        // Ricalcolati sotto sui totali: le medie non si sommano.
+        cpc: 0, costPerConversion: 0, roas: null,
+      });
+    }
   }
+
+  const campaigns: GoogleAdsCampaign[] = Array.from(byCampaign.values()).map((c) => ({
+    ...c,
+    cpc: c.clicks > 0 ? c.spend / c.clicks : 0,
+    costPerConversion: c.conversions > 0 ? c.spend / c.conversions : 0,
+    roas: c.spend > 0 ? c.conversionsValue / c.spend : null,
+  })).sort((a, b) => b.spend - a.spend);
+
+  return {
+    campaigns,
+    summary: {
+      accountId: customerId,
+      totalSpend: campaigns.reduce((s, c) => s + c.spend, 0),
+      totalImpressions: campaigns.reduce((s, c) => s + c.impressions, 0),
+      totalClicks: campaigns.reduce((s, c) => s + c.clicks, 0),
+      totalConversions: campaigns.reduce((s, c) => s + c.conversions, 0),
+    },
+  };
 }
 
-// ─── Daily Metrics (GAQL) ────────────────────────────────────────────────────
-
-/**
- * Scarica il breakdown giornaliero (ultimi 30 giorni) per tutte le campagne
- * di un account Google Ads tramite GAQL.
- */
 export async function getGoogleAdsDailyMetrics(
-  clientId: string
+  clientId: string,
+  days: 7 | 30 | 90 = 30
 ): Promise<GoogleAdsDailyMetric[]> {
-  const tokenData = await getClientToken(clientId, 'google');
+  const customerId = await getCustomerId(clientId);
 
-  if (!tokenData?.refreshToken || !tokenData?.accountId) {
-    throw new Error('Google Ads non configurato per questo cliente o refresh_token mancante.');
-  }
-
-  const client = getAdsClient(tokenData.refreshToken);
-  const customerId = tokenData.accountId.replace(/-/g, '');
-  const customer = client.Customer({
-    customer_id: customerId,
-    refresh_token: tokenData.refreshToken,
-    login_customer_id: process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID,
-  });
-
-  const query = `
+  const rows = await query(customerId, `
     SELECT
-      campaign.id,
-      campaign.name,
-      segments.date,
-      metrics.cost_micros,
-      metrics.conversions,
-      metrics.clicks,
-      metrics.impressions
+      campaign.id, campaign.name, segments.date,
+      metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions
     FROM campaign
-    WHERE segments.date DURING LAST_30_DAYS
+    WHERE segments.date DURING LAST_${days}_DAYS
       AND campaign.status != 'REMOVED'
     ORDER BY segments.date
-  `;
+  `);
 
-  try {
-    const report = await customer.query(query);
-
-    return report.map((row: any): GoogleAdsDailyMetric => ({
-      date: row.segments.date as string,           // formato YYYY-MM-DD
-      campaignId: String(row.campaign.id),
-      campaignName: row.campaign.name,
-      spend: (row.metrics.cost_micros || 0) / 1_000_000,
-      impressions: row.metrics.impressions || 0,
-      clicks: row.metrics.clicks || 0,
-      conversions: row.metrics.conversions || 0,
-    }));
-  } catch (error) {
-    console.error('[google-ads-client] Daily query failed:', error);
-    throw error;
-  }
+  return rows
+    .map((row: any): GoogleAdsDailyMetric => ({
+      date: String(row.segments?.date ?? ''),
+      campaignId: String(row.campaign?.id ?? ''),
+      campaignName: String(row.campaign?.name ?? ''),
+      spend: fromMicros(row.metrics?.costMicros),
+      impressions: Number(row.metrics?.impressions || 0),
+      clicks: Number(row.metrics?.clicks || 0),
+      conversions: Number(row.metrics?.conversions || 0),
+    }))
+    .filter((r) => r.date);
 }
 
-// ─── Mock Fallback ────────────────────────────────────────────────────────────
-
-/**
- * Genera un breakdown giornaliero deterministico (NO Math.random / Math.sin).
- * Ogni giorno riceve la sua quota proporzionale agli indici giornalieri classici
- * (lun-ven più alto, sab-dom più basso).
- */
 export function getMockGoogleAdsDailyMetrics(clientId: string): GoogleAdsDailyMetric[] {
   // Pesi giornalieri fissi per giorno della settimana (0=dom … 6=sab)
   const dayWeights = [0.08, 0.18, 0.20, 0.20, 0.18, 0.12, 0.04];
