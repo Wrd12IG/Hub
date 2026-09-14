@@ -1,218 +1,185 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
-import { getLinkedinPageData } from '@/lib/linkedin-client';
+import { adminDb } from '@/lib/firebase-admin';
+import { getData } from '@/lib/windsor-client';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const user = await verifyAuth(request);
-  if (!user) return unauthorizedResponse();
-  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+export const maxDuration = 60;
+
+/**
+ * GET /api/clients/[id]/linkedin
+ *
+ * LinkedIn organico da Windsor, la stessa fonte della scheda nella Overview.
+ *
+ * Prima passava da `getLinkedinPageData`, che richiede un token OAuth per
+ * singolo cliente ottenuto da un'app LinkedIn developer: nessun cliente ce
+ * l'ha, e la pagina restituiva una struttura vuota.
+ */
+
+const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
+const round = (n: number) => Math.round(n * 100) / 100;
+const div = (a: number, b: number) => (b > 0 ? round(a / b) : 0);
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await verifyAuth(request);
+  if (!auth) return unauthorizedResponse();
+  const denied = await denyUnlessClientAllowed(auth.uid, params.id);
   if (denied) return denied;
-  const { id } = params;
-  const { searchParams } = new URL(request.url);
-  const startParam = searchParams.get('start');
-  const endParam = searchParams.get('end');
 
-  const endDate = endParam ? new Date(endParam) : new Date();
-  const startDate = startParam ? new Date(startParam) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  const diffDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const snap = await adminDb.collection('clients').doc(params.id).get();
+  const accountId = snap.exists ? (snap.data() as any)?.windsorAccounts?.linkedin_organic : null;
+  if (!accountId) {
+    return NextResponse.json(
+      { notConfigured: true, error: 'Questo cliente non ha una pagina LinkedIn configurata: inserisci l\'Organization ID nella card "LinkedIn (Report)" in Setup API.' },
+      { status: 503 }
+    );
+  }
 
-  // ─── Real Data ─────────────────────────────────────────────────────────────
-  let realData: any = null;
+  const raw = request.nextUrl.searchParams.get('days');
+  const days = raw === '7' ? 7 : raw === '90' ? 90 : 30;
+  const preset = `last_${days}d`;
+
   try {
-    realData = await getLinkedinPageData(id, startParam || undefined, endParam || undefined);
-  } catch (err: any) {
-    console.error('[linkedin/route] Error fetching LinkedIn data:', err.message);
-    if (err.message?.includes('not configured') || err.message?.includes('non configurato')) {
-      return NextResponse.json({ notConfigured: true, ...buildEmptyResponse(startDate, diffDays) });
+    const q = (fields: string[]) =>
+      getData({ connector: 'linkedin_organic', accountId, fields: [...fields, 'account_id'], datePreset: preset })
+        .catch(() => [] as any[]);
+
+    const [org, daily, pages, shares] = await Promise.all([
+      q(['organization_follower_count', 'organization_name']),
+      q(['date', 'account_analytics_impression_count', 'account_analytics_like_count',
+        'account_analytics_comment_count', 'account_analytics_share_count',
+        'account_analytics_click_count', 'account_analytics_total_engagements',
+        'followers_gain_organic']),
+      q(['date', 'all_page_views', 'all_unique_page_views', 'desktop_custom_button_click_counts',
+        'mobile_custom_button_click_counts']),
+      q(['share_id', 'share_title', 'share_text', 'share_post_type', 'share_published_time',
+        'share_impression_count', 'share_unique_impressions_count', 'share_like_count',
+        'share_comment_count', 'share_clicks_count', 'share_count',
+        'share_engagement_rate', 'share_total_engagements', 'share_video_views']),
+    ]);
+
+    const followers = num(org[0]?.organization_follower_count);
+
+    // ── Serie giornaliera ────────────────────────────────────────────────
+    const byDate = new Map<string, any>();
+    const put = (date: string, patch: Record<string, number>) => {
+      if (!date) return;
+      const e = byDate.get(date) || {
+        date, impression: 0, reazioni: 0, commenti: 0, condivisi: 0, clic: 0,
+        interazioni: 0, nuoviFollower: 0, visualizzazioniPagina: 0,
+        visitatoriUnici: 0, clicPulsanti: 0,
+      };
+      for (const [k, v] of Object.entries(patch)) e[k] += v;
+      byDate.set(date, e);
+    };
+
+    for (const r of daily) {
+      put(String(r.date ?? '').slice(0, 10), {
+        impression: num(r.account_analytics_impression_count),
+        reazioni: num(r.account_analytics_like_count),
+        commenti: num(r.account_analytics_comment_count),
+        condivisi: num(r.account_analytics_share_count),
+        clic: num(r.account_analytics_click_count),
+        interazioni: num(r.account_analytics_total_engagements),
+        nuoviFollower: num(r.followers_gain_organic),
+      });
     }
-  }
+    for (const r of pages) {
+      put(String(r.date ?? '').slice(0, 10), {
+        visualizzazioniPagina: num(r.all_page_views),
+        visitatoriUnici: num(r.all_unique_page_views),
+        clicPulsanti: num(r.desktop_custom_button_click_counts) + num(r.mobile_custom_button_click_counts),
+      });
+    }
+    const series = Array.from(byDate.values()).sort((x, y) => x.date.localeCompare(y.date));
+    const sum = (k: string) => series.reduce((s, r) => s + num(r[k]), 0);
+    const giorni = Math.max(1, series.length);
 
-  if (!realData) return NextResponse.json(buildEmptyResponse(startDate, diffDays));
+    // ── Post ─────────────────────────────────────────────────────────────
+    const posts = shares
+      .filter((s) => s.share_id)
+      .map((s) => {
+        const impression = num(s.share_impression_count);
+        const interazioni = num(s.share_total_engagements);
+        return {
+          title: String(s.share_title || s.share_text || '').slice(0, 140) || '(senza testo)',
+          tipo: String(s.share_post_type ?? ''),
+          date: String(s.share_published_time ?? '').slice(0, 10),
+          impression,
+          reazioni: num(s.share_like_count),
+          commenti: num(s.share_comment_count),
+          clic: num(s.share_clicks_count),
+          condivisi: num(s.share_count),
+          // Windsor espone già il tasso calcolato da LinkedIn; se manca lo si
+          // ricava dalle impression, non dai follower.
+          engagement: num(s.share_engagement_rate) > 0
+            ? round(num(s.share_engagement_rate) * 100)
+            : (impression > 0 ? round((interazioni / impression) * 100) : 0),
+          visualizzazioniVideo: num(s.share_video_views),
+          visitatori: num(s.share_unique_impressions_count),
+        };
+      })
+      .sort((x, y) => y.date.localeCompare(x.date));
 
-  // ─── Map LinkedIn API → Dashboard format ───────────────────────────────────
+    const impressionTotali = sum('impression');
+    const interazioniTotali = sum('interazioni');
+    const nPost = posts.length;
 
-  // Follower stats: array di {followerGains: {organicFollowerCount, ...}, timeRange: {start, end}}
-  const followerElements: any[] = realData.followerStats || [];
-  const pageElements: any[] = realData.pageStats || [];
-  const shareElements: any[] = realData.shareStats || [];
+    return NextResponse.json({
+      account: { nome: String(org[0]?.organization_name ?? ''), followers },
 
-  // Crescita followers
-  const crescitaMap: Record<string, any> = {};
-  for (const el of followerElements) {
-    const date = el.timeRange?.start
-      ? new Date(el.timeRange.start).toISOString().split('T')[0]
-      : null;
-    if (!date) continue;
-    crescitaMap[date] = {
-      followers: (el.followerGains?.organicFollowerCount || 0) + (el.followerGains?.paidFollowerCount || 0),
-      contenuto: 0,
-    };
-  }
+      riepilogoSummary: {
+        impression: impressionTotali,
+        interazioni: interazioniTotali,
+        post: nPost,
+        engagement: impressionTotali > 0 ? round((interazioniTotali / impressionTotali) * 100) : 0,
+      },
+      riepilogoChart: series.map((r) => ({
+        date: r.date, impression: r.impression, interazioni: r.interazioni,
+        engagement: r.impression > 0 ? round((r.interazioni / r.impression) * 100) : 0,
+        post: 0,
+      })),
 
-  // Page stats
-  const pageMap: Record<string, any> = {};
-  let totalFollowers = 0;
-  let totalPageViews = 0;
-  let totalUniqueVisitors = 0;
-  let totalButtonClicks = 0;
+      crescitaSummary: {
+        followers,
+        contenutoTotale: nPost,
+        visualizzazioniPagina: sum('visualizzazioniPagina'),
+        mediaVisitatoriUnici: div(sum('visitatoriUnici'), giorni),
+        clicPulsanti: sum('clicPulsanti'),
+      },
+      // Come per Instagram: nessuna linea "follower nel tempo" ricostruita.
+      // Windsor dà il totale di oggi e la crescita giornaliera, non la serie
+      // storica; sommare la crescita all'indietro produrrebbe una curva
+      // plausibile e sbagliata.
+      crescitaChart: series.map((r) => ({ date: r.date, followers: r.nuoviFollower, contenuto: 0 })),
 
-  for (const el of pageElements) {
-    const date = el.timeRange?.start
-      ? new Date(el.timeRange.start).toISOString().split('T')[0]
-      : null;
-    if (!date) continue;
-    const views = el.totalPageStatistics?.views?.allPageViews?.pageViews || 0;
-    const visitors = el.totalPageStatistics?.visitors?.allPageVisits?.uniqueVisitors || 0;
-    const clicks = el.totalPageStatistics?.clicks?.clicksByType?.mobileCustomButtonClicksByIndex?.[0]?.clicks || 0;
-    pageMap[date] = { views, visitors, clicks };
-    totalPageViews += views;
-    totalUniqueVisitors += visitors;
-    totalButtonClicks += clicks;
-  }
+      interazioniSummary: {
+        reazioni: sum('reazioni'), commenti: sum('commenti'),
+        condivisi: sum('condivisi'), clic: sum('clic'), post: nPost,
+      },
+      interazioniChart: series.map((r) => ({
+        date: r.date, reazioni: r.reazioni, commenti: r.commenti,
+        condivisi: r.condivisi, clic: r.clic,
+      })),
 
-  // Share stats
-  const shareMap: Record<string, any> = {};
-  let totalImpressions = 0;
-  let totalEngagements = 0;
-  let totalReactions = 0;
-  let totalComments = 0;
-  let totalClicks = 0;
-  let totalShares = 0;
-  let totalPosts = 0;
+      averagesSummary: {
+        reazioniGiornaliere: div(sum('reazioni'), giorni),
+        commentiGiornalieri: div(sum('commenti'), giorni),
+        clicGiornalieri: div(sum('clic'), giorni),
+        postGiornalieri: div(nPost, giorni),
+        followersGiornalieri: div(sum('nuoviFollower'), giorni),
+        reazioniPerContenuto: div(sum('reazioni'), nPost),
+        commentiPerContenuto: div(sum('commenti'), nPost),
+        clicksPerContent: div(sum('clic'), nPost),
+        followersPerPost: div(sum('nuoviFollower'), nPost),
+      },
 
-  for (const el of shareElements) {
-    const date = el.timeRange?.start
-      ? new Date(el.timeRange.start).toISOString().split('T')[0]
-      : null;
-    if (!date) continue;
-    const stats = el.totalShareStatistics || {};
-    shareMap[date] = {
-      impressions: stats.impressionCount || 0,
-      engagements: stats.engagement || 0,
-      reactions: stats.likeCount || 0,
-      comments: stats.commentCount || 0,
-      clicks: stats.clickCount || 0,
-      shares: stats.shareCount || 0,
-    };
-    totalImpressions += stats.impressionCount || 0;
-    totalEngagements += stats.engagement || 0;
-    totalReactions += stats.likeCount || 0;
-    totalComments += stats.commentCount || 0;
-    totalClicks += stats.clickCount || 0;
-    totalShares += stats.shareCount || 0;
-  }
-
-  // Follower count totale dall'ultimo elemento
-  if (followerElements.length > 0) {
-    const lastEl = followerElements[followerElements.length - 1];
-    totalFollowers = (lastEl.followerGains?.organicFollowerCount || 0) + (lastEl.followerGains?.paidFollowerCount || 0);
-  }
-
-  // Posts
-  const postsRaw = realData.posts || [];
-  totalPosts = postsRaw.length;
-
-  const generateChart = (days: number, dataMap: Record<string, any>, fields: object) => {
-    return Array.from({ length: days }).map((_, i) => {
-      const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
-      const date = d.toISOString().split('T')[0];
-      return { date, ...(dataMap[date] || fields) };
+      posts,
+      // LinkedIn espone le newsletter solo con permessi che non abbiamo.
+      newsletters: [],
+      _meta: { source: 'windsor', days },
     });
-  };
-
-  const crescitaChart = generateChart(diffDays, crescitaMap, { followers: 0, contenuto: 0 });
-  const riepilogoChart = generateChart(diffDays, shareMap, { engagement: 0, interazioni: 0, impression: 0, post: 0 });
-  const interazioniChart = generateChart(diffDays, shareMap, { reazioni: 0, commenti: 0, clic: 0, condivisi: 0, post: 0 });
-
-  const crescitaSummary = {
-    followers: totalFollowers,
-    mediaVisitatoriUnici: diffDays > 0 ? Math.round(totalUniqueVisitors / diffDays) : 0,
-    clicPulsanti: totalButtonClicks,
-    visualizzazioniPagina: totalPageViews,
-    contenutoTotale: totalPosts,
-  };
-
-  const engagement = totalImpressions > 0
-    ? Number(((totalEngagements / totalImpressions) * 100).toFixed(2))
-    : 0;
-
-  const riepilogoSummary = {
-    engagement,
-    interazioni: totalEngagements,
-    impression: totalImpressions,
-    post: totalPosts,
-  };
-
-  const interazioniSummary = {
-    reazioni: totalReactions,
-    commenti: totalComments,
-    clic: totalClicks,
-    condivisi: totalShares,
-    post: totalPosts,
-  };
-
-  const averagesSummary = {
-    followersGiornalieri: diffDays > 0 ? Math.round(totalFollowers / diffDays) : 0,
-    followersPerPost: totalPosts > 0 ? Math.round(totalFollowers / totalPosts) : 0,
-    postGiornalieri: diffDays > 0 ? Number((totalPosts / diffDays).toFixed(2)) : 0,
-    reazioniGiornaliere: diffDays > 0 ? Math.round(totalReactions / diffDays) : 0,
-    reazioniPerContenuto: totalPosts > 0 ? Math.round(totalReactions / totalPosts) : 0,
-    commentiGiornalieri: diffDays > 0 ? Math.round(totalComments / diffDays) : 0,
-    commentiPerContenuto: totalPosts > 0 ? Math.round(totalComments / totalPosts) : 0,
-    clicGiornalieri: diffDays > 0 ? Math.round(totalClicks / diffDays) : 0,
-    clicksPerContent: totalPosts > 0 ? Math.round(totalClicks / totalPosts) : 0,
-  };
-
-  // Map posts
-  const posts = postsRaw.map((p: any) => ({
-    id: p.id || '',
-    title: p.commentary || p.content?.title || '',
-    tags: [],
-    tipo: p.content?.media?.mediaType || 'ARTICLE',
-    image: p.content?.media?.thumbnails?.[0]?.resolvedUrl || '',
-    date: p.publishedAt ? new Date(p.publishedAt).toLocaleDateString('it-IT') : '',
-    impression: 0,
-    reazioni: 0,
-    commenti: 0,
-    clic: 0,
-    condivisi: 0,
-    engagement: 0,
-    visualizzazioniVideo: 0,
-    visitatori: 0,
-  }));
-
-  return NextResponse.json({
-    crescitaSummary,
-    averagesSummary,
-    riepilogoSummary,
-    interazioniSummary,
-    crescitaChart,
-    riepilogoChart,
-    interazioniChart,
-    posts,
-    newsletters: [],
-  });
-}
-
-function buildEmptyResponse(startDate: Date, diffDays: number) {
-  const generateEmptyChart = (days: number, extraFields = {}): any[] =>
-    Array.from({ length: days }).map((_, i) => {
-      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
-      return { date: date.toISOString().split('T')[0], ...extraFields };
-    });
-
-  return {
-    crescitaSummary: { followers: 0, mediaVisitatoriUnici: 0, clicPulsanti: 0, visualizzazioniPagina: 0, contenutoTotale: 0 },
-    averagesSummary: { followersGiornalieri: 0, followersPerPost: 0, postGiornalieri: 0, reazioniGiornaliere: 0, reazioniPerContenuto: 0, commentiGiornalieri: 0, commentiPerContenuto: 0, clicGiornalieri: 0, clicksPerContent: 0 },
-    riepilogoSummary: { engagement: 0, interazioni: 0, impression: 0, post: 0 },
-    interazioniSummary: { reazioni: 0, commenti: 0, clic: 0, condivisi: 0, post: 0 },
-    crescitaChart: generateEmptyChart(diffDays, { followers: 0, contenuto: 0 }),
-    riepilogoChart: generateEmptyChart(diffDays, { engagement: 0, interazioni: 0, impression: 0, post: 0 }),
-    interazioniChart: generateEmptyChart(diffDays, { reazioni: 0, commenti: 0, clic: 0, condivisi: 0, post: 0 }),
-    posts: [],
-    newsletters: [],
-  };
+  } catch (err: any) {
+    console.error(`[linkedin] fallita per ${params.id}:`, err.message);
+    return NextResponse.json({ error: err.message }, { status: 503 });
+  }
 }
