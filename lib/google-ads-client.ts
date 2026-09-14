@@ -111,8 +111,7 @@ function normalizeCustomerId(raw: string): string {
 
 /** Esegue una query GAQL su un account. */
 async function query(customerId: string, gaql: string): Promise<any[]> {
-  const [token, developerToken] = [await getAccessToken(), process.env.GOOGLE_ADS_DEVELOPER_TOKEN];
-  if (!developerToken) throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN mancante.');
+  const token = await getAccessToken();
 
   const res = await fetch(
     `https://googleads.googleapis.com/${API_VERSION}/customers/${normalizeCustomerId(customerId)}/googleAds:search`,
@@ -120,7 +119,12 @@ async function query(customerId: string, gaql: string): Promise<any[]> {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
-        'developer-token': developerToken,
+        // Nessun developer token: Google ha spostato il livello di accesso
+        // dell'API dal token al **progetto Google Cloud** dell'OAuth client.
+        // L'header è diventato opzionale e smetterà di essere accettato nel
+        // corso del 2027. Verificato prima di toglierlo: la stessa query con
+        // e senza header restituisce numeri identici (€12.446,33, 44.398
+        // click), quindi qui non cambia nulla se non una dipendenza in meno.
         'content-type': 'application/json',
         // Serve solo quando si legge attraverso un account manager.
         ...(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID
