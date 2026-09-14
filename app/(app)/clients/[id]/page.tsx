@@ -39,6 +39,7 @@ import {
   Sparkles,
   Heart,
   MousePointerClick,
+  ExternalLink,
   GripVertical,
   Clock,
   Search,
@@ -1896,12 +1897,38 @@ export default function ClientDetailPage() {
               </button>
             </div>
           ) : (
-            <div className="flex-1 relative w-full aspect-video min-h-[600px] rounded-xl overflow-hidden border border-white/10 bg-white">
-              <iframe
-                src={`https://clarity.microsoft.com/embed/${client.clarityProjectId}`}
-                className="absolute inset-0 w-full h-full border-0"
-                title="Microsoft Clarity Dashboard"
-              />
+            /* Clarity non si può incorporare: risponde con
+               `x-frame-options: SAMEORIGIN`, quindi qualunque iframe verso il
+               loro dominio viene bloccato dal browser ("Questi contenuti sono
+               bloccati"). Qui c'era un iframe verso un presunto /embed/ che
+               non ha mai mostrato nulla.
+
+               E anche potendo, non basterebbe: heatmap e registrazioni di
+               sessione — cioè il motivo per cui si usa Clarity — non escono
+               dalla loro API, si vedono solo dentro Clarity. Meglio un
+               collegamento che funziona di un riquadro che finge. */
+            <div className="flex-1 rounded-xl border border-white/10 bg-white/[0.02] p-10 flex flex-col items-center justify-center text-center gap-4 min-h-[320px]">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-violet-500/10 border border-violet-500/20">
+                <MousePointerClick size={22} className="text-violet-400" />
+              </div>
+              <div className="space-y-1.5 max-w-lg">
+                <h3 className="text-base font-bold text-foreground">Heatmap e registrazioni su Clarity</h3>
+                <p className="text-sm text-muted-foreground">
+                  Microsoft non consente di mostrare Clarity dentro un altro sito, e le mappe di calore
+                  e le registrazioni di sessione non sono esportabili via API: si consultano sul loro pannello.
+                </p>
+                <p className="text-xs text-muted-foreground/70 pt-1">
+                  Progetto <span className="font-mono">{client.clarityProjectId}</span>
+                </p>
+              </div>
+              <a
+                href={`https://clarity.microsoft.com/projects/view/${client.clarityProjectId}/dashboard`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-gorgeous px-6 py-2.5 text-xs font-semibold rounded-lg bg-violet-600 hover:bg-violet-500 text-white cursor-pointer transition-all inline-flex items-center gap-2"
+              >
+                Apri Clarity <ExternalLink size={13} />
+              </a>
             </div>
           )}
         </div>
