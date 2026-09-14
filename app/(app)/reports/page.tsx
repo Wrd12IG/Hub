@@ -35,6 +35,7 @@ import type { Task, User, Client, CalendarActivity, ActivityType, CalendarActivi
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BurndownChart, VelocityChart } from '@/components/analytics-charts';
 import { BarChart2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 // Types for report data
 interface TimeEntry {
@@ -100,7 +101,13 @@ export default function ReportsPage() {
         start: startOfMonth(new Date()),
         end: endOfMonth(new Date()),
     });
-    const [selectedClient, setSelectedClient] = useState<string>('all');
+    // Arrivando da una pagina cliente (?client=<id>) il filtro parte già su
+    // quel cliente: altrimenti il collegamento "Growth Report" ti scaricava
+    // su "tutti i clienti" e dovevi riselezionare a mano quello da cui venivi.
+    const searchParams = useSearchParams();
+    const [selectedClient, setSelectedClient] = useState<string>(
+        () => searchParams.get('client') || 'all'
+    );
     const [selectedUser, setSelectedUser] = useState<string>('all');
     const [selectedProject, setSelectedProject] = useState<string>('');
     const [isFiltersOpen, setIsFiltersOpen] = useState(true);

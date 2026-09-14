@@ -691,8 +691,19 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* ── QUICK LINKS (analytics dashboards) ── */}
-      <div className="relative z-20 flex flex-wrap gap-2.5 bg-white/[0.01] border border-white/5 p-4 rounded-2xl shadow-sm">
+      {/* ── QUICK LINKS ──────────────────────────────────────────────────
+          Raggruppati per intenzione: prima il lavoro sul cliente, poi la
+          creatività, poi l'analisi. Otto pill tutte uguali mescolavano cose
+          che non si fanno nello stesso momento.
+
+          Due sono state tolte perché portavano dove si era già:
+          • "Calendario" apriva la stessa pagina di "Piano Editoriale", solo
+            con la vista calendario preselezionata — vista che quella pagina
+            offre già con un click al suo interno.
+          • "Maps & GBP" duplicava la scheda GBP che ora sta nella Overview,
+            da cui si raggiunge il dettaglio per sede.
+      ── */}
+      <div className="relative z-20 flex flex-wrap items-center gap-2.5 bg-white/[0.01] border border-white/5 p-4 rounded-2xl shadow-sm">
         {[
           {
             href: `/clients/${id}/editorial-plan`,
@@ -712,18 +723,7 @@ export default function ClientDetailPage() {
             label: "Progetti",
             dot: "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]",
           },
-          {
-            href: `/clients/${id}/calendar`,
-            icon: Calendar,
-            label: "Calendario",
-            dot: "bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]",
-          },
-          {
-            href: `/reports`,
-            icon: TrendingUp,
-            label: "Growth Report",
-            dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-          },
+          { separator: true },
           {
             href: `/clients/${id}/creative`,
             icon: Sparkles,
@@ -731,28 +731,37 @@ export default function ClientDetailPage() {
             dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
           },
           {
-            href: `/assets`,
+            // Pagina globale: il cliente viaggia nell'URL, così si apre già
+            // filtrata invece di partire da "tutti".
+            href: `/assets?client=${id}`,
             icon: ImageIcon,
             label: "Creative Board",
             dot: "bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]",
           },
+          { separator: true },
           {
-            href: `/clients/${id}/gbp`,
-            icon: MapPin,
-            label: "Maps & GBP",
-            dot: "bg-sky-500 shadow-[0_0_8px_rgba(14,165,233,0.5)]",
+            href: `/reports?client=${id}`,
+            icon: TrendingUp,
+            label: "Growth Report",
+            dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
           },
-        ].map(({ href, icon: Icon, label, dot }) => (
-          <Link
-            key={href}
-            href={href}
-            className="relative z-10 cursor-pointer glass-card inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-white/5 bg-white/[0.02] hover:bg-white/[0.07] hover:border-white/10 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-foreground"
-          >
-            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />
-            <Icon className="h-3.5 w-3.5 text-muted-foreground/80" />
-            {label}
-          </Link>
-        ))}
+        ].map((item, i) => {
+          if ('separator' in item) {
+            return <span key={`sep-${i}`} aria-hidden className="h-6 w-px bg-white/10 mx-1" />;
+          }
+          const { href, icon: Icon, label, dot } = item;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="relative z-10 cursor-pointer glass-card inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-white/5 bg-white/[0.02] hover:bg-white/[0.07] hover:border-white/10 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-foreground"
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />
+              <Icon className="h-3.5 w-3.5 text-muted-foreground/80" />
+              {label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* ── TAB BAR ── */}
