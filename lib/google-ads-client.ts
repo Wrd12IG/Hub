@@ -111,8 +111,7 @@ function normalizeCustomerId(raw: string): string {
 
 /** Esegue una query GAQL su un account. */
 async function query(customerId: string, gaql: string): Promise<any[]> {
-  const [token, developerToken] = [await getAccessToken(), process.env.GOOGLE_ADS_DEVELOPER_TOKEN];
-  if (!developerToken) throw new Error('GOOGLE_ADS_DEVELOPER_TOKEN mancante.');
+  const token = await getAccessToken();
 
   const res = await fetch(
     `https://googleads.googleapis.com/${API_VERSION}/customers/${normalizeCustomerId(customerId)}/googleAds:search`,
@@ -120,7 +119,12 @@ async function query(customerId: string, gaql: string): Promise<any[]> {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
-        'developer-token': developerToken,
+        // Nessun developer token: Google ha spostato il livello di accesso
+        // dell'API dal token al **progetto Google Cloud** dell'OAuth client.
+        // L'header è diventato opzionale e smetterà di essere accettato nel
+        // corso del 2027. Verificato prima di toglierlo: la stessa query con
+        // e senza header restituisce numeri identici (€12.446,33, 44.398
+        // click), quindi qui non cambia nulla se non una dipendenza in meno.
         'content-type': 'application/json',
         // Serve solo quando si legge attraverso un account manager.
         ...(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID
@@ -470,4 +474,63 @@ export function getMockGoogleAdsCampaigns(clientId: string): GoogleAdsCampaign[]
       roas: null
     }
   ];
+}
+
+export interface GoogleAdsAccount {
+  id: string;
+  name: string;
+  currency: string;
+  timeZone: string;
+  /** false quando l'account è elencato ma non interrogabile (tipicamente un
+   *  account amministratore, che va letto passando login-customer-id). */
+  readable: boolean;
+}
+
+/**
+ * Gli account pubblicitari accessibili con le credenziali d'agenzia.
+ *
+ * Serve alla schermata che elenca i clienti Google Ads collegabili. Stava in
+ * una route a parte che usava **API v17** — oggi 404 — e variabili d'ambiente
+ * diverse da quelle del resto del Hub, quindi non funzionava comunque.
+ */
+export async function listAccessibleCustomers(): Promise<GoogleAdsAccount[]> {
+  const token = await getAccessToken();
+
+  const res = await fetch(`https://googleads.googleapis.com/${API_VERSION}/customers:listAccessibleCustomers`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json?.error?.message || `Google Ads ha risposto ${res.status}`);
+  }
+
+  const ids: string[] = (json.resourceNames || []).map((r: string) => r.split('/')[1]).filter(Boolean);
+
+  // Il nome non sta nell'elenco: va chiesto account per account. Un account a
+  // cui non si ha accesso in lettura non deve far fallire tutta la lista.
+  const accounts = await Promise.all(ids.map(async (id): Promise<GoogleAdsAccount> => {
+    try {
+      const rows = await query(id, `
+        SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone
+        FROM customer LIMIT 1
+      `);
+      const c = rows[0]?.customer ?? {};
+      return {
+        id,
+        name: String(c.descriptiveName ?? id),
+        currency: String(c.currencyCode ?? ''),
+        timeZone: String(c.timeZone ?? ''),
+        readable: true,
+      };
+    } catch {
+      // Elencato ma non leggibile: si restituisce comunque, marcato. Una riga
+      // con solo il numero sembrerebbe un difetto della pagina invece di un
+      // account su cui non abbiamo accesso in lettura.
+      return { id, name: `Account ${id}`, currency: '', timeZone: '', readable: false };
+    }
+  }));
+
+  // Prima quelli leggibili: le righe senza nome in fondo, non sparse.
+  return accounts.sort((a, b) =>
+    Number(b.readable) - Number(a.readable) || a.name.localeCompare(b.name));
 }
