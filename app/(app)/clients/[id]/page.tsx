@@ -57,6 +57,7 @@ import {
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { CompetitorsSection } from "@/components/CompetitorsSection";
+import { CompetitivePressureSection } from "@/components/CompetitivePressureSection";
 import MetaCampaignReportModal from "@/components/MetaCampaignReportModal";
 import dynamic from "next/dynamic";
 const SeoAuditModal = dynamic(
@@ -1298,6 +1299,13 @@ export default function ClientDetailPage() {
               daysBack={overviewDaysBack}
               compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
             />
+          </div>
+
+          {/* Pressione competitiva: l'unico dato competitivo *numerico* che le
+              API espongano. Segue il selettore "Periodo" perché è una metrica
+              di periodo, a differenza del registro competitor qui sotto. */}
+          <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg">
+            <CompetitivePressureSection clientId={id as string} daysBack={overviewDaysBack} />
           </div>
 
           {/* Competitor: cosa fanno i concorrenti sul territorio. Non segue il
