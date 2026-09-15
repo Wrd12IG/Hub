@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -16,6 +16,7 @@ import {
   BarChart3,
   Mail,
   Handshake,
+  Users,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────────────────────────
@@ -532,6 +533,107 @@ function WindsorGbpModal({
           style={{ backgroundColor: "#34A853" }}>
           {saving && <Loader2 size={14} className="animate-spin" />}
           Salva sedi
+        </button>
+      </div>
+    </ModalWrapper>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MODAL: COMPETITOR TERRITORIALI
+   L'elenco lo inserisce lo staff: chi siano i concorrenti di una
+   concessionaria in Brianza è conoscenza umana, non un dato deducibile.
+   Il Hub osserva quei siti nel tempo e dice cosa cambia.
+───────────────────────────────────────────────────────────────── */
+
+interface CompetitorRow {
+  id: string; nome: string; sito: string;
+  instagram?: string; facebook?: string; linkedin?: string;
+}
+
+function CompetitorsModal({ clientId, onClose, onSaved }: {
+  clientId: string; onClose: () => void; onSaved: () => void;
+}) {
+  const vuoto = (i: number): CompetitorRow => ({ id: `c${i + 1}`, nome: "", sito: "" });
+  const [rows, setRows] = useState<CompetitorRow[]>([0, 1, 2, 3, 4].map(vuoto));
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const authToken = localStorage.getItem("token");
+        const res = await fetch(`${API_URL}/api/clients/${clientId}/competitors`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (res.ok) {
+          const j = await res.json();
+          const saved: CompetitorRow[] = j.competitors ?? [];
+          setRows([0, 1, 2, 3, 4].map((i) => saved[i] ?? vuoto(i)));
+        }
+      } finally { setLoading(false); }
+    })();
+  }, [clientId]);
+
+  const set = (i: number, field: keyof CompetitorRow, value: string) =>
+    setRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [field]: value } : r)));
+
+  async function save() {
+    setSaving(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/clients/${clientId}/competitors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ competitors: rows.filter((r) => r.nome.trim() || r.sito.trim()) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(await describeFailure(res));
+      toast.success(`${data.competitors?.length ?? 0} competitor salvati`);
+      onSaved(); onClose();
+    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
+    finally { setSaving(false); }
+  }
+
+  const input = "w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40";
+
+  return (
+    <ModalWrapper title="Competitor territoriali" onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-[11px] text-muted-foreground/70">
+          Il sito viene letto ogni notte per segnalare offerte e cambiamenti. I link social si salvano come
+          scorciatoie: Instagram e LinkedIn non si lasciano leggere da un server, quindi da lì non ricaviamo numeri.
+        </p>
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Caricamento…</p>
+        ) : (
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+            {rows.map((r, i) => (
+              <div key={r.id} className="space-y-2 rounded-lg border border-white/5 p-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={r.nome} onChange={(e) => set(i, "nome", e.target.value)}
+                    placeholder={`Competitor ${i + 1}`} className={input} />
+                  <input value={r.sito} onChange={(e) => set(i, "sito", e.target.value)}
+                    placeholder="sito.it" className={input} />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <input value={r.instagram ?? ""} onChange={(e) => set(i, "instagram", e.target.value)}
+                    placeholder="Instagram" className={input} />
+                  <input value={r.facebook ?? ""} onChange={(e) => set(i, "facebook", e.target.value)}
+                    placeholder="Facebook" className={input} />
+                  <input value={r.linkedin ?? ""} onChange={(e) => set(i, "linkedin", e.target.value)}
+                    placeholder="LinkedIn" className={input} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button onClick={save} disabled={saving || loading}
+          className="w-full text-sm font-semibold py-2.5 rounded-lg bg-slate-500/10 border border-slate-500/20 text-slate-300 hover:bg-slate-500/20 transition-all disabled:opacity-40 cursor-pointer">
+          {saving ? "Salvataggio…" : "Salva competitor"}
         </button>
       </div>
     </ModalWrapper>
@@ -1163,7 +1265,7 @@ function LinkedinModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
 
 
 export default function PlatformConnections({
@@ -1406,6 +1508,25 @@ export default function PlatformConnections({
           </button>
         </div>
 
+        {/* ── COMPETITOR TERRITORIALI ── */}
+        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(false, "#64748B")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#94a3b8")}>
+                <Users size={16} />
+              </div>
+              <span className="text-sm font-bold text-foreground">Competitor</span>
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground/70">
+            Fino a 5 concorrenti: il Hub ne legge il sito ogni notte e segnala cosa cambia.
+          </p>
+          <button type="button" onClick={() => setActiveModal("competitors")}
+            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-500/20 text-slate-400 bg-slate-500/5 hover:bg-slate-500/10 transition-all cursor-pointer">
+            <Link2 size={11} /> Gestisci competitor
+          </button>
+        </div>
+
         {/* ── AWIN — API diretta, token di agenzia ── */}
         <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.awinAdvertiserId, "#8B5CF6")}>
           <div className="flex items-center justify-between">
@@ -1561,6 +1682,13 @@ export default function PlatformConnections({
             setClient((prev) => ({ ...prev, hasLinkedinToken: !!name, linkedinOrgName: name || null }));
             setActiveModal(null);
           }}
+        />
+      )}
+      {activeModal === "competitors" && (
+        <CompetitorsModal
+          clientId={clientId}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { refreshClient(); setActiveModal(null); }}
         />
       )}
       {activeModal === "awin" && (
