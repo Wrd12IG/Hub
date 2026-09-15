@@ -534,3 +534,179 @@ export async function listAccessibleCustomers(): Promise<GoogleAdsAccount[]> {
   return accounts.sort((a, b) =>
     Number(b.readable) - Number(a.readable) || a.name.localeCompare(b.name));
 }
+
+export interface CompetitiveCampaign {
+  id: string;
+  name: string;
+  channel: string;
+  impressions: number;
+  cost: number;
+  /** Quota impression ottenuta, 0..1. null quando Google dà solo un limite. */
+  impressionShare: number | null;
+  /** 'lt10' = "<10%", 'gt90' = ">90%": Google non dà il valore esatto. */
+  bound: 'lt10' | 'gt90' | null;
+  /** Quota persa perché i competitor ti superano (qualità/offerta). */
+  rankLost: number;
+  /** Quota persa perché il budget finisce. */
+  budgetLost: number;
+  absoluteTop: number | null;
+  clickShare: number | null;
+  /** Cosa ti sta costando più impression, in parole. */
+  diagnosi: 'competitor' | 'budget' | 'nessuna';
+}
+
+export interface CompetitivePressure {
+  campaigns: CompetitiveCampaign[];
+  /** Quota impression dell'account, pesata sulle impression disponibili. */
+  impressionShare: number | null;
+  rankLost: number;
+  budgetLost: number;
+  /** Campagne escluse dalla media perché Google ha dato solo un limite. */
+  boundedCampaigns: number;
+  /** Quota di impression coperte da campagne con quota esatta, 0..1. */
+  shareCoverage: number;
+  diagnosi: 'competitor' | 'budget' | 'nessuna';
+}
+
+/**
+ * ⚠️ Google **non sempre restituisce la quota reale**: sotto il 10% manda
+ * `0.0999` e sopra il 90% manda `0.9001`. Sono limiti, non misure — verificato
+ * su quattro account diversi, dove `0.0999` compariva cinque volte identico su
+ * campagne che non hanno niente in comune.
+ *
+ * Mostrarli come "10,0%" e "90,0%" significherebbe spacciare un intervallo per
+ * un numero, e farebbe sembrare misurate campagne di cui Google dice
+ * esplicitamente di non sapere la quota. Qui vengono marcati e tenuti fuori
+ * dalla media dell'account.
+ */
+function readShare(v: unknown): { value: number | null; bound: 'lt10' | 'gt90' | null } {
+  if (typeof v !== 'number') return { value: null, bound: null };
+  if (Math.abs(v - 0.0999) < 1e-6) return { value: null, bound: 'lt10' };
+  if (Math.abs(v - 0.9001) < 1e-6) return { value: null, bound: 'gt90' };
+  return { value: v, bound: null };
+}
+
+/**
+ * Serve un margine: 40% perso per rank e 38% per budget non sono due
+ * diagnosi diverse, sono lo stesso quadro. Sotto i 5 punti non si sbilancia.
+ */
+function diagnose(rankLost: number, budgetLost: number): 'competitor' | 'budget' | 'nessuna' {
+  if (Math.abs(rankLost - budgetLost) < 0.05) return 'nessuna';
+  return rankLost > budgetLost ? 'competitor' : 'budget';
+}
+
+/**
+ * Pressione competitiva: quanta parte delle ricerche disponibili stiamo
+ * prendendo, e **perché** perdiamo il resto.
+ *
+ * È l'unico dato competitivo numerico che le API espongano: i nomi dei
+ * concorrenti Google li mostra solo nella sua interfaccia
+ * (`auction_insight_domain` non esiste come campo, verificato).
+ *
+ * La distinzione che conta, e che un ROAS non mostra: perdere per **rank**
+ * significa che i competitor ti battono su qualità e offerta; perdere per
+ * **budget** significa che arrivi primo ma finisci i soldi. Misurato su due
+ * clienti reali: uno perde il 46% per rank, l'altro il 76% per budget. Due
+ * problemi opposti, due interventi opposti.
+ */
+export async function getGoogleAdsCompetitivePressure(
+  customerId: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<CompetitivePressure> {
+  const rows = await query(customerId, `
+    SELECT
+      campaign.id, campaign.name, campaign.advertising_channel_type,
+      metrics.impressions, metrics.cost_micros,
+      metrics.search_impression_share,
+      metrics.search_rank_lost_impression_share,
+      metrics.search_budget_lost_impression_share,
+      metrics.search_absolute_top_impression_share,
+      metrics.search_click_share
+    FROM campaign
+    WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
+      AND metrics.impressions > 0
+  `);
+
+  // Una riga per campagna per giorno: le quote sono medie, non si sommano.
+  // Si pesano sulle impression del giorno.
+  const byCampaign = new Map<string, any>();
+  for (const r of rows) {
+    const c = r.campaign || {};
+    const m = r.metrics || {};
+    const id = String(c.id ?? '');
+    if (!id) continue;
+
+    const imp = Number(m.impressions || 0);
+    const e = byCampaign.get(id) || {
+      id, name: String(c.name ?? id), channel: String(c.advertisingChannelType ?? ''),
+      impressions: 0, cost: 0,
+      shareNum: 0, shareDen: 0, boundHits: { lt10: 0, gt90: 0 },
+      rankNum: 0, budgetNum: 0, topNum: 0, topDen: 0, clickNum: 0, clickDen: 0,
+    };
+    e.impressions += imp;
+    e.cost += fromMicros(m.costMicros);
+
+    const share = readShare(m.searchImpressionShare);
+    if (share.value !== null) { e.shareNum += share.value * imp; e.shareDen += imp; }
+    else if (share.bound) e.boundHits[share.bound] += 1;
+
+    e.rankNum += Number(m.searchRankLostImpressionShare || 0) * imp;
+    e.budgetNum += Number(m.searchBudgetLostImpressionShare || 0) * imp;
+
+    const top = readShare(m.searchAbsoluteTopImpressionShare);
+    if (top.value !== null) { e.topNum += top.value * imp; e.topDen += imp; }
+    const click = readShare(m.searchClickShare);
+    if (click.value !== null) { e.clickNum += click.value * imp; e.clickDen += imp; }
+
+    byCampaign.set(id, e);
+  }
+
+  const round = (n: number) => Math.round(n * 10000) / 10000;
+  const campaigns: CompetitiveCampaign[] = Array.from(byCampaign.values()).map((e) => {
+    const rankLost = e.impressions > 0 ? round(e.rankNum / e.impressions) : 0;
+    const budgetLost = e.impressions > 0 ? round(e.budgetNum / e.impressions) : 0;
+    const bound: 'lt10' | 'gt90' | null =
+      e.shareDen === 0 && e.boundHits.lt10 > 0 ? 'lt10'
+      : e.shareDen === 0 && e.boundHits.gt90 > 0 ? 'gt90'
+      : null;
+
+    return {
+      id: e.id, name: e.name, channel: e.channel,
+      impressions: e.impressions, cost: Math.round(e.cost * 100) / 100,
+      impressionShare: e.shareDen > 0 ? round(e.shareNum / e.shareDen) : null,
+      bound,
+      rankLost, budgetLost,
+      absoluteTop: e.topDen > 0 ? round(e.topNum / e.topDen) : null,
+      clickShare: e.clickDen > 0 ? round(e.clickNum / e.clickDen) : null,
+      diagnosi: diagnose(rankLost, budgetLost),
+    };
+  }).sort((a, b) => b.cost - a.cost);
+
+  // Media dell'account: solo sulle campagne di cui Google dà la quota vera.
+  const exact = campaigns.filter((c) => c.impressionShare !== null);
+  const impExact = exact.reduce((s, c) => s + c.impressions, 0);
+  const impAll = campaigns.reduce((s, c) => s + c.impressions, 0);
+
+  // ⚠️ La quota dell'account si calcola solo se le campagne con valore esatto
+  // rappresentano la maggioranza delle impression. Su un cliente reale il
+  // 91,5% veniva da una sola campagna brand, mentre le Performance Max — che
+  // facevano il grosso del volume — erano tutte "<10%": il risultato era una
+  // quota d'account quattro volte più alta del vero. Meglio nessun numero che
+  // un numero sbagliato in modo rassicurante.
+  const coverage = impAll > 0 ? round(impExact / impAll) : 0;
+  const accountShare = coverage >= 0.5
+    ? round(exact.reduce((s, c) => s + (c.impressionShare as number) * c.impressions, 0) / impExact)
+    : null;
+  const rankLost = impAll > 0 ? round(campaigns.reduce((s, c) => s + c.rankLost * c.impressions, 0) / impAll) : 0;
+  const budgetLost = impAll > 0 ? round(campaigns.reduce((s, c) => s + c.budgetLost * c.impressions, 0) / impAll) : 0;
+
+  return {
+    campaigns,
+    impressionShare: accountShare,
+    rankLost, budgetLost,
+    boundedCampaigns: campaigns.filter((c) => c.bound !== null).length,
+    shareCoverage: coverage,
+    diagnosi: diagnose(rankLost, budgetLost),
+  };
+}
