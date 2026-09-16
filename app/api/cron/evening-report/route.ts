@@ -25,6 +25,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { denyUnlessCron } from '@/lib/cron-auth';
 import { buildEveningReport, buildEveningReportHtml } from '@/lib/evening-report';
 import nodemailer from 'nodemailer';
 
@@ -79,36 +80,8 @@ async function sendReportEmail(
 
 export async function GET(request: NextRequest) {
   // ── Step 1: Verifica il segreto ──────────────────────────────────────────
-  const cronSecret = process.env.CRON_SECRET;
-  const requestSecret = request.headers.get('x-cron-secret');
-  const authHeader = request.headers.get('authorization');
-  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
-  const host = request.headers.get('host') || '';
-  const isLocalhost =
-    host.startsWith('localhost') || host.startsWith('127.0.0.1');
-
-  // Vercel Cron invia "Authorization: Bearer <CRON_SECRET>" automaticamente.
-  // Supportiamo sia Authorization Bearer che x-cron-secret.
-  const isValidSecret =
-    !cronSecret ||
-    requestSecret === cronSecret ||
-    bearerToken === cronSecret;
-
-  if (cronSecret && !isValidSecret) {
-    console.warn('[evening-report] Accesso non autorizzato da:', host);
-    return NextResponse.json(
-      { error: "Unauthorized. Secret non valido o mancante." },
-      { status: 401 }
-    );
-  }
-
-  if (!cronSecret && !isLocalhost) {
-    return NextResponse.json(
-      { error: 'Unauthorized. Configura CRON_SECRET nelle variabili ENV.' },
-      { status: 401 }
-    );
-  }
+  const denied = denyUnlessCron(request, 'evening-report');
+  if (denied) return denied;
 
   // ── Step 2: Costruisce il report ─────────────────────────────────────────
   console.log('[evening-report] Avvio raccolta dati...');

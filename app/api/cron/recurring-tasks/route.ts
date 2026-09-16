@@ -7,6 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { denyUnlessCron } from '@/lib/cron-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { format, addDays, addWeeks, addMonths } from 'date-fns';
@@ -123,18 +124,8 @@ function computeNextRunDate(recurrence: RecurrenceConfig, afterDate: Date): stri
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
-    // Auth
-    const cronSecret = process.env.CRON_SECRET;
-    const requestSecret = request.headers.get('x-cron-secret');
-    const host = request.headers.get('host') || '';
-    const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
-
-    if (cronSecret && requestSecret !== cronSecret) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (!cronSecret && !isLocalhost) {
-        return NextResponse.json({ error: 'Unauthorized. Configura CRON_SECRET.' }, { status: 401 });
-    }
+    const denied = denyUnlessCron(request, 'recurring-tasks');
+    if (denied) return denied;
 
     const today = new Date();
     const todayStr = format(today, 'yyyy-MM-dd');

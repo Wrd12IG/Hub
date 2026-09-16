@@ -27,6 +27,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { denyUnlessCron } from '@/lib/cron-auth';
 import { buildDailyDigest, buildDigestEmailHtml } from '@/lib/daily-digest';
 import nodemailer from 'nodemailer';
 
@@ -93,34 +94,14 @@ async function sendDigestEmail(subject: string, htmlContent: string): Promise<{ 
 export async function GET(request: NextRequest) {
   // ── Step 1: Verifica il segreto ──────────────────────────────────────────
   //
-  // Il segreto viene passato come header HTTP: "x-cron-secret: xxxx"
-  // In questo modo nessuno può chiamare questo endpoint dall'esterno
-  // senza conoscere il valore di CRON_SECRET.
+  // ⚠️ Questa route accettava SOLO l'header "x-cron-secret", che Vercel Cron
+  // non manda: mandava "Authorization: Bearer <CRON_SECRET>". Risultato, il
+  // digest schedulato alle 6:00 ha risposto 401 a Vercel ogni mattina per i
+  // tre mesi in cui CRON_SECRET è esistito, senza lasciare traccia da nessuna
+  // parte. Il controllo sta ora in lib/cron-auth.ts, condiviso.
   //
-  const cronSecret = process.env.CRON_SECRET;
-  const requestSecret = request.headers.get('x-cron-secret');
-
-  // Modalità bypass: se CRON_SECRET non è configurato, permettiamo chiamate
-  // solo da localhost (utile in sviluppo locale)
-  const host = request.headers.get('host') || '';
-  const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
-
-  if (cronSecret && requestSecret !== cronSecret) {
-    // Il segreto c'è ma non corrisponde → blocca
-    console.warn('[daily-digest] Accesso non autorizzato tentato da:', host);
-    return NextResponse.json(
-      { error: 'Unauthorized. Aggiungi l\'header x-cron-secret.' },
-      { status: 401 }
-    );
-  }
-
-  if (!cronSecret && !isLocalhost) {
-    // Nessun segreto configurato e non siamo in locale → blocca per sicurezza
-    return NextResponse.json(
-      { error: 'Unauthorized. Configura CRON_SECRET nelle variabili ENV.' },
-      { status: 401 }
-    );
-  }
+  const denied = denyUnlessCron(request, 'daily-digest');
+  if (denied) return denied;
 
   // ── Step 2: Raccoglie i dati da Firestore ────────────────────────────────
   // daily-digest: raccolta dati Firestore
