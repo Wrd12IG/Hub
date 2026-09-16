@@ -92,8 +92,25 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
                   })
             : Promise.resolve(null);
 
+        // ⚠️ Solo le piattaforme da cui può venire una metrica di esito.
+        // Il report completo ne interroga otto, su due finestre: Facebook,
+        // Instagram, LinkedIn, GBP e Search Console venivano scaricate due
+        // volte e buttate, perché il verdetto non le guarda (vedi
+        // REVENUE_SOURCES / CONVERSION_SOURCES in lib/client-health.ts). GBP
+        // era il peggiore: Windsor lo rifiuta in parallelo, quindi ogni sede
+        // andava in sequenza, due volte.
+        //
+        // Azzerare windsorAccounts e metaAdAccountId lascia in piedi
+        // esattamente ga4, google_ads, klaviyo e awin.
+        const outcomeOnly = {
+            ...client,
+            windsorAccounts: undefined,
+            metaAdAccountId: undefined,
+            klaviyo,
+        };
+
         const [platforms, pressure] = await Promise.all([
-            getClientMarketingReport({ ...client, klaviyo }, 'last_30d', buildWindows(DAYS, 'prev_period')),
+            getClientMarketingReport(outcomeOnly, 'last_30d', buildWindows(DAYS, 'prev_period')),
             pressurePromise,
         ]);
 

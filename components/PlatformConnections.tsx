@@ -596,7 +596,16 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
     finally { setSaving(false); }
   }
 
-  const input = "w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40";
+  // I placeholder qui fanno da etichetta: non ci sono label, quindi devono
+  // essere leggibili. Erano a text-muted-foreground/40, che su questo fondo
+  // dà 1,3:1 — invisibile, e i campi vuoti sembravano disabilitati. A piena
+  // opacità stanno a ~4,9:1.
+  //
+  // `outline-none` senza un focus visibile toglie anche l'unico segnale di
+  // quale campo è attivo, quindi il ring va rimesso a mano.
+  const input =
+    "w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2 rounded-lg outline-none transition-all " +
+    "placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/25";
 
   return (
     <ModalWrapper title="Competitor territoriali" onClose={onClose}>

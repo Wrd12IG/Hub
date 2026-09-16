@@ -345,12 +345,20 @@ export async function getClientMarketingReport(
 
     const searchConsoleSite = client.windsorAccounts?.searchconsole;
 
-    // ⚠️ Questa guardia deve contare anche GA4 e Search Console, non solo le
-    // piattaforme Windsor: da quando quelle due sono native, un cliente che ha
-    // *soltanto* Analytics e/o Search Console collegati usciva di qui con un
-    // report vuoto senza alcun errore, pur avendo dati validi.
+    // ⚠️ Questa guardia deve contare TUTTE le piattaforme native, non solo
+    // quelle Windsor: un cliente che ha soltanto fonti native usciva di qui
+    // con un report vuoto senza alcun errore, pur avendo dati validi.
+    //
+    // È già successo due volte. La prima con GA4 e Search Console, appena
+    // diventate native. La seconda con Google Ads, diventato nativo dopo e mai
+    // aggiunto qui: un cliente con solo Google Ads collegato riceveva un
+    // report vuoto in silenzio. Il caso non si vedeva perché quasi tutti
+    // hanno anche Facebook o GBP, che tenevano `platforms` non vuoto.
+    //
+    // Chi aggiunge una piattaforma nativa la aggiunga anche qui.
     if (platforms.length === 0 && gbpAccountIds.length === 0
-        && !client.ga4PropertyId && !searchConsoleSite && !client.klaviyo && !client.awinAdvertiserId) {
+        && !client.ga4PropertyId && !searchConsoleSite && !client.klaviyo
+        && !client.awinAdvertiserId && !client.googleAdAccountId) {
         return [];
     }
 
