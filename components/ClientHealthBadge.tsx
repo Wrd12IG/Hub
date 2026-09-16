@@ -18,9 +18,17 @@ import { adsSetupReason, type ClientHealth, type HealthReason, type HealthState 
  * Cosa significa il voto e perché guarda solo il risultato: lib/client-health.ts.
  */
 
+/**
+ * Verde e rosso sono ovvi. Il neutro era ambra e stonava per due motivi: a
+ * 48px accanto a un nome in nero diventava marrone, e soprattutto l'ambra
+ * significa "attenzione" — mentre "stabile" non è un allarme, è uno stato
+ * noto senza variazioni. Il blu lo dice senza inventare un problema, e resta
+ * distinguibile dal grigio tratteggiato di "dati insufficienti" perché quello
+ * è vuoto, non pieno.
+ */
 const TONE: Record<HealthState, { fill: string; on: string }> = {
     up: { fill: '#059669', on: '#ffffff' },
-    flat: { fill: '#d97706', on: '#ffffff' },
+    flat: { fill: '#2563eb', on: '#ffffff' },
     down: { fill: '#dc2626', on: '#ffffff' },
     unknown: { fill: 'none', on: '#94a3b8' },
 }
@@ -75,7 +83,7 @@ function Features({ state, on }: { state: HealthState; on: string }) {
             <>
                 <circle cx="17" cy="20" r="2.7" fill={on} />
                 <circle cx="31" cy="20" r="2.7" fill={on} />
-                <path d="M15 31 H33" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
+                <path d="M14 31 H34" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
             </>
         )
     if (state === 'down')
