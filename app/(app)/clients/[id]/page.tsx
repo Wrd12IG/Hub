@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
+import { ClientHealthBadge } from "@/components/ClientHealthBadge";
 import { CompetitorsSection } from "@/components/CompetitorsSection";
 import { CompetitivePressureSection } from "@/components/CompetitivePressureSection";
 import MetaCampaignReportModal from "@/components/MetaCampaignReportModal";
@@ -615,9 +616,16 @@ export default function ClientDetailPage() {
             <ArrowLeft className="h-3.5 w-3.5" /> Tutti i clienti
           </Link>
           <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tight text-foreground font-headline">
-              {client.name}
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black tracking-tight text-foreground font-headline">
+                {client.name}
+              </h1>
+              {/* Come sta andando il cliente, in una faccia e un numero. Guarda
+                  solo il risultato (esito vs 30 giorni precedenti); setup ads,
+                  SEO e impression share sono le cause, nel pannello al click.
+                  Il perché di questa scelta: lib/client-health.ts. */}
+              <ClientHealthBadge clientId={id as string} adsHealthOverall={adsHealthOverall} />
+            </div>
             <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-muted-foreground">
               {client.websiteUrl && (
                 <a
