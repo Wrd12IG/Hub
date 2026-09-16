@@ -18,9 +18,22 @@ import { adsSetupReason, type ClientHealth, type HealthReason, type HealthState 
  * Cosa significa il voto e perché guarda solo il risultato: lib/client-health.ts.
  */
 
+/**
+ * Verde e rosso sono ovvi. Il neutro era ambra (#d97706) e a 48px accanto a un
+ * nome in nero diventava marrone: il giallo pieno è il colore che quella
+ * ambra voleva essere, ed è anche quello dello smiley classico, quindi si
+ * riconosce prima.
+ *
+ * Il giallo però impone i tratti scuri: il bianco su #facc15 sta a 1,4:1 e
+ * non si legge. Per questo `on` è per stato e non una costante — l'unico
+ * motivo per cui questa tabella ha due colonne.
+ *
+ * Lo stato senza dati resta distinguibile perché è un cerchio vuoto
+ * tratteggiato, non un disco pieno.
+ */
 const TONE: Record<HealthState, { fill: string; on: string }> = {
     up: { fill: '#059669', on: '#ffffff' },
-    flat: { fill: '#d97706', on: '#ffffff' },
+    flat: { fill: '#facc15', on: '#1c1917' },
     down: { fill: '#dc2626', on: '#ffffff' },
     unknown: { fill: 'none', on: '#94a3b8' },
 }
@@ -61,38 +74,49 @@ export function fmtChip(h: { deltaPct?: number | null; deltaAbs?: number | null;
     return 'n/d'
 }
 
+/**
+ * ⚠️ Vincolo geometrico: il chip del delta parte a y=35 e col suo bordo
+ * (strokeWidth 2.5, centrato) dipinge da y=33,75. Nessun tratto del viso può
+ * scendere sotto quella soglia, bordo dello stroke incluso.
+ *
+ * La prima versione lo violava: il sorriso arrivava a 34,2 e le punte della
+ * bocca arrabbiata a 36,2, quindi su verde e rosso la bocca finiva sotto il
+ * chip e spariva. Il neutro, con la bocca a 32,7, si vedeva — ed è ciò che
+ * rendeva il bug difficile da attribuire: sembrava un problema di contrasto
+ * del colore, non di geometria.
+ */
 function Features({ state, on }: { state: HealthState; on: string }) {
     if (state === 'up')
         return (
             <>
-                <circle cx="17" cy="19.5" r="2.7" fill={on} />
-                <circle cx="31" cy="19.5" r="2.7" fill={on} />
-                <path d="M13.5 27.5 Q24 37.5 34.5 27.5" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
+                <circle cx="17" cy="18" r="2.7" fill={on} />
+                <circle cx="31" cy="18" r="2.7" fill={on} />
+                <path d="M14 25.5 Q24 34.5 34 25.5" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
             </>
         )
     if (state === 'flat')
         return (
             <>
-                <circle cx="17" cy="20" r="2.7" fill={on} />
-                <circle cx="31" cy="20" r="2.7" fill={on} />
-                <path d="M15 31 H33" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
+                <circle cx="17" cy="19" r="2.7" fill={on} />
+                <circle cx="31" cy="19" r="2.7" fill={on} />
+                <path d="M14 29 H34" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
             </>
         )
     if (state === 'down')
         return (
             <>
-                <path d="M12.5 15.5 L20 19.5" fill="none" stroke={on} strokeWidth="3" strokeLinecap="round" />
-                <path d="M35.5 15.5 L28 19.5" fill="none" stroke={on} strokeWidth="3" strokeLinecap="round" />
-                <circle cx="17" cy="23.5" r="2.6" fill={on} />
-                <circle cx="31" cy="23.5" r="2.6" fill={on} />
-                <path d="M14.5 34.5 Q24 27 33.5 34.5" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
+                <path d="M12.5 14 L20 18" fill="none" stroke={on} strokeWidth="3" strokeLinecap="round" />
+                <path d="M35.5 14 L28 18" fill="none" stroke={on} strokeWidth="3" strokeLinecap="round" />
+                <circle cx="17" cy="21.5" r="2.6" fill={on} />
+                <circle cx="31" cy="21.5" r="2.6" fill={on} />
+                <path d="M15 31 Q24 23.5 33 31" fill="none" stroke={on} strokeWidth="3.4" strokeLinecap="round" />
             </>
         )
     return (
         <>
-            <path d="M14 21 H19.5" fill="none" stroke={on} strokeWidth="2.6" strokeLinecap="round" />
-            <path d="M28.5 21 H34" fill="none" stroke={on} strokeWidth="2.6" strokeLinecap="round" />
-            <path d="M15.5 31 H32.5" fill="none" stroke={on} strokeWidth="2.6" strokeLinecap="round" strokeDasharray="3 4" />
+            <path d="M14 20 H19.5" fill="none" stroke={on} strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M28.5 20 H34" fill="none" stroke={on} strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M15.5 29.5 H32.5" fill="none" stroke={on} strokeWidth="2.6" strokeLinecap="round" strokeDasharray="3 4" />
         </>
     )
 }
