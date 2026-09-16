@@ -76,17 +76,31 @@ export function MarketingReportTab({
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  const fetchReport = useCallback(async () => {
+  const [computedAt, setComputedAt] = useState<string | null>(null)
+  const [fromCache, setFromCache] = useState(false)
+
+  /**
+   * `refresh` salta la cache lato server. L'apertura della pagina non lo usa —
+   * è tutto il punto della cache — ma "Aggiorna" sì: un bottone che rilegge la
+   * stessa copia non aggiorna niente e lo si preme due volte chiedendosi
+   * perché non cambia.
+   */
+  const fetchReport = useCallback(async (refresh = false) => {
     setLoading(true)
     setLoadError(null)
     try {
-      const res = await fetch(`/api/clients/${clientId}/reporting?date_preset=${datePreset}&days=${daysBack ?? 30}&compare=${compare}`, { headers: authHeaders() })
+      const res = await fetch(
+        `/api/clients/${clientId}/reporting?date_preset=${datePreset}&days=${daysBack ?? 30}&compare=${compare}${refresh ? '&refresh=1' : ''}`,
+        { headers: authHeaders() }
+      )
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error || `Errore ${res.status}`)
       }
       const data = await res.json()
       setPlatforms(data.platforms || [])
+      setComputedAt(data.computedAt ?? null)
+      setFromCache(!!data.cached)
     } catch (err: any) {
       setLoadError(err.message || 'Impossibile caricare il report')
     } finally {
@@ -94,7 +108,7 @@ export function MarketingReportTab({
     }
   }, [clientId, datePreset, daysBack, compare])
 
-  useEffect(() => { fetchReport() }, [fetchReport])
+  useEffect(() => { fetchReport(false) }, [fetchReport])
 
   const connectedCount = platforms?.filter(p => p.connected).length ?? 0
   const noPlatformsConfigured = platforms !== null && platforms.length === 0
@@ -127,10 +141,20 @@ export function MarketingReportTab({
           <p className="text-sm text-muted-foreground">
             KPI reali da Windsor.ai per il periodo selezionato. Apri &quot;Dettaglio&quot; per la vista completa di un account.
           </p>
+          {computedAt && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {fromCache ? 'Dati calcolati il' : 'Aggiornato il'}{' '}
+              {new Date(computedAt).toLocaleString('it-IT', {
+                day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+              })}
+              {fromCache && ' — premi Aggiorna per rileggere le piattaforme'}
+            </p>
+          )}
         </div>
         <button
-          onClick={fetchReport}
-          className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border hover:bg-muted transition-colors"
+          onClick={() => fetchReport(true)}
+          disabled={loading}
+          className="flex items-center gap-1.5 text-sm px-3 py-2 rounded-lg border hover:bg-muted transition-colors disabled:opacity-50"
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Aggiorna
         </button>
