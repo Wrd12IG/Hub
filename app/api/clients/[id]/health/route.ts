@@ -19,8 +19,16 @@ export const maxDuration = 60;
  */
 const DAYS = 30;
 
-/** Quanto resta valido un verdetto in cache. */
-const TTL_MS = 6 * 60 * 60 * 1000;
+/**
+ * Quanto resta valido un verdetto in cache.
+ *
+ * ⚠️ Un verdetto calcolato su una fonte che non ha risposto non va tenuto sei
+ * ore: il badge mostrerebbe "manca il periodo di confronto" per tutta la
+ * giornata per un guasto durato un minuto, e "Ricalcola" sembrerebbe rotto.
+ * In quel caso la cache dura un quarto d'ora.
+ */
+const TTL_OK_MS = 6 * 60 * 60 * 1000;
+const TTL_DEGRADED_MS = 15 * 60 * 1000;
 
 function isoDaysAgo(days: number): string {
     const d = new Date();
@@ -52,7 +60,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (!refresh) {
         const cached = await cacheRef.get().catch(() => null);
         const data = cached?.exists ? (cached.data() as any) : null;
-        if (data?.computedAt && Date.now() - Date.parse(data.computedAt) < TTL_MS) {
+        if (data?.computedAt && Date.now() - Date.parse(data.computedAt) < (data.ttlMs ?? TTL_OK_MS)) {
             return NextResponse.json({ ...(data.health as ClientHealth), computedAt: data.computedAt, cached: true });
         }
     }
@@ -123,9 +131,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         });
 
         const computedAt = new Date().toISOString();
+        // Se una fonte non ha risposto, il verdetto è provvisorio: si tiene
+        // poco, così al prossimo giro si riprova.
+        const degraded = platforms.length === 0 || platforms.some((p) => !p.connected);
+        const ttlMs = degraded ? TTL_DEGRADED_MS : TTL_OK_MS;
+
         // Un errore di scrittura sulla cache non deve togliere all'utente un
         // verdetto già calcolato.
-        await cacheRef.set({ computedAt, days: DAYS, health }).catch((err: any) => {
+        // Giro da JSON per la stessa ragione della route /reporting: Firestore
+        // rifiuta gli `undefined` e questo progetto non ha
+        // `ignoreUndefinedProperties`. Oggi ClientHealth non ha campi
+        // opzionali, quindi non serve — ma il giorno che ne acquista uno la
+        // cache smetterebbe di scrivere in silenzio, e nessuno collegherebbe
+        // le due cose.
+        await cacheRef.set(JSON.parse(JSON.stringify({ computedAt, days: DAYS, ttlMs, health }))).catch((err: any) => {
             console.error(`[health] cache non scritta per ${clientId}:`, err.message);
         });
 
