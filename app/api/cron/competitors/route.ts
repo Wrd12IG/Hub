@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { denyUnlessCron } from '@/lib/cron-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { collectForClient } from '@/app/api/clients/[id]/competitors/route';
 
@@ -11,13 +12,12 @@ export const maxDuration = 300;
  * com'è il sito adesso, un giro quotidiano dice **quando è cambiato**. È la
  * differenza fra guardare una foto e accorgersi che qualcosa si è mosso.
  *
- * Protetto dallo stesso segreto delle altre cron.
+ * Protetto dallo stesso segreto delle altre cron (vedi lib/cron-auth.ts:
+ * Vercel manda `Authorization: Bearer`, non un header custom).
  */
 export async function GET(request: NextRequest) {
-  const secret = request.headers.get('x-cron-secret');
-  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = denyUnlessCron(request, 'cron/competitors');
+  if (denied) return denied;
 
   const started = Date.now();
   const results: { clientId: string; collected: number; changes: number; error?: string }[] = [];
