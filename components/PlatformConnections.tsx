@@ -180,7 +180,7 @@ function AccountChip({
       <div className="min-w-0">
         <p className="text-xs font-semibold text-foreground truncate">{name}</p>
         {sub && (
-          <p className="text-[10px] text-muted-foreground/70 truncate">{sub}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{sub}</p>
         )}
       </div>
       {onRemove && (
@@ -217,7 +217,15 @@ function ModalWrapper({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-[#0f0f12] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in-0 zoom-in-95 duration-150">
+      {/* ⚠️ `dark` non è decorativa. Il pannello è fisso su #0f0f12, ma i
+          token del tema (text-foreground, text-muted-foreground,
+          bg-background) seguono il tema dell'app: in tema chiaro diventavano
+          scuri, quindi su questo fondo il titolo, i testi e gli input erano
+          illeggibili — in tutti gli otto modali di questo file, non solo uno.
+          `darkMode: ["class"]` + il blocco `.dark` in globals.css fanno sì
+          che questa singola classe rimetta a posto l'intera palette interna.
+          Va tolta solo se il pannello smette di essere scuro. */}
+      <div className="dark bg-[#0f0f12] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in-0 zoom-in-95 duration-150">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-foreground">{title}</h3>
           <button
@@ -284,12 +292,12 @@ function MetaModal({
         <div className="space-y-1.5">
           <label htmlFor="meta-ad-account-id" className="text-xs font-bold text-muted-foreground">Ad Account ID</label>
           <input id="meta-ad-account-id" value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="act_123456789"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-page-id" className="text-xs font-bold text-muted-foreground">Page ID (Facebook)</label>
           <input id="meta-page-id" value={pageId} onChange={(e) => setPageId(e.target.value)} placeholder="es. 104345345345"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-system-user-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
@@ -298,7 +306,7 @@ function MetaModal({
           </label>
           <input id="meta-system-user-token" type="password" value={token} onChange={(e) => setToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "EAAB... (System User Token)"}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <button onClick={save} disabled={saving}
           className="w-full py-2.5 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
@@ -348,7 +356,7 @@ function GA4Modal({
         <div className="space-y-1.5">
           <label htmlFor="ga4-property-id" className="text-xs font-bold text-muted-foreground">GA4 Property ID</label>
           <input id="ga4-property-id" value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="es. 345678901"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="ga4-refresh-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
@@ -357,8 +365,8 @@ function GA4Modal({
           </label>
           <input id="ga4-refresh-token" type="password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder={hasGoogleToken ? "Lascia vuoto per mantenere" : "1//04ABCD..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground/40" />
-          <p className="text-[10px] text-muted-foreground/60">Il token è condiviso tra Google Ads, GA4 e GBP.</p>
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">Il token è condiviso tra Google Ads, GA4 e GBP.</p>
         </div>
         <button onClick={save} disabled={saving}
           className="w-full py-2.5 text-sm font-bold bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
@@ -406,8 +414,8 @@ function GoogleAdsModal({
         <div className="space-y-1.5">
           <label htmlFor="google-ads-customer-id" className="text-xs font-bold text-muted-foreground">Customer ID</label>
           <input id="google-ads-customer-id" value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="es. 123-456-7890"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground/40" />
-          <p className="text-[10px] text-muted-foreground/60">Trovalo su ads.google.com in alto a destra.</p>
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">Trovalo su ads.google.com in alto a destra.</p>
         </div>
         <button onClick={save} disabled={saving || !customerId.trim()}
           className="w-full py-2.5 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
@@ -450,8 +458,8 @@ function ClarityModal({
         <div className="space-y-1.5">
           <label htmlFor="clarity-project-id" className="text-xs font-bold text-muted-foreground">Project ID</label>
           <input id="clarity-project-id" value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="es. 8abc123def"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-violet-500/50 transition-all placeholder:text-muted-foreground/40" />
-          <p className="text-[10px] text-muted-foreground/60">
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-violet-500/50 transition-all placeholder:text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">
             Trovalo su{" "}
             <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">clarity.microsoft.com</a>
             {" "}→ Impostazioni progetto.
@@ -520,9 +528,9 @@ function WindsorGbpModal({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={"accounts/123456789/locations/111\naccounts/123456789/locations/222"}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40 font-mono"
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground font-mono"
           />
-          <p className="text-[10px] text-muted-foreground/60">
+          <p className="text-[10px] text-muted-foreground">
             Una riga per ogni sede del cliente. Il nome della sede viene letto automaticamente da Windsor,
             non serve scriverlo qui. Richiede che il connector Google Business Profile sia collegato su
             onboard.windsor.ai.
@@ -597,9 +605,12 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
   }
 
   // I placeholder qui fanno da etichetta: non ci sono label, quindi devono
-  // essere leggibili. Erano a text-muted-foreground/40, che su questo fondo
-  // dà 1,3:1 — invisibile, e i campi vuoti sembravano disabilitati. A piena
-  // opacità stanno a ~4,9:1.
+  // essere leggibili. Erano al 40% di opacità, che sulla palette scura dà
+  // 1,3:1 — invisibile, e i campi vuoti sembravano disabilitati.
+  //
+  // La causa principale però stava altrove: il modale non portava la palette
+  // scura, quindi bg-background/50 rendeva un blocco quasi bianco sotto un
+  // testo scuro. Vedi la nota sulla classe `dark` in ModalWrapper.
   //
   // `outline-none` senza un focus visibile toglie anche l'unico segnale di
   // quale campo è attivo, quindi il ring va rimesso a mano.
@@ -610,7 +621,7 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
   return (
     <ModalWrapper title="Competitor territoriali" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-[11px] text-muted-foreground/70">
+        <p className="text-[11px] text-muted-foreground">
           Il sito viene letto ogni notte per segnalare offerte e cambiamenti. I link social si salvano come
           scorciatoie: Instagram e LinkedIn non si lasciano leggere da un server, quindi da lì non ricaviamo numeri.
         </p>
@@ -703,8 +714,8 @@ function KlaviyoModal({
           <label htmlFor="klaviyo-key" className="text-xs font-bold text-muted-foreground">Private API Key</label>
           <input id="klaviyo-key" type="password" autoComplete="off" value={apiKey}
             onChange={(e) => setApiKey(e.target.value)} placeholder="pk_..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
-          <p className="text-[10px] text-muted-foreground/60">
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">
             In Klaviyo: Settings → Account → API keys → Create Private API Key. Scegli <strong>Custom Key</strong> e dai
             la sola lettura su <code>accounts</code>, <code>metrics</code>, <code>campaigns</code>, <code>flows</code>,
             <code>lists</code> e <code>segments</code>. La chiave viene cifrata prima di essere salvata e non è più
@@ -775,8 +786,8 @@ function WindsorFieldModal({
         <div className="space-y-1.5">
           <label htmlFor={`windsor-${fieldKey}`} className="text-xs font-bold text-muted-foreground">ID account</label>
           <input id={`windsor-${fieldKey}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground/40" />
-          <p className="text-[10px] text-muted-foreground/60">{hint}</p>
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">{hint}</p>
         </div>
         <button onClick={save} disabled={saving || !value.trim()}
           className="w-full py-2.5 text-sm font-bold text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
@@ -981,7 +992,7 @@ function YoutubeModal({
         )}
         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
           <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
-          <ol className="text-[10px] text-muted-foreground/70 space-y-0.5 list-decimal list-inside">
+          <ol className="text-[10px] text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>Google Cloud Console → Credenziali → OAuth 2.0</li>
             <li>Abilita YouTube Data API v3 + YouTube Analytics API</li>
             <li>Usa OAuth Playground per ottenere access + refresh token</li>
@@ -992,13 +1003,13 @@ function YoutubeModal({
           <label htmlFor="youtube-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
           <input id="youtube-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "ya29.a0..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="youtube-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato per rinnovo automatico)</label>
           <input id="youtube-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="1//0e..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="flex gap-2">
           {hasToken && (
@@ -1101,7 +1112,7 @@ function TikTokModal({
         )}
         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
           <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
-          <ol className="text-[10px] text-muted-foreground/70 space-y-0.5 list-decimal list-inside">
+          <ol className="text-[10px] text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>developers.tiktok.com → crea app → aggiungi scopes</li>
             <li>Scopes: user.info.basic, video.list</li>
             <li>Autorizza l'account del cliente via OAuth</li>
@@ -1112,13 +1123,13 @@ function TikTokModal({
           <label htmlFor="tiktok-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
           <input id="tiktok-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "act.xxx..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="tiktok-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato)</label>
           <input id="tiktok-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="rft.xxx..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="flex gap-2">
           {hasToken && (
@@ -1226,7 +1237,7 @@ function LinkedinModal({
         )}
         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
           <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
-          <ol className="text-[10px] text-muted-foreground/70 space-y-0.5 list-decimal list-inside">
+          <ol className="text-[10px] text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>linkedin.com/developers → crea app → prodotti: Marketing API</li>
             <li>Scopes: r_organization_social, r_organization_admin</li>
             <li>Autorizza il cliente via OAuth 2.0</li>
@@ -1237,20 +1248,20 @@ function LinkedinModal({
           <label htmlFor="linkedin-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
           <input id="linkedin-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "AQV..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="linkedin-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (se disponibile)</label>
           <input id="linkedin-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="AQW..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="linkedin-org-id" className="text-xs font-bold text-muted-foreground">Organization ID (numero della pagina)</label>
           <input id="linkedin-org-id" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
             placeholder="es. 12345678"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground/40" />
-          <p className="text-[10px] text-muted-foreground/60">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
+            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
+          <p className="text-[10px] text-muted-foreground">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
         </div>
         <div className="flex gap-2">
           {hasToken && (
@@ -1360,7 +1371,7 @@ export default function PlatformConnections({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasMetaToken || !!client.metaAdAccountId, "#1877F2")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasMetaToken || !!client.metaAdAccountId, "#1877F2")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#60a5fa")}>
@@ -1371,12 +1382,12 @@ export default function PlatformConnections({
             {client.hasMetaToken && <ConnectedBadge />}
           </div>
           <button type="button" onClick={() => setActiveModal("meta")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
             {client.hasMetaToken ? <><ExternalLink size={11} /> Modifica configurazione</> : <><Link2 size={11} /> Collega Meta Ads</>}
           </button>
         </div>
 
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.googleAdAccountId, "#4285F4")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.googleAdAccountId, "#4285F4")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5">
@@ -1387,12 +1398,12 @@ export default function PlatformConnections({
             {client.googleAdAccountId && <ConnectedBadge />}
           </div>
           <button type="button" onClick={() => setActiveModal("google-ads")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-400/20 text-blue-300 bg-blue-400/5 hover:bg-blue-400/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-400/20 text-blue-300 bg-blue-400/5 hover:bg-blue-400/10 transition-all cursor-pointer">
             {client.googleAdAccountId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Google Ads</>}
           </button>
         </div>
 
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.ga4PropertyId, "#F9AB00")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.ga4PropertyId, "#F9AB00")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5">
@@ -1406,12 +1417,12 @@ export default function PlatformConnections({
             {client.ga4PropertyId && <ConnectedBadge />}
           </div>
           <button type="button" onClick={() => setActiveModal("ga4")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-yellow-500/20 text-yellow-400 bg-yellow-500/5 hover:bg-yellow-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-yellow-500/20 text-yellow-400 bg-yellow-500/5 hover:bg-yellow-500/10 transition-all cursor-pointer">
             {client.ga4PropertyId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Analytics</>}
           </button>
         </div>
 
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(gbpLocations.length > 0, "#34A853")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(gbpLocations.length > 0, "#34A853")}>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
@@ -1422,14 +1433,14 @@ export default function PlatformConnections({
             {gbpLocations.length > 0 && <ConnectedBadge />}
           </div>
           <button type="button" onClick={() => setActiveModal("gbp-add")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
             <Plus size={11} />
             {gbpLocations.length > 0 ? "Aggiungi un'altra sede" : "Collega Sede GBP"}
           </button>
         </div>
 
         {/* ── MICROSOFT CLARITY ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.clarityProjectId, "#7719AA")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.clarityProjectId, "#7719AA")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#c084fc")}>
@@ -1441,13 +1452,13 @@ export default function PlatformConnections({
           </div>
           {client.clarityProjectId && <AccountChip name={client.clarityProjectId} sub="Heatmaps attive" />}
           <button type="button" onClick={() => setActiveModal("clarity")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-violet-500/20 text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-violet-500/20 text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 transition-all cursor-pointer">
             {client.clarityProjectId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Clarity</>}
           </button>
         </div>
 
         {/* ── YOUTUBE ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasYoutubeToken, "#FF0000")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasYoutubeToken, "#FF0000")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#f87171")}>
@@ -1459,13 +1470,13 @@ export default function PlatformConnections({
           </div>
           {client.youtubeChannelName && <AccountChip name={client.youtubeChannelName} sub="Canale connesso" />}
           <button type="button" onClick={() => setActiveModal("youtube")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-all cursor-pointer">
             {client.hasYoutubeToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega YouTube</>}
           </button>
         </div>
 
         {/* ── TIKTOK ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasTiktokToken, "#fe2c55")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasTiktokToken, "#fe2c55")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "#f0f0f0" }}>
@@ -1477,13 +1488,13 @@ export default function PlatformConnections({
           </div>
           {client.tiktokDisplayName && <AccountChip name={`@${client.tiktokDisplayName}`} sub="Account connesso" />}
           <button type="button" onClick={() => setActiveModal("tiktok")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-pink-500/20 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-pink-500/20 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer">
             {client.hasTiktokToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega TikTok</>}
           </button>
         </div>
 
         {/* ── LINKEDIN ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasLinkedinToken, "#0A66C2")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasLinkedinToken, "#0A66C2")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#60a5fa")}>
@@ -1495,13 +1506,13 @@ export default function PlatformConnections({
           </div>
           {client.linkedinOrgName && <AccountChip name={client.linkedinOrgName} sub="Pagina aziendale" />}
           <button type="button" onClick={() => setActiveModal("linkedin")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-600/20 text-blue-400 bg-blue-600/5 hover:bg-blue-600/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-600/20 text-blue-400 bg-blue-600/5 hover:bg-blue-600/10 transition-all cursor-pointer">
             {client.hasLinkedinToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega LinkedIn</>}
           </button>
         </div>
 
         {/* ── WINDSOR.AI — INSTAGRAM (per Report Marketing) ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.instagram, "#E1306C")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.instagram, "#E1306C")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#f472b6")}>
@@ -1512,13 +1523,13 @@ export default function PlatformConnections({
             {client.windsorAccounts?.instagram && <ConnectedBadge />}
           </div>
           <button type="button" onClick={() => setActiveModal("windsor-instagram")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-pink-500/20 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-pink-500/20 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer">
             {client.windsorAccounts?.instagram ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Instagram</>}
           </button>
         </div>
 
         {/* ── COMPETITOR TERRITORIALI ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(false, "#64748B")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(false, "#64748B")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#94a3b8")}>
@@ -1527,17 +1538,17 @@ export default function PlatformConnections({
               <span className="text-sm font-bold text-foreground">Competitor</span>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground/70">
+          <p className="text-[11px] text-muted-foreground">
             Fino a 5 concorrenti: il Hub ne legge il sito ogni notte e segnala cosa cambia.
           </p>
           <button type="button" onClick={() => setActiveModal("competitors")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-500/20 text-slate-400 bg-slate-500/5 hover:bg-slate-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-slate-500/20 text-slate-400 bg-slate-500/5 hover:bg-slate-500/10 transition-all cursor-pointer">
             <Link2 size={11} /> Gestisci competitor
           </button>
         </div>
 
         {/* ── AWIN — API diretta, token di agenzia ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.awinAdvertiserId, "#8B5CF6")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.awinAdvertiserId, "#8B5CF6")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#a78bfa")}>
@@ -1549,13 +1560,13 @@ export default function PlatformConnections({
           </div>
           {client.awinAdvertiserId && <AccountChip name={client.awinAdvertiserId} sub="Advertiser ID" />}
           <button type="button" onClick={() => setActiveModal("awin")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-violet-500/20 text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-violet-500/20 text-violet-400 bg-violet-500/5 hover:bg-violet-500/10 transition-all cursor-pointer">
             {client.awinAdvertiserId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Awin</>}
           </button>
         </div>
 
         {/* ── KLAVIYO — API diretta, non Windsor ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.hasKlaviyoToken, "#F59E0B")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasKlaviyoToken, "#F59E0B")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#fbbf24")}>
@@ -1566,16 +1577,16 @@ export default function PlatformConnections({
             {client.hasKlaviyoToken && <ConnectedBadge />}
           </div>
           {client.klaviyoAccountName && (
-            <p className="text-[11px] text-muted-foreground/70">Account: {client.klaviyoAccountName}</p>
+            <p className="text-[11px] text-muted-foreground">Account: {client.klaviyoAccountName}</p>
           )}
           <button type="button" onClick={() => setActiveModal("klaviyo")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-amber-500/20 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-amber-500/20 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 transition-all cursor-pointer">
             {client.hasKlaviyoToken ? <><ExternalLink size={11} /> Modifica chiave</> : <><Link2 size={11} /> Collega Klaviyo</>}
           </button>
         </div>
 
         {/* ── WINDSOR.AI — SEARCH CONSOLE (per Report Marketing) ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.searchconsole, "#4285F4")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.searchconsole, "#4285F4")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#60a5fa")}>
@@ -1586,13 +1597,13 @@ export default function PlatformConnections({
             {client.windsorAccounts?.searchconsole && <ConnectedBadge />}
           </div>
           <button type="button" onClick={() => setActiveModal("windsor-searchconsole")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
             {client.windsorAccounts?.searchconsole ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Search Console</>}
           </button>
         </div>
 
         {/* ── WINDSOR.AI — LINKEDIN ORGANIC (per Report Marketing) ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.linkedin_organic, "#34A853")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.linkedin_organic, "#34A853")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
@@ -1602,15 +1613,15 @@ export default function PlatformConnections({
             </div>
             {client.windsorAccounts?.linkedin_organic && <ConnectedBadge />}
           </div>
-          <p className="text-[10px] text-muted-foreground/60 -mt-1">Solo per il Report Marketing — separato dalla connessione LinkedIn qui sopra.</p>
+          <p className="text-[10px] text-muted-foreground -mt-1">Solo per il Report Marketing — separato dalla connessione LinkedIn qui sopra.</p>
           <button type="button" onClick={() => setActiveModal("windsor-linkedin")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
             {client.windsorAccounts?.linkedin_organic ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Org. ID</>}
           </button>
         </div>
 
         {/* ── WINDSOR.AI — GBP MULTI-SEDE (per Report Marketing) ── */}
-        <div className="rounded-2xl border p-5 space-y-3 transition-all duration-200" style={cardStyle((client.windsorAccounts?.gbp?.length ?? 0) > 0, "#34A853")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle((client.windsorAccounts?.gbp?.length ?? 0) > 0, "#34A853")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
@@ -1624,7 +1635,7 @@ export default function PlatformConnections({
             <AccountChip name={`${client.windsorAccounts!.gbp!.length} sede/i`} sub="Nel Report Marketing" />
           )}
           <button type="button" onClick={() => setActiveModal("windsor-gbp")}
-            className="w-full flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
             {(client.windsorAccounts?.gbp?.length ?? 0) > 0 ? <><ExternalLink size={11} /> Modifica sedi</> : <><Link2 size={11} /> Collega sedi GBP</>}
           </button>
         </div>
