@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { denyUnlessCron } from '@/lib/cron-auth'
+import { denyUnlessCron, isCronRequest } from '@/lib/cron-auth'
 
 /** Finta NextRequest: al helper servono solo gli header. */
 function req(headers: Record<string, string>) {
@@ -48,6 +48,32 @@ describe('denyUnlessCron', () => {
         withoutSecret()
         expect(denyUnlessCron(req({ host: 'localhost:9002' }), 't')).toBeNull()
         expect(denyUnlessCron(req({ host: 'hub.wrdigital.it' }), 't')?.status).toBe(401)
+        restore()
+    })
+})
+
+/**
+ * `isCronRequest` decide un'autorizzazione, quindi va testata da sola e non
+ * solo attraverso denyUnlessCron: la usa /api/automations/run per capire se
+ * chi chiama è la cron o una persona.
+ */
+describe('isCronRequest', () => {
+    const prev = process.env.CRON_SECRET
+    const restore = () => { if (prev === undefined) delete process.env.CRON_SECRET; else process.env.CRON_SECRET = prev }
+
+    it('riconosce la cron da entrambi gli header e nega il resto', () => {
+        process.env.CRON_SECRET = SECRET
+        expect(isCronRequest(req({ authorization: `Bearer ${SECRET}` }))).toBe(true)
+        expect(isCronRequest(req({ 'x-cron-secret': SECRET }))).toBe(true)
+        // Un token Firebase è anch'esso un Bearer: non deve passare.
+        expect(isCronRequest(req({ authorization: 'Bearer eyJhbGciOiJSUzI1NiIs' }))).toBe(false)
+        expect(isCronRequest(req({}))).toBe(false)
+        restore()
+    })
+
+    it('senza CRON_SECRET configurato non considera nessuno una cron', () => {
+        delete process.env.CRON_SECRET
+        expect(isCronRequest(req({ authorization: 'Bearer qualunque' }))).toBe(false)
         restore()
     })
 })

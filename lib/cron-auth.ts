@@ -18,17 +18,31 @@ import { NextResponse, type NextRequest } from 'next/server';
  *
  * `x-cron-secret` resta accettato perché è quello che si usa a mano da curl.
  */
-export function denyUnlessCron(request: NextRequest, tag: string): NextResponse | null {
+/**
+ * Se la richiesta porta credenziali di cron valide. Silenziosa: serve alle
+ * route con due chiamanti legittimi, dove "non è la cron" non è un errore ma
+ * un "allora è una persona, verificala come tale".
+ *
+ * Non si può distinguere dall'header: sia la cron di Vercel sia il browser
+ * mandano `Authorization: Bearer`, uno col segreto e l'altro col token
+ * Firebase. L'unico modo è confrontare il valore.
+ */
+export function isCronRequest(request: NextRequest): boolean {
     const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) return false;
     const headerSecret = request.headers.get('x-cron-secret');
     const authHeader = request.headers.get('authorization');
     const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    return headerSecret === cronSecret || bearer === cronSecret;
+}
 
+export function denyUnlessCron(request: NextRequest, tag: string): NextResponse | null {
+    const cronSecret = process.env.CRON_SECRET;
     const host = request.headers.get('host') || '';
     const isLocalhost = host.startsWith('localhost') || host.startsWith('127.0.0.1');
 
     if (cronSecret) {
-        if (headerSecret === cronSecret || bearer === cronSecret) return null;
+        if (isCronRequest(request)) return null;
         console.warn(`[${tag}] accesso non autorizzato da: ${host}`);
         return NextResponse.json({ error: 'Unauthorized. Secret non valido o mancante.' }, { status: 401 });
     }

@@ -50,7 +50,7 @@ export const Sidebar = React.forwardRef<
         <div
             ref={ref}
             className={cn(
-                "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] bg-sidebar border-r border-sidebar-border flex flex-col h-full z-50 relative",
+                "transition-all duration-500 ease-in-out bg-sidebar border-r border-sidebar-border flex flex-col h-full z-50 relative",
                 isOpen ? 'w-64' : 'w-[72px]',
                 className
             )}
@@ -115,7 +115,7 @@ export const SidebarTrigger = React.forwardRef<
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 className={cn(
-                    "transition-transform duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                    "transition-transform duration-500 ease-in-out",
                     !isOpen && 'rotate-180'
                 )}
             >
@@ -188,7 +188,7 @@ export const SidebarMenuButton = React.forwardRef<
                 }}
                 className={cn(
                     "w-full text-left rounded-xl flex items-center gap-3 relative overflow-hidden group/menu-btn",
-                    "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                    "transition-all duration-300 ease-in-out",
                     isOpen ? 'px-3 py-2.5' : 'p-2.5 justify-center',
                     isActive
                         ? 'bg-primary/15 text-primary font-bold shadow-sm'
@@ -256,7 +256,7 @@ export const SidebarGroupLabel = React.forwardRef<
             ref={ref}
             className={cn(
                 "px-3 mb-1 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider",
-                "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
+                "transition-all duration-500 ease-in-out",
                 !isOpen && "opacity-0 h-0 mb-0 overflow-hidden",
                 className
             )}
