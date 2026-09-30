@@ -9,6 +9,14 @@ import {
 import { isCronRequest } from '@/lib/cron-auth';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
+// Questa route legge gli header a ogni richiesta, quindi non può essere
+// prerenderizzata. Senza questa riga Next.js ci prova comunque in build, il
+// tentativo esplode con DYNAMIC_SERVER_USAGE e il log si riempie di stack
+// trace che sembrano guasti e non lo sono. Per una route di cron il rischio è
+// peggiore del rumore: una risposta messa in cache staticamente risponderebbe
+// sempre la stessa cosa senza eseguire nulla.
+export const dynamic = 'force-dynamic';
+
 // Tre controlli in parallelo, ognuno legge tutti i task e tutti gli utenti e
 // manda le email in sequenza. Senza un tetto esplicito Vercel usa il default e
 // uccide la richiesta a metà.

@@ -29,6 +29,14 @@ import { denyUnlessCron } from '@/lib/cron-auth';
 import { buildEveningReport, buildEveningReportHtml } from '@/lib/evening-report';
 import nodemailer from 'nodemailer';
 
+// Questa route legge gli header a ogni richiesta, quindi non può essere
+// prerenderizzata. Senza questa riga Next.js ci prova comunque in build, il
+// tentativo esplode con DYNAMIC_SERVER_USAGE e il log si riempie di stack
+// trace che sembrano guasti e non lo sono. Per una route di cron il rischio è
+// peggiore del rumore: una risposta messa in cache staticamente risponderebbe
+// sempre la stessa cosa senza eseguire nulla.
+export const dynamic = 'force-dynamic';
+
 // ─── Configurazione ───────────────────────────────────────────────────────────
 
 const RECIPIENT_EMAIL =

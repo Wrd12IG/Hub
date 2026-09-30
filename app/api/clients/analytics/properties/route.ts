@@ -10,6 +10,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 
+// Questa route legge gli header a ogni richiesta, quindi non può essere
+// prerenderizzata. Senza questa riga Next.js ci prova comunque in build, il
+// tentativo esplode con DYNAMIC_SERVER_USAGE e il log si riempie di stack
+// trace che sembrano guasti e non lo sono. Per una route di cron il rischio è
+// peggiore del rumore: una risposta messa in cache staticamente risponderebbe
+// sempre la stessa cosa senza eseguire nulla.
+export const dynamic = 'force-dynamic';
+
 /** Ottieni un access token Google tramite Service Account JSON */
 async function getGoogleAccessToken(): Promise<string> {
   const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
