@@ -44,6 +44,19 @@ export async function verifyAuth(request: Request): Promise<AuthUser | null> {
 
     return null;
   } catch (err: any) {
+    // DYNAMIC_SERVER_USAGE non è un guasto: è Next.js che in build prova a
+    // prerenderizzare una route e noi leggiamo gli header. Loggarlo come
+    // "Unexpected error" con dieci righe di stack a ogni deploy trasformava il
+    // log in rumore — ed è in mezzo a quel rumore che sono rimasti nascosti per
+    // mesi un digest che non partiva e delle automazioni mai eseguite. Quando
+    // l'allarme suona sempre, nessuno lo sente più.
+    //
+    // La cura vera è `export const dynamic = 'force-dynamic'` sulla route; qui
+    // si evita solo di descrivere male ciò che resta.
+    if (err?.digest === 'DYNAMIC_SERVER_USAGE') {
+      console.warn('[api-auth] verifyAuth chiamata durante il prerender: la route ha bisogno di export const dynamic = "force-dynamic".');
+      return null;
+    }
     console.error('[api-auth] Unexpected error in verifyAuth:', err);
     return null;
   }
