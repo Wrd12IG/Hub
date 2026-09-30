@@ -4,7 +4,16 @@ const withPWA = require('next-pwa')({
     disable: process.env.NODE_ENV === 'development',
     register: true,
     skipWaiting: true,
-    reloadOnOnline: true,
+    // ⚠️ NON rimettere a true. next-pwa la traduce in
+    //     window.addEventListener('online', () => location.reload())
+    // e l'evento `online` non significa "è tornata la rete dopo un'ora":
+    // scatta a ogni singhiozzo del WiFi, al risveglio del portatile, al
+    // cambio di access point, a una VPN che si riconnette. In ufficio
+    // succedeva diverse volte al giorno a testa, e chi stava scrivendo un
+    // task si vedeva ricaricare la pagina perdendo tutto senza un avviso.
+    // Il prezzo di spegnerla: una scheda rimasta offline non si aggiorna da
+    // sé quando torna la rete. Molto meno grave.
+    reloadOnOnline: false,
     cacheOnFrontEndNav: true,
     fallbacks: {
         document: '/dashboard', // Fallback per pagine offline

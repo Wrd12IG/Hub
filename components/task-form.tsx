@@ -44,6 +44,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { useUnsavedGuard } from "@/hooks/use-unsaved-guard"
 import { useLayoutData } from "@/app/(app)/layout-context"
 import DatePickerDialog from "@/components/ui/date-picker-dialog"
 import { Task, User, allTaskStatuses, allTaskPriorities } from "@/lib/data"
@@ -126,6 +127,21 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
             sendEmailNotification: true, // Default true come richiesto
         },
     })
+
+    /**
+     * Rete di sicurezza contro la perdita di lavoro: finché ci sono modifiche
+     * non salvate, il browser chiede conferma prima di ricaricare o chiudere.
+     *
+     * `form.reset()` viene chiamato in fondo a onSubmit, quindi dopo un
+     * salvataggio riuscito `isDirty` torna false e la guardia si disarma da
+     * sé. Durante il salvataggio `isLoading` la tiene spenta, così il reload
+     * che segue un successo non viene intercettato.
+     *
+     * `pendingFiles` entra nel conto perché sono allegati già caricati ma non
+     * ancora associati al task: react-hook-form non li vede, ma perderli è
+     * perdere lavoro.
+     */
+    useUnsavedGuard((form.formState.isDirty || pendingFiles.length > 0) && !isLoading)
 
     const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray({
         control: form.control,
