@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { Input } from '@/components/ui/input'
@@ -11,10 +11,40 @@ import { Button } from '@/components/ui/button'
 import { Building2, Globe, Search, ArrowRight, PlusCircle } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid'
+import { ClientHealthDot, type ClientHealthRow } from '@/components/ClientHealthDot'
 
 export default function ClientsPage() {
   const { clients, isLoadingLayout } = useLayoutData()
   const [search, setSearch] = useState('')
+
+  /* I verdetti già calcolati, in una chiamata sola. La route non calcola
+     nulla: chi non ce l'ha in cache resta senza faccia finché qualcuno non
+     apre quel cliente. Vedi app/api/clients/health/route.ts. */
+  const [health, setHealth] = useState<Record<string, ClientHealthRow>>({})
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const res = await fetch('/api/clients/health', { headers: { Authorization: `Bearer ${token}` } })
+        if (!res.ok) return
+        const j = await res.json()
+        if (cancelled) return
+        const byId: Record<string, ClientHealthRow> = {}
+        for (const row of (j.clients ?? []) as ClientHealthRow[]) byId[row.clientId] = row
+        setHealth(byId)
+      } catch {
+        // Il badge è un extra: se non arriva, la lista funziona uguale.
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const withVerdict = useMemo(
+    () => Object.values(health).filter((r) => r.cached && r.state && r.state !== 'unknown').length,
+    [health]
+  )
 
   const filteredClients = useMemo(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,7 +63,10 @@ export default function ClientsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight font-headline">Clienti</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            {isLoadingLayout ? '…' : `${clients?.length ?? 0} clienti totali`}
+            {isLoadingLayout
+              ? '…'
+              : `${clients?.length ?? 0} clienti totali` +
+                (withVerdict > 0 ? ` · ${withVerdict} con un andamento calcolato` : '')}
           </p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -114,7 +147,10 @@ export default function ClientsPage() {
                         {client?.name || 'Cliente'}
                       </h2>
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <ClientHealthDot row={health[client.id]} />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
 
                   {/* Details */}
