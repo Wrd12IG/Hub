@@ -45,6 +45,8 @@ import {
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { useUnsavedGuard } from "@/hooks/use-unsaved-guard"
+import { useFormDraft } from "@/hooks/use-form-draft"
+import { useDebounce } from "@/hooks/use-debounce"
 import { useLayoutData } from "@/app/(app)/layout-context"
 import DatePickerDialog from "@/components/ui/date-picker-dialog"
 import { Task, User, allTaskStatuses, allTaskPriorities } from "@/lib/data"
@@ -142,6 +144,67 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
      * perdere lavoro.
      */
     useUnsavedGuard((form.formState.isDirty || pendingFiles.length > 0) && !isLoading)
+
+    /* ── Bozza in localStorage ──────────────────────────────────────────────
+       La guardia qui sopra chiede conferma, ma se si clicca "esci" il lavoro è
+       perso comunque, e non copre un crash del browser né la batteria a zero.
+
+       ⚠️ Gli allegati in attesa NON entrano nella bozza. Sono oggetti `File`
+       con un url da `URL.createObjectURL()`: non sono serializzabili e quel
+       blob muore al reload. Ripristinarli darebbe allegati che puntano al
+       nulla — peggio del problema. Si salvano i nomi e si dice quali
+       riallegare. */
+    const draftKey = currentUser?.id
+        ? `task:${currentUser.id}:${task?.id ?? `new:${defaultClientId ?? '-'}`}`
+        : null
+    const { draft, save: saveDraft, clear: clearDraft, dismiss: dismissDraft } = useFormDraft<Record<string, any>>(draftKey)
+    const [draftRestored, setDraftRestored] = React.useState(false)
+
+    /* ⚠️ In debounce va una STRINGA, non l'oggetto di form.watch().
+       useDebounce ha `value` fra le dipendenze del suo effetto, e watch()
+       restituisce un oggetto nuovo a ogni render: confrontato per identità
+       cambia sempre, l'effetto si riattiva, setDebouncedValue fa ri-renderizzare
+       e si ottiene un ciclo infinito ogni 800 ms che scrive su localStorage
+       senza sosta. Una stringa si confronta per valore e si ferma quando il
+       contenuto è davvero fermo. */
+    const watchedJson = JSON.stringify(form.watch())
+    const debouncedJson = useDebounce(watchedJson, 800)
+
+    React.useEffect(() => {
+        if (!draftKey || isLoading) return
+        if (!form.formState.isDirty) return
+        const values = form.getValues() as Record<string, any>
+        const attachments = (values.attachments ?? []) as any[]
+        const dropped = attachments.filter((a) => a?._pendingUpload).map((a) => a?.filename).filter(Boolean)
+        saveDraft(
+            {
+                ...values,
+                // Date → ISO: JSON non conserva i tipi, e al ripristino va rivissuta.
+                dueDate: values.dueDate instanceof Date ? values.dueDate.toISOString() : values.dueDate,
+                attachments: attachments.filter((a) => !a?._pendingUpload),
+            },
+            dropped.length > 0
+                ? [`${dropped.length === 1 ? 'Il file' : 'I file'} ${dropped.join(', ')} ${dropped.length === 1 ? 'va' : 'vanno'} riallegat${dropped.length === 1 ? 'o' : 'i'}: i file non si possono salvare in una bozza.`]
+                : undefined
+        )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedJson, draftKey, isLoading, saveDraft])
+
+    const restoreDraft = () => {
+        if (!draft) return
+        const v = draft.values
+        form.reset({
+            ...(form.getValues() as any),
+            ...v,
+            dueDate: v.dueDate ? new Date(v.dueDate) : undefined,
+        }, { keepDefaultValues: true })
+        setDraftRestored(true)
+        dismissDraft()
+        toast({
+            title: "Bozza ripresa",
+            description: draft.notes?.[0] ?? "Hai ritrovato quello che avevi scritto.",
+        })
+    }
 
     const { fields: attachmentFields, append: appendAttachment, remove: removeAttachment } = useFieldArray({
         control: form.control,
@@ -450,6 +513,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
             // Reset state
             setPendingFiles([]);
             form.reset()
+            clearDraft()   // il task è salvato: la bozza non serve più
             onSuccess?.()
         } catch (error) {
             console.error(error)
@@ -467,6 +531,33 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4 max-h-[80vh] overflow-y-auto pr-4">
+                {/* Propone la bozza, non la impone: su un task esistente
+                    sovrascrivere in silenzio i valori del server con una bozza
+                    di tre giorni prima sarebbe peggio del problema. */}
+                {draft && !draftRestored && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-amber-500" />
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground">
+                                Hai una bozza non salvata
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Da {new Date(draft.savedAt).toLocaleString('it-IT', {
+                                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                                })}
+                                {draft.notes?.[0] ? ` — ${draft.notes[0]}` : ''}
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button type="button" size="sm" onClick={restoreDraft}>
+                                Riprendi
+                            </Button>
+                            <Button type="button" size="sm" variant="ghost" onClick={clearDraft}>
+                                Scarta
+                            </Button>
+                        </div>
+                    </div>
+                )}
                 {task && (
                     <div className="flex justify-end mb-2">
                         <Button
