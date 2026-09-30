@@ -6,3 +6,4 @@ export { useKeyboardShortcuts, useHubShortcuts, useShortcutsList } from './use-k
 export { useFocusTrap, useAnnounce, useFocusVisible, useId, useReducedMotion } from './use-accessibility';
 export { useCountUp, useCountUpInt, useCountUpDecimal, useCountUpPercent } from './use-count-up';
 export { useSiteIcons, preloadSiteIcons } from './use-site-icons';
+export { useUnsavedGuard } from './use-unsaved-guard';
