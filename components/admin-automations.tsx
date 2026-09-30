@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuthToken } from '@/hooks/use-auth-token';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -71,6 +72,7 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export function AdminAutomations() {
+    const authToken = useAuthToken();
     const [rules, setRules] = useState<AutomationRuleWithFirestore[]>([]);
     const [logs, setLogs] = useState<AutomationLog[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -159,11 +161,14 @@ export function AdminAutomations() {
     const runAutomations = async (type: string = 'all') => {
         setIsRunning(true);
         try {
+            // Il token dell'utente, non un segreto condiviso: la route
+            // verifica che sia staff. NEXT_PUBLIC_AUTOMATION_SECRET finiva nel
+            // bundle del browser, ed era in OR con una stringa scritta nel
+            // codice — chiunque leggesse il JS poteva far partire le
+            // automazioni di tutta la squadra.
             const response = await fetch(`/api/automations/run?type=${type}`, {
                 method: 'POST',
-                headers: {
-                    'x-automation-secret': process.env.NEXT_PUBLIC_AUTOMATION_SECRET || 'default-automation-key'
-                }
+                headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
             });
 
             const result = await response.json();
