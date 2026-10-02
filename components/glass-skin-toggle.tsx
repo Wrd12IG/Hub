@@ -4,26 +4,22 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 /**
- * La skin vetro e' attiva per tutti: la classe arriva gia' dal server, in
- * app/layout.tsx, cosi' non c'e' nessun lampo dell'aspetto vecchio al
- * caricamento.
- *
- * Questo componente serve all'opposto: spegnerla senza un deploy.
- *   ?glass=0  la disattiva e la scelta resta (localStorage)
- *   ?glass=1  la riattiva
- * E' la via d'uscita se su qualche pagina il vetro da' problemi: chiunque puo'
- * tornare all'Hub di prima da solo, subito.
+ * La skin vetro e' SPENTA per tutti: la classe non arriva piu' dal server.
+ * Era accesa di default, ma sulle pagine diverse dalla dashboard dava
+ * problemi, quindi e' tornata opt-in finche' non e' sistemata.
+ *   ?glass=1  la accende su questo browser e la scelta resta (localStorage)
+ *   ?glass=0  la rispegne
  */
 export default function GlassSkinToggle() {
   const params = useSearchParams();
 
   useEffect(() => {
     const q = params.get('glass');
-    if (q === '0') localStorage.setItem('glass-skin', 'off');
-    if (q === '1') localStorage.removeItem('glass-skin');
+    if (q === '1') localStorage.setItem('glass-skin', 'on');
+    if (q === '0') localStorage.removeItem('glass-skin');
 
-    const off = localStorage.getItem('glass-skin') === 'off';
-    document.body.classList.toggle('glass-skin', !off);
+    const on = localStorage.getItem('glass-skin') === 'on';
+    document.body.classList.toggle('glass-skin', on);
   }, [params]);
 
   return null;
