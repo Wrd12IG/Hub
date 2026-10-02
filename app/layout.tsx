@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, DM_Sans, DM_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import "./glass-skin.css";
 import React, { Suspense } from 'react';
 import { Providers } from './providers';
 
@@ -89,7 +90,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmMono.variable} ${jakartaSans.variable} font-body antialiased`}>
+      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmMono.variable} ${jakartaSans.variable} font-body antialiased glass-skin`}>
         <Providers>
           <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><p>Loading...</p></div>}>
             {children}

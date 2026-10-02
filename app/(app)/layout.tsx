@@ -19,6 +19,7 @@ import { BirthdayCelebration } from '@/components/birthday-celebration';
 import FloatingNetworkBackground from '@/components/FloatingNetworkBackground';
 import { PageTransition } from '@/components/PageTransition';
 import FloatingCommandDock from '@/components/floating-command-dock';
+import GlassSkinToggle from '@/components/glass-skin-toggle';
 
 
 
@@ -65,6 +66,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <TranslationProvider>
       <CommandMenuProvider>
         <div className="flex h-screen w-full bg-transparent">
+          <React.Suspense fallback={null}>
+            <GlassSkinToggle />
+          </React.Suspense>
           <FloatingNetworkBackground />
 
           {/* Menu Globale a sinistra nascosto: Navigazione spostata nel Floating Command Dock e Header */}
