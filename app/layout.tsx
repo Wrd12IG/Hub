@@ -90,7 +90,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="it" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmMono.variable} ${jakartaSans.variable} font-body antialiased`}>
+      <body className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmMono.variable} ${jakartaSans.variable} font-body antialiased glass-skin`}>
         <Providers>
           <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><p>Loading...</p></div>}>
             {children}
