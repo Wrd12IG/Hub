@@ -5,18 +5,18 @@
    =========================================================================== */
 
 .glass-skin {
-  --glass-veil: rgba(255, 255, 255, 0.26);
-  --glass-veil-solid: rgba(255, 255, 255, 0.42);
+  --glass-veil: rgba(255, 255, 255, 0.24);
+  --glass-veil-solid: rgba(255, 255, 255, 0.28);
   --glass-rim: rgba(255, 255, 255, 0.55);
-  --glass-blur: blur(18px) saturate(2.1);
+  --glass-blur: blur(11px) saturate(2.1);
 }
 
 .dark .glass-skin {
   /* su fondo scuro il velo non e' bianco: e' luce che si posa, pochissima */
   --glass-veil: rgba(255, 255, 255, 0.07);
-  --glass-veil-solid: rgba(255, 255, 255, 0.11);
+  --glass-veil-solid: rgba(255, 255, 255, 0.1);
   --glass-rim: rgba(255, 255, 255, 0.16);
-  --glass-blur: blur(20px) saturate(1.9);
+  --glass-blur: blur(12px) saturate(1.9);
 }
 
 /* --- qualcosa da guardare dietro il vetro --------------------------------- */
@@ -72,8 +72,8 @@
 .glass-skin [role='dialog'] > div,
 .glass-skin [data-radix-popper-content-wrapper] > * {
   background: var(--glass-veil-solid) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(2.2);
-  backdrop-filter: blur(24px) saturate(2.2);
+  -webkit-backdrop-filter: blur(14px) saturate(2.2);
+  backdrop-filter: blur(14px) saturate(2.2);
   border-color: var(--glass-rim) !important;
   box-shadow:
     0 2px 6px rgba(22, 34, 54, 0.08),
@@ -91,9 +91,9 @@
 
 /* --- dock fluttuante: e' il Dock, trattiamolo da Dock ---------------------- */
 .glass-skin .fixed[class*='bottom-5'] {
-  background: var(--glass-veil-solid) !important;
-  -webkit-backdrop-filter: blur(26px) saturate(2.3);
-  backdrop-filter: blur(26px) saturate(2.3);
+  background: rgba(255, 255, 255, 0.17) !important;
+  -webkit-backdrop-filter: blur(9px) saturate(2.4);
+  backdrop-filter: blur(9px) saturate(2.4);
   border-color: var(--glass-rim) !important;
   box-shadow:
     0 2px 6px rgba(22, 34, 54, 0.1),
