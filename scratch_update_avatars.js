@@ -34,8 +34,13 @@ const db = getFirestore();
 
 // Mappatura immagini disponibili in /images/team/
 const avatarMap = {
+  // ATTENZIONE: il match sotto e' per sottostringa e si ferma alla prima
+  // chiave che trova. Con due Valeria in squadra, le chiavi piu' specifiche
+  // (cognome) devono stare PRIMA di quelle generiche (nome di battesimo),
+  // o "Valeria Giovanna Daniotti" si prenderebbe la foto di Valeria Messinese.
+  'daniotti': '/images/team/valeria-daniotti.jpg',
+  'messinese': '/images/team/valeria.jpg',
   'giada': '/images/team/giada.jpg',
-  'luca': '/images/team/luca.jpg',
   'valentina': '/images/team/valentina.jpg',
   'roberto': '/images/team/roberto.jpg',
   'giuseppe': '/images/team/beppe.jpg',
@@ -46,7 +51,6 @@ const avatarMap = {
   'giulia': '/images/team/giulia.jpg',
   'rebecca': '/images/team/rebecca.jpg',
   'valeria': '/images/team/valeria.jpg',
-  'denise': '/images/team/denise.jpg'
 };
 
 async function main() {
