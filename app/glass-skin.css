@@ -1,0 +1,132 @@
+/* ===========================================================================
+   GLASS SKIN — prova reversibile del linguaggio Liquid Glass sull'Hub vero.
+   Si attiva con ?glass=1 (classe .glass-skin sul body), si spegne con ?glass=0.
+   Non tocca nessun componente: riveste le superfici che gia' esistono.
+   =========================================================================== */
+
+.glass-skin {
+  --glass-veil: rgba(255, 255, 255, 0.26);
+  --glass-veil-solid: rgba(255, 255, 255, 0.42);
+  --glass-rim: rgba(255, 255, 255, 0.55);
+  --glass-blur: blur(18px) saturate(2.1);
+}
+
+.dark .glass-skin {
+  /* su fondo scuro il velo non e' bianco: e' luce che si posa, pochissima */
+  --glass-veil: rgba(255, 255, 255, 0.07);
+  --glass-veil-solid: rgba(255, 255, 255, 0.11);
+  --glass-rim: rgba(255, 255, 255, 0.16);
+  --glass-blur: blur(20px) saturate(1.9);
+}
+
+/* --- qualcosa da guardare dietro il vetro --------------------------------- */
+.glass-skin::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 30% at 10% 6%, rgba(255, 205, 70, 0.34) 0%, rgba(255, 205, 70, 0) 72%),
+    radial-gradient(40% 32% at 94% 10%, rgba(110, 185, 255, 0.32) 0%, rgba(110, 185, 255, 0) 74%),
+    radial-gradient(44% 34% at 90% 92%, rgba(255, 140, 170, 0.26) 0%, rgba(255, 140, 170, 0) 76%),
+    radial-gradient(42% 32% at 8% 88%, rgba(110, 220, 185, 0.26) 0%, rgba(110, 220, 185, 0) 76%),
+    radial-gradient(78% 56% at 50% 46%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.25) 55%, rgba(255, 255, 255, 0) 78%);
+  background-color: #dfe4ea;
+}
+
+.dark .glass-skin::before {
+  background:
+    radial-gradient(38% 30% at 10% 6%, rgba(245, 197, 24, 0.22) 0%, rgba(245, 197, 24, 0) 72%),
+    radial-gradient(40% 32% at 94% 10%, rgba(60, 130, 210, 0.26) 0%, rgba(60, 130, 210, 0) 74%),
+    radial-gradient(44% 34% at 88% 90%, rgba(190, 70, 120, 0.2) 0%, rgba(190, 70, 120, 0) 76%),
+    radial-gradient(42% 32% at 8% 88%, rgba(30, 150, 125, 0.2) 0%, rgba(30, 150, 125, 0) 76%);
+  background-color: #14161a;
+}
+
+/* il fondo dell'app diventa trasparente, se no il vetro non vede nulla */
+.glass-skin,
+.glass-skin [class*='bg-background']:not([class*='hover\\:']) {
+  background-color: transparent !important;
+}
+
+/* --- card, pannelli, superfici -------------------------------------------- */
+.glass-skin [class~='bg-card'],
+.glass-skin [class*='bg-card/'],
+.glass-skin .glass-card {
+  background: var(--glass-veil) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-color: var(--glass-rim) !important;
+  box-shadow:
+    0 1px 2px rgba(22, 34, 54, 0.06),
+    0 12px 28px -18px rgba(22, 34, 54, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12) !important;
+}
+
+/* --- menu, popover, dialog, sheet: qui la trasparenza si nota di piu' ------ */
+.glass-skin [class*='bg-popover'],
+.glass-skin [role='menu'],
+.glass-skin [role='listbox'],
+.glass-skin [role='dialog'] > div,
+.glass-skin [data-radix-popper-content-wrapper] > * {
+  background: var(--glass-veil-solid) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(2.2);
+  backdrop-filter: blur(24px) saturate(2.2);
+  border-color: var(--glass-rim) !important;
+  box-shadow:
+    0 2px 6px rgba(22, 34, 54, 0.08),
+    0 18px 40px -22px rgba(22, 34, 54, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+/* --- header: cornice, quindi trasparenza piena ----------------------------- */
+.glass-skin header[class*='sticky'] {
+  background: var(--glass-veil) !important;
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-bottom-color: var(--glass-rim) !important;
+}
+
+/* --- dock fluttuante: e' il Dock, trattiamolo da Dock ---------------------- */
+.glass-skin .fixed[class*='bottom-5'] {
+  background: var(--glass-veil-solid) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(2.3);
+  backdrop-filter: blur(26px) saturate(2.3);
+  border-color: var(--glass-rim) !important;
+  box-shadow:
+    0 2px 6px rgba(22, 34, 54, 0.1),
+    0 20px 44px -24px rgba(22, 34, 54, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+
+/* --- superfici minori: niente grigio pieno dentro al vetro ----------------- */
+.glass-skin [class~='bg-muted'],
+.glass-skin [class*='bg-muted/'],
+.glass-skin [class~='bg-secondary'],
+.glass-skin [class~='bg-accent'] {
+  background-color: rgba(255, 255, 255, 0.28) !important;
+}
+
+.dark .glass-skin [class~='bg-muted'],
+.dark .glass-skin [class*='bg-muted/'],
+.dark .glass-skin [class~='bg-secondary'],
+.dark .glass-skin [class~='bg-accent'] {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* --- gli input restano leggibili: ci si scrive dentro ---------------------- */
+.glass-skin input,
+.glass-skin textarea,
+.glass-skin [class*='bg-input'] {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.dark .glass-skin input,
+.dark .glass-skin textarea,
+.dark .glass-skin [class*='bg-input'] {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+}

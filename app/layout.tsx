@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, DM_Sans, DM_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import "./glass-skin.css";
 import React, { Suspense } from 'react';
 import { Providers } from './providers';
 
