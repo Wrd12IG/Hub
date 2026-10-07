@@ -245,6 +245,39 @@ export default function ClientDetailPage() {
   const [campaignFilter, setCampaignFilter] = useState("");
   const [ga4Data, setGa4Data] = useState<any | null>(null);
   const [loadingGa4, setLoadingGa4] = useState(false);
+  const [editingDomain, setEditingDomain] = useState(false);
+  const [domainDraft, setDomainDraft] = useState("");
+  const [savingDomain, setSavingDomain] = useState(false);
+
+  const saveDomain = async () => {
+    const raw = domainDraft.trim();
+    // vuoto = rimuove il dominio; altrimenti normalizza con https://
+    const websiteUrl = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(/\/+$/, "") : "";
+    if (websiteUrl && !/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(websiteUrl)) {
+      toast.error("Dominio non valido (es. www.esempio.it)");
+      return;
+    }
+    setSavingDomain(true);
+    try {
+      const res = await fetch(`${API_URL}/api/clients/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ websiteUrl }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setClient((c) => (c ? { ...c, websiteUrl } : c));
+      setEditingDomain(false);
+      toast.success(websiteUrl ? "Dominio salvato" : "Dominio rimosso");
+    } catch (e) {
+      console.error("[domain] save failed:", e);
+      toast.error("Impossibile salvare il dominio. Riprova.");
+    } finally {
+      setSavingDomain(false);
+    }
+  };
   const [overviewDaysBack, setOverviewDaysBack] = useState(30);
   const [compareMode, setCompareMode] = useState("prev_period");
   const [ga4Properties, setGa4Properties] = useState<
@@ -865,6 +898,46 @@ export default function ClientDetailPage() {
                   {client.websiteUrl?.replace("https://", "") ||
                     "Nessun dominio"}
                 </h3>
+                {editingDomain ? (
+                  <form
+                    className="flex items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      saveDomain();
+                    }}
+                  >
+                    <Input
+                      autoFocus
+                      value={domainDraft}
+                      onChange={(e) => setDomainDraft(e.target.value)}
+                      placeholder="www.esempio.it"
+                      className="h-8 w-56"
+                    />
+                    <Button type="submit" size="sm" disabled={savingDomain}>
+                      {savingDomain ? "Salvo…" : "Salva"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingDomain(false)}
+                    >
+                      Annulla
+                    </Button>
+                  </form>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setDomainDraft(client.websiteUrl || "");
+                      setEditingDomain(true);
+                    }}
+                  >
+                    {client.websiteUrl ? "Modifica" : "Imposta dominio"}
+                  </Button>
+                )}
               </div>
 
               {/* WEB ANALYTICS COMPLETO */}
