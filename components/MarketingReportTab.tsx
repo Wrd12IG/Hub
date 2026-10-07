@@ -160,7 +160,7 @@ export function MarketingReportTab({
         </button>
       </div>
 
-      {!loading && !loadError && compare !== 'none' && (
+      {!loadError && platforms && compare !== 'none' && (
         <div className="rounded-xl border p-4 space-y-2">
           <h3 className="text-sm font-bold flex items-center gap-2">
             <AlertCircle size={15} className="text-amber-500" />
