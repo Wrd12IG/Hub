@@ -427,40 +427,27 @@ export default function ClientDetailPage() {
         const data = await res.json();
         setClient(data);
 
-        // Fetch unified Meta + Google Ads campaigns (Campagne tab)
+        // La pagina si sblocca appena il cliente è arrivato: campagne (Windsor,
+        // lente) e report SEO partono in background, senza `await`.
+        setLoading(false);
+
         setLoadingCampaigns(true);
-        try {
-          const campaignsRes = await fetch(
-            `${API_URL}/api/clients/${id}/campaigns`,
-            { headers: { Authorization: `Bearer ${token}` } },
-          );
-          if (campaignsRes.ok) {
-            const campaignsData = await campaignsRes.json();
-            setAllCampaigns(campaignsData.campaigns || []);
-          }
-        } catch (e) {
-          console.error("Failed to load unified campaigns", e);
-        } finally {
-          setLoadingCampaigns(false);
-        }
+        fetch(`${API_URL}/api/clients/${id}/campaigns`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(async (r) => {
+            if (r.ok) setAllCampaigns((await r.json()).campaigns || []);
+          })
+          .catch((e) => console.error("Failed to load unified campaigns", e))
+          .finally(() => setLoadingCampaigns(false));
 
-        // Fetch GA4 Data logic is now moved to its own isolated useEffect (see below) to react to overviewDaysBack Filter
-
-        // Fetch SEO Reports
-        try {
-          const seoRes = await fetch(
-            `${API_URL}/api/clients/${id}/seo-reports`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
-          );
-          if (seoRes.ok) {
-            const seoData = await seoRes.json();
-            setSeoReportsList(seoData || []);
-          }
-        } catch (e) {
-          console.error("Failed to load seo reports", e);
-        }
+        fetch(`${API_URL}/api/clients/${id}/seo-reports`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(async (r) => {
+            if (r.ok) setSeoReportsList((await r.json()) || []);
+          })
+          .catch((e) => console.error("Failed to load seo reports", e));
       } catch (err) {
         setFetchError(
           "Impossibile connettersi al backend. Verifica che il server sia in esecuzione su " +
