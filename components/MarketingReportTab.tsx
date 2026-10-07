@@ -187,7 +187,7 @@ export function MarketingReportTab({
         </div>
       )}
 
-      {loading && (
+      {loading && !platforms && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
@@ -209,8 +209,10 @@ export function MarketingReportTab({
         </div>
       )}
 
-      {!loading && !loadError && platforms && platforms.length > 0 && (
-        <div className="space-y-8">
+      {/* Durante un ricarico (cambio periodo) restano i dati precedenti, attenuati:
+          svuotare la sezione per 10-15s a ogni cambio sembrava che i dati fossero spariti. */}
+      {!loadError && platforms && platforms.length > 0 && (
+        <div className={`space-y-8 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`} aria-busy={loading}>
           {platforms.map((p) => {
             const meta = PLATFORM_META[p.platform]
             const row = p.rows[0] || {}
