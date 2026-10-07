@@ -85,6 +85,19 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<RolePermissions>({});
   const [isLoadingLayout, setIsLoadingLayout] = useState(true);
+  // uid già caricato: i rinnovi orari del token non devono rismontare l'app
+  const loadedUidRef = useRef<string | null>(null);
+  // `tasks` e `projects` sono le collezioni più grosse: i listener partono alla
+  // prima lettura di allTasks/allProjects/tasksById/projectsById (vedi i getter
+  // nel value), non a ogni apertura dell'app.
+  const [wantWorkData, setWantWorkData] = useState(false);
+  const wantWorkRef = useRef(false);
+  const requestWorkData = useCallback(() => {
+    if (wantWorkRef.current) return;
+    wantWorkRef.current = true;
+    // mai setState durante il render di un altro componente
+    queueMicrotask(() => setWantWorkData(true));
+  }, []);
   const [clientDetails, setClientDetails] = useState<Client | null>(null);
   const [pomodoroTask, setPomodoroTask] = useState<Task | null>(null);
 
@@ -139,10 +152,10 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   }, [soundSettings]);
 
 
-  const usersById = useMemo(() => users.reduce((acc, user) => ({ ...acc, [user.id]: user }), {} as Record<string, User>), [users]);
-  const clientsById = useMemo(() => clients.reduce((acc, client) => ({ ...acc, [client.id]: client }), {} as Record<string, Client>), [clients]);
-  const tasksById = useMemo(() => allTasks.reduce((acc, task) => ({ ...acc, [task.id]: task }), {} as Record<string, Task>), [allTasks]);
-  const projectsById = useMemo(() => allProjects.reduce((acc, project) => ({ ...acc, [project.id]: project }), {} as Record<string, Project>), [allProjects]);
+  const usersById = useMemo(() => Object.fromEntries(users.map(user => [user.id, user])) as Record<string, User>, [users]);
+  const clientsById = useMemo(() => Object.fromEntries(clients.map(client => [client.id, client])) as Record<string, Client>, [clients]);
+  const tasksById = useMemo(() => Object.fromEntries(allTasks.map(task => [task.id, task])) as Record<string, Task>, [allTasks]);
+  const projectsById = useMemo(() => Object.fromEntries(allProjects.map(project => [project.id, project])) as Record<string, Project>, [allProjects]);
 
 
   const refetchData = useCallback(async (dataType: 'users' | 'clients' | 'projects' | 'tasks' | 'absences' | 'activityTypes' | 'calendarActivities' | 'calendarActivityPresets' | 'briefServices' | 'briefServiceCategories' | 'serviceContracts' | 'all') => {
@@ -273,6 +286,9 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken: token }),
         }).catch((err) => console.error('[layout-context] Failed to sync session cookie:', err));
+        // Rinnovo del token per lo stesso utente: niente loader (smonterebbe
+        // tutta l'app e farebbe perdere lo stato dei form), niente riletture.
+        if (loadedUidRef.current === user.uid) return;
         setIsLoadingLayout(true);
         try {
           const userDocRef = doc(db, 'users', user.uid);
@@ -286,6 +302,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
             ]);
             setPermissions(perms);
             setTaskPrioritySettings(prioritySettings);
+            loadedUidRef.current = user.uid;
           } else {
             console.error(`User profile not found in Firestore for UID: ${user.uid}. Logging out.`);
             handleLogout();
@@ -298,6 +315,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
           setIsLoadingLayout(false);
         }
       } else {
+        loadedUidRef.current = null;
         localStorage.removeItem('token');
         fetch('/api/auth/session', { method: 'DELETE' }).catch(() => {});
         setCurrentUser(null);
@@ -335,8 +353,6 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     const collectionsToListen: { name: string, setter: (data: any[]) => void, tenantField?: 'clientId' | 'documentId' }[] = [
       { name: 'users', setter: setUsers },
       { name: 'clients', setter: setClients, tenantField: 'documentId' },
-      { name: 'projects', setter: setAllProjects, tenantField: 'clientId' },
-      { name: 'tasks', setter: setAllTasks, tenantField: 'clientId' },
       { name: 'absences', setter: setAbsences },
       { name: 'activityTypes', setter: setActivityTypes },
       { name: 'calendarActivities', setter: setCalendarActivities },
@@ -344,13 +360,6 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       { name: 'briefServices', setter: setBriefServices },
       { name: 'briefServiceCategories', setter: setBriefServiceCategories },
       { name: 'serviceContracts', setter: setServiceContracts, tenantField: 'clientId' },
-      {
-        name: 'rolePermissions', setter: (data: any[]) => {
-          const perms: RolePermissions = {};
-          data.forEach(d => { perms[d.id] = d.permissions || []; });
-          setPermissions(perms);
-        }
-      },
     ];
 
     const isClientRole = currentUser.role === 'Cliente';
@@ -441,6 +450,24 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     };
   }, [currentUser?.id, currentUser?.role, currentUser?.clientId]);
 
+  // Listener di tasks/projects, attivati solo quando qualcuno li legge.
+  useEffect(() => {
+    if (!currentUser?.id || !wantWorkData) return;
+    const isClientRole = currentUser.role === 'Cliente';
+    const value = currentUser.clientId || '__no_client_assigned__';
+    const subscribe = (name: string, setter: (data: any[]) => void) => {
+      const ref: Query = isClientRole
+        ? query(collection(db, name), where('clientId', '==', value))
+        : collection(db, name);
+      return onSnapshot(ref, (snapshot) => {
+        setter(snapshot.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) })));
+      }, (error) => console.error(`Error fetching ${name}:`, error));
+    };
+    const unsubTasks = subscribe('tasks', setAllTasks);
+    const unsubProjects = subscribe('projects', setAllProjects);
+    return () => { unsubTasks(); unsubProjects(); };
+  }, [currentUser?.id, currentUser?.role, currentUser?.clientId, wantWorkData]);
+
   // Persist sound settings to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -460,10 +487,10 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       usersById,
       clients,
       clientsById,
-      allProjects,
-      allTasks,
-      tasksById,
-      projectsById,
+      get allProjects() { requestWorkData(); return allProjects; },
+      get allTasks() { requestWorkData(); return allTasks; },
+      get tasksById() { requestWorkData(); return tasksById; },
+      get projectsById() { requestWorkData(); return projectsById; },
       activityTypes,
       absences,
       calendarActivities,
@@ -509,6 +536,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     handleCreateUser,
     handleLogout,
     refetchData,
+    requestWorkData,
     conversations,
     notifications,
     permissions,
