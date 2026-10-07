@@ -7,6 +7,10 @@ import { getData } from '@/lib/windsor-client';
 // (~4s a 90 giorni, oltre vanno in timeout): serve un tetto esplicito.
 export const maxDuration = 60;
 
+// Come /reporting: 6 ore, ma solo 15 minuti se una piattaforma è in errore.
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const ERROR_TTL_MS = 15 * 60 * 1000;
+
 
 export type CampaignStatus = 'active' | 'paused' | 'ended';
 
@@ -104,6 +108,17 @@ export async function GET(
     google_ads: client?.googleAdAccountId,
   };
 
+  const refresh = request.nextUrl.searchParams.get('refresh') === '1';
+  const cacheRef = adminDb.collection('clients').doc(clientId)
+    .collection('cache').doc(`campaigns_${datePreset}`);
+  if (!refresh) {
+    const cached = await cacheRef.get().catch(() => null);
+    const hit = cached?.exists ? (cached.data() as any) : null;
+    if (hit && Date.now() - hit.computedAtMs < (hit.hasErrors ? ERROR_TTL_MS : CACHE_TTL_MS)) {
+      return NextResponse.json({ campaigns: hit.campaigns, errors: hit.errors, cached: true });
+    }
+  }
+
   const campaigns: UnifiedCampaign[] = [];
   const errors: Record<string, string> = {};
 
@@ -163,5 +178,13 @@ export async function GET(
   );
 
   campaigns.sort((a, b) => b.spend - a.spend);
-  return NextResponse.json({ campaigns, errors });
+
+  // Il giro JSON toglie gli `undefined` (startDate/endDate), che Firestore rifiuta.
+  await cacheRef
+    .set(JSON.parse(JSON.stringify({
+      campaigns, errors, hasErrors: Object.keys(errors).length > 0, computedAtMs: Date.now(),
+    })))
+    .catch((err) => console.error(`[campaigns] cache non scritta per ${clientId}:`, err.message));
+
+  return NextResponse.json({ campaigns, errors, cached: false });
 }
