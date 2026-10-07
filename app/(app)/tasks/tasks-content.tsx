@@ -53,6 +53,7 @@ import { SkeletonTaskBoard, SkeletonTaskList } from '@/components/ui/skeleton-ca
 import TaskGanttChart from '@/components/task-gantt-chart';
 import { GanttChart } from 'lucide-react';
 import { TaskApprovedCelebration } from '@/components/TaskApprovedCelebration';
+import { sanitizeHtml } from '@/lib/sanitize-html';
 
 
 
@@ -2343,7 +2344,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                         <CardContent>
                                             <div 
                                                 className="text-sm leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>h1]:text-base [&>h1]:font-bold [&>h1]:mt-3 [&>h1]:mb-1 [&>h2]:text-sm [&>h2]:font-bold [&>h2]:mt-2 [&>h2]:mb-1 [&>blockquote]:border-l-4 [&>blockquote]:border-purple-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>code]:bg-purple-500/10 [&>code]:text-purple-500 [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded"
-                                                dangerouslySetInnerHTML={{ __html: formatDescription(previewTask.description || '') }}
+                                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatDescription(previewTask.description || '')) }}
                                             />
                                         </CardContent>
                                     </Card>

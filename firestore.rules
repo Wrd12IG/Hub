@@ -75,7 +75,15 @@ service cloud.firestore {
       // is a UX nicety, not a security boundary; do not add new sensitive
       // fields to this collection without also field-scoping this rule.
       allow read: if isSignedIn();
-      allow update: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      // Un utente può aggiornare il proprio profilo ma NON i campi che
+      // governano permessi e compensi: il ruolo viene letto da questo stesso
+      // documento (myRole), quindi senza questo limite chiunque poteva
+      // scrivere role = 'Amministratore' e promuoversi da solo.
+      allow update: if isAdmin() || (
+        isSignedIn() && request.auth.uid == uid
+        && !request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['role', 'clientId', 'salary', 'hourlyRate'])
+      );
       allow create, delete: if isAdmin();
 
       match /notifications/{notificationId} {
