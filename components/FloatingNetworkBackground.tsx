@@ -28,6 +28,8 @@ export default function FloatingNetworkBackground() {
   useEffect(() => {
     // Rispetta prefers-reduced-motion
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Su schermi piccoli (telefono/tablet) il canvas è solo costo: niente sfondo animato
+    if (window.innerWidth < 768) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
