@@ -1,6 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { onIdTokenChanged, User as AuthUser, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { onIdTokenChanged, User as AuthUser, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { getDoc, doc, collection, query, where, orderBy, limit, onSnapshot, getDocs, setDoc, Timestamp, documentId, type Query } from 'firebase/firestore';
 import type { User, Client, Project, Task, ActivityType, Absence, RolePermissions, Conversation, Notification, CalendarActivity, TaskPrioritySettings, CalendarActivityPreset, BriefService, BriefServiceCategory, ServiceContract } from '@/lib/data';
@@ -233,38 +233,39 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   }, []);
 
   const handleCreateUser = useCallback(async (user: Omit<User, 'id'>, password?: string): Promise<{ success: boolean; userId?: string; error?: string }> => {
-    if (!password) {
-      return { success: false, error: "La password è obbligatoria per creare un nuovo utente." };
-    }
-
     const trimmedEmail = (user?.email || "").trim();
     if (!trimmedEmail) {
       return { success: false, error: "L'indirizzo email è obbligatorio." };
     }
+    if (!password) {
+      return { success: false, error: "La password è obbligatoria per creare un nuovo utente." };
+    }
 
+    // La creazione gira sul server (app/api/users). Farla qui con
+    // createUserWithEmailAndPassword sostituirebbe la sessione del browser con
+    // quella del nuovo utente: chi crea viene sloggato, e la scrittura del
+    // profilo parte con i permessi sbagliati e viene negata dalle regole
+    // Firestore, lasciando un account senza profilo che non riesce piu' a
+    // entrare. E' successo davvero.
     try {
-      // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-      const authUser = userCredential.user;
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) return { success: false, error: 'Sessione scaduta. Rientra e riprova.' };
 
-      // 2. Create user profile in Firestore
-      await addUser(authUser.uid, { ...user, email: trimmedEmail });
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email: trimmedEmail, password, profile: { ...user, email: trimmedEmail } }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        return { success: false, error: data?.error || "Impossibile creare l'utente." };
+      }
 
       await refetchData('users');
-
-      return { success: true, userId: authUser.uid };
-
-    } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
-        return { success: false, error: 'Questa email è già in uso.' };
-      }
-      if (error.code === 'auth/invalid-email') {
-        return { success: false, error: "L'indirizzo email inserito non è valido." };
-      }
-      if (error.code === 'auth/weak-password') {
-        return { success: false, error: 'La password deve essere di almeno 6 caratteri.' };
-      }
-      console.error('Firebase Auth user creation error:', error);
+      return { success: true, userId: data.uid };
+    } catch (error) {
+      console.error('Creazione utente fallita:', error);
       return { success: false, error: "Impossibile creare l'utente. Riprova." };
     }
   }, [refetchData]);
