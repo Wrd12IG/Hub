@@ -1,4 +1,7 @@
 'use client';
+
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 import React, { useEffect, useState, useCallback } from 'react';
 import {
     Breadcrumb,
@@ -27,6 +30,7 @@ import {
     Volume2,
     Languages,
     BellRing,
+    KeyRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -277,6 +281,25 @@ export function Header() {
                             }}>
                                 <BellRing className="mr-2 h-4 w-4" />
                                 Attiva Notifiche Push
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                onSelect={async () => {
+                                    const indirizzo = currentUser?.email;
+                                    if (!indirizzo) return;
+                                    try {
+                                        // Non si cambia la password qui dentro: Firebase
+                                        // richiede un accesso recente per farlo, e una
+                                        // sessione aperta da ore fallirebbe con un errore
+                                        // incomprensibile. Il link via email funziona sempre.
+                                        await sendPasswordResetEmail(auth, indirizzo);
+                                        toast.success(`Ti abbiamo inviato il link a ${indirizzo}`);
+                                    } catch {
+                                        toast.error('Invio non riuscito. Riprova fra qualche minuto.');
+                                    }
+                                }}
+                            >
+                                <KeyRound className="mr-2 h-4 w-4" />
+                                Cambia password
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onSelect={handleLogout} className="text-destructive focus:text-destructive">
