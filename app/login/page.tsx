@@ -1,5 +1,8 @@
 'use client';
 
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLayoutData } from '@/app/(app)/layout-context';
@@ -12,10 +15,40 @@ import { useToast } from '@/hooks/use-toast';
 export default function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [resetInviato, setResetInviato] = useState(false);
+    const [resetInCorso, setResetInCorso] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { handleLogin } = useLayoutData();
     const { toast } = useToast();
+
+    const onRecuperaPassword = async () => {
+        const indirizzo = email.trim();
+        if (!indirizzo) {
+            toast({ title: 'Manca l\'email', description: 'Scrivi il tuo indirizzo qui sopra, poi premi di nuovo.', variant: 'destructive' });
+            return;
+        }
+        setResetInCorso(true);
+        try {
+            await sendPasswordResetEmail(auth, indirizzo);
+            // Nessuna distinzione fra email esistente e inesistente: dire "questo
+            // indirizzo non esiste" permetterebbe a chiunque di scoprire chi ha
+            // un account. Il messaggio e' lo stesso in entrambi i casi.
+            setResetInviato(true);
+        } catch (error: any) {
+            if (error?.code === 'auth/invalid-email') {
+                toast({ title: 'Email non valida', description: "Controlla l'indirizzo e riprova.", variant: 'destructive' });
+            } else if (error?.code === 'auth/too-many-requests') {
+                toast({ title: 'Troppi tentativi', description: 'Aspetta qualche minuto e riprova.', variant: 'destructive' });
+            } else {
+                // Anche su utente inesistente Firebase puo' rispondere con un
+                // errore: lo trattiamo come successo, per non rivelare nulla.
+                setResetInviato(true);
+            }
+        } finally {
+            setResetInCorso(false);
+        }
+    };
 
     const onSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -72,7 +105,17 @@ export default function LoginPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Password</Label>
+                                <button
+                                    type="button"
+                                    onClick={onRecuperaPassword}
+                                    disabled={resetInCorso || isLoading}
+                                    className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground disabled:opacity-50"
+                                >
+                                    {resetInCorso ? 'Invio…' : 'Password dimenticata?'}
+                                </button>
+                            </div>
                             <Input
                                 id="password"
                                 type="password"
@@ -82,6 +125,12 @@ export default function LoginPage() {
                                 disabled={isLoading}
                             />
                         </div>
+                        {resetInviato && (
+                            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                                Se quell&apos;indirizzo ha un account, ti abbiamo inviato il link per reimpostare la password. Controlla anche la posta indesiderata.
+                            </p>
+                        )}
+
                         <Button type="submit" className="w-full" disabled={isLoading}>
                             {isLoading ? 'Accesso in corso...' : 'Accedi'}
                         </Button>
