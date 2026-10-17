@@ -20,6 +20,7 @@ import {
 } from '@/lib/analytics-engine'
 import { getTasks, getUsers, getClients, getProjects } from '@/lib/actions'
 import type { Task, User, Client, Project } from '@/lib/data'
+import { rateOf } from '@/lib/cost-model'
 
 // ─── Period options ────────────────────────────────────────────────────────────
 type Period = '7d' | '30d' | '90d'
@@ -172,7 +173,7 @@ function buildClientInputs(
   clients: Client[],
   cutoffDate: Date,
 ): ClientRevenueInput[] {
-  const avgRate = users.reduce((s, u) => s + (u.hourlyRate ?? 40), 0) / Math.max(users.length, 1)
+  const avgRate = users.reduce((s, u) => s + rateOf(u), 0) / Math.max(users.length, 1)
 
   // Group hours by clientId
   const hoursMap = new Map<string, number>()
@@ -208,7 +209,7 @@ function buildProjectInputs(
   users: User[],
   cutoffDate: Date,
 ): ProjectROIInput[] {
-  const avgRate = users.reduce((s, u) => s + (u.hourlyRate ?? 40), 0) / Math.max(users.length, 1)
+  const avgRate = users.reduce((s, u) => s + rateOf(u), 0) / Math.max(users.length, 1)
 
   // Group hours by projectId
   const hoursMap = new Map<string, number>()
@@ -239,7 +240,7 @@ function buildProjectInputs(
  * Used for the budget forecast.
  */
 function buildMonthlyLaborCosts(tasks: Task[], users: User[]): number[] {
-  const avgRate = users.reduce((s, u) => s + (u.hourlyRate ?? 40), 0) / Math.max(users.length, 1)
+  const avgRate = users.reduce((s, u) => s + rateOf(u), 0) / Math.max(users.length, 1)
   const monthMap = new Map<string, number>()
 
   for (const task of tasks) {

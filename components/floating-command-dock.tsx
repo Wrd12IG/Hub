@@ -51,7 +51,7 @@ const allNavItems: DockNavItem[] = [
     { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-amber-500' },
     { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-purple-500' },
     { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-indigo-500' },
-    { href: '/briefs', icon: BookOpen, label: 'Briefs', color: 'text-amber-600' },
+    { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-amber-600' },
     { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-500' },
     { href: '/social-strategies', icon: Bot, label: 'Strategie Social', color: 'text-rose-500' },
     { href: '/absences', icon: CalendarX2, label: 'Assenze', color: 'text-teal-500' },
@@ -68,7 +68,7 @@ const adminNavItems: DockNavItem[] = [
 ];
 
 const clientNavItems: DockNavItem[] = [
-    { href: '/briefs', icon: BookOpen, label: 'Briefs' },
+    { href: '/briefs', icon: BookOpen, label: 'Brief' },
     { href: '/documents', icon: FileText, label: 'Documenti' },
 ];
 

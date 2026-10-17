@@ -165,7 +165,7 @@ export default function AdminUserWidgets({ users, onUpdate }: AdminUserWidgetsPr
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <LayoutDashboard className="h-5 w-5" />
-                                Widget Dashboard
+                                Widget della Dashboard
                             </CardTitle>
                             <CardDescription>
                                 {selectedUser

@@ -1665,24 +1665,26 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                             <Badge variant="outline" className="text-xs">
                                 Totale: {filteredTasks.length}
                             </Badge>
-                            {Object.entries(
-                                filteredTasks.reduce((acc: Record<string, number>, t: Task) => {
-                                    acc[t.status] = (acc[t.status] || 0) + 1;
-                                    return acc;
-                                }, {} as Record<string, number>)
-                            ).map(([status, count]) => (
-                                <Badge
-                                    key={status}
-                                    variant="secondary"
-                                    className="text-xs"
-                                    style={{
-                                        backgroundColor: statusColors[status as keyof typeof statusColors]?.bg || 'gray',
-                                        color: statusColors[status as keyof typeof statusColors]?.text || 'black'
-                                    }}
-                                >
-                                    {status}: {count}
-                                </Badge>
-                            ))}
+                            {/* Stessa ripartizione della board: i task scaduti stanno nella colonna "Scaduti", non nella loro colonna di stato */}
+                            {Object.entries(tasksByStatus)
+                                .map(([status, list]) => [status, (list as Task[]).length] as const)
+                                .filter(([, count]) => count > 0)
+                                .map(([status, count]) => (
+                                    <Badge
+                                        key={status}
+                                        variant="secondary"
+                                        className="text-xs"
+                                        style={{
+                                            backgroundColor: statusColors[status as keyof typeof statusColors]?.bg || 'gray',
+                                            color: statusColors[status as keyof typeof statusColors]?.text || 'black'
+                                        }}
+                                    >
+                                        {status}: {count}
+                                    </Badge>
+                                ))}
+                            {overdueTasks.length > 0 && (
+                                <Badge variant="destructive" className="text-xs">Scaduti: {overdueTasks.length}</Badge>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

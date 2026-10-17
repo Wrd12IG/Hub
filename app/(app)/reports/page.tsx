@@ -31,6 +31,8 @@ import {
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInSeconds, subMonths, isWithinInterval, startOfDay, endOfDay, addDays } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { cn, getInitials } from '@/lib/utils';
+import { taskCost, activityCost } from '@/lib/cost-model';
+import { formatEuro } from '@/lib/format';
 import type { Task, User, Client, CalendarActivity, ActivityType, CalendarActivityPreset } from '@/lib/data';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BurndownChart, VelocityChart } from '@/components/analytics-charts';
@@ -78,9 +80,7 @@ const formatHours = (hours: number) => {
     return `${h}h ${m}m`;
 };
 
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amount);
-};
+const formatCurrency = (amount: number) => formatEuro(amount);
 
 export default function ReportsPage() {
     const {
@@ -151,12 +151,6 @@ export default function ReportsPage() {
         });
     };
 
-    // Activity type lookup
-    const activityTypesByName = useMemo(() =>
-        activityTypes.reduce((acc, type) => ({ ...acc, [type.name]: type }), {} as Record<string, ActivityType>),
-        [activityTypes]
-    );
-
     const presetsById = useMemo(() =>
         (calendarActivityPresets || []).reduce((acc, preset) => ({ ...acc, [preset.id]: preset }), {} as Record<string, CalendarActivityPreset>),
         [calendarActivityPresets]
@@ -178,8 +172,7 @@ export default function ReportsPage() {
                 if (selectedUser !== 'all' && task.assignedUserId !== selectedUser) return;
 
                 const hours = task.timeSpent / 3600;
-                const activityType = task.activityType ? activityTypesByName[task.activityType] : null;
-                const cost = hours * (activityType?.hourlyRate || 0);
+                const cost = taskCost(task, usersById).cost;
                 const project = allProjects.find(p => p.id === task.projectId);
 
                 entries.push({
@@ -206,12 +199,10 @@ export default function ReportsPage() {
             if (!isWithinInterval(activityDate, { start: dateRange.start!, end: dateRange.end! })) return;
             if (selectedUser !== 'all' && activity.userId !== selectedUser) return;
 
-            const hours = differenceInSeconds(parseISO(activity.endTime), parseISO(activity.startTime)) / 3600;
+            const { hours, cost } = activityCost(activity, usersById);
             if (hours <= 0) return;
 
             const preset = activity.presetId ? presetsById[activity.presetId] : null;
-            const hourlyRate = preset?.hourlyRate || 20;
-            const cost = hours * hourlyRate;
 
             // Handle multiple clients
             const clientIds = activity.clientIds || (activity.clientId ? [activity.clientId] : []);
@@ -243,7 +234,7 @@ export default function ReportsPage() {
         });
 
         return entries.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    }, [allTasks, calendarActivities, dateRange, selectedClient, selectedUser, activityTypesByName, presetsById, clientsById, usersById, allProjects]);
+    }, [allTasks, calendarActivities, dateRange, selectedClient, selectedUser, presetsById, clientsById, usersById, allProjects]);
 
     // Calculate totals
     const totals = useMemo(() => ({
@@ -675,7 +666,7 @@ export default function ReportsPage() {
                             <div>
                                 <p className="text-sm text-muted-foreground">Tariffa Media</p>
                                 <p className="text-2xl font-bold">
-                                    {totals.hours > 0 ? formatCurrency(totals.cost / totals.hours) : '€0'}/h
+                                    {totals.hours > 0 ? formatCurrency(totals.cost / totals.hours) : formatCurrency(0)}/h
                                 </p>
                             </div>
                             <TrendingUp className="h-10 w-10 text-yellow-500 opacity-50" />

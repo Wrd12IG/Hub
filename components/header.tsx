@@ -58,6 +58,28 @@ import { useTranslation } from '@/hooks/useTranslation';
 import ClientSwitcher from '@/components/ClientSwitcher';
 import { CommandPalette } from '@/components/command-palette';
 
+// Le briciole di pane devono parlare italiano come i titoli delle pagine
+const SEGMENT_LABELS: Record<string, string> = {
+    projects: 'Progetti',
+    clients: 'Clienti',
+    assets: 'Risorse e Media',
+    reports: 'Report',
+    'social-strategies': 'Strategie Social',
+    'recurring-tasks': 'Task Ricorrenti',
+    briefs: 'Brief',
+    documents: 'Documenti',
+    tasks: 'Task',
+    calendar: 'Calendario',
+    absences: 'Assenze',
+    analytics: 'Analisi',
+    dashboard: 'Dashboard',
+    admin: 'Amministrazione',
+    chat: 'Chat',
+    'editorial-plan': 'Piano Editoriale',
+    'import-editorial': 'Importa Piano',
+    focus: 'Focus',
+};
+
 export function Header() {
     const pathname = usePathname();
     const router = useRouter();
@@ -101,7 +123,7 @@ export function Header() {
         if (segments[index - 1] === 'clients' && clientDetails && clientDetails.id === segment) {
             return clientDetails.name;
         }
-        return segment.replace('-', ' ');
+        return SEGMENT_LABELS[segment] || segment.replace(/-/g, ' ');
     }
 
     const getSegmentPath = (segment: string, index: number) => {
