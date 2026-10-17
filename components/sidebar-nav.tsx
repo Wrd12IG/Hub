@@ -90,7 +90,7 @@ export const allNavItems: NavItem[] = [
   { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-amber-400' },
   { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-purple-400' },
   { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-indigo-400' },
-  { href: '/briefs', icon: BookOpen, label: 'Briefs', color: 'text-amber-500' },
+  { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-amber-500' },
 
   // Pianificazione
   { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-400' },
@@ -115,7 +115,7 @@ const adminNavItems: NavItem[] = [
 ];
 
 const clientNavItems = [
-  { href: '/briefs', icon: BookOpen, label: 'Briefs' },
+  { href: '/briefs', icon: BookOpen, label: 'Brief' },
   { href: '/documents', icon: FileText, label: 'Documenti' },
 ]
 

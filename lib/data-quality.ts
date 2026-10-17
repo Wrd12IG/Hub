@@ -1,5 +1,5 @@
 import { differenceInCalendarDays, parseISO } from 'date-fns';
-import { activityClientIds, activityHours, taskHours, HOURLY_RATE } from '@/lib/cost-model';
+import { activityClientIds, activityHours, taskHours, DEFAULT_HOURLY_RATE } from '@/lib/cost-model';
 
 // Elenca i dati che falsano i totali della dashboard (ore e costi che non finiscono
 // dove dovrebbero). Funzione pura: nessun accesso a Firestore.
@@ -124,7 +124,7 @@ export function findDataIssues(input: {
         activitiesNoUser,
         activitiesSuspicious,
         unassignedClientHours: parseFloat(unassignedClientHours.toFixed(1)),
-        unassignedClientCost: parseFloat((unassignedClientHours * HOURLY_RATE).toFixed(2)),
+        unassignedClientCost: parseFloat((unassignedClientHours * DEFAULT_HOURLY_RATE).toFixed(2)),
         suspiciousHours: parseFloat(activitiesSuspicious.reduce((s, a) => s + a.hours, 0).toFixed(1)),
     };
 }

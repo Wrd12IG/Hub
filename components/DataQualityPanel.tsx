@@ -72,7 +72,14 @@ const renderActivity = (a: ActivityIssue) => (
     </>
 );
 
-export function DataQualityPanel({ report }: { report: DataQualityReport }) {
+interface RateProps {
+    /** Utenti il cui costo orario salvato non è 30 €. */
+    usersToFix: number;
+    onSetRates: () => Promise<void>;
+}
+
+export function DataQualityPanel({ report, usersToFix, onSetRates }: { report: DataQualityReport } & RateProps) {
+    const [saving, setSaving] = useState(false);
     const eur = (n: number) => n.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' });
 
     return (
@@ -88,6 +95,29 @@ export function DataQualityPanel({ report }: { report: DataQualityReport }) {
                 </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="xl:col-span-2 flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3">
+                    <div className="text-xs">
+                        <div className="font-semibold">Costo orario degli utenti</div>
+                        <div className="text-muted-foreground">
+                            {usersToFix === 0
+                                ? 'Tutti gli utenti hanno 30 €/h salvati nel profilo.'
+                                : `${usersToFix} utenti non hanno 30 €/h nel profilo. I costi partono dal valore salvato in ogni utente.`}
+                        </div>
+                    </div>
+                    {usersToFix > 0 && (
+                        <Button
+                            size="sm"
+                            disabled={saving}
+                            onClick={async () => {
+                                if (!window.confirm(`Imposta 30 €/h come costo orario di ${usersToFix} utenti? Sovrascrive le tariffe attuali.`)) return;
+                                setSaving(true);
+                                try { await onSetRates(); } finally { setSaving(false); }
+                            }}
+                        >
+                            {saving ? 'Salvataggio…' : 'Imposta 30 €/h a tutti'}
+                        </Button>
+                    )}
+                </div>
                 <Section
                     title="Task con ore senza assegnatario"
                     hint="Il costo c'è (30 €/h) ma non si sa a chi attribuirlo."

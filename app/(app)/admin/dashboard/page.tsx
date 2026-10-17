@@ -67,10 +67,13 @@ import type {
     CalendarActivityPreset
 } from '@/lib/data';
 import { allTaskStatuses } from '@/lib/data';
+import { toast } from 'sonner';
+import { updateUser } from '@/lib/actions';
 import { isDueWithin48h, isProjectDone, isProjectOverdue, overdueDays, deliveryRisk } from '@/lib/dashboard-rules';
+import { formatEuro } from '@/lib/format';
 import { findDataIssues } from '@/lib/data-quality';
 import { DataQualityPanel } from '@/components/DataQualityPanel';
-import { HOURLY_RATE, taskCost, activityCost, taskHours, activityHours, activityClientIds } from '@/lib/cost-model';
+import { DEFAULT_HOURLY_RATE, parseRate, rateOf, taskCost, activityCost, taskHours, activityHours, activityClientIds } from '@/lib/cost-model';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     differenceInDays,
@@ -289,9 +292,7 @@ const formatNumber = (value: number, decimals: number = 1): string => {
     return decPart ? `${intWithThousands},${decPart}` : intWithThousands;
 };
 
-const formatCurrency = (value: number, decimals: number = 2): string => {
-    return '€' + formatNumber(value, decimals);
-};
+const formatCurrency = formatEuro;
 
 
 
@@ -642,8 +643,8 @@ export default function Dashboard() {
 
                 const userTaskHours = assignedTasks.reduce((sum, t) => sum + taskHours(t), 0);
                 const userActivityHours = assignedActivities.reduce((sum, a) => sum + activityHours(a), 0);
-                const taskCostTotal = assignedTasks.reduce((sum, t) => sum + taskCost(t).cost, 0);
-                const activityCostTotal = assignedActivities.reduce((sum, a) => sum + activityCost(a).cost, 0);
+                const taskCostTotal = assignedTasks.reduce((sum, t) => sum + taskCost(t, usersById).cost, 0);
+                const activityCostTotal = assignedActivities.reduce((sum, a) => sum + activityCost(a, usersById).cost, 0);
 
                 const totalHours = userTaskHours + userActivityHours;
                 const estimatedHours = assignedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
@@ -678,14 +679,14 @@ export default function Dashboard() {
                     title: maxOverrunTask.title,
                     estimatedHours: parseFloat(((maxOverrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxOverrunTask.timeSpent || 0) / 3600).toFixed(1)),
-                    creatorName: maxOverrunTask.createdBy ? (usersById[maxOverrunTask.createdBy]?.name || 'N/A') : 'Nessuno',
+                    creatorName: maxOverrunTask.createdBy ? (usersById[maxOverrunTask.createdBy]?.name || 'Non trovato') : 'Nessuno',
                 } : null;
 
                 const underrunDetails = maxUnderrunTask && maxUnderrunValue > 0 ? {
                     title: maxUnderrunTask.title,
                     estimatedHours: parseFloat(((maxUnderrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxUnderrunTask.timeSpent || 0) / 3600).toFixed(1)),
-                    creatorName: maxUnderrunTask.createdBy ? (usersById[maxUnderrunTask.createdBy]?.name || 'N/A') : 'Nessuno',
+                    creatorName: maxUnderrunTask.createdBy ? (usersById[maxUnderrunTask.createdBy]?.name || 'Non trovato') : 'Nessuno',
                 } : null;
 
                 // Task con tempo non registrato (timeSpent <= 0 o non valorizzato)
@@ -716,7 +717,7 @@ export default function Dashboard() {
                     taskCost: parseFloat(taskCostTotal.toFixed(2)),
                     activityCost: parseFloat(activityCostTotal.toFixed(2)),
                     totalCost: parseFloat((taskCostTotal + activityCostTotal).toFixed(2)),
-                    hourlyRate: HOURLY_RATE,
+                    hourlyRate: rateOf(user),
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
                     rate: parseFloat(completionRate.toFixed(1)),
                     overrunDetails,
@@ -731,7 +732,7 @@ export default function Dashboard() {
             })
             .filter(u => u.assignedCount > 0 || u.hours > 0)
             .sort((a, b) => b.completedCount - a.completedCount);
-    }, [users, filteredData]);
+    }, [users, usersById, filteredData]);
 
     const userCreatedTasksData = useMemo(() => {
         const { tasks: relevantTasks, activities: relevantActivities } = filteredData;
@@ -783,14 +784,14 @@ export default function Dashboard() {
                     title: maxOverrunTask.title,
                     estimatedHours: parseFloat(((maxOverrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxOverrunTask.timeSpent || 0) / 3600).toFixed(1)),
-                    assigneeName: maxOverrunTask.assignedUserId ? (usersById[maxOverrunTask.assignedUserId]?.name || 'N/A') : 'Nessuno',
+                    assigneeName: maxOverrunTask.assignedUserId ? (usersById[maxOverrunTask.assignedUserId]?.name || 'Non trovato') : 'Nessuno',
                 } : null;
 
                 const underrunDetails = maxUnderrunTask && maxUnderrunValue > 0 ? {
                     title: maxUnderrunTask.title,
                     estimatedHours: parseFloat(((maxUnderrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxUnderrunTask.timeSpent || 0) / 3600).toFixed(1)),
-                    assigneeName: maxUnderrunTask.assignedUserId ? (usersById[maxUnderrunTask.assignedUserId]?.name || 'N/A') : 'Nessuno',
+                    assigneeName: maxUnderrunTask.assignedUserId ? (usersById[maxUnderrunTask.assignedUserId]?.name || 'Non trovato') : 'Nessuno',
                 } : null;
 
                 // Task con tempo non registrato (creati dall'utente)
@@ -813,7 +814,7 @@ export default function Dashboard() {
             })
             .filter(u => u.createdCount > 0 || u.hours > 0)
             .sort((a, b) => b.createdCount - a.createdCount);
-    }, [users, filteredData]);
+    }, [users, usersById, filteredData]);
 
     const { futureWorkloadData, sevenDayHeaders } = useMemo(() => {
         const { tasks: activeTasks } = filteredData;
@@ -925,7 +926,19 @@ export default function Dashboard() {
             })
             .sort((a, b) => b.xp - a.xp)
             .slice(0, 10);
-    }, [users, filteredData]);
+    }, [users, usersById, filteredData]);
+
+    // Costo orario: ogni utente deve avere 30 €/h salvati nel profilo, da lì parte il calcolo dei costi
+    const usersToFix = useMemo(() => users.filter(u => parseRate(u.hourlyRate) !== DEFAULT_HOURLY_RATE), [users]);
+    const setAllUserRates = async () => {
+        try {
+            await Promise.all(usersToFix.map(u => updateUser(u.id, { hourlyRate: DEFAULT_HOURLY_RATE })));
+            toast.success(`Costo orario impostato a ${DEFAULT_HOURLY_RATE} € per ${usersToFix.length} utenti`);
+        } catch (error) {
+            console.error('Errore impostazione costo orario:', error);
+            toast.error('Impossibile aggiornare tutti gli utenti', { description: 'Riprova o modifica il costo orario dal profilo utente.' });
+        }
+    };
 
     const dataQuality = useMemo(
         () => findDataIssues({ tasks: filteredData.tasks, activities: filteredData.activities, usersById, clientsById }),
@@ -942,7 +955,7 @@ export default function Dashboard() {
         // Task: ore sempre contate; costo = tariffa utente assegnato + overhead (0 se non assegnato)
         tasks.forEach(task => {
             if (task.activityType && task.timeSpent > 0) {
-                const { hours, cost } = taskCost(task);
+                const { hours, cost } = taskCost(task, usersById);
                 timeByActivity[task.activityType] = (timeByActivity[task.activityType] || 0) + hours;
                 costByActivity[task.activityType] = (costByActivity[task.activityType] || 0) + cost;
             }
@@ -952,7 +965,7 @@ export default function Dashboard() {
         activities.forEach(activity => {
             const preset = activity.presetId ? presetsById[activity.presetId] : null;
             const activityTypeName = preset ? preset.name : "Attività Manuale";
-            const { hours, cost } = activityCost(activity);
+            const { hours, cost } = activityCost(activity, usersById);
             if (hours > 0) {
                 timeByActivity[activityTypeName] = (timeByActivity[activityTypeName] || 0) + hours;
                 costByActivity[activityTypeName] = (costByActivity[activityTypeName] || 0) + cost;
@@ -967,7 +980,7 @@ export default function Dashboard() {
             rate: (timeByActivity[name] || 0) > 0 ? cost / timeByActivity[name] : 0,
         })).sort((a, b) => b.cost - a.cost);
 
-    }, [filteredData, calendarActivityPresets]);
+    }, [filteredData, calendarActivityPresets, usersById]);
 
     const clientData = useMemo(() => {
         const { tasks, activities } = filteredData;
@@ -976,7 +989,7 @@ export default function Dashboard() {
 
         tasks.forEach(task => {
             if (task.clientId && task.timeSpent > 0) {
-                const { hours, cost } = taskCost(task);
+                const { hours, cost } = taskCost(task, usersById);
                 timeByClient[task.clientId] = (timeByClient[task.clientId] || 0) + hours;
                 costByClient[task.clientId] = (costByClient[task.clientId] || 0) + cost;
             }
@@ -985,7 +998,7 @@ export default function Dashboard() {
         // Attività calendario: ore e costo divisi in parti uguali fra i clienti collegati
         activities.forEach(activity => {
             const clientIds = activityClientIds(activity);
-            const { hours, cost } = activityCost(activity);
+            const { hours, cost } = activityCost(activity, usersById);
             if (clientIds.length === 0 || hours <= 0) return;
             clientIds.forEach(clientId => {
                 timeByClient[clientId] = (timeByClient[clientId] || 0) + hours / clientIds.length;
@@ -1011,7 +1024,7 @@ export default function Dashboard() {
 
         return { clientCosts, totalCost, maxCost };
 
-    }, [filteredData, clientsById]);
+    }, [filteredData, clientsById, usersById]);
 
     const monthlyCostTrend = useMemo(() => {
         const costsByMonth: { [month: string]: number } = {};
@@ -1021,7 +1034,7 @@ export default function Dashboard() {
         tasks.forEach(task => {
             if (task.timeSpent > 0 && task.dueDate) {
                 const month = format(parseISO(task.dueDate), 'yyyy-MM');
-                costsByMonth[month] = (costsByMonth[month] || 0) + taskCost(task).cost;
+                costsByMonth[month] = (costsByMonth[month] || 0) + taskCost(task, usersById).cost;
             }
         });
 
@@ -1029,7 +1042,7 @@ export default function Dashboard() {
             const start = activity.startTime || activity.start;
             if (!start) return;
             const month = format(parseISO(start), 'yyyy-MM');
-            costsByMonth[month] = (costsByMonth[month] || 0) + activityCost(activity).cost;
+            costsByMonth[month] = (costsByMonth[month] || 0) + activityCost(activity, usersById).cost;
         });
 
         // Ordina sulla chiave yyyy-MM: ordinare sul nome ("apr 26" < "gen 26") sballava la linea del tempo
@@ -1040,7 +1053,7 @@ export default function Dashboard() {
                 'Costo Totale': parseFloat(cost.toFixed(2))
             }));
 
-    }, [filteredData]);
+    }, [filteredData, usersById]);
 
     const avgMonthlyCost = useMemo(() => {
         if (!monthlyCostTrend || monthlyCostTrend.length === 0) return 0;
@@ -1084,7 +1097,7 @@ export default function Dashboard() {
         const activityByClient: Record<string, { hours: number, count: number, cost: number }> = {};
 
         activities.forEach((activity: any) => {
-            const { hours: durationHours, cost } = activityCost(activity);
+            const { hours: durationHours, cost } = activityCost(activity, usersById);
             if (durationHours <= 0) return;
 
             // Se l'attività ha più clienti, dividi proporzionalmente
@@ -1126,7 +1139,7 @@ export default function Dashboard() {
             }))
             .filter(item => item.client)
             .sort((a, b) => b.hours - a.hours);
-    }, [filteredData, clientsById]);
+    }, [filteredData, clientsById, usersById]);
 
     // Task con scadenza nelle prossime 48h (Alert)
     const upcomingDeadlines48h = useMemo(() => {
@@ -1368,7 +1381,7 @@ export default function Dashboard() {
                 };
             }
 
-            const { hours, cost } = taskCost(task);
+            const { hours, cost } = taskCost(task, usersById);
 
             profitByClient[clientId].costs += cost;
             profitByClient[clientId].hoursLogged += hours;
@@ -1380,7 +1393,7 @@ export default function Dashboard() {
         // Attività calendario: stesso modello di costo dei widget "Costi per cliente"
         filteredData.activities.forEach(activity => {
             const clientIds = activityClientIds(activity);
-            const { hours, cost } = activityCost(activity);
+            const { hours, cost } = activityCost(activity, usersById);
             if (clientIds.length === 0 || hours <= 0) return;
             clientIds.forEach(clientId => {
                 const client = clientsById[clientId];
@@ -1407,7 +1420,7 @@ export default function Dashboard() {
         return Object.values(profitByClient)
             .filter(c => c.budget > 0 || c.costs > 0)
             .sort((a, b) => b.profit - a.profit);
-    }, [filteredData.tasks, filteredData.activities, clientsById]);
+    }, [filteredData.tasks, filteredData.activities, clientsById, usersById]);
 
     // ===== NEW: Predictive Delivery Analytics =====
     const predictiveDelivery = useMemo(() => {
@@ -1561,8 +1574,8 @@ export default function Dashboard() {
         csvContent += "=== REPORT TASK ===\n";
         csvContent += "Titolo,Stato,Scadenza,Assegnatario,Ore Registrate,Cliente\n";
         tasks.forEach(task => {
-            const assignee = task.assignedUserId ? usersById[task.assignedUserId]?.name || 'N/A' : 'Non assegnato';
-            const client = task.clientId ? clientsById[task.clientId]?.name || 'N/A' : 'N/A';
+            const assignee = task.assignedUserId ? usersById[task.assignedUserId]?.name || 'Utente eliminato' : 'Non assegnato';
+            const client = task.clientId ? clientsById[task.clientId]?.name || 'Cliente eliminato' : 'Senza cliente';
             const hours = ((task.timeSpent || 0) / 3600).toFixed(1);
             csvContent += `"${task.title}","${task.status}","${task.dueDate || 'N/D'}","${assignee}","${hours}h","${client}"\n`;
         });
@@ -1570,8 +1583,8 @@ export default function Dashboard() {
         csvContent += "\n=== REPORT PROGETTI ===\n";
         csvContent += "Nome,Stato,Priorità,Data Inizio,Data Fine,Team Leader,Cliente\n";
         projects.forEach(project => {
-            const teamLeader = project.teamLeaderId ? usersById[project.teamLeaderId]?.name || 'N/A' : 'Non assegnato';
-            const client = project.clientId ? clientsById[project.clientId]?.name || 'N/A' : 'N/A';
+            const teamLeader = project.teamLeaderId ? usersById[project.teamLeaderId]?.name || 'Utente eliminato' : 'Non assegnato';
+            const client = project.clientId ? clientsById[project.clientId]?.name || 'Cliente eliminato' : 'Senza cliente';
             csvContent += `"${project.name}","${project.status}","${project.priority}","${project.startDate || 'N/D'}","${project.endDate || 'N/D'}","${teamLeader}","${client}"\n`;
         });
 
@@ -2647,7 +2660,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {isWidgetVisible('table_data_quality') && <DataQualityPanel report={dataQuality} />}
+            {isWidgetVisible('table_data_quality') && <DataQualityPanel report={dataQuality} usersToFix={usersToFix.length} onSetRates={setAllUserRates} />}
 
             {/* Report Costi per Cliente - Layout a Card */}
             {isWidgetVisible('chart_client_costs') && (

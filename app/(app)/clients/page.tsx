@@ -65,8 +65,8 @@ export default function ClientsPage() {
           <p className="text-muted-foreground text-sm mt-0.5">
             {isLoadingLayout
               ? '…'
-              : `${clients?.length ?? 0} clienti totali` +
-                (withVerdict > 0 ? ` · ${withVerdict} con un andamento calcolato` : '')}
+              : `${clients?.length ?? 0} clienti` +
+                (withVerdict > 0 ? ` · andamento calcolato per ${withVerdict} (si calcola aprendo la scheda del cliente)` : '')}
           </p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">

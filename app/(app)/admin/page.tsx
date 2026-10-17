@@ -159,7 +159,7 @@ const navItems = [
     { href: '/projects', label: 'Progetti' },
     { href: '/calendar', label: 'Calendario' },
     { href: '/editorial-plan', label: 'Piano Editoriale' },
-    { href: '/briefs', label: 'Briefs' },
+    { href: '/briefs', label: 'Brief' },
     { href: '/absences', label: 'Assenze' },
     { href: '/chat', label: 'Chat' },
     { href: '/documents', label: 'Documenti' },
@@ -777,7 +777,7 @@ function AdminPageContent() {
                     <TabsTrigger value="calendar_activities" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Calendar className="h-4 w-4 text-rose-400" /> Tipi Attività Calendario</TabsTrigger>
                     <TabsTrigger value="brief_services" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><FileText className="h-4 w-4 text-yellow-400" /> Servizi Brief</TabsTrigger>
                     <TabsTrigger value="editorial-plan" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-pink-400" /> Piano Editoriale</TabsTrigger>
-                    <TabsTrigger value="dashboard_widgets" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><LayoutDashboard className="h-4 w-4 text-cyan-400" /> Widget Dashboard</TabsTrigger>
+                    <TabsTrigger value="dashboard_widgets" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><LayoutDashboard className="h-4 w-4 text-cyan-400" /> Widget della Dashboard</TabsTrigger>
                     <TabsTrigger value="email_templates" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Mail className="h-4 w-4 text-sky-400" /> Template Email</TabsTrigger>
                     <TabsTrigger value="sounds" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Volume2 className="h-4 w-4 text-violet-400" /> Suoni</TabsTrigger>
                     <TabsTrigger value="automations" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Zap className="h-4 w-4 text-amber-400" /> Automazioni</TabsTrigger>
