@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { getYouTubeDashboardData } from '@/lib/youtube-client';
+import { adminDb } from '@/lib/firebase-admin';
+import { resolvePublicChannel, getPublicVideos } from '@/lib/youtube-public';
 
 export async function GET(
   request: NextRequest,
@@ -25,6 +27,9 @@ export async function GET(
     console.error('[youtube/route] Error fetching YouTube data:', err.message);
     // Se non configurato, restituiamo struttura vuota con flag
     if (err.message?.includes('non configurato')) {
+      // Senza token: se è impostato un ID canale si mostrano i dati pubblici
+      const publicData = await getPublicData(id);
+      if (publicData) return NextResponse.json(publicData);
       return NextResponse.json({ notConfigured: true, ...buildEmptyResponse(startDate, endDate) });
     }
   }
@@ -156,4 +161,34 @@ function buildEmptyResponse(startDate: string, endDate: string) {
     videos: [],
     demographics: { genere: [], eta: [], paese: [], traffico: [] },
   };
+}
+
+/** Dati pubblici del canale impostato in "solo ID canale". Null se non impostato o se YouTube non risponde. */
+async function getPublicData(clientId: string) {
+  const snap = await adminDb.collection('clients').doc(clientId).collection('integrations').doc('youtube_public').get();
+  const channelId = snap.exists ? snap.data()?.channelId : null;
+  if (!channelId) return null;
+
+  try {
+    const channel = await resolvePublicChannel(channelId);
+    if (!channel) return null;
+    const videos = channel.uploadsPlaylistId ? await getPublicVideos(channel.uploadsPlaylistId, 20) : [];
+    return {
+      // Stessa forma della risposta completa, vuota: le metriche private non esistono in questa modalità
+      ...buildEmptyResponse(new Date().toISOString().slice(0, 10), new Date().toISOString().slice(0, 10)),
+      publicOnly: true,
+      channel: {
+        title: channel.title, url: `https://youtube.com/channel/${channel.id}`,
+        subscribers: channel.subscribers, views: channel.views, videos: channel.videos,
+        hiddenSubscribers: channel.hiddenSubscribers,
+      },
+      videos: videos.map(v => ({
+        id: v.id, title: v.title, date: v.date, thumbnail: v.thumbnail, url: v.url,
+        visualizzazioni: v.views, miPiace: v.likes, commenti: v.comments, durata: v.duration,
+      })),
+    };
+  } catch (err: any) {
+    console.error('[youtube/route] Dati pubblici non disponibili:', err.message);
+    return null;
+  }
 }

@@ -72,7 +72,19 @@ interface Demographics {
   traffico: { fonte: string, ctr: number, percentuale: string }[];
 }
 
+interface PublicChannelInfo {
+  title: string;
+  url: string;
+  subscribers: number;
+  views: number;
+  videos: number;
+  hiddenSubscribers: boolean;
+}
+
 interface DashboardData {
+  /** Modalità "solo ID canale": solo dati pubblici, nessuna metrica privata di YouTube Analytics. */
+  publicOnly?: boolean;
+  channel?: PublicChannelInfo;
   summary: SummaryData;
   interactionChart: InteractionDataPoint[];
   subscriberChart: SubscriberDataPoint[];
@@ -182,6 +194,39 @@ export default function YouTubePage() {
     { key: 'ctr', label: 'CTR', render: (row: any) => formatNumber(row.ctr) },
     { key: 'percentuale', label: 'Percentuale' }
   ];
+
+  // ── Solo dati pubblici (collegato con l'ID del canale, senza token) ──
+  if (data.publicOnly && data.channel) {
+    const publicColumns = videoColumns.filter(c => ['title', 'date', 'visualizzazioni', 'miPiace', 'commenti'].includes(c.key));
+    return (
+      <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight">{data.channel.title}</h2>
+              <a href={data.channel.url} target="_blank" rel="noreferrer" className="text-sm text-muted-foreground underline underline-offset-2">
+                Apri il canale su YouTube
+              </a>
+            </div>
+            <Badge variant="secondary" className="text-xs">Solo dati pubblici</Badge>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <MetricoolCard title="Iscritti" value={data.channel.hiddenSubscribers ? 0 : data.channel.subscribers} icon={Users} variant="blue" className="w-40" />
+            <MetricoolCard title="Visualizzazioni totali" value={data.channel.views} icon={Eye} variant="green" className="w-48" />
+            <MetricoolCard title="Video" value={data.channel.videos} icon={PlayCircle} variant="purple" className="w-32" />
+          </div>
+          <p className="text-sm text-muted-foreground max-w-3xl">
+            Questo canale è collegato con il solo ID: si vedono iscritti, visualizzazioni totali e gli ultimi video.
+            Tempo di visione, iscritti guadagnati e persi e dati demografici richiedono l&apos;autorizzazione del proprietario del canale (token nella scheda Setup API).
+          </p>
+        </section>
+        <section className="space-y-4 pt-4 border-t">
+          <h2 className="text-xl font-semibold tracking-tight mb-4">Ultimi video</h2>
+          <MetricoolTable columns={publicColumns} data={data.videos} searchPlaceholder="Cerca video..." filename="youtube_videos_pubblici.csv" />
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
