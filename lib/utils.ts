@@ -53,8 +53,8 @@ export function getUserAvatar(user?: { avatar?: string; name?: string } | null):
   if (!user?.name) return undefined;
   const lowerName = user.name.toLowerCase();
 
-  // Valeria Daniotti does not have a photo yet (distinct from Valeria Messinese)
-  if (lowerName.includes('valeria daniotti') || lowerName.includes('daniotti')) return undefined;
+  // Valeria Daniotti ha la sua foto (distinta da Valeria Messinese): il cognome va controllato prima del nome
+  if (lowerName.includes('daniotti')) return '/images/team/valeria-daniotti.jpg';
 
   // Exact / full name matches first
   if (lowerName.includes('valeria messinese') || lowerName.includes('messinese')) return '/images/team/valeria.jpg';

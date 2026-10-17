@@ -18,3 +18,12 @@ describe('getInitials', () => {
         expect(getInitials('   ')).toBe('?');
     });
 });
+
+import { getUserAvatar } from '../utils';
+describe('getUserAvatar', () => {
+    it('Valeria Daniotti e Valeria Messinese hanno foto diverse', () => {
+        expect(getUserAvatar({ name: 'Valeria Giovanna Daniotti' })).toBe('/images/team/valeria-daniotti.jpg');
+        expect(getUserAvatar({ name: 'Valeria Messinese' })).toBe('/images/team/valeria.jpg');
+        expect(getUserAvatar({ name: 'Valeria Daniotti', avatar: '/x.jpg' })).toBe('/x.jpg');
+    });
+});
