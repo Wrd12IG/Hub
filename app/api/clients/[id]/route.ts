@@ -26,17 +26,19 @@ export async function GET(
 
     // Leggi le integrazioni social in parallelo (solo presence, nessun token in chiaro)
     const integrationsRef = docRef.collection('integrations');
-    const [youtubeSnap, tiktokSnap, linkedinSnap, klaviyoSnap] = await Promise.all([
+    const [youtubeSnap, tiktokSnap, linkedinSnap, klaviyoSnap, youtubePublicSnap] = await Promise.all([
       integrationsRef.doc('youtube').get(),
       integrationsRef.doc('tiktok').get(),
       integrationsRef.doc('linkedin').get(),
       integrationsRef.doc('klaviyo').get(),
+      integrationsRef.doc('youtube_public').get(),
     ]);
 
     const youtubeData = youtubeSnap.exists ? youtubeSnap.data() : null;
     const tiktokData  = tiktokSnap.exists  ? tiktokSnap.data()  : null;
     const linkedinData = linkedinSnap.exists ? linkedinSnap.data() : null;
     const klaviyoData = klaviyoSnap.exists ? klaviyoSnap.data() : null;
+    const youtubePublicData = youtubePublicSnap.exists ? youtubePublicSnap.data() : null;
 
     return NextResponse.json({
       id: doc.id,
@@ -44,6 +46,9 @@ export async function GET(
       // Social organico — solo flag di presenza e nome visibile, mai token cifrati
       hasYoutubeToken:    !!youtubeData?.accessToken,
       youtubeChannelName: youtubeData?.extra?.channelName ?? null,
+      // Modalità "solo ID canale" (dati pubblici): nessun token, solo ID e nome visibile
+      youtubePublicChannelId:   youtubePublicData?.channelId ?? null,
+      youtubePublicChannelName: youtubePublicData?.channelName ?? null,
       hasTiktokToken:     !!tiktokData?.accessToken,
       tiktokDisplayName:  tiktokData?.extra?.displayName ?? null,
       hasLinkedinToken:   !!linkedinData?.accessToken,

@@ -158,6 +158,8 @@ interface Client {
   // Social integration flags (populated at runtime by the API route)
   hasYoutubeToken?: boolean;
   youtubeChannelName?: string | null;
+  youtubePublicChannelId?: string | null;
+  youtubePublicChannelName?: string | null;
   hasTiktokToken?: boolean;
   tiktokDisplayName?: string | null;
   hasLinkedinToken?: boolean;
@@ -2048,6 +2050,8 @@ export default function ClientDetailPage() {
               // Social organico
               hasYoutubeToken:    client.hasYoutubeToken    ?? false,
               youtubeChannelName: client.youtubeChannelName ?? null,
+              youtubePublicChannelId:   client.youtubePublicChannelId   ?? null,
+              youtubePublicChannelName: client.youtubePublicChannelName ?? null,
               hasTiktokToken:     client.hasTiktokToken     ?? false,
               tiktokDisplayName:  client.tiktokDisplayName  ?? null,
               hasLinkedinToken:   client.hasLinkedinToken   ?? false,

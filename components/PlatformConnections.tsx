@@ -45,6 +45,9 @@ export interface ClientConnections {
   // Social organico
   hasYoutubeToken?: boolean;
   youtubeChannelName?: string | null;
+  // YouTube "solo ID canale": dati pubblici, senza token
+  youtubePublicChannelId?: string | null;
+  youtubePublicChannelName?: string | null;
   hasTiktokToken?: boolean;
   tiktokDisplayName?: string | null;
   hasLinkedinToken?: boolean;
@@ -914,11 +917,15 @@ function GbpAddModal({
 ───────────────────────────────────────────────────────────────── */
 
 function YoutubeModal({
-  clientId, hasToken, channelName, onClose, onSaved,
+  clientId, hasToken, channelName, publicChannelId, publicChannelName, onClose, onSaved, onPublicSaved,
 }: {
   clientId: string; hasToken: boolean; channelName?: string | null;
+  publicChannelId?: string | null; publicChannelName?: string | null;
   onClose: () => void; onSaved: (name: string) => void;
+  onPublicSaved: (channelId: string | null, channelName: string | null) => void;
 }) {
+  const [publicInput, setPublicInput] = useState("");
+  const [savingPublic, setSavingPublic] = useState(false);
   const [accessToken, setAccessToken] = useState("");
   const [refreshToken, setRefreshToken] = useState("");
   const [saving, setSaving] = useState(false);
@@ -943,6 +950,39 @@ function YoutubeModal({
       onClose();
     } catch (e: any) { toast.error(e.message); }
     finally { setSaving(false); }
+  }
+
+  async function savePublicChannel() {
+    if (!publicInput.trim()) { toast.error("Inserisci l'ID del canale (inizia con UC) o l'@handle"); return; }
+    setSavingPublic(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}/api/clients/${clientId}/youtube/channel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ channel: publicInput }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore");
+      toast.success(`Canale collegato (dati pubblici) — ${data.channelName}`);
+      onPublicSaved(data.channelId, data.channelName);
+      onClose();
+    } catch (e: any) { toast.error(e.message); }
+    finally { setSavingPublic(false); }
+  }
+
+  async function removePublicChannel() {
+    setSavingPublic(true);
+    try {
+      const authToken = localStorage.getItem("token");
+      await fetch(`${API_URL}/api/clients/${clientId}/youtube/channel`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${authToken}` },
+      });
+      toast.success("Dati pubblici YouTube rimossi");
+      onPublicSaved(null, null);
+      onClose();
+    } catch { toast.error("Errore durante la rimozione"); }
+    finally { setSavingPublic(false); }
   }
 
   async function checkStatus() {
@@ -990,6 +1030,29 @@ function YoutubeModal({
               : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
           </div>
         )}
+        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+          <p className="text-xs font-bold text-muted-foreground">Solo dati pubblici (basta l&apos;ID del canale)</p>
+          <p className="text-xs text-muted-foreground">
+            Iscritti, visualizzazioni totali e ultimi video, senza nessuna autorizzazione di Google. Non include tempo di visione,
+            iscritti guadagnati/persi e dati demografici: per quelli servono i token qui sotto.
+          </p>
+          {publicChannelId && (
+            <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+              <span className="text-xs font-semibold text-emerald-400 truncate">{publicChannelName || publicChannelId}</span>
+              <button type="button" onClick={removePublicChannel} disabled={savingPublic}
+                className="text-xs text-rose-400 hover:text-rose-300 underline cursor-pointer disabled:opacity-50">Rimuovi</button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input id="youtube-public-channel" aria-label="ID canale YouTube" value={publicInput} onChange={(e) => setPublicInput(e.target.value)}
+              placeholder="UC... oppure @handle"
+              className="flex-1 min-w-0 text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
+            <button type="button" onClick={savePublicChannel} disabled={savingPublic || !publicInput.trim()}
+              className="flex-none px-3 py-2 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer">
+              {savingPublic && <Loader2 size={12} className="animate-spin" />} Usa dati pubblici
+            </button>
+          </div>
+        </div>
         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
           <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
           <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
@@ -1311,7 +1374,7 @@ export default function PlatformConnections({
     client.googleAdAccountId,
     gbpLocations.length > 0,
     client.clarityProjectId,
-    client.hasYoutubeToken,
+    client.hasYoutubeToken || client.youtubePublicChannelId,
     client.hasTiktokToken,
     client.hasLinkedinToken,
     client.windsorAccounts?.instagram,
@@ -1458,7 +1521,7 @@ export default function PlatformConnections({
         </div>
 
         {/* ── YOUTUBE ── */}
-        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasYoutubeToken, "#FF0000")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasYoutubeToken || !!client.youtubePublicChannelId, "#FF0000")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#f87171")}>
@@ -1466,12 +1529,18 @@ export default function PlatformConnections({
               </div>
               <span className="text-sm font-bold text-foreground">YouTube</span>
             </div>
-            {client.hasYoutubeToken && <ConnectedBadge />}
+            {(client.hasYoutubeToken || client.youtubePublicChannelId) && <ConnectedBadge />}
           </div>
           {client.youtubeChannelName && <AccountChip name={client.youtubeChannelName} sub="Canale connesso" />}
+          {!client.hasYoutubeToken && client.youtubePublicChannelId && (
+            <AccountChip name={client.youtubePublicChannelName || client.youtubePublicChannelId} sub="Solo dati pubblici" />
+          )}
+          {(client.hasYoutubeToken || client.youtubePublicChannelId) && (
+            <a href={`/clients/${clientId}/youtube`} className="text-xs font-semibold text-red-400 hover:text-red-300 underline underline-offset-2">Apri report YouTube</a>
+          )}
           <button type="button" onClick={() => setActiveModal("youtube")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-red-500/20 text-red-400 bg-red-500/5 hover:bg-red-500/10 transition-all cursor-pointer">
-            {client.hasYoutubeToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega YouTube</>}
+            {client.hasYoutubeToken || client.youtubePublicChannelId ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega YouTube</>}
           </button>
         </div>
 
@@ -1673,10 +1742,15 @@ export default function PlatformConnections({
           clientId={clientId}
           hasToken={!!client.hasYoutubeToken}
           channelName={client.youtubeChannelName}
+          publicChannelId={client.youtubePublicChannelId}
+          publicChannelName={client.youtubePublicChannelName}
           onClose={() => setActiveModal(null)}
           onSaved={(name) => {
             setClient((prev) => ({ ...prev, hasYoutubeToken: !!name, youtubeChannelName: name || null }));
             setActiveModal(null);
+          }}
+          onPublicSaved={(channelId, channelName) => {
+            setClient((prev) => ({ ...prev, youtubePublicChannelId: channelId, youtubePublicChannelName: channelName }));
           }}
         />
       )}
