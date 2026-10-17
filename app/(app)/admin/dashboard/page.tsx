@@ -71,7 +71,7 @@ import { toast } from 'sonner';
 import { updateUser } from '@/lib/actions';
 import { isDueWithin48h, isProjectDone, isProjectOverdue, overdueDays, deliveryRisk } from '@/lib/dashboard-rules';
 import { formatEuro } from '@/lib/format';
-import { findDataIssues } from '@/lib/data-quality';
+import { findDataIssues, isPlausibleYear } from '@/lib/data-quality';
 import { DataQualityPanel } from '@/components/DataQualityPanel';
 import { DEFAULT_HOURLY_RATE, parseRate, rateOf, taskCost, activityCost, taskHours, activityHours, activityClientIds } from '@/lib/cost-model';
 import { useEffect, useState, useMemo, useCallback } from 'react';
@@ -665,7 +665,11 @@ export default function Dashboard() {
                 const activityCostTotal = assignedActivities.reduce((sum, a) => sum + activityCost(a, usersById).cost, 0);
 
                 const totalHours = userTaskHours + userActivityHours;
-                const estimatedHours = assignedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
+                // Stime ed effettivo si confrontano solo sui task che hanno entrambi: un task con stima ma senza ore
+                // registrate non è "risparmio", è tempo non tracciato (189 task di Lorenzo, 174 approvati)
+                const comparedTasks = assignedTasks.filter(t => (t.estimatedDuration || 0) > 0 && (t.timeSpent || 0) > 0);
+                const estimatedHours = comparedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
+                const comparedHours = comparedTasks.reduce((sum, t) => sum + taskHours(t), 0);
                 const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
 
                 // Trova gli estremi dei task assegnati (sforamento e risparmio)
@@ -675,7 +679,7 @@ export default function Dashboard() {
                 let maxUnderrunTask: any = null;
                 let maxUnderrunValue = -Infinity;
 
-                assignedTasks.forEach(task => {
+                comparedTasks.forEach(task => {
                     const est = (task.estimatedDuration || 0) / 60;
                     const act = (task.timeSpent || 0) / 3600;
                     
@@ -737,6 +741,8 @@ export default function Dashboard() {
                     totalCost: parseFloat((taskCostTotal + activityCostTotal).toFixed(2)),
                     hourlyRate: rateOf(user),
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
+                    comparedHours: parseFloat(comparedHours.toFixed(1)),
+                    comparedCount: comparedTasks.length,
                     rate: parseFloat(completionRate.toFixed(1)),
                     overrunDetails,
                     underrunDetails,
@@ -760,11 +766,11 @@ export default function Dashboard() {
             .filter(user => user.role !== 'Amministratore')
             .map(user => {
                 const createdTasks = relevantTasks.filter(t => t.createdBy === user.id);
-                const assignedActivities = relevantActivities.filter(a => a.userId === user.id);
 
-                const totalHours = createdTasks.reduce((sum, t) => sum + taskHours(t), 0)
-                    + assignedActivities.reduce((sum, a) => sum + activityHours(a), 0);
-                const estimatedHours = createdTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
+                // Solo task con stima e ore registrate: niente attività calendario (non hanno stima) e niente task non tracciati
+                const comparedTasks = createdTasks.filter(t => (t.estimatedDuration || 0) > 0 && (t.timeSpent || 0) > 0);
+                const totalHours = comparedTasks.reduce((sum, t) => sum + taskHours(t), 0);
+                const estimatedHours = comparedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
 
                 const activityCounts: { [activity: string]: number } = {};
                 createdTasks.forEach(task => {
@@ -780,7 +786,7 @@ export default function Dashboard() {
                 let maxUnderrunTask: any = null;
                 let maxUnderrunValue = -Infinity;
 
-                createdTasks.forEach(task => {
+                comparedTasks.forEach(task => {
                     const est = (task.estimatedDuration || 0) / 60;
                     const act = (task.timeSpent || 0) / 3600;
                     
@@ -823,6 +829,7 @@ export default function Dashboard() {
                     createdCount: createdTasks.length,
                     hours: parseFloat(totalHours.toFixed(1)),
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
+                    comparedCount: comparedTasks.length,
                     activityCounts,
                     overrunDetails,
                     underrunDetails,
@@ -1050,7 +1057,7 @@ export default function Dashboard() {
 
         // Mese di competenza = data di riferimento del task (stessa usata dal filtro date)
         tasks.forEach(task => {
-            if (task.timeSpent > 0 && task.dueDate) {
+            if (task.timeSpent > 0 && task.dueDate && isPlausibleYear(task.dueDate)) {
                 const month = format(parseISO(task.dueDate), 'yyyy-MM');
                 costsByMonth[month] = (costsByMonth[month] || 0) + taskCost(task, usersById).cost;
             }
@@ -1435,10 +1442,17 @@ export default function Dashboard() {
                 : 0;
         });
 
+        // Solo clienti con un budget: senza budget il margine è sempre 0% e l'ordinamento per utile
+        // mostrava i clienti con meno costi (i 7 micro-clienti da 25-46 €), che non dicono nulla
         return Object.values(profitByClient)
-            .filter(c => c.budget > 0 || c.costs > 0)
-            .sort((a, b) => b.profit - a.profit);
+            .filter(c => c.budget > 0)
+            .sort((a, b) => a.profit - b.profit); // prima chi è più in perdita
     }, [filteredData.tasks, filteredData.activities, clientsById, usersById]);
+
+    const clientsWithoutBudget = useMemo(
+        () => clients.filter((c: any) => !(c.budget > 0)).length,
+        [clients]
+    );
 
     // ===== NEW: Predictive Delivery Analytics =====
     const predictiveDelivery = useMemo(() => {
@@ -2096,7 +2110,7 @@ export default function Dashboard() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {userPerformanceData.map((user, index) => {
                                         const efficiency = user.estimatedHours > 0
-                                            ? ((user.taskHours / user.estimatedHours) * 100)
+                                            ? ((user.comparedHours / user.estimatedHours) * 100)
                                             : 0;
                                         const efficiencyStatus = efficiency === 0 ? 'neutral' :
                                             efficiency <= 90 ? 'excellent' :
@@ -2178,9 +2192,10 @@ export default function Dashboard() {
                                                                 />
                                                             </div>
                                                             <div className="flex justify-between text-xs text-muted-foreground">
-                                                                <span>{user.hours}h effettive</span>
+                                                                <span>{user.comparedHours}h effettive</span>
                                                                 <span>{user.estimatedHours}h stimate</span>
                                                             </div>
+                                                            <div className="text-xs text-muted-foreground">su {user.comparedCount} task con stima e ore registrate</div>
                                                         </div>
                                                     )}
 
@@ -2317,7 +2332,7 @@ export default function Dashboard() {
                                 Riepilogo Tempi e Task Creati
                             </CardTitle>
                             <CardDescription>
-                                Numero di task creati dall'utente, stima delle ore richieste (tempo stimato), ore effettive registrate ed elenco delle attività per ogni utente.
+                                Task creati dall'utente. Stimate ed effettive si confrontano solo sui task che hanno sia la stima sia le ore registrate.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -2387,6 +2402,7 @@ export default function Dashboard() {
                                                                 <span>{user.hours}h effettive</span>
                                                                 <span>{user.estimatedHours}h stimate</span>
                                                             </div>
+                                                            <div className="text-xs text-muted-foreground">su {user.comparedCount} task con stima e ore registrate</div>
                                                         </div>
                                                     )}
 
@@ -3060,15 +3076,15 @@ export default function Dashboard() {
                                         <Tooltip content={<CustomTooltip unit="h" />} />
                                         <Legend />
                                         <Bar dataKey="estimatedHours" name="Ore Stimate" fill="hsl(var(--primary))" opacity={0.6} radius={[4, 4, 0, 0]} />
-                                        <Bar dataKey="taskHours" name="Ore Effettive (task)" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="comparedHours" name="Ore Effettive (task con stima)" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
                                     </DynamicBarChart>
                                 </ResponsiveContainer>
 
                                 {/* Integrated Card Grid for coherent user summary */}
                                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/40">
                                     {userPerformanceData.map((u) => {
-                                        const ratio = u.estimatedHours > 0 ? (u.taskHours / u.estimatedHours) * 100 : 0;
-                                        const isOver = u.taskHours > u.estimatedHours && u.estimatedHours > 0;
+                                        const ratio = u.estimatedHours > 0 ? (u.comparedHours / u.estimatedHours) * 100 : 0;
+                                        const isOver = u.comparedHours > u.estimatedHours && u.estimatedHours > 0;
                                         return (
                                             <Card key={u.name} className="p-3 border-l-4 border-l-primary hover:shadow-md transition-all">
                                                 <div className="flex items-center justify-between gap-2">
@@ -3086,7 +3102,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="mt-2 flex items-center justify-between text-xs font-mono">
                                                     <span className="text-muted-foreground">Stimate: <strong className="text-foreground">{u.estimatedHours.toFixed(1)}h</strong></span>
-                                                    <span className="text-muted-foreground">Effettive task: <strong className={cn(isOver ? "text-red-500 font-bold" : "text-primary")}>{u.taskHours.toFixed(1)}h</strong></span>
+                                                    <span className="text-muted-foreground">Effettive: <strong className={cn(isOver ? "text-red-500 font-bold" : "text-primary")}>{u.comparedHours.toFixed(1)}h</strong></span>
                                                 </div>
                                                 <Progress value={Math.min(ratio, 100)} className="h-1.5 mt-2" />
                                             </Card>
@@ -3255,16 +3271,23 @@ export default function Dashboard() {
             )}
 
             {/* ===== Client Profitability Dashboard ===== */}
-            {isWidgetVisible('chart_client_profitability') && clientProfitability.length > 0 && (
+            {isWidgetVisible('chart_client_profitability') && (
                 <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Euro className="h-5 w-5 text-emerald-500" />
                             <span>Redditività Clienti</span>
                         </CardTitle>
-                        <CardDescription>Analisi budget vs costi effettivi per cliente</CardDescription>
+                        <CardDescription>
+                            Budget vs costi effettivi, dal cliente più in perdita. {clientsWithoutBudget} clienti non hanno un budget impostato e non compaiono.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
+                        {clientProfitability.length === 0 ? (
+                            <p className="text-sm text-muted-foreground py-8 text-center">
+                                Nessun cliente con budget nel periodo selezionato. Imposta il budget nella scheda del cliente per vedere il margine.
+                            </p>
+                        ) : (<>
                         <ResponsiveContainer width="100%" height={320}>
                             <DynamicBarChart data={clientProfitability.slice(0, 7)} margin={{ top: 10, right: 20, bottom: 25, left: 10 }}>
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -3314,6 +3337,7 @@ export default function Dashboard() {
                                 );
                             })}
                         </div>
+                        </>)}
                     </CardContent>
                 </Card>
             )}

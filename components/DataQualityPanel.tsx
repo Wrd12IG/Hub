@@ -54,6 +54,7 @@ const renderTask = (t: TaskIssue) => (
         <div className="min-w-0">
             <div className="font-medium truncate">{t.title}</div>
             <div className="text-muted-foreground truncate">Cliente: {t.clientName} · Assegnato: {t.userName} · {t.status}</div>
+            {t.reason && <div className="text-amber-600 dark:text-amber-400">{t.reason}</div>}
         </div>
         <span className="font-mono shrink-0">{t.hours}h</span>
     </>
@@ -127,6 +128,11 @@ export function DataQualityPanel({ report, usersToFix, onSetRates }: { report: D
                     title="Task con ore senza cliente"
                     hint="Non compaiono in nessun cliente di Costi e Redditività."
                     items={report.tasksNoClient} render={renderTask}
+                />
+                <Section
+                    title="Task con scadenza in un anno anomalo"
+                    hint="Spostano l'andamento mensile fuori scala (es. ott 05)."
+                    items={report.tasksBadDate} render={renderTask}
                 />
                 <Section
                     title="Attività calendario senza cliente"

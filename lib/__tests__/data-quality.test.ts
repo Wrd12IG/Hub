@@ -38,4 +38,16 @@ describe('findDataIssues', () => {
         expect(r.activitiesSuspicious.map(a => a.id).sort()).toEqual(['a3', 'a4', 'a5']);
         expect(r.suspiciousHours).toBe(49);
     });
+
+    it('task con scadenza in un anno impossibile', () => {
+        const r = findDataIssues({
+            tasks: [
+                { id: 't1', title: 'vecchio', timeSpent: 3600, assignedUserId: 'u1', clientId: 'c1', dueDate: '2005-10-05T00:00:00Z' },
+                { id: 't2', title: 'ok', timeSpent: 3600, assignedUserId: 'u1', clientId: 'c1', dueDate: '2026-10-05T00:00:00Z' },
+            ],
+            activities: [], usersById, clientsById, now,
+        });
+        expect(r.tasksBadDate.map(t => t.id)).toEqual(['t1']);
+        expect(r.tasksBadDate[0].reason).toContain('2005-10-05');
+    });
 });
