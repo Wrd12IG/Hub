@@ -46,41 +46,35 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const days = raw === '7' ? 7 : raw === '90' ? 90 : 30;
 
   try {
-    // Le sedi passano da un pool: una risponde in 10-12s e in parallelo
-    // Windsor chiude le connessioni (stesso motivo del report).
-    const daily: Row[] = [];
-    const reviewRows: Row[] = [];
-    const keywordRows: Row[] = [];
-
-    for (let i = 0; i < locations.length; i += 2) {
-      const batch = locations.slice(i, i + 2);
-      await Promise.all(batch.map(async (accountId) => {
-        const [d, rev, kw] = await Promise.all([
-          getData({
-            connector: 'google_my_business', accountId,
-            fields: ['date', 'impressions_desktop_maps', 'impressions_mobile_maps',
-              'impressions_desktop_search', 'impressions_mobile_search',
-              'website_clicks', 'call_clicks', 'direction_requests', 'account_id'],
-            datePreset: `last_${days}d`,
-          }).catch(() => []),
-          getData({
-            connector: 'google_my_business', accountId,
-            fields: ['review_reviewer', 'review_comment', 'review_star_rating',
-              'review_create_time', 'review_reply_comment', 'review_total_count',
-              'review_average_rating_total', 'account_id'],
-            datePreset: `last_${days}d`,
-          }).catch(() => []),
-          // ⚠️ Le parole chiave GBP sono aggregate **per mese**: con un preset
-          // in giorni Windsor restituisce una lista vuota, non un errore.
-          getData({
-            connector: 'google_my_business', accountId,
-            fields: ['search_keyword', 'search_keyword_value', 'search_keyword_threshold', 'account_id'],
-            datePreset: 'last_3m',
-          }).catch(() => []),
-        ]);
-        daily.push(...d); reviewRows.push(...rev); keywordRows.push(...kw);
-      }));
-    }
+    // Tutte le sedi in UNA richiesta per tipo di dato (andamento, recensioni, parole chiave).
+    // Prima ogni sede faceva le sue tre richieste e ognuna riceveva da Windsor le 75 sedi collegate
+    // per tenerne una (~20 s a richiesta): con 4 sedi erano 12 richieste, oltre il minuto.
+    // Con il filtro `account_id in [...]` lato Windsor le tre richieste insieme finiscono in ~5 s
+    // (misurato il 17/10/2026 su City Motors, 4 sedi). Le righe hanno già `account_id` e
+    // sotto vengono comunque sommate tutte insieme, quindi il risultato non cambia.
+    const [daily, reviewRows, keywordRows]: Row[][] = await Promise.all([
+      getData({
+        connector: 'google_my_business', accountIds: locations,
+        fields: ['date', 'impressions_desktop_maps', 'impressions_mobile_maps',
+          'impressions_desktop_search', 'impressions_mobile_search',
+          'website_clicks', 'call_clicks', 'direction_requests', 'account_id'],
+        datePreset: `last_${days}d`,
+      }).catch(() => []),
+      getData({
+        connector: 'google_my_business', accountIds: locations,
+        fields: ['review_reviewer', 'review_comment', 'review_star_rating',
+          'review_create_time', 'review_reply_comment', 'review_total_count',
+          'review_average_rating_total', 'account_id'],
+        datePreset: `last_${days}d`,
+      }).catch(() => []),
+      // ⚠️ Le parole chiave GBP sono aggregate **per mese**: con un preset
+      // in giorni Windsor restituisce una lista vuota, non un errore.
+      getData({
+        connector: 'google_my_business', accountIds: locations,
+        fields: ['search_keyword', 'search_keyword_value', 'search_keyword_threshold', 'account_id'],
+        datePreset: 'last_3m',
+      }).catch(() => []),
+    ]);
 
     // ── Copertura ────────────────────────────────────────────────────────
     const byDate = new Map<string, { date: string; googleMaps: number; ricercaGoogle: number; totale: number }>();
