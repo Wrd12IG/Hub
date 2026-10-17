@@ -3255,7 +3255,7 @@ export default function Dashboard() {
             )}
 
             {/* ===== Client Profitability Dashboard ===== */}
-            {visibleWidgets.includes('chart_client_profitability') && clientProfitability.length > 0 && (
+            {isWidgetVisible('chart_client_profitability') && clientProfitability.length > 0 && (
                 <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -3399,7 +3399,7 @@ export default function Dashboard() {
             )}
 
             {/* ===== NEW: Efficiency Trends ===== */}
-            {visibleWidgets.includes('chart_efficiency_trends') && efficiencyTrends.length > 0 && (
+            {isWidgetVisible('chart_efficiency_trends') && efficiencyTrends.length > 0 && (
                 <Card className="border-blue-200 dark:border-blue-800">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -3465,7 +3465,7 @@ export default function Dashboard() {
             )}
 
             {/* ===== Gamification Leaderboard ===== */}
-            {visibleWidgets.includes('gamification_leaderboard') && gamificationLeaderboard.length > 0 && (
+            {isWidgetVisible('gamification_leaderboard') && gamificationLeaderboard.length > 0 && (
                 <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
