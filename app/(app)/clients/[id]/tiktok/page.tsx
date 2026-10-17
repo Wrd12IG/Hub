@@ -17,6 +17,8 @@ import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { MetricoolTable } from '@/components/metricool/MetricoolTable'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { throwIfNotOk } from '@/lib/fetch-json'
+import { PageError } from '@/components/PageError'
 
 // --- Types ---
 interface VideoModel {
@@ -75,12 +77,14 @@ export default function TikTokPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
+      setError(null);
       try {
         const response = await fetch(`/api/clients/${id}/tiktok`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        if (!response.ok) throw new Error('Failed to fetch TikTok data');
+        await throwIfNotOk(response, 'TikTok');
         const result = await response.json();
         setData(result);
       } catch (err: any) {
@@ -90,7 +94,13 @@ export default function TikTokPage() {
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, reloadKey]);
+
+  // L'errore va controllato PRIMA dello scheletro: con `loading || !data` per primo una richiesta fallita lasciava
+  // lo scheletro grigio per sempre e il motivo non compariva mai.
+  if (error && !loading) {
+    return <PageError message={error} onRetry={() => setReloadKey((k) => k + 1)} />;
+  }
 
   if (loading || !data) {
     return (
@@ -102,14 +112,6 @@ export default function TikTokPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[500px] text-destructive">
-        <AlertCircle size={48} className="mb-4" />
-        <p className="font-semibold">Errore nel caricamento: {error}</p>
-      </div>
-    );
-  }
 
   const tooltipStyle = {
     borderRadius: '8px', 

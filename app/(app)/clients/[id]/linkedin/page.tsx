@@ -20,6 +20,8 @@ import { Badge } from '@/components/ui/badge'
 import { MetricoolDatePicker } from '@/components/metricool/MetricoolDatePicker'
 import { DateRange } from 'react-day-picker'
 import { subDays } from 'date-fns'
+import { throwIfNotOk } from '@/lib/fetch-json'
+import { PageError } from '@/components/PageError'
 
 // --- Types ---
 interface Post {
@@ -77,6 +79,7 @@ export default function LinkedinPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date()
@@ -84,6 +87,7 @@ export default function LinkedinPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setError(null);
       try {
         setLoading(true);
         let url = `/api/clients/${id}/linkedin`;
@@ -92,7 +96,7 @@ export default function LinkedinPage() {
         }
         
         const response = await fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        if (!response.ok) throw new Error('Failed to fetch LinkedIn data');
+        await throwIfNotOk(response, 'LinkedIn');
         const result = await response.json();
         setData(result);
       } catch (err: any) {
@@ -102,7 +106,13 @@ export default function LinkedinPage() {
       }
     };
     fetchData();
-  }, [id, dateRange]);
+  }, [id, dateRange, reloadKey]);
+
+  // L'errore va controllato PRIMA dello scheletro: con `loading || !data` per primo una richiesta fallita lasciava
+  // lo scheletro grigio per sempre e il motivo non compariva mai.
+  if (error && !loading) {
+    return <PageError message={error} onRetry={() => setReloadKey((k) => k + 1)} />;
+  }
 
   if (loading || !data) {
     return (
@@ -114,14 +124,6 @@ export default function LinkedinPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[500px] text-destructive">
-        <AlertCircle size={48} className="mb-4" />
-        <p className="font-semibold">Errore nel caricamento: {error}</p>
-      </div>
-    );
-  }
 
   const tooltipStyle = {
     borderRadius: '8px', 

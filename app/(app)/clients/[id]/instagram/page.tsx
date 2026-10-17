@@ -13,6 +13,8 @@ import { Users, UserPlus, Image as ImageIcon, Heart, MessageCircle, Bookmark, Sh
 import { MetricoolDatePicker } from '@/components/metricool/MetricoolDatePicker';
 import { DateRange } from 'react-day-picker';
 import { subDays } from 'date-fns';
+import { throwIfNotOk } from '@/lib/fetch-json'
+import { PageError } from '@/components/PageError'
 
 export default function InstagramDashboard() {
   const params = useParams();
@@ -20,6 +22,8 @@ export default function InstagramDashboard() {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 30),
     to: new Date()
@@ -27,6 +31,7 @@ export default function InstagramDashboard() {
 
   useEffect(() => {
     async function fetchData() {
+      setError(null);
       try {
         setLoading(true);
         let url = `/api/clients/${clientId}/instagram`;
@@ -35,17 +40,24 @@ export default function InstagramDashboard() {
         }
         
         const res = await fetch(url, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        if (!res.ok) throw new Error('Failed to fetch Instagram data');
+        await throwIfNotOk(res, 'Instagram');
         const json = await res.json();
         setData(json);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     }
     fetchData();
-  }, [clientId, dateRange]);
+  }, [clientId, dateRange, reloadKey]);
+
+  // L'errore va controllato PRIMA dello scheletro: con `loading || !data` per primo una richiesta fallita lasciava
+  // lo scheletro grigio per sempre e il motivo non compariva mai.
+  if (error && !loading) {
+    return <PageError message={error} onRetry={() => setReloadKey((k) => k + 1)} />;
+  }
 
   if (loading || !data) {
     return (
