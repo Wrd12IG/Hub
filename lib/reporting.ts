@@ -18,7 +18,16 @@ import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
 import { getAwinTotals } from './awin-client';
-import { getGoogleAdsAccountTotals } from './google-ads-client';
+import { getGoogleAdsAccountTotals as getGoogleAdsAccountTotalsDirect } from './google-ads-client';
+import { getGoogleAdsAccountTotalsViaComposio } from './google-ads-composio';
+import { isComposioConfigured } from './composio-client';
+
+// Fonte Google Ads: l'API diretta resta quella di default. Composio si attiva solo con
+// GOOGLE_ADS_SOURCE=composio (e COMPOSIO_API_KEY), così il pilota non tocca la produzione finché non è provato.
+const getGoogleAdsAccountTotals = (customerId: string, from: string, to: string) =>
+    process.env.GOOGLE_ADS_SOURCE === 'composio' && isComposioConfigured()
+        ? getGoogleAdsAccountTotalsViaComposio(customerId, from, to)
+        : getGoogleAdsAccountTotalsDirect(customerId, from, to);
 import type { Client } from './data';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup

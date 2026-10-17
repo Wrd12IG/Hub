@@ -10,6 +10,7 @@
     "update": "git pull && npm install && next build"
   },
   "dependencies": {
+    "@composio/core": "^0.17.0",
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@google-analytics/data": "^6.1.0",
