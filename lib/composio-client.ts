@@ -23,19 +23,20 @@ function getComposio(): Composio {
     return (composioInstance ||= new Composio());
 }
 
-async function getSession(toolkit: string) {
-    let session = sessions.get(toolkit);
+async function getSession(toolkit: string, userId: string) {
+    const key = `${userId}:${toolkit}`;
+    let session = sessions.get(key);
     if (!session) {
         // Sessione limitata al solo toolkit che serve: nessun altro strumento esposto
-        session = await getComposio().create(AGENCY_USER_ID, { toolkits: [toolkit] });
-        sessions.set(toolkit, session);
+        session = await getComposio().create(userId, { toolkits: [toolkit] });
+        sessions.set(key, session);
     }
     return session;
 }
 
 export class ComposioNotConnectedError extends Error {
-    constructor(public toolkit: string, public connectUrl?: string) {
-        super(`Composio: toolkit "${toolkit}" non collegato per l'agenzia${connectUrl ? `. Autorizza qui: ${connectUrl}` : ''}`);
+    constructor(public toolkit: string, public connectUrl?: string, public userId: string = AGENCY_USER_ID) {
+        super(`Composio: toolkit "${toolkit}" non collegato per "${userId}"${connectUrl ? `. Autorizza qui: ${connectUrl}` : ''}`);
     }
 }
 
@@ -59,22 +60,24 @@ export async function composioExecute<T = unknown>(
     toolkit: string,
     toolSlug: string,
     args: Record<string, unknown>,
+    /** Identità Composio: di default l'agenzia (Google Ads). Per le fonti con un account per cliente, l'id del cliente. */
+    userId: string = AGENCY_USER_ID,
 ): Promise<ComposioResult<T>> {
-    const session = await getSession(toolkit);
+    const session = await getSession(toolkit, userId);
 
     let res: any;
     try {
         res = await session.execute(toolSlug, args);
     } catch (err: any) {
         const message = String(err?.message || err);
-        if (isNotConnected(message)) throw new ComposioNotConnectedError(toolkit, await connectUrlFor(session, toolkit));
+        if (isNotConnected(message)) throw new ComposioNotConnectedError(toolkit, await connectUrlFor(session, toolkit), userId);
         throw err;
     }
 
     const failed = res?.resultType === 'failed' || !!res?.error;
     if (failed) {
         const message = String(res?.error || 'errore sconosciuto');
-        if (isNotConnected(message)) throw new ComposioNotConnectedError(toolkit, await connectUrlFor(session, toolkit));
+        if (isNotConnected(message)) throw new ComposioNotConnectedError(toolkit, await connectUrlFor(session, toolkit), userId);
         throw new Error(`Composio ${toolSlug}: ${message}${res?.logId ? ` (log ${res.logId})` : ''}`);
     }
     return { data: res.data as T, logId: res.logId };
