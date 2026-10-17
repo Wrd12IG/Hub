@@ -20,6 +20,15 @@ const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
 const round = (n: number) => Math.round(n * 100) / 100;
 const div = (a: number, b: number) => (b > 0 ? round(a / b) : 0);
 
+// La pagina colora i grafici a ciambella con `color`: senza, le fette restano senza colore
+const PALETTE = ['#8b5cf6', '#3b82f6', '#ec4899', '#10b981', '#f59e0b', '#06b6d4', '#ef4444', '#84cc16', '#6366f1', '#14b8a6'];
+const withColor = <T extends object>(rows: T[]) => rows.map((r, i) => ({ ...r, color: PALETTE[i % PALETTE.length] }));
+
+/** Windsor dà il codice paese (IT, DE...): lo mostriamo con il nome in italiano. */
+function countryName(code: string): string {
+  try { return new Intl.DisplayNames(['it'], { type: 'region' }).of(code.toUpperCase()) || code; } catch { return code; }
+}
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
@@ -44,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       getData({ connector: 'instagram', accountId, fields: [...fields, 'account_id'], datePreset: preset })
         .catch(() => [] as any[]);
 
-    const [account, daily, media, gender, age] = await Promise.all([
+    const [account, daily, media, gender, age, country] = await Promise.all([
       q(['followers_count', 'follows_count', 'media_count', 'account_name']),
       q(['date', 'likes', 'comments', 'shares', 'saves', 'reach', 'total_interactions', 'views', 'follower_count_1d']),
       q(['media_id', 'media_caption', 'media_permalink', 'media_type', 'media_like_count',
@@ -52,6 +61,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         'media_reel_avg_watch_time', 'timestamp']),
       q(['audience_gender_name', 'audience_gender_size']),
       q(['audience_age_name', 'audience_age_size']),
+      q(['audience_country_name', 'audience_country_size']),
     ]);
 
     const a = account[0] || {};
@@ -163,11 +173,22 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       })),
 
       demographics: {
-        genere: gender.map((g) => ({ name: String(g.audience_gender_name ?? ''), value: num(g.audience_gender_size) }))
-          .filter((g) => g.name && g.value > 0),
+        genere: withColor(
+          gender.map((g) => ({ name: String(g.audience_gender_name ?? ''), value: num(g.audience_gender_size) }))
+            .filter((g) => g.name && g.value > 0)
+        ),
         eta: age.map((g) => ({ name: String(g.audience_age_name ?? ''), value: num(g.audience_age_size) }))
           .filter((g) => g.name && g.value > 0)
           .sort((x, y) => x.name.localeCompare(y.name)),
+        // Prima mancava: la pagina leggeva `paese` e andava in errore su ogni cliente
+        paese: withColor(
+          country.map((g) => ({ name: countryName(String(g.audience_country_name ?? '')), value: num(g.audience_country_size) }))
+            .filter((g) => g.name && g.value > 0)
+            .sort((x, y) => y.value - x.value)
+            .slice(0, 8)
+        ),
+        // Windsor non espone il nome della città: lista vuota, non inventata
+        citta: [] as { citta: string; conteggio: number }[],
       },
 
       posts,

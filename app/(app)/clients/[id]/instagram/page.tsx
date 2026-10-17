@@ -251,7 +251,7 @@ export default function InstagramDashboard() {
               <ResponsiveContainer width="50%" height="100%">
                 <PieChart>
                   <Pie
-                    data={data.demographics.genere}
+                    data={(data.demographics?.genere ?? [])}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -260,7 +260,7 @@ export default function InstagramDashboard() {
                     dataKey="value"
                     stroke="none"
                   >
-                    {data.demographics.genere.map((entry: any, index: number) => (
+                    {(data.demographics?.genere ?? []).map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -268,7 +268,7 @@ export default function InstagramDashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="w-1/2 flex flex-col justify-center gap-2 px-4">
-                {data.demographics.genere.map((item: any) => (
+                {(data.demographics?.genere ?? []).map((item: any) => (
                   <div key={item.name} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                     <span className="text-sm font-medium">{item.name}</span>
@@ -283,7 +283,7 @@ export default function InstagramDashboard() {
             <h3 className="text-sm font-medium text-muted-foreground mb-4">Età</h3>
             <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.demographics.eta} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <BarChart data={(data.demographics?.eta ?? [])} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                   <XAxis dataKey="name" tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
                   <YAxis tick={{fontSize: 12, fill: "hsl(var(--muted-foreground))"}} tickLine={false} axisLine={false} />
@@ -301,7 +301,7 @@ export default function InstagramDashboard() {
               <ResponsiveContainer width="50%" height="100%">
                 <PieChart>
                   <Pie
-                    data={data.demographics.paese}
+                    data={(data.demographics?.paese ?? [])}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -310,7 +310,7 @@ export default function InstagramDashboard() {
                     dataKey="value"
                     stroke="none"
                   >
-                    {data.demographics.paese.map((entry: any, index: number) => (
+                    {(data.demographics?.paese ?? []).map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -318,7 +318,7 @@ export default function InstagramDashboard() {
                 </PieChart>
               </ResponsiveContainer>
               <div className="w-1/2 flex flex-col justify-center gap-2 px-4 overflow-y-auto">
-                {data.demographics.paese.map((item: any) => (
+                {(data.demographics?.paese ?? []).map((item: any) => (
                   <div key={item.name} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
                     <span className="text-sm font-medium truncate">{item.name}</span>
@@ -333,7 +333,7 @@ export default function InstagramDashboard() {
             <h3 className="text-sm font-medium text-muted-foreground mb-4">Followers per città</h3>
             <div className="flex-1 overflow-auto -mx-4 px-4">
               <MetricoolTable 
-                data={data.demographics.citta} 
+                data={data.demographics?.citta ?? []} 
                 columns={cittaColumns} 
                 hideToolbar 
               />
