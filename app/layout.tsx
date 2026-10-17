@@ -1,30 +1,39 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, DM_Sans, DM_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "./glass-skin.css";
 import React, { Suspense } from 'react';
 import { Providers } from './providers';
 
 
-const dmSans = DM_Sans({ 
-  subsets: ["latin"], 
+// Font caricati dal progetto (pacchetti @fontsource), NON scaricati da Google a ogni build:
+// next/font/google fallisce quando Vercel non raggiunge fonts.gstatic.com e fa cadere la build a caso.
+// Stessi font e stessi pesi di prima (subset latin: copre le lettere accentate italiane).
+// I percorsi devono essere stringhe letterali: next/font non valuta variabili.
+const dmSans = localFont({
+  src: "../node_modules/@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2",
   variable: "--font-dm-sans",
-  weight: ["300", "400", "500", "600"]
+  weight: "100 1000",
+  display: "swap",
 });
-const spaceGrotesk = Space_Grotesk({ 
-  subsets: ["latin"], 
+const spaceGrotesk = localFont({
+  src: "../node_modules/@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2",
   variable: "--font-space-grotesk",
-  weight: ["400", "500", "600", "700"]
+  weight: "300 700",
+  display: "swap",
 });
-const dmMono = DM_Mono({ 
-  subsets: ["latin"], 
+const dmMono = localFont({
+  src: [
+    { path: "../node_modules/@fontsource/dm-mono/files/dm-mono-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "../node_modules/@fontsource/dm-mono/files/dm-mono-latin-500-normal.woff2", weight: "500", style: "normal" },
+  ],
   variable: "--font-dm-mono",
-  weight: ["400", "500"]
+  display: "swap",
 });
-const jakartaSans = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+const jakartaSans = localFont({
+  src: "../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2",
   variable: "--font-jakarta",
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: "200 800",
   display: "swap",
 });
 
