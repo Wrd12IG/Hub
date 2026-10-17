@@ -159,7 +159,7 @@ function LinkedinOrgIcon({ size = 16 }: { size?: number }) {
 
 function ConnectedBadge() {
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+    <span className="inline-flex items-center gap-1 text-xs font-bold tracking-wide uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
       <CheckCircle2 size={9} />
       Attivo
     </span>
@@ -180,7 +180,7 @@ function AccountChip({
       <div className="min-w-0">
         <p className="text-xs font-semibold text-foreground truncate">{name}</p>
         {sub && (
-          <p className="text-[10px] text-muted-foreground truncate">{sub}</p>
+          <p className="text-xs text-muted-foreground truncate">{sub}</p>
         )}
       </div>
       {onRemove && (
@@ -302,7 +302,7 @@ function MetaModal({
         <div className="space-y-1.5">
           <label htmlFor="meta-system-user-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
             System User Token
-            {hasToken && <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
+            {hasToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
           <input id="meta-system-user-token" type="password" value={token} onChange={(e) => setToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "EAAB... (System User Token)"}
@@ -361,12 +361,12 @@ function GA4Modal({
         <div className="space-y-1.5">
           <label htmlFor="ga4-refresh-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
             Google OAuth Refresh Token
-            {hasGoogleToken && <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
+            {hasGoogleToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
           <input id="ga4-refresh-token" type="password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder={hasGoogleToken ? "Lascia vuoto per mantenere" : "1//04ABCD..."}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">Il token è condiviso tra Google Ads, GA4 e GBP.</p>
+          <p className="text-xs text-muted-foreground">Il token è condiviso tra Google Ads, GA4 e GBP.</p>
         </div>
         <button onClick={save} disabled={saving}
           className="w-full py-2.5 text-sm font-bold bg-yellow-500 hover:bg-yellow-400 text-black rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
@@ -415,7 +415,7 @@ function GoogleAdsModal({
           <label htmlFor="google-ads-customer-id" className="text-xs font-bold text-muted-foreground">Customer ID</label>
           <input id="google-ads-customer-id" value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="es. 123-456-7890"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">Trovalo su ads.google.com in alto a destra.</p>
+          <p className="text-xs text-muted-foreground">Trovalo su ads.google.com in alto a destra.</p>
         </div>
         <button onClick={save} disabled={saving || !customerId.trim()}
           className="w-full py-2.5 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
@@ -459,7 +459,7 @@ function ClarityModal({
           <label htmlFor="clarity-project-id" className="text-xs font-bold text-muted-foreground">Project ID</label>
           <input id="clarity-project-id" value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="es. 8abc123def"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-violet-500/50 transition-all placeholder:text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Trovalo su{" "}
             <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">clarity.microsoft.com</a>
             {" "}→ Impostazioni progetto.
@@ -530,7 +530,7 @@ function WindsorGbpModal({
             placeholder={"accounts/123456789/locations/111\naccounts/123456789/locations/222"}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground font-mono"
           />
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Una riga per ogni sede del cliente. Il nome della sede viene letto automaticamente da Windsor,
             non serve scriverlo qui. Richiede che il connector Google Business Profile sia collegato su
             onboard.windsor.ai.
@@ -621,7 +621,7 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
   return (
     <ModalWrapper title="Competitor territoriali" onClose={onClose}>
       <div className="space-y-4">
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Il sito viene letto ogni notte per segnalare offerte e cambiamenti. I link social si salvano come
           scorciatoie: Instagram e LinkedIn non si lasciano leggere da un server, quindi da lì non ricaviamo numeri.
         </p>
@@ -715,7 +715,7 @@ function KlaviyoModal({
           <input id="klaviyo-key" type="password" autoComplete="off" value={apiKey}
             onChange={(e) => setApiKey(e.target.value)} placeholder="pk_..."
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             In Klaviyo: Settings → Account → API keys → Create Private API Key. Scegli <strong>Custom Key</strong> e dai
             la sola lettura su <code>accounts</code>, <code>metrics</code>, <code>campaigns</code>, <code>flows</code>,
             <code>lists</code> e <code>segments</code>. La chiave viene cifrata prima di essere salvata e non è più
@@ -787,7 +787,7 @@ function WindsorFieldModal({
           <label htmlFor={`windsor-${fieldKey}`} className="text-xs font-bold text-muted-foreground">ID account</label>
           <input id={`windsor-${fieldKey}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">{hint}</p>
+          <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
         <button onClick={save} disabled={saving || !value.trim()}
           className="w-full py-2.5 text-sm font-bold text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
@@ -889,7 +889,7 @@ function GbpAddModal({
                     <span className="font-semibold text-foreground">{loc.title}</span>
                     {(alreadyAdded || isSelected) && <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />}
                   </div>
-                  <span className="text-[11px] text-muted-foreground">{loc.address} {loc.isVerified ? "" : ""}</span>
+                  <span className="text-xs text-muted-foreground">{loc.address} {loc.isVerified ? "" : ""}</span>
                 </button>
               );
             })}
@@ -977,10 +977,10 @@ function YoutubeModal({
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
               <div>
                 <p className="text-xs font-bold text-emerald-400">Canale connesso</p>
-                {channelName && <p className="text-[11px] text-muted-foreground mt-0.5">{channelName}</p>}
+                {channelName && <p className="text-xs text-muted-foreground mt-0.5">{channelName}</p>}
               </div>
             </div>
-            <button onClick={checkStatus} className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
+            <button onClick={checkStatus} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
           </div>
         )}
         {status && (
@@ -991,8 +991,8 @@ function YoutubeModal({
           </div>
         )}
         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
-          <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
-          <ol className="text-[10px] text-muted-foreground space-y-0.5 list-decimal list-inside">
+          <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
+          <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>Google Cloud Console → Credenziali → OAuth 2.0</li>
             <li>Abilita YouTube Data API v3 + YouTube Analytics API</li>
             <li>Usa OAuth Playground per ottenere access + refresh token</li>
@@ -1097,10 +1097,10 @@ function TikTokModal({
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
               <div>
                 <p className="text-xs font-bold text-emerald-400">Account connesso</p>
-                {displayName && <p className="text-[11px] text-muted-foreground mt-0.5">@{displayName}</p>}
+                {displayName && <p className="text-xs text-muted-foreground mt-0.5">@{displayName}</p>}
               </div>
             </div>
-            <button onClick={checkStatus} className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
+            <button onClick={checkStatus} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
           </div>
         )}
         {status && (
@@ -1111,8 +1111,8 @@ function TikTokModal({
           </div>
         )}
         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
-          <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
-          <ol className="text-[10px] text-muted-foreground space-y-0.5 list-decimal list-inside">
+          <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
+          <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>developers.tiktok.com → crea app → aggiungi scopes</li>
             <li>Scopes: user.info.basic, video.list</li>
             <li>Autorizza l'account del cliente via OAuth</li>
@@ -1222,10 +1222,10 @@ function LinkedinModal({
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
               <div>
                 <p className="text-xs font-bold text-emerald-400">Pagina connessa</p>
-                {orgName && <p className="text-[11px] text-muted-foreground mt-0.5">{orgName}</p>}
+                {orgName && <p className="text-xs text-muted-foreground mt-0.5">{orgName}</p>}
               </div>
             </div>
-            <button onClick={checkStatus} className="text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
+            <button onClick={checkStatus} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
           </div>
         )}
         {status && (
@@ -1236,8 +1236,8 @@ function LinkedinModal({
           </div>
         )}
         <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
-          <p className="text-[11px] font-bold text-muted-foreground">Come ottenere il token:</p>
-          <ol className="text-[10px] text-muted-foreground space-y-0.5 list-decimal list-inside">
+          <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
+          <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>linkedin.com/developers → crea app → prodotti: Marketing API</li>
             <li>Scopes: r_organization_social, r_organization_admin</li>
             <li>Autorizza il cliente via OAuth 2.0</li>
@@ -1261,7 +1261,7 @@ function LinkedinModal({
           <input id="linkedin-org-id" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
             placeholder="es. 12345678"
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
-          <p className="text-[10px] text-muted-foreground">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
+          <p className="text-xs text-muted-foreground">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
         </div>
         <div className="flex gap-2">
           {hasToken && (
@@ -1411,7 +1411,7 @@ export default function PlatformConnections({
               </div>
               <div>
                 <span className="text-sm font-bold text-foreground">Analytics</span>
-                <span className="ml-1.5 text-[10px] font-bold text-yellow-500/70 bg-yellow-500/10 px-1.5 py-0.5 rounded">GA4</span>
+                <span className="ml-1.5 text-xs font-bold text-yellow-500/70 bg-yellow-500/10 px-1.5 py-0.5 rounded">GA4</span>
               </div>
             </div>
             {client.ga4PropertyId && <ConnectedBadge />}
@@ -1538,7 +1538,7 @@ export default function PlatformConnections({
               <span className="text-sm font-bold text-foreground">Competitor</span>
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Fino a 5 concorrenti: il Hub ne legge il sito ogni notte e segnala cosa cambia.
           </p>
           <button type="button" onClick={() => setActiveModal("competitors")}
@@ -1577,7 +1577,7 @@ export default function PlatformConnections({
             {client.hasKlaviyoToken && <ConnectedBadge />}
           </div>
           {client.klaviyoAccountName && (
-            <p className="text-[11px] text-muted-foreground">Account: {client.klaviyoAccountName}</p>
+            <p className="text-xs text-muted-foreground">Account: {client.klaviyoAccountName}</p>
           )}
           <button type="button" onClick={() => setActiveModal("klaviyo")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-amber-500/20 text-amber-400 bg-amber-500/5 hover:bg-amber-500/10 transition-all cursor-pointer">
@@ -1613,7 +1613,7 @@ export default function PlatformConnections({
             </div>
             {client.windsorAccounts?.linkedin_organic && <ConnectedBadge />}
           </div>
-          <p className="text-[10px] text-muted-foreground -mt-1">Solo per il Report Marketing — separato dalla connessione LinkedIn qui sopra.</p>
+          <p className="text-xs text-muted-foreground -mt-1">Solo per il Report Marketing — separato dalla connessione LinkedIn qui sopra.</p>
           <button type="button" onClick={() => setActiveModal("windsor-linkedin")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
             {client.windsorAccounts?.linkedin_organic ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Org. ID</>}

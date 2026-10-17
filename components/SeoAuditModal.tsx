@@ -115,11 +115,11 @@ export function SeoAuditModal({
             <>
               <div className="flex items-center justify-between gap-6 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
                 <div>
-                  <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">
                     Punteggio SEO
                   </div>
                   <div className="text-xs text-muted-foreground/70 mt-1 break-all">{audit.url}</div>
-                  <div className="text-[10px] text-muted-foreground/50 mt-1">
+                  <div className="text-xs text-muted-foreground/50 mt-1">
                     Eseguito il {new Date(audit.ranAt).toLocaleString('it-IT')}
                   </div>
                 </div>
@@ -127,7 +127,7 @@ export function SeoAuditModal({
                   <div className={cn('text-4xl font-black leading-none', scoreColor(audit.score))}>
                     {audit.score}
                   </div>
-                  <div className="text-[10px] font-bold text-muted-foreground/60 mt-1">/ 100</div>
+                  <div className="text-xs font-bold text-muted-foreground/60 mt-1">/ 100</div>
                 </div>
               </div>
 
@@ -151,7 +151,7 @@ export function SeoAuditModal({
                       <div className="font-black text-foreground">
                         {f.applicable ? `${Math.round(f.ratio * 100)}%` : 'n/d'}
                       </div>
-                      <div className="text-[10px] text-muted-foreground/60">peso {f.weight}%</div>
+                      <div className="text-xs text-muted-foreground/60">peso {f.weight}%</div>
                     </div>
                   </div>
                 ))}
@@ -164,7 +164,7 @@ export function SeoAuditModal({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {audit.vitals.map((v) => (
                     <div key={v.id} className="p-3 rounded-lg border border-white/10 bg-white/[0.02]">
-                      <div className="text-[10px] text-muted-foreground truncate">{v.label}</div>
+                      <div className="text-xs text-muted-foreground truncate">{v.label}</div>
                       <div
                         className={cn(
                           'text-sm font-black mt-1',
@@ -210,7 +210,7 @@ export function SeoAuditModal({
                       { l: 'Posizione media', v: audit.searchConsole.position.toFixed(1) },
                     ].map((m) => (
                       <div key={m.l} className="p-3 rounded-lg border border-white/10 bg-white/[0.02]">
-                        <div className="text-[10px] text-muted-foreground">{m.l}</div>
+                        <div className="text-xs text-muted-foreground">{m.l}</div>
                         <div className="text-sm font-black text-foreground mt-1">{m.v}</div>
                       </div>
                     ))}

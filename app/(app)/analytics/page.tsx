@@ -502,8 +502,8 @@ export default function AnalyticsPage() {
             ) : (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={hourlyData.filter(h => h.hour >= 7 && h.hour <= 20)} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v) => [`${v} min`, 'Media']} />
                   <Bar dataKey="averageMinutes" radius={[4, 4, 0, 0]}>
                     {hourlyData.filter(h => h.hour >= 7 && h.hour <= 20).map((entry) => (

@@ -140,9 +140,9 @@ export default function Ga4DetailPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {data.events.map((e) => (
               <div key={e.event} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-1">
-                <p className="text-[11px] font-mono text-muted-foreground truncate">{e.event}</p>
+                <p className="text-xs font-mono text-muted-foreground truncate">{e.event}</p>
                 <p className="text-xl font-bold">{n(e.count)}</p>
-                <p className="text-[11px] text-muted-foreground">{e.per_session}% delle sessioni</p>
+                <p className="text-xs text-muted-foreground">{e.per_session}% delle sessioni</p>
               </div>
             ))}
           </div>

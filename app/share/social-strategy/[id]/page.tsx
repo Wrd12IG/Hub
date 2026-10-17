@@ -120,11 +120,11 @@ export default function ClientSharePage() {
                                 <p className="text-sm font-bold text-green-400">
                                     {approvalStatus === 'approved' ? 'Piano Approvato!' : 'Feedback Inviato!'}
                                 </p>
-                                <p className="text-[11px] text-white/40">Il team è stato notificato.</p>
+                                <p className="text-xs text-white/40">Il team è stato notificato.</p>
                             </div>
                         ) : (
                             <>
-                                <p className="text-[10px] uppercase tracking-widest text-white/40 text-center">Pronti a iniziare?</p>
+                                <p className="text-xs uppercase tracking-widest text-white/40 text-center">Pronti a iniziare?</p>
                                 <Button
                                     size="lg"
                                     className="rounded-2xl px-8 h-14 text-lg font-bold shadow-2xl shadow-primary/40 hover:scale-105 transition-all w-full"
@@ -137,7 +137,7 @@ export default function ClientSharePage() {
                                     }
                                 </Button>
                                 <button
-                                    className="text-[11px] text-white/30 hover:text-white/60 transition-colors underline"
+                                    className="text-xs text-white/30 hover:text-white/60 transition-colors underline"
                                     onClick={() => setShowFeedback(!showFeedback)}
                                 >
                                     Ho delle modifiche da suggerire
@@ -200,20 +200,20 @@ export default function ClientSharePage() {
                                 <Card key={i} className="bg-white/5 border-white/5 hover:border-primary/50 transition-colors group rounded-[2rem] overflow-hidden">
                                     <CardHeader className="p-6 bg-white/[0.02] flex flex-row items-center justify-between border-b border-white/5">
                                         <Badge variant="outline" className="border-white/20 text-white/60 group-hover:bg-primary group-hover:text-white transition-all">{post.piattaforma}</Badge>
-                                        <span className="text-[10px] uppercase font-black text-white/30 tracking-widest">{post.giorno}</span>
+                                        <span className="text-xs uppercase font-black text-white/30 tracking-widest">{post.giorno}</span>
                                     </CardHeader>
                                     <CardContent className="p-8 space-y-6">
                                         <div className="space-y-2">
-                                            <p className="text-[10px] uppercase font-bold text-primary tracking-widest">Topic & Obiettivo</p>
+                                            <p className="text-xs uppercase font-bold text-primary tracking-widest">Topic & Obiettivo</p>
                                             <p className="text-lg font-bold leading-tight">{post.topic}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-[10px] uppercase font-bold text-white/40 tracking-widest">Contenuto (Caption)</p>
+                                            <p className="text-xs uppercase font-bold text-white/40 tracking-widest">Contenuto (Caption)</p>
                                             <p className="text-sm text-white/80 italic leading-relaxed line-clamp-4">{post.caption}</p>
                                         </div>
                                         <div className="pt-4 flex items-center gap-2">
-                                            <Badge className="bg-white/10 hover:bg-white/10 text-[9px] uppercase py-1">{post.formato}</Badge>
-                                            <Badge variant="outline" className="text-[9px] border-white/10 uppercase py-1">{post.cta}</Badge>
+                                            <Badge className="bg-white/10 hover:bg-white/10 text-xs uppercase py-1">{post.formato}</Badge>
+                                            <Badge variant="outline" className="text-xs border-white/10 uppercase py-1">{post.cta}</Badge>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -226,11 +226,11 @@ export default function ClientSharePage() {
                     <p className="text-white/40 text-sm">Realizzato con passione per il tuo futuro digitale.</p>
                     <div className="flex justify-center gap-12">
                         <div className="text-left">
-                            <p className="text-[10px] uppercase tracking-widest text-primary font-bold">WRDigital Hub</p>
+                            <p className="text-xs uppercase tracking-widest text-primary font-bold">WRDigital Hub</p>
                             <p className="text-xs text-white/40 mt-1">Social Strategy v1.1</p>
                         </div>
                         <div className="text-left">
-                            <p className="text-[10px] uppercase tracking-widest text-primary font-bold">Contatti</p>
+                            <p className="text-xs uppercase tracking-widest text-primary font-bold">Contatti</p>
                             <p className="text-xs text-white/40 mt-1">info@wrdigital.it</p>
                         </div>
                     </div>

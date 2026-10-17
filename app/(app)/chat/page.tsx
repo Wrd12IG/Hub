@@ -277,8 +277,8 @@ function MessageBubble({
             "flex items-center gap-1 justify-end mt-1",
             message.text ? "" : ""
           )}>
-            {message.isEdited && <span className="text-[10px] text-[#667781] dark:text-[#8696a0] italic mr-1">modificato</span>}
-            <span className="text-[10px] text-[#667781] dark:text-[#8696a0]">
+            {message.isEdited && <span className="text-xs text-[#667781] dark:text-[#8696a0] italic mr-1">modificato</span>}
+            <span className="text-xs text-[#667781] dark:text-[#8696a0]">
               {time}
             </span>
             {isCurrentUser && (
@@ -296,7 +296,7 @@ function MessageBubble({
                   className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-xs hover:bg-black/10 dark:hover:bg-white/20 transition"
                 >
                   <span>{emoji}</span>
-                  {(users as string[]).length > 1 && <span className="text-[10px]">{(users as string[]).length}</span>}
+                  {(users as string[]).length > 1 && <span className="text-xs">{(users as string[]).length}</span>}
                 </button>
               ))}
             </div>

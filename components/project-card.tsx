@@ -183,7 +183,7 @@ export function ProjectCard({ project, client, tasks, teamLeader, onEdit, onDele
                         {tasks.slice(0, 5).map(task => ( // Mostra solo i primi 5 task
                             <div key={task.id} className="text-xs flex justify-between items-center p-2 rounded-md bg-muted/50">
                                 <span className="truncate max-w-[70%]">{task.title}</span>
-                                <Badge variant="outline" className="text-[10px] h-5 px-1">{task.status}</Badge>
+                                <Badge variant="outline" className="text-xs h-5 px-1">{task.status}</Badge>
                             </div>
                         ))}
                         {totalTasks > 5 && (

@@ -52,7 +52,7 @@ export function CommandPalette() {
             >
                 <Search className="h-3.5 w-3.5" />
                 <span>Cerca nell'Hub...</span>
-                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100 ml-2">
+                <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium text-muted-foreground opacity-100 ml-2">
                     <span className="text-xs">⌘</span>K
                 </kbd>
             </button>
@@ -139,10 +139,10 @@ export function CommandPalette() {
                                 <CommandItem key={u.id} onSelect={() => runCommand(() => router.push('/admin'))}>
                                     <Avatar className="mr-2 h-5 w-5 border">
                                         <AvatarImage src={getUserAvatar(u)} alt={u.name} />
-                                        <AvatarFallback className="text-[9px]">{getInitials(u.name)}</AvatarFallback>
+                                        <AvatarFallback className="text-xs">{getInitials(u.name)}</AvatarFallback>
                                     </Avatar>
                                     <span>{u.name}</span>
-                                    <span className="ml-auto text-[10px] text-muted-foreground">{u.role}</span>
+                                    <span className="ml-auto text-xs text-muted-foreground">{u.role}</span>
                                 </CommandItem>
                             ))}
                         </CommandGroup>

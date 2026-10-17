@@ -80,7 +80,7 @@ export function WorkloadSphere({ load, size = 56, label }: WorkloadSphereProps) 
         </div>
       </div>
       {label && (
-        <span className="text-[11px] font-medium text-muted-foreground text-center line-clamp-1">
+        <span className="text-xs font-medium text-muted-foreground text-center line-clamp-1">
           {label}
         </span>
       )}

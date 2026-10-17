@@ -316,7 +316,7 @@ export function Leaderboard({ users, currentUserId, limit = 10 }: LeaderboardPro
                                 <div className="mt-1 flex items-center justify-center gap-2">
                                     <span className="text-xs font-mono font-bold text-primary">{formatXp(user.xp)} XP</span>
                                     {user.streak > 0 && (
-                                        <UiBadge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-500/30 text-orange-500">
+                                        <UiBadge variant="outline" className="text-xs px-1.5 py-0 h-4 border-orange-500/30 text-orange-500">
                                             <Flame className="w-3 h-3 mr-0.5" />
                                             {user.streak}d
                                         </UiBadge>
@@ -349,10 +349,10 @@ export function Leaderboard({ users, currentUserId, limit = 10 }: LeaderboardPro
                                     <p className={cn('text-xs font-semibold truncate', isCurrentUser && 'text-primary')}>
                                         {user.name}
                                     </p>
-                                    <span className="text-[10px] text-muted-foreground font-mono">{formatXp(user.xp)} XP</span>
+                                    <span className="text-xs text-muted-foreground font-mono">{formatXp(user.xp)} XP</span>
                                 </div>
                                 {user.streak > 0 && (
-                                    <span className="flex items-center gap-0.5 text-[10px] text-orange-500 font-semibold shrink-0">
+                                    <span className="flex items-center gap-0.5 text-xs text-orange-500 font-semibold shrink-0">
                                         <Flame className="w-3 h-3" />
                                         {user.streak}
                                     </span>

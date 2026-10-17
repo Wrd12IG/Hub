@@ -82,7 +82,7 @@ export default function FacebookDashboard() {
             <span className="text-sm line-clamp-1">{row.title}</span>
             <div className="flex gap-1">
               {row.tags?.map((tag: string) => (
-                <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-1 font-normal bg-blue-100 text-blue-800 hover:bg-blue-100/80">{tag}</Badge>
+                <Badge key={tag} variant="secondary" className="text-xs py-0 px-1 font-normal bg-blue-100 text-blue-800 hover:bg-blue-100/80">{tag}</Badge>
               ))}
             </div>
           </div>
@@ -116,7 +116,7 @@ export default function FacebookDashboard() {
           <div className="flex flex-col gap-1">
             <span className="text-sm line-clamp-1">{row.title}</span>
             <div className="flex gap-1">
-              <Badge variant="secondary" className="text-[10px] py-0 px-1 font-normal bg-blue-100 text-blue-800 hover:bg-blue-100/80">Reel</Badge>
+              <Badge variant="secondary" className="text-xs py-0 px-1 font-normal bg-blue-100 text-blue-800 hover:bg-blue-100/80">Reel</Badge>
             </div>
           </div>
         </div>

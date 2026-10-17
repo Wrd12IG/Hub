@@ -298,7 +298,7 @@ export function SidebarNav() {
             )}
             <h1 className="text-lg font-semibold text-sidebar-foreground font-headline group-data-[state=collapsed]:hidden transition-all duration-200 whitespace-nowrap overflow-hidden flex items-center gap-2">
               <span>W<span className="text-yellow-400">[</span>r<span className="text-yellow-400">]</span>Digital</span>
-              <Badge variant="outline" className="text-[10px] py-0 px-1 bg-yellow-400/10 text-yellow-400 border-yellow-400/20">v1.1.3</Badge>
+              <Badge variant="outline" className="text-xs py-0 px-1 bg-yellow-400/10 text-yellow-400 border-yellow-400/20">v1.1.3</Badge>
             </h1>
           </div>
           <SidebarTrigger />
@@ -479,7 +479,7 @@ export function SidebarNav() {
                             <item.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors", (item as NavItem).color || "text-foreground")} />
                           )}
                           {item.label === 'Chat' && unreadChatCount > 0 && (
-                            <Badge className="absolute -top-2 -right-2 h-4 w-4 justify-center p-0 text-[10px]">{unreadChatCount}</Badge>
+                            <Badge className="absolute -top-2 -right-2 h-4 w-4 justify-center p-0 text-xs">{unreadChatCount}</Badge>
                           )}
                         </div>
                         <span className="group-data-[state=collapsed]:hidden truncate">{item.label}</span>

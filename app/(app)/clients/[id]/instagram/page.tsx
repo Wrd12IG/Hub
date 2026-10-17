@@ -71,7 +71,7 @@ export default function InstagramDashboard() {
             <span className="text-sm line-clamp-1">{row.title}</span>
             <div className="flex gap-1">
               {(row.tags || []).map((tag: string) => (
-                <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-1 font-normal bg-emerald-100 text-emerald-800 hover:bg-emerald-100/80">{tag}</Badge>
+                <Badge key={tag} variant="secondary" className="text-xs py-0 px-1 font-normal bg-emerald-100 text-emerald-800 hover:bg-emerald-100/80">{tag}</Badge>
               ))}
             </div>
           </div>
@@ -101,7 +101,7 @@ export default function InstagramDashboard() {
             <span className="text-sm line-clamp-1">{row.title}</span>
             <div className="flex gap-1">
               {(row.tags || []).map((tag: string) => (
-                <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-1 font-normal bg-emerald-100 text-emerald-800 hover:bg-emerald-100/80">{tag}</Badge>
+                <Badge key={tag} variant="secondary" className="text-xs py-0 px-1 font-normal bg-emerald-100 text-emerald-800 hover:bg-emerald-100/80">{tag}</Badge>
               ))}
             </div>
           </div>

@@ -194,7 +194,7 @@ export function UserWorkloadPreview({
     const hp = preview > 0;
     return (
       <div className="mb-1.5">
-        <div className="flex justify-between items-center mb-0.5 text-[11px]">
+        <div className="flex justify-between items-center mb-0.5 text-xs">
           <span className="font-medium text-foreground">{lbl}</span>
           <span className="flex items-center gap-1 font-semibold tabular-nums" style={{ color: hp ? cTotal : cBase }}>
             {hp ? (
@@ -206,7 +206,7 @@ export function UserWorkloadPreview({
             ) : (
               <>{hours.toFixed(1)}h / {max}h</>
             )}
-            <span className="ml-0.5 text-[10px] opacity-60">({badge(pTotal)})</span>
+            <span className="ml-0.5 text-xs opacity-60">({badge(pTotal)})</span>
           </span>
         </div>
         <div className="relative w-full h-2 rounded-full bg-secondary overflow-hidden">
@@ -235,12 +235,12 @@ export function UserWorkloadPreview({
         <div className="flex items-center gap-1.5 font-semibold text-foreground">
           <span className="text-sm">⏱</span>
           <span>Carico Utente</span>
-          <span className="font-normal text-[10px] text-muted-foreground">
+          <span className="font-normal text-xs text-muted-foreground">
             ({totalActiveTasks} task attivi{undatedCount > 0 ? `, ${undatedCount} senza data` : ''})
           </span>
         </div>
         {hasPreview && (
-          <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+          <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
             +{previewHours >= 1 ? `${previewHours.toFixed(1)}h` : `${Math.round(previewHours * 60)} min`} anteprima
           </span>
         )}
@@ -251,7 +251,7 @@ export function UserWorkloadPreview({
 
         {/* LEFT: 3-day view */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">📅 3 Giorni</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">📅 3 Giorni</p>
 
           {/* 3 spheres */}
           <div className="grid grid-cols-3 gap-1 bg-muted/20 rounded-lg p-1.5 items-end justify-items-center">
@@ -264,7 +264,7 @@ export function UserWorkloadPreview({
               >
                 <WorkloadSphere load={stat.loadPct} size={stat.isSelected ? 44 : 38} label={stat.sphereLabel} />
                 {stat.isSelected && (
-                  <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wider text-primary">
+                  <span className="mt-0.5 text-xs font-bold uppercase tracking-wider text-primary">
                     ★
                   </span>
                 )}
@@ -287,7 +287,7 @@ export function UserWorkloadPreview({
                     stat.isSelected ? 'bg-background border-primary/30' : 'bg-muted/10 border-border/40'
                   }`}
                 >
-                  <div className="flex justify-between items-center mb-0.5 text-[10px]">
+                  <div className="flex justify-between items-center mb-0.5 text-xs">
                     <span className={`flex items-center gap-1 font-medium ${stat.isSelected ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>
                       {stat.isSelected && <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />}
                       {stat.fullLabel}
@@ -323,7 +323,7 @@ export function UserWorkloadPreview({
 
         {/* RIGHT: Week + Month */}
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">📊 Riepilogo</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">📊 Riepilogo</p>
 
           {/* Spheres */}
           <div className="grid grid-cols-2 gap-1 bg-muted/20 rounded-lg p-1.5 items-end justify-items-center">

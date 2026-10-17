@@ -950,7 +950,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                                             );
                                                         })()}
                                                     </div>
-                                                    <p className="text-[10px] text-muted-foreground text-center mt-1">Timeline temporale</p>
+                                                    <p className="text-xs text-muted-foreground text-center mt-1">Timeline temporale</p>
                                                 </div>
                                             )}
 
@@ -1048,12 +1048,12 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                                                         <span className="text-sm truncate">{task.title}</span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                                                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${priorityColorMap[task.priority] || ''}`}>
+                                                                        <Badge variant="outline" className={`text-xs px-1.5 py-0 ${priorityColorMap[task.priority] || ''}`}>
                                                                             {task.priority}
                                                                         </Badge>
                                                                         {assignee && (
                                                                             <Avatar className="h-5 w-5">
-                                                                                <AvatarFallback style={{ backgroundColor: assignee.color }} className="text-[10px] text-white">
+                                                                                <AvatarFallback style={{ backgroundColor: assignee.color }} className="text-xs text-white">
                                                                                     {(assignee?.name || "").split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                                                                                 </AvatarFallback>
                                                                             </Avatar>

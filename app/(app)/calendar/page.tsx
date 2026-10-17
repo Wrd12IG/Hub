@@ -827,7 +827,7 @@ export default function CalendarPage() {
                                                                 {item.isStart && <p className="text-green-600"> Inizio progetto</p>}
                                                                 {!item.isStart && item.type === 'project' && <p className="text-red-600"> Fine progetto</p>}
                                                             </div>
-                                                            <p className="text-[10px] text-muted-foreground/70 pt-1 border-t">
+                                                            <p className="text-xs text-muted-foreground/70 pt-1 border-t">
                                                                 Clicca per modificare • Trascina per spostare
                                                             </p>
                                                         </div>
@@ -838,7 +838,7 @@ export default function CalendarPage() {
                                         {items.length > MAX_ITEMS_PER_DAY && (
                                             <Badge
                                                 variant="secondary"
-                                                className="text-[10px] ml-1 cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                                                className="text-xs ml-1 cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
                                                     setExpandedDayItems({ day, items });
@@ -1016,7 +1016,7 @@ export default function CalendarPage() {
                                                                 <Badge
                                                                     variant="outline"
                                                                     className={cn(
-                                                                        "text-[10px] px-1.5 py-0",
+                                                                        "text-xs px-1.5 py-0",
                                                                         item.priority === 'Critica' && "text-red-500 border-red-300",
                                                                         item.priority === 'Alta' && "text-orange-500 border-orange-300",
                                                                         item.priority === 'Media' && "text-yellow-500 border-yellow-300",
@@ -1030,7 +1030,7 @@ export default function CalendarPage() {
                                                     </div>
 
                                                     {/* Type Badge */}
-                                                    <Badge variant="outline" className="text-[10px] capitalize flex-shrink-0">
+                                                    <Badge variant="outline" className="text-xs capitalize flex-shrink-0">
                                                         {item.type === 'task' ? 'Task' :
                                                             item.type === 'project' ? 'Progetto' :
                                                                 item.type === 'activity' ? 'Attività' : 'Assenza'}
@@ -1096,7 +1096,7 @@ export default function CalendarPage() {
                             <div className="flex items-center gap-3 pb-4 border-b">
                                 <div className="w-14 h-14 rounded-lg bg-primary text-primary-foreground flex flex-col items-center justify-center">
                                     <span className="text-xl font-bold">{format(expandedDayItems.day, 'd')}</span>
-                                    <span className="text-[10px] uppercase">{format(expandedDayItems.day, 'EEE', { locale: it })}</span>
+                                    <span className="text-xs uppercase">{format(expandedDayItems.day, 'EEE', { locale: it })}</span>
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-semibold">
@@ -1147,7 +1147,7 @@ export default function CalendarPage() {
                                                     <Badge
                                                         variant="outline"
                                                         className={cn(
-                                                            "text-[10px] px-1.5 py-0",
+                                                            "text-xs px-1.5 py-0",
                                                             item.priority === 'Critica' && "text-red-500 border-red-300",
                                                             item.priority === 'Alta' && "text-orange-500 border-orange-300",
                                                             item.priority === 'Media' && "text-yellow-500 border-yellow-300",
@@ -1158,7 +1158,7 @@ export default function CalendarPage() {
                                                     </Badge>
                                                 )}
                                                 {item.original?.status && (
-                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                                    <Badge variant="outline" className="text-xs px-1.5 py-0">
                                                         {item.original.status}
                                                     </Badge>
                                                 )}

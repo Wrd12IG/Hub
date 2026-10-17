@@ -272,11 +272,11 @@ export function SocialProfileSection({ client }: SocialProfileSectionProps) {
                         <div className="grid grid-cols-2 gap-4 pb-4 border-b">
                             <div className="text-center p-3 bg-accent/20 rounded-lg">
                                 <p className="text-2xl font-bold text-primary">{strategies.length}</p>
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Totali</p>
+                                <p className="text-xs text-muted-foreground uppercase tracking-wider">Totali</p>
                             </div>
                             <div className="text-center p-3 bg-accent/20 rounded-lg">
                                 <p className="text-xs font-semibold">{lastStrategy ? format(new Date(lastStrategy.generationDate), 'dd/MM/yy', { locale: it }) : '-'}</p>
-                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Ultima</p>
+                                <p className="text-xs text-muted-foreground uppercase tracking-wider">Ultima</p>
                             </div>
                         </div>
 
@@ -289,10 +289,10 @@ export function SocialProfileSection({ client }: SocialProfileSectionProps) {
                                 >
                                     <div className="flex flex-col">
                                         <span className="text-sm font-medium">{s.periodLabel}</span>
-                                        <span className="text-[10px] text-muted-foreground capitalize">{s.frequency}</span>
+                                        <span className="text-xs text-muted-foreground capitalize">{s.frequency}</span>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <Badge variant={s.status === 'inviata' ? 'default' : s.status === 'archiviata' ? 'secondary' : 'outline'} className="text-[10px]">
+                                        <Badge variant={s.status === 'inviata' ? 'default' : s.status === 'archiviata' ? 'secondary' : 'outline'} className="text-xs">
                                             {s.status}
                                         </Badge>
                                         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />

@@ -151,7 +151,7 @@ export default function YouTubePage() {
             <span className="text-sm line-clamp-1 font-medium">{row.title}</span>
             <div className="flex gap-1">
               {row.tags?.map((tag: string) => (
-                <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-1 font-normal bg-red-100 text-red-800 hover:bg-red-100/80">{tag}</Badge>
+                <Badge key={tag} variant="secondary" className="text-xs py-0 px-1 font-normal bg-red-100 text-red-800 hover:bg-red-100/80">{tag}</Badge>
               ))}
             </div>
           </div>
@@ -322,8 +322,8 @@ export default function YouTubePage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data.demographics.eta} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="ageGroup" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} dy={5} />
-                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="ageGroup" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} dy={5} />
+                <YAxis stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
                 <RechartsTooltip cursor={{fill: 'hsl(var(--muted))'}} contentStyle={tooltipStyle} />
                 <Bar dataKey="value" fill="#8b9af7" radius={[4,4,0,0]} barSize={20} />
               </BarChart>

@@ -83,27 +83,27 @@ export function CompetitivePressureSection({ clientId, daysBack }: { clientId: s
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-          <p className="text-[11px] text-muted-foreground">Quota impression</p>
+          <p className="text-xs text-muted-foreground">Quota impression</p>
           <p className="text-2xl font-bold mt-0.5">{pct(data.impressionShare)}</p>
           {/* Quando Google non dà la quota esatta sulla maggior parte del
               volume, un numero d'account sarebbe calcolato su una minoranza:
               su un cliente reale usciva 91,5% da appena l'1% delle impression. */}
           {data.impressionShare === null && (
-            <p className="text-[10px] text-amber-500/80 mt-1">
+            <p className="text-xs text-amber-500/80 mt-1">
               Google non fornisce la quota esatta per {data.boundedCampaigns} campagne
               {data.shareCoverage > 0 && ` (dati precisi solo sul ${(data.shareCoverage * 100).toFixed(0)}% delle impression)`}
             </p>
           )}
         </div>
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5"><TrendingDown size={11} /> Persa per posizionamento</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingDown size={11} /> Persa per posizionamento</p>
           <p className="text-2xl font-bold mt-0.5">{pct(data.rankLost)}</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">I competitor ti battono su offerta e qualità</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">I competitor ti battono su offerta e qualità</p>
         </div>
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1.5"><Wallet size={11} /> Persa per budget</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Wallet size={11} /> Persa per budget</p>
           <p className="text-2xl font-bold mt-0.5">{pct(data.budgetLost)}</p>
-          <p className="text-[10px] text-muted-foreground/60 mt-1">Arrivi primo ma finisci i fondi</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">Arrivi primo ma finisci i fondi</p>
         </div>
       </div>
 
@@ -134,7 +134,7 @@ export function CompetitivePressureSection({ clientId, daysBack }: { clientId: s
               <span className="text-muted-foreground">quota <strong className="text-foreground">{share(c)}</strong></span>
               <span className="text-muted-foreground">rank {pct(c.rankLost)}</span>
               <span className="text-muted-foreground">budget {pct(c.budgetLost)}</span>
-              <Badge variant="outline" className={`font-normal text-[10px] ${cd.classe}`}>{cd.testo}</Badge>
+              <Badge variant="outline" className={`font-normal text-xs ${cd.classe}`}>{cd.testo}</Badge>
             </div>
           )
         })}
