@@ -122,6 +122,13 @@ import { UpcomingBirthdaysWidget } from '@/components/birthday-celebration';
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
 import { AnimatedCounter, AnimatedHours } from '@/components/ui/animated-counter';
 
+// Vista "Operativa": quello che serve oggi. Tutto il resto sta in "Analisi e Costi".
+const OPERATIONAL_WIDGETS = new Set([
+    'widgets_top', 'alerts_smart', 'active_timers', 'quick_feed', 'list_main_projects',
+    'list_overdue_tasks', 'list_upcoming_activities', 'table_absences', 'chart_workload',
+]);
+type DashboardView = 'operativa' | 'analisi';
+
 const ADMIN_WIDGETS = [
     { id: 'widgets_top', label: 'Widget Superiori (Meteo/Compleanni/Scadenze)' },
     { id: 'alerts_smart', label: 'Avvisi Intelligenti (Smart Alerts)' },
@@ -351,7 +358,18 @@ export default function Dashboard() {
         });
     };
 
-    const isWidgetVisible = (id: string) => visibleWidgets.includes(id);
+    // Vista corrente: /dashboard (operativa) o /dashboard?view=analisi
+    const [view, setView] = useState<DashboardView>('operativa');
+    useEffect(() => {
+        setView(new URLSearchParams(window.location.search).get('view') === 'analisi' ? 'analisi' : 'operativa');
+    }, []);
+    const changeView = (next: DashboardView) => {
+        setView(next);
+        window.history.replaceState(null, '', next === 'analisi' ? '/dashboard?view=analisi' : '/dashboard');
+    };
+
+    const isWidgetVisible = (id: string) =>
+        visibleWidgets.includes(id) && OPERATIONAL_WIDGETS.has(id) === (view === 'operativa');
 
     const onPieEnter = useCallback(
         (_: any, index: number) => {
@@ -1617,7 +1635,27 @@ export default function Dashboard() {
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex flex-col gap-2">
                     <h1 className="text-2xl font-bold">Dashboard Admin</h1>
-                    <p className="text-sm text-muted-foreground">Panoramica delle attività e performance del team</p>
+                    <p className="text-sm text-muted-foreground">
+                        {view === 'operativa'
+                            ? 'Quello che serve oggi: scadenze, task in corso, team.'
+                            : 'Performance del team, costi, redditività e qualità dei dati.'}
+                    </p>
+                    <div role="tablist" aria-label="Vista della dashboard" className="inline-flex w-fit rounded-full border border-border/60 p-1 mt-1">
+                        {([['operativa', 'Operativa'], ['analisi', 'Analisi e Costi']] as const).map(([id, label]) => (
+                            <button
+                                key={id}
+                                role="tab"
+                                aria-selected={view === id}
+                                onClick={() => changeView(id)}
+                                className={cn(
+                                    'px-4 py-1.5 rounded-full text-sm font-medium transition-colors',
+                                    view === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+                                )}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -2010,7 +2048,7 @@ export default function Dashboard() {
 
 
             {/* Alert Scadenze Imminenti (entro 48h) */}
-            {upcomingDeadlines48h.length > 0 && (
+            {view === 'operativa' && upcomingDeadlines48h.length > 0 && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 animate-in fade-in slide-in-from-top-2">
                     <div className="p-2 bg-destructive/20 rounded-full shrink-0">
                         <AlertTriangle className="h-6 w-6 text-destructive" />
