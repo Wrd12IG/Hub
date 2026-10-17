@@ -1408,24 +1408,24 @@ export default function ClientDetailPage() {
                   onClick={async (e) => {
                     const btn = e.currentTarget;
                     btn.disabled = true;
-                    btn.innerHTML = "Scansione in corso...";
-                    const token = localStorage.getItem("token");
-                    await fetch(
-                      `${API_URL}/api/clients/${client.id}/intelligence/scan`,
-                      {
-                        method: "POST",
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                          name: client.name,
-                          websiteUrl: client.websiteUrl,
-                          industry: client.industry,
-                        }),
-                      },
-                    );
-                    window.location.reload();
+                    btn.innerHTML = "Analisi in corso (fino a 1 minuto)...";
+                    try {
+                      const token = localStorage.getItem("token");
+                      // Il server legge nome e sito dal cliente salvato: il corpo non serve
+                      const res = await fetch(
+                        `${API_URL}/api/clients/${client.id}/intelligence/analyze`,
+                        { method: "POST", headers: { Authorization: `Bearer ${token}` } },
+                      );
+                      const data = await res.json().catch(() => ({}));
+                      if (!res.ok) throw new Error(data.error || "Analisi non riuscita");
+                      toast.success("Analisi completata");
+                      window.location.reload();
+                    } catch (err: any) {
+                      // Prima l'errore veniva ignorato e la pagina si ricaricava uguale: sembrava che il pulsante non facesse nulla
+                      toast.error(err.message);
+                      btn.disabled = false;
+                      btn.innerHTML = "Esegui Analisi Sito";
+                    }
                   }}
                   className="btn-gorgeous px-6 py-2.5 text-sm font-semibold active:scale-95 transition-all"
                 >
