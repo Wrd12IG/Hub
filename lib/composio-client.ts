@@ -14,7 +14,7 @@ const sessions = new Map<string, any>();
 
 export function isComposioConfigured(): boolean {
     const key = process.env.COMPOSIO_API_KEY;
-    return !!key && key.length > 8 && !/xxx|your_|placeholder/i.test(key);
+    return !!key && key.length > 8 && /^[A-Za-z0-9_-]+$/.test(key) && !/xxx|your_|placeholder/i.test(key);
 }
 
 function getComposio(): Composio {
@@ -45,23 +45,36 @@ export interface ComposioResult<T = unknown> {
 }
 
 /** Esegue un tool e restituisce i dati. Errore esplicito, con log ID, se fallisce o se manca il collegamento. */
+/** Il collegamento manca: l'SDK lo segnala come eccezione (400, codice 4302), non come risultato. */
+function isNotConnected(message: string): boolean {
+    return /no active connection|4302|not\s+linked|connect(ed)?\s+account/i.test(message);
+}
+
+async function connectUrlFor(session: any, toolkit: string): Promise<string | undefined> {
+    try { return (await session.authorize(toolkit))?.redirectUrl; } catch { return undefined; }
+}
+
+/** Esegue un tool e restituisce i dati. Errore esplicito, con log ID, se fallisce o se manca il collegamento. */
 export async function composioExecute<T = unknown>(
     toolkit: string,
     toolSlug: string,
     args: Record<string, unknown>,
 ): Promise<ComposioResult<T>> {
     const session = await getSession(toolkit);
-    const res: any = await session.execute(toolSlug, args);
+
+    let res: any;
+    try {
+        res = await session.execute(toolSlug, args);
+    } catch (err: any) {
+        const message = String(err?.message || err);
+        if (isNotConnected(message)) throw new ComposioNotConnectedError(toolkit, await connectUrlFor(session, toolkit));
+        throw err;
+    }
 
     const failed = res?.resultType === 'failed' || !!res?.error;
     if (failed) {
         const message = String(res?.error || 'errore sconosciuto');
-        // Non collegato: restituisce il link per autorizzare invece di un errore opaco
-        if (/connect|auth|not\s+linked|no\s+active/i.test(message)) {
-            let url: string | undefined;
-            try { url = (await session.authorize(toolkit))?.redirectUrl; } catch { /* il link è un di più */ }
-            throw new ComposioNotConnectedError(toolkit, url);
-        }
+        if (isNotConnected(message)) throw new ComposioNotConnectedError(toolkit, await connectUrlFor(session, toolkit));
         throw new Error(`Composio ${toolSlug}: ${message}${res?.logId ? ` (log ${res.logId})` : ''}`);
     }
     return { data: res.data as T, logId: res.logId };
