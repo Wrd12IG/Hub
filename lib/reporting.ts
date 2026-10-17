@@ -148,32 +148,6 @@ function aggregateRows(rows: Record<string, string | number | undefined>[]): Rec
 }
 
 /**
- * Esegue al massimo `limit` operazioni alla volta.
- *
- * Serve per GBP, l'unica piattaforma con molti account per cliente: una sede
- * risponde in 10-12 secondi, e lanciando tutte le sedi × due finestre insieme
- * Windsor comincia a chiudere le connessioni (ETIMEDOUT) — misurato su un
- * cliente con 4 sedi, dove due richieste su otto morivano mentre le stesse,
- * eseguite in sequenza, rispondevano entrambe.
- */
-async function mapWithConcurrency<T, R>(
-    items: T[],
-    limit: number,
-    fn: (item: T) => Promise<R>
-): Promise<R[]> {
-    const results: R[] = new Array(items.length);
-    let next = 0;
-    const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-        while (next < items.length) {
-            const i = next++;
-            results[i] = await fn(items[i]);
-        }
-    });
-    await Promise.all(workers);
-    return results;
-}
-
-/**
  * Tempo massimo concesso a una singola piattaforma.
  *
  * Senza questo limite una sorgente lenta si porta dietro tutte le altre: le
@@ -405,6 +379,46 @@ export async function getClientMarketingReport(
         }
     };
 
+    // GBP: tutte le sedi in UNA chiamata per finestra. Prima ogni sede faceva la sua (due finestre ×
+    // N sedi), e ognuna riceveva da Windsor tutte le 75 sedi collegate per tenerne una: ~20 s a
+    // chiamata, quindi il limite di 20 s scattava su tutte e quattro le sedi di City Motors.
+    // Con il filtro `account_id in [...]` lato Windsor la stessa lettura impiega ~3 s.
+    const fetchGbpBatch = async (accountIds: string[]): Promise<PlatformReport[]> => {
+        const { connector, fields } = PLATFORM_FIELDS.gbp;
+        const allFields = [...fields, 'account_id', 'account_name'];
+        try {
+            const [rows, previousRows] = await withTimeout('gbp', Promise.all([
+                getData({
+                    connector, accountIds, fields: allFields,
+                    ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
+                }),
+                windows?.previous
+                    ? getData({
+                        connector, accountIds, fields: allFields,
+                        dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
+                    })
+                    : Promise.resolve([]),
+            ]));
+            return accountIds.map((accountId): PlatformReport => {
+                const cur = rows.filter((r) => String(r.account_id) === accountId);
+                const prev = previousRows.filter((r) => String(r.account_id) === accountId);
+                return {
+                    platform: 'gbp',
+                    connected: true,
+                    // Resta riconoscibile anche quando Windsor non restituisce righe (sede non interrogabile)
+                    accountLabel: (cur[0]?.account_name as string) || accountId,
+                    rows: cur.length > 0 ? [aggregateRows(cur)] : [],
+                    previousRows: prev.length > 0 ? [aggregateRows(prev)] : [],
+                };
+            });
+        } catch (err: any) {
+            console.error(`[reporting] gbp failed for ${accountIds.length} sedi:`, err.message);
+            return accountIds.map((accountId): PlatformReport => ({
+                platform: 'gbp', connected: false, error: err.message, accountLabel: accountId, rows: [], previousRows: [],
+            }));
+        }
+    };
+
     // GA4 is read natively from Google (service account), not through Windsor:
     // free, no per-client OAuth, and it doesn't consume a Windsor account slot.
     // It still emits the same keys the UI reads, so nothing downstream changes.
@@ -591,8 +605,6 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
         }
     };
 
-    // Le sedi GBP passano da un pool: sono l'unico caso in cui un cliente ha
-    // molti account sulla stessa piattaforma, e in parallelo Windsor le rifiuta.
     const [single, gbp] = await Promise.all([
         Promise.all([
             ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
@@ -602,12 +614,7 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
             ...(client.klaviyo ? [fetchKlaviyo(client.klaviyo)] : []),
             ...(client.awinAdvertiserId ? [fetchAwin(client.awinAdvertiserId)] : []),
         ]),
-        mapWithConcurrency(gbpAccountIds, 2, async (accountId) => {
-            const report = await fetchOne('gbp', accountId);
-            // Keep the sede identifiable even when the fetch failed and there
-            // are no rows to read a name from.
-            return { ...report, accountLabel: report.accountLabel || accountId };
-        }),
+        gbpAccountIds.length > 0 ? fetchGbpBatch(gbpAccountIds) : Promise.resolve([] as PlatformReport[]),
     ]);
 
     return [...single, ...gbp];
