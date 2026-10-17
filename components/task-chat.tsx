@@ -141,7 +141,7 @@ export function TaskChat({ task, users, isOpen, onClose, onMessageSent }: TaskCh
                       <p className="font-semibold text-xs mb-1 opacity-90">{user?.name}</p>
                       <p className="text-sm whitespace-pre-wrap leading-relaxed">{renderCommentText(msg.text)}</p>
                       <p
-                        className={`text-[10px] mt-1 text-right ${isCurrentUser
+                        className={`text-xs mt-1 text-right ${isCurrentUser
                           ? 'text-primary-foreground/70'
                           : 'text-muted-foreground'
                           }`}

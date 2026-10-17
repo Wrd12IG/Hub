@@ -198,7 +198,7 @@ export default function SocialStrategyDetailPage() {
                             <div className="space-y-1">
                                 <p className="text-muted-foreground">Creata da:</p>
                                 <div className="flex items-center gap-2">
-                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: creator?.color + '20', color: creator?.color }}>
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: creator?.color + '20', color: creator?.color }}>
                                         {creator?.name.charAt(0) || 'U'}
                                     </div>
                                     <p className="font-medium">{creator?.name || 'Sistema'}</p>

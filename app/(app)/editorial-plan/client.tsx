@@ -1327,7 +1327,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                     <TableCell className="font-medium max-w-[200px] hover:bg-muted/50 cursor-pointer">
                                                         <div className="truncate" onClick={() => handleOpenFieldEditor(content.id, 'topic', 'Topic', content.topic)}>{content.topic}</div>
                                                         {linkedTask && (
-                                                            <Link href={`/tasks?taskId=${linkedTask.id}`} className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground hover:text-primary">
+                                                            <Link href={`/tasks?taskId=${linkedTask.id}`} className="flex items-center gap-1 mt-1 text-xs text-muted-foreground hover:text-primary">
                                                                 <ClipboardList className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
                                                                 <span className="truncate max-w-[150px]">Task: {linkedTask.title}</span>
                                                             </Link>
@@ -1916,7 +1916,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                 <Button variant="ghost" className="w-full justify-between p-2 h-auto text-sm font-semibold">
                                     <div className="flex items-center gap-2">
                                         <span> Preimpostazioni globali</span>
-                                        <Badge variant="outline" className="text-[10px] bg-green-50 text-green-700 border-green-200">Nuovo</Badge>
+                                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Nuovo</Badge>
                                     </div>
                                     <ChevronDown className="h-4 w-4" />
                                 </Button>

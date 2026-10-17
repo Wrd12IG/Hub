@@ -667,7 +667,7 @@ export default function ClientDetailPage() {
               {client.industry && (
                 <Badge
                   variant="secondary"
-                  className="font-bold rounded-lg border border-white/5 bg-white/5 px-2 py-0.5 text-[10px]"
+                  className="font-bold rounded-lg border border-white/5 bg-white/5 px-2 py-0.5 text-xs"
                 >
                   {client.industry}
                 </Badge>
@@ -675,7 +675,7 @@ export default function ClientDetailPage() {
               {client.creativeMode && (
                 <Badge
                   variant="outline"
-                  className="font-bold rounded-lg border-white/10 px-2 py-0.5 text-[10px] text-muted-foreground"
+                  className="font-bold rounded-lg border-white/10 px-2 py-0.5 text-xs text-muted-foreground"
                 >
                   Modalità: {client.creativeMode}
                 </Badge>
@@ -688,7 +688,7 @@ export default function ClientDetailPage() {
         <div className="flex flex-col gap-3 items-start sm:items-end shrink-0">
           {allClients.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Passa a:
               </span>
               <Select
@@ -764,7 +764,7 @@ export default function ClientDetailPage() {
           {
             // Pagina globale: il cliente viaggia nell'URL, così si apre già
             // filtrata invece di partire da "tutti".
-            href: `/assets?client=${id}`,
+            href: `/documents?tab=media&client=${id}`,
             icon: ImageIcon,
             label: "Creative Board",
             dot: "bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]",
@@ -965,7 +965,7 @@ export default function ClientDetailPage() {
                 <div className="space-y-6">
                   {/* Traffic Category */}
                   <div className="space-y-3">
-                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
                       Traffico & Acquisizione
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -995,7 +995,7 @@ export default function ClientDetailPage() {
                           key={i}
                           className="glass-card hover:bg-white/[0.06] hover:border-white/15 p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
-                          <div className="text-[11px] font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
+                          <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
                             {item.label}
                           </div>
                           <div className="flex items-baseline justify-between mt-2">
@@ -1005,7 +1005,7 @@ export default function ClientDetailPage() {
                             {item.metric && (
                               <span
                                 className={cn(
-                                  "text-[10px] font-extrabold px-1.5 py-0.5 rounded shadow-sm",
+                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
                                   item.metric.chg > 0
                                     ? "bg-emerald-500/10 text-emerald-400"
                                     : item.metric.chg < 0
@@ -1025,7 +1025,7 @@ export default function ClientDetailPage() {
 
                   {/* Behavior Category */}
                   <div className="space-y-3">
-                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
                       Comportamento On-Site
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1055,7 +1055,7 @@ export default function ClientDetailPage() {
                           key={i}
                           className="glass-card hover:bg-white/[0.06] hover:border-white/15 p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
-                          <div className="text-[11px] font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
+                          <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
                             {item.label}
                           </div>
                           <div className="flex items-baseline justify-between mt-2">
@@ -1065,7 +1065,7 @@ export default function ClientDetailPage() {
                             {item.metric && (
                               <span
                                 className={cn(
-                                  "text-[10px] font-extrabold px-1.5 py-0.5 rounded shadow-sm",
+                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
                                   item.metric.chg > 0
                                     ? "bg-rose-500/10 text-rose-400"
                                     : item.metric.chg < 0
@@ -1085,7 +1085,7 @@ export default function ClientDetailPage() {
 
                   {/* Conversions Category */}
                   <div className="space-y-3">
-                    <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
                       Conversioni (Ultimi {overviewDaysBack}gg vs prec.)
                     </h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1115,7 +1115,7 @@ export default function ClientDetailPage() {
                           key={i}
                           className="glass-card hover:bg-white/[0.06] hover:border-white/15 p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
-                          <div className="text-[11px] font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
+                          <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
                             {item.label}
                           </div>
                           <div className="flex items-baseline justify-between mt-2">
@@ -1125,7 +1125,7 @@ export default function ClientDetailPage() {
                             {item.metric && (
                               <span
                                 className={cn(
-                                  "text-[10px] font-extrabold px-1.5 py-0.5 rounded shadow-sm",
+                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
                                   item.metric.chg > 0
                                     ? "bg-emerald-500/10 text-emerald-400"
                                     : item.metric.chg < 0
@@ -1153,7 +1153,7 @@ export default function ClientDetailPage() {
                   <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
                     Health Score Ads
                   </h3>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                  <p className="text-xs text-muted-foreground/60 mt-1">
                     Su campagne Meta e Google Ads del periodo selezionato
                   </p>
                 </div>
@@ -1169,7 +1169,7 @@ export default function ClientDetailPage() {
                     >
                       {adsHealthOverall}
                     </div>
-                    <div className="text-[10px] font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
+                    <div className="text-xs font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
                   </div>
                 )}
               </div>
@@ -1203,7 +1203,7 @@ export default function ClientDetailPage() {
                           <li
                             key={f.id}
                             className={cn(
-                              "text-[10px] leading-snug",
+                              "text-xs leading-snug",
                               f.applicable ? "text-muted-foreground" : "text-muted-foreground/40 italic",
                             )}
                           >
@@ -1229,7 +1229,7 @@ export default function ClientDetailPage() {
                     <h3 className="text-base font-extrabold text-foreground tracking-tight">
                       Audit SEO
                     </h3>
-                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+                    <p className="text-xs text-muted-foreground/80 mt-0.5">
                       Performance e Core Web Vitals reali da Google PageSpeed, più i dati
                       di Search Console.
                     </p>
@@ -1246,7 +1246,7 @@ export default function ClientDetailPage() {
                       >
                         {client.lastSeoScore}
                       </div>
-                      <div className="text-[10px] font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
+                      <div className="text-xs font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
                     </div>
                   )}
                 </div>
@@ -1271,7 +1271,7 @@ export default function ClientDetailPage() {
                         </span>
                         <span
                           className={cn(
-                            "text-[10px] transition-transform duration-200 text-muted-foreground",
+                            "text-xs transition-transform duration-200 text-muted-foreground",
                             isReportsOpen && "transform rotate-180",
                           )}
                         >
@@ -1283,7 +1283,7 @@ export default function ClientDetailPage() {
                           {seoReportsList.map((report) => (
                             <div
                               key={report.id}
-                              className="flex justify-between items-center p-2 bg-white/[0.02] hover:bg-white/[0.05] rounded-lg text-[11px] transition-colors border border-white/5"
+                              className="flex justify-between items-center p-2 bg-white/[0.02] hover:bg-white/[0.05] rounded-lg text-xs transition-colors border border-white/5"
                             >
                               <div className="flex items-center gap-1.5 text-muted-foreground">
                                 <FileText className="h-3 w-3" />
@@ -1321,7 +1321,7 @@ export default function ClientDetailPage() {
                       <div className="font-bold text-rose-400">
                         Token Meta Mancante / Scaduto
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         Le campagne non possono sincronizzarsi.
                       </div>
                     </div>
@@ -1329,7 +1329,7 @@ export default function ClientDetailPage() {
                       onClick={() => setActiveTab("settings")}
                       size="sm"
                       variant="outline"
-                      className="h-7 border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50 text-[10px] font-bold rounded-lg px-2.5"
+                      className="h-7 border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50 text-xs font-bold rounded-lg px-2.5"
                     >
                       Configura
                     </Button>
@@ -1346,7 +1346,7 @@ export default function ClientDetailPage() {
                     <div className="font-bold text-primary">
                       Collega i servizi per gli alert automatici
                     </div>
-                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       Connetti Meta Ads e Google Analytics in "Setup API" per
                       ricevere anomalie in tempo reale.
                     </div>
@@ -1440,7 +1440,7 @@ export default function ClientDetailPage() {
                       Prodotto & USP
                     </h3>
                     {client.intelligence.websiteScraped && (
-                      <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
+                      <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">
                          Sito Analizzato
                       </span>
                     )}
@@ -1482,7 +1482,7 @@ export default function ClientDetailPage() {
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="text-[10px] font-black text-rose-400 mb-3 uppercase tracking-widest">
+                      <h4 className="text-xs font-black text-rose-400 mb-3 uppercase tracking-widest">
                         I loro problemi (Pain Points)
                       </h4>
                       <ul className="list-disc pl-4 space-y-1.5 text-xs text-muted-foreground/90">
@@ -1494,7 +1494,7 @@ export default function ClientDetailPage() {
                       </ul>
                     </div>
                     <div>
-                      <h4 className="text-[10px] font-black text-emerald-400 mb-3 uppercase tracking-widest">
+                      <h4 className="text-xs font-black text-emerald-400 mb-3 uppercase tracking-widest">
                         Leve Acquisto (Triggers)
                       </h4>
                       <ul className="list-disc pl-4 space-y-1.5 text-xs text-muted-foreground/90">
@@ -1547,7 +1547,7 @@ export default function ClientDetailPage() {
                                     {c.estimatedBudget && (
                                       <Badge
                                         variant="secondary"
-                                        className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold px-2 py-0.5 rounded-md"
+                                        className="bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-bold px-2 py-0.5 rounded-md"
                                       >
                                         Budget: {c.estimatedBudget}
                                       </Badge>
@@ -1564,7 +1564,7 @@ export default function ClientDetailPage() {
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="bg-white/[0.02] border border-white/8 p-3.5 rounded-xl space-y-1 border-l-2 border-l-emerald-500/60">
-                                  <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <div className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
                                     <CheckCircle2 className="h-3 w-3" /> Punti
                                     di forza
                                   </div>
@@ -1573,7 +1573,7 @@ export default function ClientDetailPage() {
                                   </div>
                                 </div>
                                 <div className="bg-white/[0.02] border border-white/8 p-3.5 rounded-xl space-y-1 border-l-2 border-l-rose-500/60">
-                                  <div className="text-[10px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
+                                  <div className="text-xs font-black text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
                                     <AlertTriangle className="h-3 w-3" /> Punti
                                     deboli
                                   </div>
@@ -1603,7 +1603,7 @@ export default function ClientDetailPage() {
                                     Analisi Inserzioni Attive (Screenshot AI)
                                   </span>
                                 </div>
-                                <p className="text-[11px] text-muted-foreground leading-relaxed m-0">
+                                <p className="text-xs text-muted-foreground leading-relaxed m-0">
                                   Carica uno screenshot della Facebook Ads
                                   Library del competitor. Gemini Vision
                                   analizzerà l'immagine per dedurre angoli, hook
@@ -1684,7 +1684,7 @@ export default function ClientDetailPage() {
                   </h3>
 
                   <div>
-                    <div className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-wider mb-2">
+                    <div className="text-xs text-muted-foreground/80 font-bold uppercase tracking-wider mb-2">
                       Interessi Seed (Broad)
                     </div>
                     <div className="flex flex-wrap gap-1.5">
@@ -1692,7 +1692,7 @@ export default function ClientDetailPage() {
                         (interest: string, i: number) => (
                           <span
                             key={i}
-                            className="text-[11px] bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-indigo-400 font-bold"
+                            className="text-xs bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full text-indigo-400 font-bold"
                           >
                             {interest}
                           </span>
@@ -1702,7 +1702,7 @@ export default function ClientDetailPage() {
                   </div>
 
                   <div>
-                    <div className="text-[10px] text-muted-foreground/80 font-bold uppercase tracking-wider mb-2">
+                    <div className="text-xs text-muted-foreground/80 font-bold uppercase tracking-wider mb-2">
                       Dati Demografici Estesi
                     </div>
                     <div className="text-xs text-muted-foreground/90 leading-relaxed space-y-1.5 bg-white/5 p-3.5 rounded-xl border border-white/5">
@@ -1774,7 +1774,7 @@ export default function ClientDetailPage() {
           return (
             <span
               style={{ color: s.color, backgroundColor: s.bg, borderColor: `${s.color}25` }}
-              className="px-2.5 py-0.5 rounded-full font-extrabold text-[9px] tracking-wide uppercase border"
+              className="px-2.5 py-0.5 rounded-full font-extrabold text-xs tracking-wide uppercase border"
             >
               {s.label}
             </span>
@@ -1852,7 +1852,7 @@ export default function ClientDetailPage() {
             ) : (
               <div className="max-h-[600px] overflow-y-auto border border-white/10 rounded-2xl glass-card bg-white/[0.02] shadow-md scrollbar-thin">
                 <table className="w-full border-collapse text-left">
-                  <thead className="sticky top-0 bg-neutral-950/80 backdrop-blur-md border-b border-white/15 z-10 text-[10px] font-black uppercase tracking-wider text-muted-foreground/75">
+                  <thead className="sticky top-0 bg-neutral-950/80 backdrop-blur-md border-b border-white/15 z-10 text-xs font-black uppercase tracking-wider text-muted-foreground/75">
                     <tr>
                       <th className="py-4.5 px-5">Nome</th>
                       <th className="py-4.5 px-4">Piattaforma</th>

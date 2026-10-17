@@ -363,7 +363,7 @@ Genera il JSON con questa struttura esatta:
                     <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-xs text-emerald-600 dark:text-emerald-400">
                         <CheckCircle2 className="h-4 w-4 shrink-0" />
                         <span>Bozza Salvata Ripristinata</span>
-                        <Button variant="ghost" size="sm" onClick={clearDraft} className="h-6 px-2 text-[11px] hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-lg">
+                        <Button variant="ghost" size="sm" onClick={clearDraft} className="h-6 px-2 text-xs hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-lg">
                             Cancella Bozza
                         </Button>
                     </div>
@@ -390,7 +390,7 @@ Genera il JSON con questa struttura esatta:
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-xs font-bold text-foreground truncate">{preset.title}</p>
-                                    <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">{preset.objective}</p>
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{preset.objective}</p>
                                 </div>
                             </button>
                         );
@@ -442,12 +442,12 @@ Genera il JSON con questa struttura esatta:
                                     </div>
                                     <div className="flex flex-wrap gap-1.5 pt-1">
                                         {selectedClient.socialProfile.toneOfVoice && (
-                                            <Badge variant="secondary" className="text-[10px] py-0 px-2">
+                                            <Badge variant="secondary" className="text-xs py-0 px-2">
                                                  {selectedClient.socialProfile.toneOfVoice}
                                             </Badge>
                                         )}
                                         {selectedClient.socialProfile.platforms?.map(p => (
-                                            <Badge key={p} variant="outline" className="text-[10px] py-0 px-2">
+                                            <Badge key={p} variant="outline" className="text-xs py-0 px-2">
                                                  {p}
                                             </Badge>
                                         ))}
@@ -459,7 +459,7 @@ Genera il JSON con questa struttura esatta:
                             <div className="flex items-center justify-between p-3 rounded-xl border border-border/60 bg-muted/30">
                                 <div>
                                     <p className="text-xs font-semibold text-foreground">Frequenza Piano</p>
-                                    <p className="text-[11px] text-muted-foreground capitalize">{frequency} ({frequency === 'mensile' ? '12-15 post' : '4-5 post'})</p>
+                                    <p className="text-xs text-muted-foreground capitalize">{frequency} ({frequency === 'mensile' ? '12-15 post' : '4-5 post'})</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs font-medium text-muted-foreground">Settimanale</span>
@@ -499,7 +499,7 @@ Genera il JSON con questa struttura esatta:
 
                                 {detectedMonth && SOCIAL_HOLIDAYS[detectedMonth] && (
                                     <div className="p-3 bg-primary/5 border border-primary/15 rounded-xl space-y-2 animate-in fade-in duration-200">
-                                        <p className="text-[11px] font-bold text-primary flex items-center gap-1.5">
+                                        <p className="text-xs font-bold text-primary flex items-center gap-1.5">
                                             <Sparkles className="h-3.5 w-3.5" /> Giornate Nazionali per {detectedMonth.toUpperCase()}:
                                         </p>
                                         <div className="flex flex-wrap gap-1.5">
@@ -507,7 +507,7 @@ Genera il JSON con questa struttura esatta:
                                                 <Badge
                                                     key={holiday}
                                                     variant={selectedHolidays.includes(holiday) ? 'default' : 'outline'}
-                                                    className="cursor-pointer text-[10px] py-0.5 px-2 hover:scale-105 transition-all"
+                                                    className="cursor-pointer text-xs py-0.5 px-2 hover:scale-105 transition-all"
                                                     onClick={() => toggleHoliday(holiday)}
                                                 >
                                                     {holiday}
@@ -624,7 +624,7 @@ Genera il JSON con questa struttura esatta:
                             <h3 className="text-lg font-bold text-foreground">Generazione AI non riuscita</h3>
                             <p className="text-xs text-muted-foreground max-w-md mt-1 mb-2">{error}</p>
                             {errorDetails && (
-                                <p className="text-[11px] font-mono bg-muted/60 p-2 rounded-lg text-muted-foreground max-w-md overflow-x-auto">
+                                <p className="text-xs font-mono bg-muted/60 p-2 rounded-lg text-muted-foreground max-w-md overflow-x-auto">
                                     {errorDetails}
                                 </p>
                             )}

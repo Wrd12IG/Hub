@@ -325,7 +325,7 @@ const TaskCard = ({
                         <span className="text-sm font-bold text-muted-foreground/50 uppercase tracking-wide">Nessun cliente</span>
                     )}
                     {project && (
-                        <span className="flex items-center gap-1 text-[10px] text-primary/70 uppercase font-medium tracking-wide">
+                        <span className="flex items-center gap-1 text-xs text-primary/70 uppercase font-medium tracking-wide">
                             <FolderKanban className="h-2.5 w-2.5 shrink-0" />
                             <span className="truncate max-w-[140px]">{project.name}</span>
                         </span>
@@ -391,7 +391,7 @@ const TaskCard = ({
                 {/* Riga 1: Stato · Priorità · Tipo attività */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                     <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full"
                         style={{
                             backgroundColor: (statusColors[task.status]?.bg ?? '#6b7280') + '22',
                             color: statusColors[task.status]?.bg ?? '#6b7280',
@@ -400,7 +400,7 @@ const TaskCard = ({
                         {task.status}
                     </span>
                     <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border"
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full border"
                         style={{
                             backgroundColor: (priorityColors[task.priority] ?? '#6b7280') + '18',
                             color: priorityColors[task.priority] ?? '#6b7280',
@@ -410,13 +410,13 @@ const TaskCard = ({
                         {task.priority}
                     </span>
                     {task.activityType && (
-                        <span className="text-[10px] text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full flex items-center gap-1">
                             <ListChecks className="h-2.5 w-2.5" />
                             {task.activityType}
                         </span>
                     )}
                     {isTaskInApproval && approvalDaysPending >= 1 && (
-                        <span className="text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5 animate-breathing-custom">
+                        <span className="text-xs font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5 animate-breathing-custom">
                             <Timer className="h-2.5 w-2.5" />
                             {approvalDaysPending}gg
                         </span>
@@ -428,7 +428,7 @@ const TaskCard = ({
                                 e.stopPropagation();
                                 setRejectionReasonToShow(task.rejectionReason || '', task);
                             }}
-                            className="text-[10px] font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/25 px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
+                            className="text-xs font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/25 px-2 py-0.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
                             title="Visualizza o modifica il motivo del rifiuto"
                         >
                             <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
@@ -440,14 +440,14 @@ const TaskCard = ({
                 {/* Riga 2: Creazione · Tempo · Progress% · Allegati · Commenti · Data approv. */}
                 <div className="flex items-center gap-2 flex-wrap">
                     {(() => { const d = safeToDate(task.createdAt); return d ? (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <Clock className="h-2.5 w-2.5" />
                             {format(d, 'dd MMM yyyy HH:mm', { locale: it })}
                         </span>
                     ) : null; })()}
                     {((task.timeSpent && task.timeSpent > 0) || isTimerActiveForThisTask) && (
                         <span className={cn(
-                            "text-[10px] font-mono flex items-center gap-1",
+                            "text-xs font-mono flex items-center gap-1",
                             isTimerActiveForThisTask ? "text-green-500 font-bold" : "text-muted-foreground"
                         )}>
                             <Timer className="h-2.5 w-2.5" />
@@ -455,13 +455,13 @@ const TaskCard = ({
                         </span>
                     )}
                     {task.attachments && task.attachments.length > 0 && (
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                        <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                             <Paperclip className="h-2.5 w-2.5" />
                             {task.attachments.length}
                         </span>
                     )}
                     {task.comments && task.comments.length > 0 && (
-                        <span className="text-[10px] text-purple-500 flex items-center gap-0.5">
+                        <span className="text-xs text-purple-500 flex items-center gap-0.5">
                             <MessageSquare className="h-2.5 w-2.5" />
                             {task.comments.length}
                         </span>
@@ -469,7 +469,7 @@ const TaskCard = ({
                     {isTaskInApproval && (() => {
                         const ds = task.updatedAt || task.createdAt;
                         return ds ? (
-                            <span className="text-[10px] text-purple-500 flex items-center gap-1">
+                            <span className="text-xs text-purple-500 flex items-center gap-1">
                                 <Send className="h-2.5 w-2.5" />
                                 {format(
                                     typeof ds === 'string' ? new Date(ds) : (ds as any).toDate ? (ds as any).toDate() : new Date(),
@@ -492,7 +492,7 @@ const TaskCard = ({
                             )}
                         />
                         <span className={cn(
-                            "text-[10px] font-mono font-semibold shrink-0",
+                            "text-xs font-mono font-semibold shrink-0",
                             timeExceeded ? "text-red-500" : timeWarning ? "text-amber-500" : "text-muted-foreground"
                         )}>
                             {timeExceeded ? `+${(timeProgress - 100).toFixed(0)}%` : `${timeProgress.toFixed(0)}%`}
@@ -508,7 +508,7 @@ const TaskCard = ({
                                 <Tooltip>
                                     <TooltipTrigger>
                                         <Avatar className="h-6 w-6 border-2 border-background">
-                                            <AvatarFallback style={{ backgroundColor: creator.color, color: 'white' }} className="text-[10px]">
+                                            <AvatarFallback style={{ backgroundColor: creator.color, color: 'white' }} className="text-xs">
                                                 {getInitials(creator.name)}
                                             </AvatarFallback>
                                         </Avatar>
@@ -523,7 +523,7 @@ const TaskCard = ({
                                     <TooltipTrigger>
                                         <div className="flex items-center gap-1">
                                             <Avatar className="h-6 w-6 border-2 border-primary/30">
-                                                <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }} className="text-[10px]">
+                                                <AvatarFallback style={{ backgroundColor: assignedUser.color, color: 'white' }} className="text-xs">
                                                     {getInitials(assignedUser.name)}
                                                 </AvatarFallback>
                                             </Avatar>
@@ -1582,7 +1582,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                                 e.stopPropagation();
                                                                 setRejectionReasonToShow(task.rejectionReason || '', task);
                                                             }}
-                                                            className="text-[10px] font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/25 px-1.5 py-0.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
+                                                            className="text-xs font-semibold bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 hover:bg-red-500/25 px-1.5 py-0.5 rounded-full flex items-center gap-1 transition-colors cursor-pointer"
                                                             title="Visualizza o modifica il motivo del rifiuto"
                                                         >
                                                             <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
@@ -2370,10 +2370,10 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                     <>
                                                         <p className="font-semibold text-foreground text-sm line-clamp-1">{previewEditorialContent.topic}</p>
                                                         <div className="flex flex-wrap gap-2 pt-1">
-                                                            <Badge variant="secondary" className="text-[10px] py-0">{previewEditorialContent.format}</Badge>
-                                                            <Badge variant="outline" className="text-[10px] py-0">{previewEditorialContent.status}</Badge>
+                                                            <Badge variant="secondary" className="text-xs py-0">{previewEditorialContent.format}</Badge>
+                                                            <Badge variant="outline" className="text-xs py-0">{previewEditorialContent.status}</Badge>
                                                             {previewEditorialContent.publicationDate && (
-                                                                <span className="text-[10px] self-center">Pubblicazione: {format(new Date(previewEditorialContent.publicationDate), 'dd MMM yyyy', { locale: it })}</span>
+                                                                <span className="text-xs self-center">Pubblicazione: {format(new Date(previewEditorialContent.publicationDate), 'dd MMM yyyy', { locale: it })}</span>
                                                             )}
                                                         </div>
                                                         {previewEditorialContent.copy && (
@@ -2393,7 +2393,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                 ) : (
                                                     <div className="py-1">
                                                         <span>ID Contenuto: {previewTask.editorialContentId}</span>
-                                                        <p className="text-[10px] text-destructive mt-1">Dettagli del contenuto non trovati.</p>
+                                                        <p className="text-xs text-destructive mt-1">Dettagli del contenuto non trovati.</p>
                                                     </div>
                                                 )}
                                             </CardContent>
@@ -2488,14 +2488,14 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                     return (
                                                         <div key={index} className="flex items-start gap-2">
                                                             <Avatar className="h-7 w-7 flex-shrink-0">
-                                                                <AvatarFallback style={{ backgroundColor: user?.color }} className="text-[10px] text-white">
+                                                                <AvatarFallback style={{ backgroundColor: user?.color }} className="text-xs text-white">
                                                                     {user?.name?.split(' ')[0]?.charAt(0) || '?'}
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-baseline gap-2">
                                                                     <p className="font-semibold text-xs">{user?.name || 'Utente'}</p>
-                                                                    <p className="text-[10px] text-muted-foreground">
+                                                                    <p className="text-xs text-muted-foreground">
                                                                         {isClient ? formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true, locale: it }) : '...'}
                                                                     </p>
                                                                 </div>

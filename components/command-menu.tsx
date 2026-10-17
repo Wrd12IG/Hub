@@ -609,19 +609,19 @@ export default function CommandMenu() {
             <div className="flex items-center justify-between border-t px-3 py-2 text-xs text-muted-foreground">
                 <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1">
-                        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium text-muted-foreground">
                             ↑↓
                         </kbd>
                         <span>navigare</span>
                     </span>
                     <span className="flex items-center gap-1">
-                        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium text-muted-foreground">
                             ↵
                         </kbd>
                         <span>selezionare</span>
                     </span>
                     <span className="flex items-center gap-1">
-                        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-xs font-medium text-muted-foreground">
                             esc
                         </kbd>
                         <span>chiudere</span>

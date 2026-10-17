@@ -196,7 +196,7 @@ export function MetaTokenManager({ clientId }: MetaTokenManagerProps) {
                   onChange={e => setNewAccountId(e.target.value)}
                   className="mt-1 text-xs"
                 />
-                <p className="text-[10px] text-muted-foreground mt-0.5">Es: act_521414698671784</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Es: act_521414698671784</p>
               </div>
               <div>
                 <Label className="text-xs font-semibold">Facebook Page ID</Label>
@@ -206,7 +206,7 @@ export function MetaTokenManager({ clientId }: MetaTokenManagerProps) {
                   onChange={e => setNewPageId(e.target.value)}
                   className="mt-1 text-xs"
                 />
-                <p className="text-[10px] text-muted-foreground mt-0.5">Serve per FB + IG report</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Serve per FB + IG report</p>
               </div>
             </div>
 

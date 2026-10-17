@@ -746,12 +746,12 @@ export default function ReportsPage() {
 
                                                 <div className="flex flex-wrap gap-1 pt-1 border-t">
                                                     {(report?.activities || []).slice(0, 4).map((a, i) => (
-                                                        <Badge key={i} variant="secondary" className="text-[10px]">
+                                                        <Badge key={i} variant="secondary" className="text-xs">
                                                             {a.name}: {a.hours.toFixed(1)}h
                                                         </Badge>
                                                     ))}
                                                     {report.activities.length > 4 && (
-                                                        <Badge variant="outline" className="text-[10px]">
+                                                        <Badge variant="outline" className="text-xs">
                                                             +{report.activities.length - 4}
                                                         </Badge>
                                                     )}
@@ -891,14 +891,14 @@ export default function ReportsPage() {
                                                     <h4 className="font-semibold text-sm truncate" title={entry.taskTitle}>{entry.taskTitle}</h4>
                                                     <p className="text-xs text-muted-foreground">{entry.clientName} · {format(parseISO(entry.date), 'dd/MM/yy')}</p>
                                                 </div>
-                                                <Badge variant={entry.source === 'task' ? 'default' : 'secondary'} className="text-[10px] shrink-0">
+                                                <Badge variant={entry.source === 'task' ? 'default' : 'secondary'} className="text-xs shrink-0">
                                                     {entry.source === 'task' ? 'Task' : 'Calendar'}
                                                 </Badge>
                                             </div>
                                             <div className="flex items-center justify-between text-xs pt-1 border-t border-border/30">
                                                 <div className="flex items-center gap-1.5">
                                                     <Avatar className="h-5 w-5">
-                                                        <AvatarFallback className="text-[10px]">
+                                                        <AvatarFallback className="text-xs">
                                                             {getInitials(entry.userName)}
                                                         </AvatarFallback>
                                                     </Avatar>
@@ -906,7 +906,7 @@ export default function ReportsPage() {
                                                 </div>
                                                 <div className="text-right">
                                                     <span className="font-bold text-primary font-mono">{entry.hours.toFixed(2)}h</span>
-                                                    <span className="text-[10px] text-muted-foreground block font-mono">{formatCurrency(entry.cost)}</span>
+                                                    <span className="text-xs text-muted-foreground block font-mono">{formatCurrency(entry.cost)}</span>
                                                 </div>
                                             </div>
                                         </Card>

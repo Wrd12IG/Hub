@@ -472,7 +472,7 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                                             <Badge className="bg-primary">{item.piattaforma}</Badge>
                                             <span className="text-xs font-bold uppercase">{item.giorno}</span>
                                         </div>
-                                        <Badge variant="outline" className="text-[10px]">{item.formato}</Badge>
+                                        <Badge variant="outline" className="text-xs">{item.formato}</Badge>
                                     </div>
                                     <CardContent className="p-4 space-y-4">
                                         <div>
@@ -512,14 +512,14 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                                         </div>
 
                                         <div className="pt-3 border-t space-y-3">
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Crea Media Post</p>
+                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Crea Media Post</p>
                                             <div className="flex flex-wrap gap-2">
                                                 {mediaTypes.map(type => (
                                                     <Button
                                                         key={type.id}
                                                         variant={selectedMediaTypes[i] === type.id ? 'default' : 'outline'}
                                                         size="sm"
-                                                        className="h-8 text-[10px] px-2 flex gap-1"
+                                                        className="h-8 text-xs px-2 flex gap-1"
                                                         onClick={() => setSelectedMediaTypes(prev => ({ ...prev, [i]: type.id }))}
                                                         disabled={savedPosts[i]}
                                                     >
@@ -530,7 +530,7 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                                                     variant="outline"
                                                     size="sm"
                                                     disabled={isLoadingMoodboard[i] || savedPosts[i]}
-                                                    className="h-8 text-[10px] gap-1 px-2 border-primary/30 hover:bg-primary/5 text-primary"
+                                                    className="h-8 text-xs gap-1 px-2 border-primary/30 hover:bg-primary/5 text-primary"
                                                     onClick={() => handleGenerateMoodboard(i)}
                                                 >
                                                     {isLoadingMoodboard[i] ? <Loader2 className="h-3 w-3 animate-spin" /> : <Palette className="h-3 w-3" />}
@@ -543,7 +543,7 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                                                     {/* TODO: usare next/image quando URL è da dominio noto (attualmente URL generato da API AI esterna, dominio variabile) */}
                                                     <img src={moodboards[i]} alt="Moodboard" className="w-full h-24 object-cover opacity-80 group-hover/moodboard:opacity-100 transition-opacity" />
                                                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/moodboard:opacity-100 bg-black/40 transition-opacity">
-                                                        <Button variant="secondary" size="sm" className="h-6 text-[9px] px-2" onClick={() => window.open(moodboards[i], '_blank')}>Vedi Full</Button>
+                                                        <Button variant="secondary" size="sm" className="h-6 text-xs px-2" onClick={() => window.open(moodboards[i], '_blank')}>Vedi Full</Button>
                                                     </div>
                                                 </div>
                                             )}
@@ -563,27 +563,27 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
 
                                             {mediaBriefs[i] && (
                                                 <div className="p-3 bg-primary/5 rounded border border-primary/10 animate-in fade-in zoom-in duration-300">
-                                                    <p className="text-[10px] font-bold text-primary mb-1 uppercase tracking-tight">Visione Creativa (AI):</p>
-                                                    <p className="text-[11px] leading-tight mb-2">{mediaBriefs[i].descrizione_creativa}</p>
+                                                    <p className="text-xs font-bold text-primary mb-1 uppercase tracking-tight">Visione Creativa (AI):</p>
+                                                    <p className="text-xs leading-tight mb-2">{mediaBriefs[i].descrizione_creativa}</p>
                                                     <div className="space-y-1">
-                                                        <p className="text-[9px] font-bold text-muted-foreground uppercase">Struttura:</p>
+                                                        <p className="text-xs font-bold text-muted-foreground uppercase">Struttura:</p>
                                                         {mediaBriefs[i].struttura.slice(0, 3).map((s: any, idx: number) => (
-                                                            <p key={idx} className="text-[10px] leading-tight">• {s.elemento}: {s.dettagli}</p>
+                                                            <p key={idx} className="text-xs leading-tight">• {s.elemento}: {s.dettagli}</p>
                                                         ))}
-                                                        {mediaBriefs[i].struttura.length > 3 && <p className="text-[9px] italic">...e altro</p>}
+                                                        {mediaBriefs[i].struttura.length > 3 && <p className="text-xs italic">...e altro</p>}
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
 
                                         <div className="flex justify-between items-center pt-2 border-t mt-1">
-                                            <span className="text-[10px] font-bold text-primary italic">CTA: {item.cta}</span>
+                                            <span className="text-xs font-bold text-primary italic">CTA: {item.cta}</span>
                                             {savedPosts[i] ? (
                                                 <Badge className="bg-green-500 hover:bg-green-600 gap-1"><Check className="h-3 w-3" /> Aggiunto</Badge>
                                             ) : (
                                                 <Button
                                                     size="sm"
-                                                    className={`h-7 text-[10px] gap-1 px-3 ${selectedMediaTypes[i] ? 'rainbow-border' : ''}`}
+                                                    className={`h-7 text-xs gap-1 px-3 ${selectedMediaTypes[i] ? 'rainbow-border' : ''}`}
                                                     onClick={() => handleCreateTaskAndPlan(i)}
                                                     disabled={isSaving[i]}
                                                 >

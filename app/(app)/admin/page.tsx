@@ -922,7 +922,7 @@ function AdminPageContent() {
                                                             <div className="flex items-center gap-2">
                                                                 <Avatar className="h-6 w-6">
                                                                     <AvatarImage src={socialManager.avatar || getUserAvatar(socialManager)} />
-                                                                    <AvatarFallback style={{ backgroundColor: socialManager.color || '#4285F4' }} className="text-[10px] text-white font-bold">
+                                                                    <AvatarFallback style={{ backgroundColor: socialManager.color || '#4285F4' }} className="text-xs text-white font-bold">
                                                                         {getInitials(socialManager.name)}
                                                                     </AvatarFallback>
                                                                 </Avatar>

@@ -132,7 +132,7 @@ export default function TikTokPage() {
             <span className="text-sm line-clamp-1 font-medium">{row.title}</span>
             <div className="flex gap-1">
               {row.tags?.map((tag: string) => (
-                <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-1 font-normal bg-pink-100 text-pink-800 hover:bg-pink-100/80">{tag}</Badge>
+                <Badge key={tag} variant="secondary" className="text-xs py-0 px-1 font-normal bg-pink-100 text-pink-800 hover:bg-pink-100/80">{tag}</Badge>
               ))}
             </div>
           </div>
@@ -339,7 +339,7 @@ export default function TikTokPage() {
             <div className="flex-1 h-full">
               <ResponsiveContainer>
                 <ComposedChart layout="vertical" data={data.medieVisualizzazioniChart} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <XAxis type="number" stroke="hsl(var(--border))" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} domain={[0, 1.0]} />
+                  <XAxis type="number" stroke="hsl(var(--border))" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} domain={[0, 1.0]} />
                   <YAxis type="category" dataKey="date" hide />
                   <RechartsTooltip contentStyle={tooltipStyle} />
                 </ComposedChart>

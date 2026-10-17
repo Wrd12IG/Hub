@@ -3186,8 +3186,8 @@ export default function Dashboard() {
                                                 { subject: 'Produttività', ...Object.fromEntries(userRadarData.map(u => [u.name, u['Produttività']])) },
                                             ]}>
                                                 <PolarGrid />
-                                                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10 }} />
-                                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8 }} />
+                                                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
+                                                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 12 }} />
                                                 {userRadarData.map((user, index) => (
                                                     <Radar
                                                         key={user.name}
@@ -3232,7 +3232,7 @@ export default function Dashboard() {
                                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                                 <XAxis 
                                     dataKey="name" 
-                                    tick={{ fontSize: 11 }} 
+                                    tick={{ fontSize: 12 }} 
                                     interval={0}
                                     angle={-15}
                                     textAnchor="end"
@@ -3242,7 +3242,7 @@ export default function Dashboard() {
                                         const val = Number(v) || 0;
                                         return val >= 1000 ? `€${(val / 1000).toFixed(0)}k` : `€${val}`;
                                     }}
-                                    tick={{ fontSize: 11 }}
+                                    tick={{ fontSize: 12 }}
                                 />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Legend wrapperStyle={{ paddingTop: '10px' }} />

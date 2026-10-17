@@ -139,15 +139,15 @@ function KpiCard({
   return (
     <div className="glass-card p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300 hover:-translate-y-0.5 shadow-sm flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-muted-foreground/75 uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider">{label}</span>
         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${color}`}>
           <Icon size={14} />
         </div>
       </div>
       <div className="text-2xl font-extrabold tracking-tight text-foreground">{value}</div>
-      {sub && <div className="text-[11px] text-muted-foreground/60">{sub}</div>}
+      {sub && <div className="text-xs text-muted-foreground/60">{sub}</div>}
       {change !== undefined && (
-        <div className={`text-[10px] font-bold inline-flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+        <div className={`text-xs font-bold inline-flex items-center gap-0.5 ${change >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
           <TrendingUp size={10} className={change < 0 ? 'rotate-180' : ''} />
           {change >= 0 ? '+' : ''}{change}% vs mese prec.
         </div>
@@ -362,12 +362,12 @@ export default function GbpDashboardTab({
                   <div>
                     <div className="text-sm font-bold text-foreground">{loc.name}</div>
                     {loc.address && <div className="text-xs text-muted-foreground">{loc.address}</div>}
-                    <div className="text-[10px] font-mono text-muted-foreground/50 mt-0.5">{loc.id}</div>
+                    <div className="text-xs font-mono text-muted-foreground/50 mt-0.5">{loc.id}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {loc.id === selectedLocationId && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                       ATTIVA
                     </span>
                   )}
@@ -395,8 +395,8 @@ export default function GbpDashboardTab({
               <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
                 <span className="text-sm font-medium text-foreground">{net.name}</span>
                 {net.status === 'sync'
-                  ? <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">Sincronizzato</span>
-                  : <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">In sospeso</span>
+                  ? <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">Sincronizzato</span>
+                  : <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">In sospeso</span>
                 }
               </div>
             ))}
@@ -448,7 +448,7 @@ export default function GbpDashboardTab({
                   </div>
                   <div>
                     <div className="text-sm font-bold text-foreground">{review.author}</div>
-                    <div className="text-[11px] text-muted-foreground">{review.date}</div>
+                    <div className="text-xs text-muted-foreground">{review.date}</div>
                   </div>
                 </div>
                 <StarRating rating={review.rating} />

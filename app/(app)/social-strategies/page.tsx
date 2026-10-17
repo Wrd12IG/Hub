@@ -200,17 +200,17 @@ function SocialStrategiesList() {
                                     <TableCell className="capitalize text-xs">{s.frequency}</TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
-                                            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold" style={{ backgroundColor: (creator?.color || '#ccc') + '20', color: creator?.color }}>
+                                            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: (creator?.color || '#ccc') + '20', color: creator?.color }}>
                                                 {creator?.name.charAt(0) || 'U'}
                                             </div>
                                             <span className="text-xs">{creator?.name || 'Sistema'}</span>
                                         </div>
                                     </TableCell>
-                                    <TableCell className="text-[10px] text-muted-foreground">
+                                    <TableCell className="text-xs text-muted-foreground">
                                         {format(new Date(s.generationDate), 'dd MMM yyyy HH:mm', { locale: it })}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant={s.status === 'inviata' ? 'default' : s.status === 'archiviata' ? 'secondary' : 'outline'} className="text-[10px] whitespace-nowrap">
+                                        <Badge variant={s.status === 'inviata' ? 'default' : s.status === 'archiviata' ? 'secondary' : 'outline'} className="text-xs whitespace-nowrap">
                                             {s.status === 'inviata' ? <CheckCircle2 className="mr-1 h-3 w-3" /> : <Clock className="mr-1 h-3 w-3" />}
                                             {s.status}
                                         </Badge>

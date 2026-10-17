@@ -296,7 +296,7 @@ export function ClientHealthBadge({
                 )}
 
                 <div className="flex items-center justify-between gap-2 border-t border-white/10 px-4 py-2.5">
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                         {data.computedAt
                             ? `Calcolato il ${new Date(data.computedAt).toLocaleString('it-IT', {
                                   day: '2-digit',
@@ -310,7 +310,7 @@ export function ClientHealthBadge({
                         type="button"
                         onClick={() => load(true)}
                         disabled={loading}
-                        className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
                     >
                         <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
                         Ricalcola

@@ -144,7 +144,7 @@ export default function LinkedinPage() {
             <span className="text-sm line-clamp-1 font-medium">{row.title}</span>
             <div className="flex gap-1">
               {row.tags?.map((tag: string) => (
-                <Badge key={tag} variant="secondary" className="text-[10px] py-0 px-1 font-normal bg-blue-100 text-blue-800 hover:bg-blue-100/80">{tag}</Badge>
+                <Badge key={tag} variant="secondary" className="text-xs py-0 px-1 font-normal bg-blue-100 text-blue-800 hover:bg-blue-100/80">{tag}</Badge>
               ))}
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function LinkedinPage() {
     { key: 'reazioni', label: 'Reazioni', render: (row: any) => (
       <div className="flex items-center gap-2">
         <span>{formatNumber(row.reazioni)}</span>
-        <Badge variant="outline" className="text-[10px] py-0 font-normal border-green-200 bg-green-50 text-green-700">Nuovo</Badge>
+        <Badge variant="outline" className="text-xs py-0 font-normal border-green-200 bg-green-50 text-green-700">Nuovo</Badge>
       </div>
     )},
     { key: 'commenti', label: 'Commenti', render: (row: any) => formatNumber(row.commenti) },
@@ -209,7 +209,7 @@ export default function LinkedinPage() {
     { key: 'reazioni', label: 'Reazioni', render: (row: any) => (
       <div className="flex items-center gap-2">
         <span>{formatNumber(row.reazioni)}</span>
-        <Badge variant="outline" className="text-[10px] py-0 font-normal border-green-200 bg-green-50 text-green-700">Nuovo</Badge>
+        <Badge variant="outline" className="text-xs py-0 font-normal border-green-200 bg-green-50 text-green-700">Nuovo</Badge>
       </div>
     )},
     { key: 'commenti', label: 'Commenti', render: (row: any) => formatNumber(row.commenti) },

@@ -15,7 +15,6 @@ import {
     BookOpen,
     CalendarX2,
     Bot,
-    Image as ImageIcon,
     Search,
     Zap,
     FolderPlus,
@@ -43,33 +42,36 @@ interface DockNavItem {
     icon: React.ElementType;
     permission?: string;
     color?: string;
+    /** Area di appartenenza: le voci della stessa area stanno vicine, tra le aree c'è un divisore. */
+    group?: 'lavoro' | 'clienti' | 'team' | 'analisi' | 'admin';
+    /** Altri percorsi che danno accesso alla stessa voce (es. il vecchio /assets per Documenti e Media). */
+    altHrefs?: string[];
 }
 
 const allNavItems: DockNavItem[] = [
-    { href: '/dashboard', icon: Gauge, label: 'Dashboard', color: 'text-blue-500' },
-    { href: '/tasks', icon: ClipboardList, label: 'Tasks', color: 'text-sky-500' },
-    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-amber-500' },
-    { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-purple-500' },
-    { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-indigo-500' },
-    { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-amber-600' },
-    { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-500' },
-    { href: '/social-strategies', icon: Bot, label: 'Strategie Social', color: 'text-rose-500' },
-    { href: '/absences', icon: CalendarX2, label: 'Assenze', color: 'text-teal-500' },
-    { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-indigo-400' },
-    { href: '/clients', icon: Users, label: 'Clienti', color: 'text-cyan-500' },
-    { href: '/documents', icon: FileText, label: 'Documenti', color: 'text-blue-400' },
-    { href: '/assets', icon: ImageIcon, label: 'Media & Assets', color: 'text-pink-500' },
-    { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500' },
+    { href: '/dashboard', icon: Gauge, label: 'Dashboard', color: 'text-blue-500', group: 'lavoro' },
+    { href: '/tasks', icon: ClipboardList, label: 'Tasks', color: 'text-sky-500', group: 'lavoro' },
+    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-amber-500', group: 'lavoro' },
+    { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-purple-500', group: 'lavoro' },
+    { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-indigo-500', group: 'lavoro' },
+    { href: '/clients', icon: Users, label: 'Clienti', color: 'text-cyan-500', group: 'clienti' },
+    { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-amber-600', group: 'clienti' },
+    { href: '/social-strategies', icon: Bot, label: 'Strategie Social', color: 'text-rose-500', group: 'clienti' },
+    { href: '/documents', icon: FileText, label: 'Documenti e Media', color: 'text-blue-400', altHrefs: ['/assets'], group: 'clienti' },
+    { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-500', group: 'team' },
+    { href: '/absences', icon: CalendarX2, label: 'Assenze', color: 'text-teal-500', group: 'team' },
+    { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-indigo-400', group: 'team' },
+    { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500', group: 'analisi' },
 ];
 
 const adminNavItems: DockNavItem[] = [
-    { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-600' },
-    { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500' },
+    { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-600', group: 'admin' },
+    { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500', group: 'admin' },
 ];
 
 const clientNavItems: DockNavItem[] = [
     { href: '/briefs', icon: BookOpen, label: 'Brief' },
-    { href: '/documents', icon: FileText, label: 'Documenti' },
+    { href: '/documents', icon: FileText, label: 'Documenti e Media' },
 ];
 
 // ── Quick Actions ──
@@ -154,6 +156,7 @@ export function FloatingCommandDock() {
             const isRecurringItem = item.href.includes('recurring');
             if (item.permission && userPermissions.includes(item.permission)) return true;
             if (userPermissions.includes(item.href)) return true;
+            if (item.altHrefs?.some(h => userPermissions.includes(h))) return true;
             const isPM = (normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm';
             if (isPM && isRecurringItem) {
                 return userPermissions.includes('_create-recurring-projects') || userPermissions.includes(item.href);
@@ -184,7 +187,7 @@ export function FloatingCommandDock() {
 
     return (
         <TooltipProvider delayDuration={100}>
-            <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-background/90 backdrop-blur-xl border border-border/60 shadow-2xl shadow-black/30 transition-all duration-300 hover:border-primary/30">
+            <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-2 max-w-[calc(100vw-1.5rem)] overflow-x-auto rounded-2xl bg-background/90 backdrop-blur-xl border border-border/60 shadow-2xl shadow-black/30 transition-all duration-300 hover:border-primary/30">
 
                 {/* ── Quick Actions (solo se visibili) ── */}
                 {visibleQuickActions.length > 0 && (
@@ -218,35 +221,41 @@ export function FloatingCommandDock() {
                 )}
 
                 {/* ── Menu Globale (filtrato per permessi) ── */}
-                <nav className="flex items-center gap-0.5">
-                    {visibleNavItems.map((item) => {
+                <nav aria-label="Navigazione principale" className="flex items-center gap-0.5">
+                    {visibleNavItems.map((item, index) => {
                         const Icon = item.icon;
                         const isActive =
                             pathname === item.href ||
-                            (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                            (item.href !== '/dashboard' && pathname.startsWith(item.href)) ||
+                            !!item.altHrefs?.some(h => pathname.startsWith(h));
+                        const startsNewGroup = index > 0 && item.group !== visibleNavItems[index - 1].group;
 
                         return (
-                            <Tooltip key={item.href}>
-                                <TooltipTrigger asChild>
-                                    <Link
-                                        href={item.href}
-                                        className={cn(
-                                            'relative p-2 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110',
-                                            isActive
-                                                ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm'
-                                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                                        )}
-                                    >
-                                        <Icon className={cn("h-4 w-4 transition-colors", isActive ? "text-primary scale-105" : item.color || "text-muted-foreground")} />
-                                        {isActive && (
-                                            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                                        )}
-                                    </Link>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" className="text-xs font-medium">
-                                    {item.label}
-                                </TooltipContent>
-                            </Tooltip>
+                            <React.Fragment key={item.href}>
+                                {startsNewGroup && <div className="h-6 w-px bg-border/50 mx-1.5" aria-hidden="true" />}
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Link
+                                            href={item.href}
+                                            aria-label={item.label}
+                                            aria-current={isActive ? 'page' : undefined}
+                                            className={cn(
+                                                'relative p-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-105',
+                                                isActive
+                                                    ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                            )}
+                                        >
+                                            <Icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive ? "text-primary" : item.color || "text-muted-foreground")} />
+                                            {/* La pagina corrente dice il suo nome: le altre icone restano compatte con tooltip */}
+                                            {isActive && <span className="hidden md:inline text-xs font-semibold whitespace-nowrap pr-1">{item.label}</span>}
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="text-xs font-medium">
+                                        {item.label}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </React.Fragment>
                         );
                     })}
                 </nav>
@@ -261,7 +270,7 @@ export function FloatingCommandDock() {
                             className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 hover:scale-110 flex items-center gap-1.5"
                         >
                             <Search className="h-4 w-4" />
-                            <kbd className="hidden lg:inline-block text-[10px] bg-muted px-1.5 py-0.5 rounded border border-border font-mono">
+                            <kbd className="hidden lg:inline-block text-xs bg-muted px-1.5 py-0.5 rounded border border-border font-mono">
                                 ⌘K
                             </kbd>
                         </button>

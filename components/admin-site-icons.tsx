@@ -437,7 +437,7 @@ export default function AdminSiteIcons() {
                                             {isCustom && (
                                                 <Badge
                                                     variant="default"
-                                                    className="absolute -top-2 -right-2 text-[10px] px-1.5 py-0 bg-green-500"
+                                                    className="absolute -top-2 -right-2 text-xs px-1.5 py-0 bg-green-500"
                                                 >
                                                     Personalizzata
                                                 </Badge>
@@ -449,7 +449,7 @@ export default function AdminSiteIcons() {
                                             <div className="font-medium text-sm">{iconConfig.label}</div>
                                             <div className="text-xs text-muted-foreground">{iconConfig.description}</div>
                                             {iconConfig.required && (
-                                                <Badge variant="outline" className="mt-1 text-[10px]">Richiesta</Badge>
+                                                <Badge variant="outline" className="mt-1 text-xs">Richiesta</Badge>
                                             )}
                                         </div>
 

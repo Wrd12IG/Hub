@@ -85,7 +85,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                   <p className="font-bold text-sm truncate">{c.nome || c.sito}</p>
                   {c.sito && (
                     <a href={c.sito} target="_blank" rel="noopener noreferrer"
-                      className="text-[11px] text-muted-foreground hover:underline inline-flex items-center gap-1">
+                      className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1">
                       {c.sito.replace(/^https?:\/\/(www\.)?/, '').slice(0, 34)} <ExternalLink size={9} />
                     </a>
                   )}
@@ -100,7 +100,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
               </div>
 
               {err ? (
-                <p className="text-[11px] text-amber-500/90 flex items-start gap-1.5">
+                <p className="text-xs text-amber-500/90 flex items-start gap-1.5">
                   <AlertCircle size={11} className="shrink-0 mt-0.5" /> {err}
                 </p>
               ) : s ? (
@@ -108,18 +108,18 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                   {s.offers.length > 0 ? (
                     <ul className="space-y-1">
                       {s.offers.slice(0, 3).map((o, i) => (
-                        <li key={i} className="text-[11px] text-muted-foreground leading-snug">· {o.slice(0, 90)}</li>
+                        <li key={i} className="text-xs text-muted-foreground leading-snug">· {o.slice(0, 90)}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-[11px] text-muted-foreground/60">Nessuna offerta rilevata in homepage.</p>
+                    <p className="text-xs text-muted-foreground/60">Nessuna offerta rilevata in homepage.</p>
                   )}
-                  <p className="text-[10px] text-muted-foreground/50">
+                  <p className="text-xs text-muted-foreground/50">
                     letto {dataIta(s.fetchedAt)}{s.via === 'firecrawl' ? ' · via Firecrawl' : ''}
                   </p>
                 </>
               ) : (
-                <p className="text-[11px] text-muted-foreground/60">Mai letto.</p>
+                <p className="text-xs text-muted-foreground/60">Mai letto.</p>
               )}
             </div>
           )
@@ -132,7 +132,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
           <div className="space-y-1.5">
             {changes.slice(0, 8).map((c, i) => (
               <div key={i} className="flex items-start gap-3 text-xs rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-                <Badge variant="outline" className="font-normal shrink-0 text-[10px]">{dataIta(c.at)}</Badge>
+                <Badge variant="outline" className="font-normal shrink-0 text-xs">{dataIta(c.at)}</Badge>
                 <span className="flex-1">
                   <strong className="text-foreground">{c.competitor}</strong> — {c.text}
                 </span>

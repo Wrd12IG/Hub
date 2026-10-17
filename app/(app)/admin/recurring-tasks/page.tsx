@@ -561,7 +561,7 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
                   <div className="flex items-center justify-between">
                     <Label htmlFor="assignedUserId">Assegna a (Opzionale)</Label>
                     {selectedClientId && clients.find(c => c.id === selectedClientId)?.socialManagerId && (
-                      <span className="text-[11px] text-primary font-medium inline-flex items-center gap-1">
+                      <span className="text-xs text-primary font-medium inline-flex items-center gap-1">
                         <UserIcon className="h-3 w-3 text-primary" /> Auto (Social Manager)
                       </span>
                     )}

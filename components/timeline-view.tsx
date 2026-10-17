@@ -113,7 +113,7 @@ export function TimelineView({ projects, tasks }: TimelineViewProps) {
                                                     <Tooltip>
                                                         <TooltipTrigger asChild>
                                                             <div
-                                                                className={`h-6 rounded-md px-2 text-[10px] text-white flex items-center shadow-sm absolute hover:brightness-110 cursor-pointer transition-all ${getStatusColor(task.status)}`}
+                                                                className={`h-6 rounded-md px-2 text-xs text-white flex items-center shadow-sm absolute hover:brightness-110 cursor-pointer transition-all ${getStatusColor(task.status)}`}
                                                                 style={{
                                                                     left: `${left}%`,
                                                                     width: `${Math.max(width, 7)}%`  // Min width 7% (about 1 day)

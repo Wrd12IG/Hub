@@ -249,7 +249,7 @@ export function Header() {
                                 <Bell className={cn("h-5 w-5 text-muted-foreground hover:text-foreground transition-colors", unreadCount > 0 && "animate-pulse")} />
                             )}
                             {unreadCount > 0 && (
-                                <Badge variant="destructive" className="badge-pulse absolute -top-0.5 -right-0.5 h-4 w-4 justify-center p-0 text-[10px] rounded-full">
+                                <Badge variant="destructive" className="badge-pulse absolute -top-0.5 -right-0.5 h-4 w-4 justify-center p-0 text-xs rounded-full">
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </Badge>
                             )}
