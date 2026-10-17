@@ -64,11 +64,13 @@ import type {
     ActivityType,
     Absence,
     CalendarActivity,
-    CalendarActivityPreset,
-    CompanyCosts
+    CalendarActivityPreset
 } from '@/lib/data';
 import { allTaskStatuses } from '@/lib/data';
-import { getCompanyCosts } from '@/lib/actions';
+import { isDueWithin48h, isProjectDone, isProjectOverdue, overdueDays, deliveryRisk } from '@/lib/dashboard-rules';
+import { findDataIssues } from '@/lib/data-quality';
+import { DataQualityPanel } from '@/components/DataQualityPanel';
+import { HOURLY_RATE, taskCost, activityCost, taskHours, activityHours, activityClientIds } from '@/lib/cost-model';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
     differenceInDays,
@@ -125,6 +127,7 @@ const ADMIN_WIDGETS = [
     { id: 'chart_performance', label: 'Performance Utenti (Card)' },
     { id: 'table_time_summary', label: 'Riepilogo Tempi e Task (Tabella)' },
     { id: 'list_main_projects', label: 'Progetti Principali' },
+    { id: 'table_data_quality', label: 'Dati Incompleti (ore non attribuite)' },
     { id: 'chart_monthly_costs', label: 'Andamento Costi Mensili' },
     { id: 'chart_client_costs', label: 'Analisi Costi per Cliente' },
     { id: 'chart_activity_costs', label: 'Analisi Costi per Attività' },
@@ -315,10 +318,6 @@ export default function Dashboard() {
     const [visibleWidgets, setVisibleWidgets] = useState<string[]>(ADMIN_WIDGETS.map(w => w.id));
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Company costs for overhead calculation
-    const [companyCosts, setCompanyCosts] = useState<CompanyCosts | null>(null);
-    const [hourlyOverhead, setHourlyOverhead] = useState<number>(0);
-
     // Load visibility settings from local storage
     useEffect(() => {
         const saved = localStorage.getItem('admin_dashboard_widgets');
@@ -340,35 +339,6 @@ export default function Dashboard() {
         }
         setIsLoaded(true);
     }, []);
-
-    // Load company costs for overhead calculation
-    useEffect(() => {
-        const loadCompanyCosts = async () => {
-            try {
-                const costs = await getCompanyCosts();
-                setCompanyCosts(costs);
-
-                // Calculate hourly overhead based on active Collaboratori and PM
-                if (costs && users.length > 0) {
-                    const billableEmployees = users.filter(u =>
-                        (u.role === 'Collaboratore' || u.role === 'Project Manager') &&
-                        u.status !== 'Inattivo'
-                    );
-                    const totalMonthlyCost = (costs.dirigenza || 0) + (costs.struttura || 0) + (costs.varie || 0);
-                    const monthlyHours = 160; // Standard work hours per month
-                    if (billableEmployees.length > 0 && totalMonthlyCost > 0) {
-                        const costPerEmployee = totalMonthlyCost / billableEmployees.length;
-                        setHourlyOverhead(costPerEmployee / monthlyHours);
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading company costs:', error);
-            }
-        };
-        if (!isLoadingLayout && users.length > 0) {
-            loadCompanyCosts();
-        }
-    }, [isLoadingLayout, users]);
 
     const toggleWidget = (widgetId: string) => {
         setVisibleWidgets(prev => {
@@ -513,14 +483,22 @@ export default function Dashboard() {
         });
     }
 
+    // Task di ogni progetto (tutti, non solo quelli nel periodo): serve a capire se un progetto è davvero concluso
+    const tasksByProject = useMemo(() => {
+        const map: Record<string, any[]> = {};
+        allTasks.forEach(t => { if (t.projectId) (map[t.projectId] ||= []).push(t); });
+        return map;
+    }, [allTasks]);
+
     // --- KPI Calculations with Trend ---
     const globalKpis = useMemo(() => {
-        const { projects: relevantProjects, tasks: relevantTasks } = filteredData;
+        const { projects: relevantProjects, tasks: relevantTasks, activities: relevantActivities } = filteredData;
 
         // Current period values
         const current = {
             activeProjects: relevantProjects.filter(p => p.status === 'In Corso').length,
-            atRiskProjects: relevantProjects.filter(p => p.endDate && isBefore(parseISO(p.endDate), startOfToday()) && p.status !== 'Completato' && p.status !== 'Annullato').length,
+            totalProjects: relevantProjects.length,
+            atRiskProjects: relevantProjects.filter(p => isProjectOverdue(p, tasksByProject[p.id], startOfToday())).length,
             inProgressTasks: relevantTasks.filter((t) => t.status === 'In Lavorazione').length,
             upcomingDeadlines: relevantTasks.filter(
                 (t) =>
@@ -531,7 +509,9 @@ export default function Dashboard() {
                     t.status !== 'Annullato'
             ).length,
             completedTasks: relevantTasks.filter(t => t.status === 'Approvato').length,
-            totalHours: relevantTasks.reduce((sum, t) => sum + (t.timeSpent || 0), 0) / 3600,
+            // Task + attività calendario, come nella tabella per utente
+            totalHours: relevantTasks.reduce((sum, t) => sum + taskHours(t), 0)
+                + relevantActivities.reduce((sum, a) => sum + activityHours(a), 0),
         };
 
         // Previous period (last 30 days for comparison)
@@ -548,7 +528,14 @@ export default function Dashboard() {
 
         const previous = {
             completedTasks: previousTasks.filter(t => t.status === 'Approvato').length,
-            totalHours: previousTasks.reduce((sum, t) => sum + (t.timeSpent || 0), 0) / 3600,
+            totalHours: previousTasks.reduce((sum, t) => sum + taskHours(t), 0)
+                + (calendarActivities || [])
+                    .filter((a: any) => {
+                        if (!a.startTime) return false;
+                        const d = parseISO(a.startTime);
+                        return d >= sixtyDaysAgo && d < thirtyDaysAgo;
+                    })
+                    .reduce((sum: number, a: any) => sum + activityHours(a), 0),
         };
 
         // Calculate trends (positive = improvement)
@@ -566,7 +553,7 @@ export default function Dashboard() {
                 totalHours: hoursTrend,
             }
         };
-    }, [filteredData, allTasks]);
+    }, [filteredData, allTasks, calendarActivities, tasksByProject]);
 
     // --- Smart Alerts ---
     const smartAlerts = useMemo(() => {
@@ -574,10 +561,7 @@ export default function Dashboard() {
         const { projects, tasks } = filteredData;
 
         // Critical: Overdue projects
-        const overdueProjects = projects.filter(p =>
-            p.endDate && isBefore(parseISO(p.endDate), new Date()) &&
-            p.status !== 'Completato' && p.status !== 'Annullato'
-        );
+        const overdueProjects = projects.filter(p => isProjectOverdue(p, tasksByProject[p.id]));
         if (overdueProjects.length > 0) {
             alerts.push({
                 type: 'critical',
@@ -601,11 +585,7 @@ export default function Dashboard() {
         }
 
         // Warning: Tasks due in 48h
-        const urgentTasks = tasks.filter(t => {
-            if (!t.dueDate || t.status === 'Approvato' || t.status === 'Annullato') return false;
-            const daysLeft = differenceInDays(parseISO(t.dueDate), new Date());
-            return daysLeft >= 0 && daysLeft <= 2;
-        });
+        const urgentTasks = tasks.filter(t => isDueWithin48h(t));
         if (urgentTasks.length > 0) {
             alerts.push({
                 type: 'warning',
@@ -625,7 +605,7 @@ export default function Dashboard() {
         }
 
         return alerts;
-    }, [filteredData]);
+    }, [filteredData, tasksByProject]);
 
 
     // --- Chart Data Calculations ---
@@ -660,16 +640,12 @@ export default function Dashboard() {
 
                 const completedTasks = assignedTasks.filter(t => t.status === 'Approvato');
 
-                const taskHours = assignedTasks.reduce((sum, t) => sum + (t.timeSpent || 0), 0) / 3600;
-                const activityHours = assignedActivities.reduce((sum, a) => {
-                    if (!a.startTime || !a.endTime) return sum;
-                    const duration = differenceInSeconds(parseISO(a.endTime), parseISO(a.startTime));
-                    // Guard: skip activities with invalid/negative duration
-                    if (duration <= 0) return sum;
-                    return sum + duration;
-                }, 0) / 3600;
+                const userTaskHours = assignedTasks.reduce((sum, t) => sum + taskHours(t), 0);
+                const userActivityHours = assignedActivities.reduce((sum, a) => sum + activityHours(a), 0);
+                const taskCostTotal = assignedTasks.reduce((sum, t) => sum + taskCost(t).cost, 0);
+                const activityCostTotal = assignedActivities.reduce((sum, a) => sum + activityCost(a).cost, 0);
 
-                const totalHours = taskHours + activityHours;
+                const totalHours = userTaskHours + userActivityHours;
                 const estimatedHours = assignedTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
                 const completionRate = assignedTasks.length > 0 ? (completedTasks.length / assignedTasks.length) * 100 : 0;
 
@@ -698,14 +674,14 @@ export default function Dashboard() {
                     }
                 });
 
-                const overrunDetails = maxOverrunTask ? {
+                const overrunDetails = maxOverrunTask && maxOverrunValue > 0 ? {
                     title: maxOverrunTask.title,
                     estimatedHours: parseFloat(((maxOverrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxOverrunTask.timeSpent || 0) / 3600).toFixed(1)),
                     creatorName: maxOverrunTask.createdBy ? (usersById[maxOverrunTask.createdBy]?.name || 'N/A') : 'Nessuno',
                 } : null;
 
-                const underrunDetails = maxUnderrunTask ? {
+                const underrunDetails = maxUnderrunTask && maxUnderrunValue > 0 ? {
                     title: maxUnderrunTask.title,
                     estimatedHours: parseFloat(((maxUnderrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxUnderrunTask.timeSpent || 0) / 3600).toFixed(1)),
@@ -735,6 +711,12 @@ export default function Dashboard() {
                     assignedCount: assignedTasks.length,
                     completedCount: completedTasks.length,
                     hours: parseFloat(totalHours.toFixed(1)),
+                    taskHours: parseFloat(userTaskHours.toFixed(1)),
+                    activityHours: parseFloat(userActivityHours.toFixed(1)),
+                    taskCost: parseFloat(taskCostTotal.toFixed(2)),
+                    activityCost: parseFloat(activityCostTotal.toFixed(2)),
+                    totalCost: parseFloat((taskCostTotal + activityCostTotal).toFixed(2)),
+                    hourlyRate: HOURLY_RATE,
                     estimatedHours: parseFloat(estimatedHours.toFixed(1)),
                     rate: parseFloat(completionRate.toFixed(1)),
                     overrunDetails,
@@ -761,15 +743,8 @@ export default function Dashboard() {
                 const createdTasks = relevantTasks.filter(t => t.createdBy === user.id);
                 const assignedActivities = relevantActivities.filter(a => a.userId === user.id);
 
-                const taskHours = createdTasks.reduce((sum, t) => sum + (t.timeSpent || 0), 0) / 3600;
-                const activityHours = assignedActivities.reduce((sum, a) => {
-                    if (!a.startTime || !a.endTime) return sum;
-                    const duration = differenceInSeconds(parseISO(a.endTime), parseISO(a.startTime));
-                    if (duration <= 0) return sum;
-                    return sum + duration;
-                }, 0) / 3600;
-
-                const totalHours = taskHours + activityHours;
+                const totalHours = createdTasks.reduce((sum, t) => sum + taskHours(t), 0)
+                    + assignedActivities.reduce((sum, a) => sum + activityHours(a), 0);
                 const estimatedHours = createdTasks.reduce((sum, t) => sum + (t.estimatedDuration || 0), 0) / 60;
 
                 const activityCounts: { [activity: string]: number } = {};
@@ -804,14 +779,14 @@ export default function Dashboard() {
                     }
                 });
 
-                const overrunDetails = maxOverrunTask ? {
+                const overrunDetails = maxOverrunTask && maxOverrunValue > 0 ? {
                     title: maxOverrunTask.title,
                     estimatedHours: parseFloat(((maxOverrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxOverrunTask.timeSpent || 0) / 3600).toFixed(1)),
                     assigneeName: maxOverrunTask.assignedUserId ? (usersById[maxOverrunTask.assignedUserId]?.name || 'N/A') : 'Nessuno',
                 } : null;
 
-                const underrunDetails = maxUnderrunTask ? {
+                const underrunDetails = maxUnderrunTask && maxUnderrunValue > 0 ? {
                     title: maxUnderrunTask.title,
                     estimatedHours: parseFloat(((maxUnderrunTask.estimatedDuration || 0) / 60).toFixed(1)),
                     actualHours: parseFloat(((maxUnderrunTask.timeSpent || 0) / 3600).toFixed(1)),
@@ -952,62 +927,35 @@ export default function Dashboard() {
             .slice(0, 10);
     }, [users, filteredData]);
 
+    const dataQuality = useMemo(
+        () => findDataIssues({ tasks: filteredData.tasks, activities: filteredData.activities, usersById, clientsById }),
+        [filteredData, usersById, clientsById]
+    );
+
     const activityData = useMemo(() => {
         const { tasks, activities } = filteredData;
         const presetsById = calendarActivityPresets.reduce((acc, preset) => ({ ...acc, [preset.id]: preset }), {} as Record<string, CalendarActivityPreset>);
 
         const timeByActivity: Record<string, number> = {};
         const costByActivity: Record<string, number> = {};
-        const rateByActivity: Record<string, number> = {};
-        const rateCountByActivity: Record<string, number> = {};
 
-        // Per i TASK: usa hourlyRate dell'utente assegnato + overhead costi aziendali
+        // Task: ore sempre contate; costo = tariffa utente assegnato + overhead (0 se non assegnato)
         tasks.forEach(task => {
             if (task.activityType && task.timeSpent > 0) {
-                const hours = task.timeSpent / 3600;
+                const { hours, cost } = taskCost(task);
                 timeByActivity[task.activityType] = (timeByActivity[task.activityType] || 0) + hours;
-
-                // Usa il costo orario dell'utente assegnato al task + overhead
-                if (task.assignedUserId) {
-                    const assignedUser = usersById[task.assignedUserId];
-                    const rawRate = assignedUser?.hourlyRate as number | string | undefined;
-                    const userHourlyRate = typeof rawRate === 'string'
-                        ? parseFloat(rawRate.replace(',', '.')) || 0
-                        : (Number(rawRate) || 0);
-                    // Aggiungi overhead costi aziendali solo per Collaboratori e PM
-                    const shouldApplyOverhead = assignedUser?.role === 'Collaboratore' || assignedUser?.role === 'Project Manager';
-                    const effectiveRate = userHourlyRate + (shouldApplyOverhead ? hourlyOverhead : 0);
-                    const cost = hours * effectiveRate;
-                    costByActivity[task.activityType] = (costByActivity[task.activityType] || 0) + cost;
-                    rateByActivity[task.activityType] = (rateByActivity[task.activityType] || 0) + effectiveRate;
-                    rateCountByActivity[task.activityType] = (rateCountByActivity[task.activityType] || 0) + 1;
-                }
+                costByActivity[task.activityType] = (costByActivity[task.activityType] || 0) + cost;
             }
         });
 
-        // Per le ATTIVITÀ CALENDARIO: usa hourlyRate dell'utente che ha creato l'attività + overhead
+        // Attività calendario: stessa formula, utente = chi ha registrato l'attività
         activities.forEach(activity => {
             const preset = activity.presetId ? presetsById[activity.presetId] : null;
             const activityTypeName = preset ? preset.name : "Attività Manuale";
-
-            if (!activity.startTime || !activity.endTime) return;
-            const durationHours = differenceInSeconds(parseISO(activity.endTime), parseISO(activity.startTime)) / 3600;
-            if (durationHours > 0) {
-                timeByActivity[activityTypeName] = (timeByActivity[activityTypeName] || 0) + durationHours;
-
-                // Usa il costo orario dell'utente che ha registrato l'attività + overhead
-                const activityUser = activity.userId ? usersById[activity.userId] : null;
-                const rawRate = activityUser?.hourlyRate as number | string | undefined;
-                const userHourlyRate = typeof rawRate === 'string'
-                    ? parseFloat(rawRate.replace(',', '.')) || 0
-                    : (Number(rawRate) || 0);
-                // Aggiungi overhead costi aziendali solo per Collaboratori e PM
-                const shouldApplyOverhead = activityUser?.role === 'Collaboratore' || activityUser?.role === 'Project Manager';
-                const effectiveRate = userHourlyRate + (shouldApplyOverhead ? hourlyOverhead : 0);
-                const cost = durationHours * effectiveRate;
+            const { hours, cost } = activityCost(activity);
+            if (hours > 0) {
+                timeByActivity[activityTypeName] = (timeByActivity[activityTypeName] || 0) + hours;
                 costByActivity[activityTypeName] = (costByActivity[activityTypeName] || 0) + cost;
-                rateByActivity[activityTypeName] = (rateByActivity[activityTypeName] || 0) + effectiveRate;
-                rateCountByActivity[activityTypeName] = (rateCountByActivity[activityTypeName] || 0) + 1;
             }
         });
 
@@ -1015,79 +963,34 @@ export default function Dashboard() {
             name,
             cost,
             hours: timeByActivity[name] || 0,
-            // Calcola la media del rate effettivo
-            rate: rateCountByActivity[name] > 0 ? rateByActivity[name] / rateCountByActivity[name] : 0,
+            // Tariffa media effettiva ponderata sulle ore (non media semplice delle righe)
+            rate: (timeByActivity[name] || 0) > 0 ? cost / timeByActivity[name] : 0,
         })).sort((a, b) => b.cost - a.cost);
 
-    }, [filteredData, activityTypes, calendarActivityPresets, usersById, hourlyOverhead]);
+    }, [filteredData, calendarActivityPresets]);
 
     const clientData = useMemo(() => {
         const { tasks, activities } = filteredData;
         const timeByClient: Record<string, number> = {};
         const costByClient: Record<string, number> = {};
 
-        // Per i TASK: usa hourlyRate dell'utente assegnato + overhead costi aziendali
         tasks.forEach(task => {
             if (task.clientId && task.timeSpent > 0) {
-                const hours = task.timeSpent / 3600;
+                const { hours, cost } = taskCost(task);
                 timeByClient[task.clientId] = (timeByClient[task.clientId] || 0) + hours;
-
-                // Usa il costo orario dell'utente assegnato al task + overhead
-                if (task.assignedUserId) {
-                    const assignedUser = usersById[task.assignedUserId];
-                    // Gestisce sia numeri che stringhe con virgola (formato italiano)
-                    const rawRate = assignedUser?.hourlyRate as number | string | undefined;
-                    const userHourlyRate = typeof rawRate === 'string'
-                        ? parseFloat(rawRate.replace(',', '.')) || 0
-                        : (Number(rawRate) || 0);
-                    // Aggiungi overhead costi aziendali solo per Collaboratori e PM
-                    const shouldApplyOverhead = assignedUser?.role === 'Collaboratore' || assignedUser?.role === 'Project Manager';
-                    const effectiveRate = userHourlyRate + (shouldApplyOverhead ? hourlyOverhead : 0);
-                    const cost = hours * effectiveRate;
-                    costByClient[task.clientId] = (costByClient[task.clientId] || 0) + cost;
-                }
+                costByClient[task.clientId] = (costByClient[task.clientId] || 0) + cost;
             }
         });
 
-        // Per le ATTIVITÀ CALENDARIO: usa hourlyRate dell'utente che ha creato l'attività + overhead
+        // Attività calendario: ore e costo divisi in parti uguali fra i clienti collegati
         activities.forEach(activity => {
-            // Supporta sia startTime/endTime che start/end (legacy)
-            const activityStart = activity.startTime || activity.start;
-            const activityEnd = activity.endTime || activity.end;
-            if (!activityStart || !activityEnd) return;
-
-            const durationHours = differenceInSeconds(parseISO(activityEnd), parseISO(activityStart)) / 3600;
-
-            // Supporta sia clientIds (array) che clientId (singolo, legacy)
-            let activityClientIds: string[] = [];
-            if (activity.clientIds && activity.clientIds.length > 0) {
-                activityClientIds = activity.clientIds;
-            } else if (activity.clientId) {
-                activityClientIds = [activity.clientId];
-            }
-
-            if (activityClientIds.length > 0 && durationHours > 0) {
-                // Usa il costo orario dell'utente che ha registrato l'attività + overhead
-                const activityUser = activity.userId ? usersById[activity.userId] : null;
-                // Gestisce sia numeri che stringhe con virgola (formato italiano)
-                const rawRate = activityUser?.hourlyRate as number | string | undefined;
-                const userHourlyRate = typeof rawRate === 'string'
-                    ? parseFloat(rawRate.replace(',', '.')) || 0
-                    : (Number(rawRate) || 0);
-                // Aggiungi overhead costi aziendali solo per Collaboratori e PM
-                const shouldApplyOverhead = activityUser?.role === 'Collaboratore' || activityUser?.role === 'Project Manager';
-                const effectiveRate = userHourlyRate + (shouldApplyOverhead ? hourlyOverhead : 0);
-                const cost = durationHours * effectiveRate;
-
-                const numClients = activityClientIds.length;
-                const perClientHours = durationHours / numClients;
-                const perClientCost = cost / numClients;
-
-                activityClientIds.forEach(clientId => {
-                    timeByClient[clientId] = (timeByClient[clientId] || 0) + perClientHours;
-                    costByClient[clientId] = (costByClient[clientId] || 0) + perClientCost;
-                });
-            }
+            const clientIds = activityClientIds(activity);
+            const { hours, cost } = activityCost(activity);
+            if (clientIds.length === 0 || hours <= 0) return;
+            clientIds.forEach(clientId => {
+                timeByClient[clientId] = (timeByClient[clientId] || 0) + hours / clientIds.length;
+                costByClient[clientId] = (costByClient[clientId] || 0) + cost / clientIds.length;
+            });
         });
 
         const clientCosts = Object.entries(costByClient).map(([clientId, cost]) => {
@@ -1108,60 +1011,36 @@ export default function Dashboard() {
 
         return { clientCosts, totalCost, maxCost };
 
-    }, [filteredData, usersById, clientsById, hourlyOverhead]);
+    }, [filteredData, clientsById]);
 
     const monthlyCostTrend = useMemo(() => {
         const costsByMonth: { [month: string]: number } = {};
         const { tasks, activities } = filteredData;
 
-        // Per i TASK: usa hourlyRate dell'utente assegnato + overhead costi aziendali
+        // Mese di competenza = data di riferimento del task (stessa usata dal filtro date)
         tasks.forEach(task => {
-            if (task.timeSpent > 0 && task.dueDate && task.assignedUserId) {
+            if (task.timeSpent > 0 && task.dueDate) {
                 const month = format(parseISO(task.dueDate), 'yyyy-MM');
-                const hours = task.timeSpent / 3600;
-                const assignedUser = usersById[task.assignedUserId];
-                // Gestisce sia numeri che stringhe con virgola (formato italiano)
-                const rawRate = assignedUser?.hourlyRate as number | string | undefined;
-                const userHourlyRate = typeof rawRate === 'string'
-                    ? parseFloat(rawRate.replace(',', '.')) || 0
-                    : (Number(rawRate) || 0);
-                // Aggiungi overhead costi aziendali solo per Collaboratori e PM
-                const shouldApplyOverhead = assignedUser?.role === 'Collaboratore' || assignedUser?.role === 'Project Manager';
-                const effectiveRate = userHourlyRate + (shouldApplyOverhead ? hourlyOverhead : 0);
-                const cost = hours * effectiveRate;
-                costsByMonth[month] = (costsByMonth[month] || 0) + cost;
+                costsByMonth[month] = (costsByMonth[month] || 0) + taskCost(task).cost;
             }
         });
 
-        // Per le ATTIVITÀ CALENDARIO: usa hourlyRate dell'utente + overhead
         activities.forEach(activity => {
-            // Supporta sia startTime/endTime che start/end (legacy)
-            const activityStart = activity.startTime || activity.start;
-            const activityEnd = activity.endTime || activity.end;
-            if (!activityStart || !activityEnd || !activity.userId) return;
-            const month = format(parseISO(activityStart), 'yyyy-MM');
-            const hours = differenceInSeconds(parseISO(activityEnd), parseISO(activityStart)) / 3600;
-            const activityUser = usersById[activity.userId];
-            // Gestisce sia numeri che stringhe con virgola (formato italiano)
-            const rawRate = activityUser?.hourlyRate as number | string | undefined;
-            const userHourlyRate = typeof rawRate === 'string'
-                ? parseFloat(rawRate.replace(',', '.')) || 0
-                : (Number(rawRate) || 0);
-            // Aggiungi overhead costi aziendali solo per Collaboratori e PM
-            const shouldApplyOverhead = activityUser?.role === 'Collaboratore' || activityUser?.role === 'Project Manager';
-            const effectiveRate = userHourlyRate + (shouldApplyOverhead ? hourlyOverhead : 0);
-            const cost = hours * effectiveRate;
-            costsByMonth[month] = (costsByMonth[month] || 0) + cost;
+            const start = activity.startTime || activity.start;
+            if (!start) return;
+            const month = format(parseISO(start), 'yyyy-MM');
+            costsByMonth[month] = (costsByMonth[month] || 0) + activityCost(activity).cost;
         });
 
+        // Ordina sulla chiave yyyy-MM: ordinare sul nome ("apr 26" < "gen 26") sballava la linea del tempo
         return Object.entries(costsByMonth)
+            .sort(([a], [b]) => a.localeCompare(b))
             .map(([month, cost]) => ({
                 name: format(parseISO(month), 'MMM yy', { locale: it }),
                 'Costo Totale': parseFloat(cost.toFixed(2))
-            }))
-            .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it'));
+            }));
 
-    }, [filteredData, usersById, hourlyOverhead]);
+    }, [filteredData]);
 
     const avgMonthlyCost = useMemo(() => {
         if (!monthlyCostTrend || monthlyCostTrend.length === 0) return 0;
@@ -1203,19 +1082,10 @@ export default function Dashboard() {
     const calendarActivityByClient = useMemo(() => {
         const { activities } = filteredData;
         const activityByClient: Record<string, { hours: number, count: number, cost: number }> = {};
-        const presetsById = calendarActivityPresets.reduce((acc: any, preset: any) => ({ ...acc, [preset.id]: preset }), {} as Record<string, CalendarActivityPreset>);
 
         activities.forEach((activity: any) => {
-            if (!activity.startTime || !activity.endTime) return;
-
-            const durationSeconds = differenceInSeconds(parseISO(activity.endTime), parseISO(activity.startTime));
-            const durationHours = durationSeconds / 3600;
-
+            const { hours: durationHours, cost } = activityCost(activity);
             if (durationHours <= 0) return;
-
-            const preset = activity.presetId ? presetsById[activity.presetId] : null;
-            const hourlyRate = preset?.hourlyRate ?? 20;
-            const cost = durationHours * hourlyRate;
 
             // Se l'attività ha più clienti, dividi proporzionalmente
             const clientIds = activity.clientIds && activity.clientIds.length > 0
@@ -1256,18 +1126,12 @@ export default function Dashboard() {
             }))
             .filter(item => item.client)
             .sort((a, b) => b.hours - a.hours);
-    }, [filteredData, clientsById, calendarActivityPresets]);
+    }, [filteredData, clientsById]);
 
     // Task con scadenza nelle prossime 48h (Alert)
     const upcomingDeadlines48h = useMemo(() => {
-        const now = new Date();
-        const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
         return filteredData.tasks
-            .filter((t: any) => {
-                if (!t.dueDate || t.status === 'Completato') return false;
-                const dueDate = parseISO(t.dueDate);
-                return dueDate >= now && dueDate <= in48h;
-            })
+            .filter((t: any) => isDueWithin48h(t))
             .sort((a: any, b: any) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
     }, [filteredData.tasks]);
 
@@ -1504,16 +1368,32 @@ export default function Dashboard() {
                 };
             }
 
-            const hours = (task.timeSpent || 0) / 3600;
-            const activityType = activityTypes.find(a => a.name === task.activityType);
-            const hourlyRate = activityType?.hourlyRate || 25;
-            const cost = hours * hourlyRate;
+            const { hours, cost } = taskCost(task);
 
             profitByClient[clientId].costs += cost;
             profitByClient[clientId].hoursLogged += hours;
             if (task.status === 'Approvato') {
                 profitByClient[clientId].tasksCompleted += 1;
             }
+        });
+
+        // Attività calendario: stesso modello di costo dei widget "Costi per cliente"
+        filteredData.activities.forEach(activity => {
+            const clientIds = activityClientIds(activity);
+            const { hours, cost } = activityCost(activity);
+            if (clientIds.length === 0 || hours <= 0) return;
+            clientIds.forEach(clientId => {
+                const client = clientsById[clientId];
+                if (!client) return;
+                if (!profitByClient[clientId]) {
+                    profitByClient[clientId] = {
+                        clientId, name: client.name, budget: client.budget || 0,
+                        costs: 0, profit: 0, profitMargin: 0, tasksCompleted: 0, hoursLogged: 0,
+                    };
+                }
+                profitByClient[clientId].costs += cost / clientIds.length;
+                profitByClient[clientId].hoursLogged += hours / clientIds.length;
+            });
         });
 
         // Calculate profit and margin
@@ -1527,7 +1407,7 @@ export default function Dashboard() {
         return Object.values(profitByClient)
             .filter(c => c.budget > 0 || c.costs > 0)
             .sort((a, b) => b.profit - a.profit);
-    }, [filteredData.tasks, clientsById, activityTypes]);
+    }, [filteredData.tasks, filteredData.activities, clientsById]);
 
     // ===== NEW: Predictive Delivery Analytics =====
     const predictiveDelivery = useMemo(() => {
@@ -1578,12 +1458,15 @@ export default function Dashboard() {
             t.status !== 'Approvato' && t.status !== 'Annullato' && t.dueDate
         );
 
-        const predictions = activeTasks.slice(0, 10).map(task => {
+        // Le più urgenti per prime: prima si prendevano i primi 10 in ordine di caricamento
+        const byDue = [...activeTasks].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+        const predictions = byDue.slice(0, 10).map(task => {
             const type = task.activityType || 'Altro';
             const deviation = deviationByType[type]?.avgDeviation || 0;
             const predictedDelay = deviation > 0 ? Math.ceil(deviation / 10) : 0; // days of delay
 
             const originalDue = new Date(task.dueDate!);
+            const lateDays = overdueDays(originalDue);
             const predictedDue = new Date(originalDue);
             predictedDue.setDate(predictedDue.getDate() + predictedDelay);
 
@@ -1592,7 +1475,8 @@ export default function Dashboard() {
                 originalDue,
                 predictedDue,
                 predictedDelay,
-                risk: predictedDelay > 3 ? 'high' : predictedDelay > 1 ? 'medium' : 'low',
+                overdueDays: lateDays,
+                risk: deliveryRisk(predictedDelay, lateDays),
             };
         });
 
@@ -1726,10 +1610,10 @@ export default function Dashboard() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex flex-wrap items-center gap-2">
                         <Badge className="bg-primary/20 text-primary border-primary/30">
-                             Progetti: <AnimatedCounter value={globalKpis.activeProjects} duration={800} />
+                             In corso: <AnimatedCounter value={globalKpis.activeProjects} duration={800} />/{globalKpis.totalProjects} progetti
                         </Badge>
                         <Badge className="bg-destructive/20 text-destructive border-destructive/30">
-                             Rischio: <AnimatedCounter value={globalKpis.atRiskProjects} duration={800} />
+                             Scaduti: <AnimatedCounter value={globalKpis.atRiskProjects} duration={800} />
                         </Badge>
                         <Badge className="bg-primary/20 text-primary border-primary/30">
                              Attivi: <AnimatedCounter value={globalKpis.inProgressTasks} duration={800} />
@@ -1828,7 +1712,11 @@ export default function Dashboard() {
                     </CardHeader>
                     <CardContent>
                         {allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').length === 0 ? (
-                            <p className="text-muted-foreground text-sm text-center py-4">Nessun task con timer attivo al momento</p>
+                            <p className="text-muted-foreground text-sm text-center py-4">
+                                {allTasks.filter(t => t.status === 'In Lavorazione').length > 0
+                                    ? `Nessun timer attivo, ma ${allTasks.filter(t => t.status === 'In Lavorazione').length} task sono In Lavorazione senza timer avviato`
+                                    : 'Nessun task con timer attivo al momento'}
+                            </p>
                         ) : (
                             <div className="space-y-3">
                                 {allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').map(task => {
@@ -1901,6 +1789,7 @@ export default function Dashboard() {
                             </CardTitle>
                             <CardDescription>
                                 {teamAvailability.available.length}/{teamAvailability.total} disponibili
+                                {absences.length === 0 && ' · nessuna assenza registrata nel sistema'}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -2156,7 +2045,7 @@ export default function Dashboard() {
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                     {userPerformanceData.map((user, index) => {
                                         const efficiency = user.estimatedHours > 0
-                                            ? ((user.hours / user.estimatedHours) * 100)
+                                            ? ((user.taskHours / user.estimatedHours) * 100)
                                             : 0;
                                         const efficiencyStatus = efficiency === 0 ? 'neutral' :
                                             efficiency <= 90 ? 'excellent' :
@@ -2201,6 +2090,22 @@ export default function Dashboard() {
                                                             <div className="text-lg font-bold">{user.hours}h</div>
                                                             <div className="text-[10px] text-muted-foreground uppercase">Ore</div>
                                                         </div>
+                                                    </div>
+
+                                                    {/* Ore e costi separati: task vs attività calendario */}
+                                                    <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-[11px] font-mono">
+                                                        <span />
+                                                        <span className="text-muted-foreground text-right">Ore</span>
+                                                        <span className="text-muted-foreground text-right">Costo</span>
+                                                        <span className="text-muted-foreground">Task</span>
+                                                        <span className="text-right">{user.taskHours}h</span>
+                                                        <span className="text-right">{formatCurrency(user.taskCost)}</span>
+                                                        <span className="text-muted-foreground">Attività</span>
+                                                        <span className="text-right">{user.activityHours}h</span>
+                                                        <span className="text-right">{formatCurrency(user.activityCost)}</span>
+                                                        <span className="font-semibold">Totale</span>
+                                                        <span className="text-right font-semibold">{user.hours}h</span>
+                                                        <span className="text-right font-semibold">{formatCurrency(user.totalCost)}</span>
                                                     </div>
 
                                                     {/* Efficiency Indicator */}
@@ -2515,8 +2420,11 @@ export default function Dashboard() {
                                         const client = project.clientId ? clientsById[project.clientId] : null;
                                         const endDate = project.endDate ? parseISO(project.endDate) : null;
                                         const daysRemaining = endDate ? differenceInDays(endDate, new Date()) : null;
-                                        const isOverdue = daysRemaining !== null && daysRemaining < 0;
-                                        const isUrgent = daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7;
+                                        // Task del progetto: tutti, non solo quelli nel periodo, per capire se è davvero concluso
+                                        const allProjectTasks = tasksByProject[project.id] || [];
+                                        const isDone = isProjectDone(project, allProjectTasks);
+                                        const isOverdue = !isDone && daysRemaining !== null && daysRemaining < 0;
+                                        const isUrgent = !isDone && daysRemaining !== null && daysRemaining >= 0 && daysRemaining <= 7;
 
                                         // Calculate project health
                                         const projectTasks = filteredData.tasks.filter(t => t.projectId === project.id);
@@ -2532,7 +2440,7 @@ export default function Dashboard() {
                                         } else if (isUrgent && progress < 70) {
                                             healthStatus = 'warning';
                                             healthColor = '#f59e0b';
-                                        } else if (project.priority === 'Critica') {
+                                        } else if (project.priority === 'Critica' && !isDone) {
                                             healthStatus = progress < 50 ? 'critical' : 'warning';
                                             healthColor = progress < 50 ? '#ef4444' : '#f59e0b';
                                         }
@@ -2609,7 +2517,9 @@ export default function Dashboard() {
                                                             variant={isOverdue ? 'destructive' : isUrgent ? 'secondary' : 'outline'}
                                                             className="text-[10px] h-5"
                                                         >
-                                                            {daysRemaining !== null ? (
+                                                            {isDone ? (
+                                                                project.status === 'Completato' ? 'Completato' : 'Da chiudere'
+                                                            ) : daysRemaining !== null ? (
                                                                 isOverdue
                                                                     ? `${Math.abs(daysRemaining)}gg scaduto`
                                                                     : daysRemaining === 0
@@ -2736,6 +2646,8 @@ export default function Dashboard() {
                     )}
                 </div>
             </div>
+
+            {isWidgetVisible('table_data_quality') && <DataQualityPanel report={dataQuality} />}
 
             {/* Report Costi per Cliente - Layout a Card */}
             {isWidgetVisible('chart_client_costs') && (
@@ -3097,15 +3009,15 @@ export default function Dashboard() {
                                         <Tooltip content={<CustomTooltip unit="h" />} />
                                         <Legend />
                                         <Bar dataKey="estimatedHours" name="Ore Stimate" fill="hsl(var(--primary))" opacity={0.6} radius={[4, 4, 0, 0]} />
-                                        <Bar dataKey="hours" name="Ore Effettive" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="taskHours" name="Ore Effettive (task)" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
                                     </DynamicBarChart>
                                 </ResponsiveContainer>
 
                                 {/* Integrated Card Grid for coherent user summary */}
                                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-border/40">
                                     {userPerformanceData.map((u) => {
-                                        const ratio = u.estimatedHours > 0 ? (u.hours / u.estimatedHours) * 100 : 0;
-                                        const isOver = u.hours > u.estimatedHours && u.estimatedHours > 0;
+                                        const ratio = u.estimatedHours > 0 ? (u.taskHours / u.estimatedHours) * 100 : 0;
+                                        const isOver = u.taskHours > u.estimatedHours && u.estimatedHours > 0;
                                         return (
                                             <Card key={u.name} className="p-3 border-l-4 border-l-primary hover:shadow-md transition-all">
                                                 <div className="flex items-center justify-between gap-2">
@@ -3123,7 +3035,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="mt-2 flex items-center justify-between text-xs font-mono">
                                                     <span className="text-muted-foreground">Stimate: <strong className="text-foreground">{u.estimatedHours.toFixed(1)}h</strong></span>
-                                                    <span className="text-muted-foreground">Effettive: <strong className={cn(isOver ? "text-red-500 font-bold" : "text-primary")}>{u.hours.toFixed(1)}h</strong></span>
+                                                    <span className="text-muted-foreground">Effettive task: <strong className={cn(isOver ? "text-red-500 font-bold" : "text-primary")}>{u.taskHours.toFixed(1)}h</strong></span>
                                                 </div>
                                                 <Progress value={Math.min(ratio, 100)} className="h-1.5 mt-2" />
                                             </Card>
@@ -3385,8 +3297,8 @@ export default function Dashboard() {
                                         </div>
                                         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/30">
                                             <span>Scadenza: <strong className="text-foreground">{format(prediction.originalDue, 'dd/MM')}</strong></span>
-                                            <span>Previsione: <strong className={cn(prediction.predictedDelay > 0 ? "text-red-500 font-bold" : "text-emerald-500")}>
-                                                {prediction.predictedDelay > 0 ? format(prediction.predictedDue, 'dd/MM') : ' In tempo'}
+                                            <span>Previsione: <strong className={cn(prediction.predictedDelay > 0 || prediction.overdueDays > 0 ? "text-red-500 font-bold" : "text-emerald-500")}>
+                                                {prediction.overdueDays > 0 ? `In ritardo di ${prediction.overdueDays}gg` : prediction.predictedDelay > 0 ? format(prediction.predictedDue, 'dd/MM') : ' In tempo'}
                                             </strong></span>
                                         </div>
                                     </Card>
