@@ -84,6 +84,7 @@ import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { mergeCompetitors } from "@/lib/competitor-merge";
 import { computeAdsHealth, overallAdsHealth } from "@/lib/ads-health";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
@@ -384,6 +385,46 @@ export default function ClientDetailPage() {
     } catch (e) {
       console.error("[competitor] Error adding competitor:", e);
       toast.error("Impossibile aggiungere il competitor. Riprova.");
+    }
+  };
+
+  // Porta i concorrenti trovati dall'analisi AI nel monitoraggio notturno (Setup API → Competitor)
+  const handleSaveToMonitoring = async () => {
+    if (!client?.intelligence) return;
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    try {
+      const current = await fetch(`${API_URL}/api/clients/${client.id}/competitors`, { headers });
+      if (!current.ok) throw new Error(`HTTP ${current.status}`);
+      const existing = (await current.json()).competitors ?? [];
+
+      const incoming = (client.intelligence.competitors ?? []).map((c: any) => ({
+        name: c.name ?? c.nome, url: c.url ?? c.website ?? c.sito,
+      }));
+      const plan = mergeCompetitors(existing, incoming);
+      const skipped = [
+        plan.skippedNoUrl.length ? `senza sito: ${plan.skippedNoUrl.join(", ")}` : "",
+        plan.skippedDuplicate.length ? `già monitorati: ${plan.skippedDuplicate.join(", ")}` : "",
+        plan.skippedFull.length ? `oltre il limite di 5: ${plan.skippedFull.join(", ")}` : "",
+      ].filter(Boolean).join(" · ");
+
+      if (plan.added.length === 0) {
+        toast.message("Nessun competitor da aggiungere", { description: skipped || "L'elenco è vuoto." });
+        return;
+      }
+      // I siti li ha proposti l'AI: vanno controllati prima che il Hub inizi a leggerli ogni notte
+      const lista = plan.added.map((a) => `• ${a.nome} — ${a.sito}`).join("\n");
+      if (!window.confirm(`Aggiungere al monitoraggio notturno?\n\n${lista}\n\nI siti sono proposti dall'AI: controlla che siano quelli giusti.`)) return;
+
+      const res = await fetch(`${API_URL}/api/clients/${client.id}/competitors`, {
+        method: "POST", headers, body: JSON.stringify({ competitors: plan.merged }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      toast.success(`Aggiunti ${plan.added.length} competitor al monitoraggio`, { description: skipped || undefined });
+    } catch (e: any) {
+      console.error("[competitor] Error saving to monitoring:", e);
+      toast.error(e.message || "Impossibile salvare i competitor");
     }
   };
 
@@ -1519,6 +1560,15 @@ export default function ClientDetailPage() {
                         Competitor & Ads Library (Vision AI)
                       </h3>
                     </div>
+                    {client.intelligence.competitors?.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleSaveToMonitoring}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-pink-500/30 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer"
+                      >
+                        Aggiungi al monitoraggio notturno
+                      </button>
+                    )}
                   </div>
 
                   {/* Lista Competitor */}
