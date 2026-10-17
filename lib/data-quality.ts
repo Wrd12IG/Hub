@@ -8,6 +8,13 @@ import { activityClientIds, activityHours, taskHours, DEFAULT_HOURLY_RATE } from
 export const MAX_PLAUSIBLE_ACTIVITY_HOURS = 10;
 const MIN_YEAR = 2020;
 
+/** Anno plausibile per una data di lavoro: 2020 fino all'anno prossimo. */
+export function isPlausibleYear(iso: string | undefined | null, now: Date = new Date()): boolean {
+    if (!iso) return true;
+    const year = parseISO(iso).getFullYear();
+    return year >= MIN_YEAR && year <= now.getFullYear() + 1;
+}
+
 export interface TaskIssue {
     id: string;
     title: string;
@@ -15,6 +22,7 @@ export interface TaskIssue {
     userName: string;
     status: string;
     hours: number;
+    reason?: string;
 }
 
 export interface ActivityIssue {
@@ -30,6 +38,8 @@ export interface ActivityIssue {
 export interface DataQualityReport {
     tasksNoAssignee: TaskIssue[];
     tasksNoClient: TaskIssue[];
+    /** Task con ore e scadenza in un anno impossibile (es. 2005): sballano l'andamento mensile. */
+    tasksBadDate: TaskIssue[];
     activitiesNoClient: ActivityIssue[];
     activitiesNoUser: ActivityIssue[];
     activitiesSuspicious: ActivityIssue[];
@@ -71,6 +81,11 @@ export function findDataIssues(input: {
     const tasksNoClient = tasksWithHours
         .filter(t => !t.clientId || !clientsById[t.clientId])
         .map(toTask).sort(byHoursDesc);
+
+    const tasksBadDate = tasksWithHours
+        .filter(t => !isPlausibleYear(t.dueDate, input.now))
+        .map(t => ({ ...toTask(t), reason: `Scadenza ${String(t.dueDate).slice(0, 10)}` }))
+        .sort(byHoursDesc);
 
     const activitiesNoClient: ActivityIssue[] = [];
     const activitiesNoUser: ActivityIssue[] = [];
@@ -120,6 +135,7 @@ export function findDataIssues(input: {
     return {
         tasksNoAssignee,
         tasksNoClient,
+        tasksBadDate,
         activitiesNoClient,
         activitiesNoUser,
         activitiesSuspicious,
