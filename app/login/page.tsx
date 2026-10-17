@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { BrandWordmark } from '@/components/brand-wordmark';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -60,7 +61,7 @@ export default function LoginPage() {
             if (result.success) {
                 toast({
                     title: "Login effettuato",
-                    description: "Benvenuto nel Marketing Pilot!",
+                    description: "Benvenuto in W[r]Digital Hub!",
                 });
                 router.push('/dashboard');
             } else {
@@ -82,10 +83,13 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 p-4">
+        <div className="flex items-center justify-center min-h-[100dvh] bg-background p-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">Marketing Pilot</CardTitle>
+                    <CardTitle className="text-center">
+                        <BrandWordmark className="text-3xl" />
+                        <span className="ml-2 text-3xl font-headline font-normal text-muted-foreground">Hub</span>
+                    </CardTitle>
                     <CardDescription className="text-center">
                         Inserisci le tue credenziali per accedere
                     </CardDescription>

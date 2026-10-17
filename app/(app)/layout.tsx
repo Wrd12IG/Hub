@@ -17,6 +17,7 @@ import { useKonamiCodeToggle } from '@/hooks/useKonamiCode';
 import { BukowskiMode, BukowskiConfetti } from '@/components/easter-eggs/bukowski-mode';
 import { BirthdayCelebration } from '@/components/birthday-celebration';
 import FloatingNetworkBackground from '@/components/FloatingNetworkBackground';
+import { BrandWordmark } from '@/components/brand-wordmark';
 import { PageTransition } from '@/components/PageTransition';
 import FloatingCommandDock from '@/components/floating-command-dock';
 import GlassSkinToggle from '@/components/glass-skin-toggle';
@@ -54,7 +55,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <span className="text-sm font-semibold tracking-widest text-foreground/80 uppercase animate-pulse">W[r]Digital</span>
+            <BrandWordmark className="text-base text-foreground/80 animate-pulse" />
             <span className="text-xs text-muted-foreground">Caricamento HUB…</span>
           </div>
         </div>

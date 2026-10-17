@@ -252,7 +252,7 @@ const CustomTooltip = ({ active, payload, label, unit }: any) => {
                     );
                 })}
                 {typeof data.ore === 'number' && (
-                    <p className="text-[11px] text-muted-foreground pt-0.5">
+                    <p className="text-xs text-muted-foreground pt-0.5">
                         Ore registrate: {data.ore.toFixed(1)}h
                     </p>
                 )}
@@ -1814,7 +1814,7 @@ export default function Dashboard() {
                                             {(teamAvailability?.absent || []).slice(0, 4).map(user => (
                                                 <div key={user.id} className="flex items-center gap-1.5 bg-red-500/10 rounded-full px-2 py-1">
                                                     <Avatar className="h-5 w-5">
-                                                        <AvatarFallback className="text-[8px]" style={{ backgroundColor: user.color || '#ef4444', color: 'white' }}>
+                                                        <AvatarFallback className="text-xs" style={{ backgroundColor: user.color || '#ef4444', color: 'white' }}>
                                                             {user.name ? getInitials(user.name) : '?'}
                                                         </AvatarFallback>
                                                     </Avatar>
@@ -1822,7 +1822,7 @@ export default function Dashboard() {
                                                 </div>
                                             ))}
                                             {teamAvailability.absent.length > 4 && (
-                                                <Badge variant="secondary" className="text-[10px]">+{teamAvailability.absent.length - 4}</Badge>
+                                                <Badge variant="secondary" className="text-xs">+{teamAvailability.absent.length - 4}</Badge>
                                             )}
                                         </div>
                                     </div>
@@ -2093,20 +2093,20 @@ export default function Dashboard() {
                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                         <div className="bg-muted/50 rounded-lg p-2">
                                                             <div className="text-lg font-bold text-primary">{user.assignedCount}</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">Assegnati</div>
+                                                            <div className="text-xs text-muted-foreground uppercase">Assegnati</div>
                                                         </div>
                                                         <div className="bg-muted/50 rounded-lg p-2">
                                                             <div className="text-lg font-bold text-emerald-600">{user.completedCount}</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">Completati</div>
+                                                            <div className="text-xs text-muted-foreground uppercase">Completati</div>
                                                         </div>
                                                         <div className="bg-muted/50 rounded-lg p-2">
                                                             <div className="text-lg font-bold">{user.hours}h</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">Ore</div>
+                                                            <div className="text-xs text-muted-foreground uppercase">Ore</div>
                                                         </div>
                                                     </div>
 
                                                     {/* Ore e costi separati: task vs attività calendario */}
-                                                    <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-[11px] font-mono">
+                                                    <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-xs font-mono">
                                                         <span />
                                                         <span className="text-muted-foreground text-right">Ore</span>
                                                         <span className="text-muted-foreground text-right">Costo</span>
@@ -2139,7 +2139,7 @@ export default function Dashboard() {
                                                                     }}
                                                                 />
                                                             </div>
-                                                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                                                            <div className="flex justify-between text-xs text-muted-foreground">
                                                                 <span>{user.hours}h effettive</span>
                                                                 <span>{user.estimatedHours}h stimate</span>
                                                             </div>
@@ -2151,7 +2151,7 @@ export default function Dashboard() {
                                                         <div className="pt-2 border-t">
                                                             <div className="flex items-center justify-between">
                                                                 <span className="text-xs text-muted-foreground">Progresso Task</span>
-                                                                <Badge variant={user.rate >= 80 ? 'default' : user.rate >= 50 ? 'secondary' : 'outline'} className="text-[10px] h-5">
+                                                                <Badge variant={user.rate >= 80 ? 'default' : user.rate >= 50 ? 'secondary' : 'outline'} className="text-xs h-5">
                                                                     {user.completedCount}/{user.assignedCount}
                                                                 </Badge>
                                                             </div>
@@ -2162,12 +2162,12 @@ export default function Dashboard() {
                                                     {/* Estremi stime (Sforamento / Risparmio) */}
                                                     {(user.overrunDetails || user.underrunDetails) && (
                                                         <div className="pt-3 border-t space-y-2">
-                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center">
+                                                            <div className="text-xs font-bold uppercase text-muted-foreground tracking-wider text-center">
                                                                 Estremi stime
                                                             </div>
                                                             {user.overrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-red-500/5 border border-red-500/10 text-xs">
-                                                                    <div className="flex justify-between font-semibold text-[10px] text-red-500 uppercase">
+                                                                    <div className="flex justify-between font-semibold text-xs text-red-500 uppercase">
                                                                         <span> Sforamento Maggiore</span>
                                                                         <span className="font-mono">
                                                                             +{(user.overrunDetails.actualHours - user.overrunDetails.estimatedHours).toFixed(1)}h
@@ -2176,14 +2176,14 @@ export default function Dashboard() {
                                                                     <div className="font-medium text-foreground truncate mt-1" title={user.overrunDetails.title}>
                                                                         {user.overrunDetails.title}
                                                                     </div>
-                                                                    <div className="text-[10px] text-muted-foreground mt-1">
+                                                                    <div className="text-xs text-muted-foreground mt-1">
                                                                         {user.overrunDetails.estimatedHours}h stimate vs {user.overrunDetails.actualHours}h effettive
                                                                     </div>
                                                                 </div>
                                                             )}
                                                             {user.underrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs">
-                                                                    <div className="flex justify-between font-semibold text-[10px] text-emerald-600 uppercase">
+                                                                    <div className="flex justify-between font-semibold text-xs text-emerald-600 uppercase">
                                                                         <span> Risparmio Maggiore</span>
                                                                         <span className="font-mono">
                                                                             {(user.underrunDetails.actualHours - user.underrunDetails.estimatedHours).toFixed(1)}h
@@ -2192,7 +2192,7 @@ export default function Dashboard() {
                                                                     <div className="font-medium text-foreground truncate mt-1" title={user.underrunDetails.title}>
                                                                         {user.underrunDetails.title}
                                                                     </div>
-                                                                    <div className="text-[10px] text-muted-foreground mt-1">
+                                                                    <div className="text-xs text-muted-foreground mt-1">
                                                                         {user.underrunDetails.estimatedHours}h stimate vs {user.underrunDetails.actualHours}h effettive
                                                                     </div>
                                                                 </div>
@@ -2203,16 +2203,16 @@ export default function Dashboard() {
                                                     {/* Task senza tempo registrato */}
                                                     {(user.totalNoTimeCount ?? 0) > 0 && (
                                                         <div className="pt-2 border-t">
-                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
+                                                            <div className="text-xs font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
                                                                 ⏱ Tempo non registrato
                                                             </div>
                                                             <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
                                                                 <div className="text-2xl font-bold text-amber-500">
                                                                     <AnimatedCounter value={user.totalNoTimeCount} duration={1200} />
                                                                 </div>
-                                                                <div className="text-[10px] text-muted-foreground uppercase mt-0.5">task senza ore</div>
+                                                                <div className="text-xs text-muted-foreground uppercase mt-0.5">task senza ore</div>
                                                                 {(user.openTasksNoTime > 0 || user.approvedTasksNoTime > 0) && (
-                                                                    <div className="flex justify-center gap-3 mt-2 text-[10px] text-muted-foreground">
+                                                                    <div className="flex justify-center gap-3 mt-2 text-xs text-muted-foreground">
                                                                         {user.openTasksNoTime > 0 && (
                                                                             <span className="text-amber-600 font-medium">{user.openTasksNoTime} aperti</span>
                                                                         )}
@@ -2228,21 +2228,21 @@ export default function Dashboard() {
                                                     {/* Tasso di rilavorazione */}
                                                     {(user.reworkedTasksCount ?? 0) > 0 && (
                                                         <div className="pt-2 border-t">
-                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
+                                                            <div className="text-xs font-bold uppercase text-muted-foreground tracking-wider text-center mb-2">
                                                                  Rilavorazione
                                                             </div>
                                                             <div className="grid grid-cols-3 gap-1.5 text-center">
                                                                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
                                                                     <div className="text-lg font-bold text-orange-500">{user.reworkRate}%</div>
-                                                                    <div className="text-[10px] text-muted-foreground uppercase">Tasso</div>
+                                                                    <div className="text-xs text-muted-foreground uppercase">Tasso</div>
                                                                 </div>
                                                                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
                                                                     <div className="text-lg font-bold text-orange-500">{user.reworkedTasksCount}</div>
-                                                                    <div className="text-[10px] text-muted-foreground uppercase">Task</div>
+                                                                    <div className="text-xs text-muted-foreground uppercase">Task</div>
                                                                 </div>
                                                                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-2">
                                                                     <div className="text-lg font-bold text-orange-500">{user.totalReworks}</div>
-                                                                    <div className="text-[10px] text-muted-foreground uppercase">Rifiuti</div>
+                                                                    <div className="text-xs text-muted-foreground uppercase">Rifiuti</div>
                                                                 </div>
                                                             </div>
                                                             <div className="mt-2 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -2316,15 +2316,15 @@ export default function Dashboard() {
                                                     <div className="grid grid-cols-3 gap-2 text-center">
                                                         <div className="bg-muted/50 rounded-lg p-2">
                                                             <div className="text-lg font-bold text-amber-500">{user.createdCount}</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">Creati</div>
+                                                            <div className="text-xs text-muted-foreground uppercase">Creati</div>
                                                         </div>
                                                         <div className="bg-muted/50 rounded-lg p-2">
                                                             <div className="text-lg font-bold text-primary">{user.estimatedHours}h</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">Stimate</div>
+                                                            <div className="text-xs text-muted-foreground uppercase">Stimate</div>
                                                         </div>
                                                         <div className="bg-muted/50 rounded-lg p-2">
                                                             <div className="text-lg font-bold">{user.hours}h</div>
-                                                            <div className="text-[10px] text-muted-foreground uppercase">Effettive</div>
+                                                            <div className="text-xs text-muted-foreground uppercase">Effettive</div>
                                                         </div>
                                                     </div>
 
@@ -2345,7 +2345,7 @@ export default function Dashboard() {
                                                                     }}
                                                                 />
                                                             </div>
-                                                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                                                            <div className="flex justify-between text-xs text-muted-foreground">
                                                                 <span>{user.hours}h effettive</span>
                                                                 <span>{user.estimatedHours}h stimate</span>
                                                             </div>
@@ -2354,7 +2354,7 @@ export default function Dashboard() {
 
                                                     {/* Warning Indicator */}
                                                     {isRed && (
-                                                        <div className="text-[10px] text-red-500 font-medium text-center bg-red-500/10 rounded-md py-1 px-2 border border-red-500/20">
+                                                        <div className="text-xs text-red-500 font-medium text-center bg-red-500/10 rounded-md py-1 px-2 border border-red-500/20">
                                                              Tempo richiesto superiore a effettivo
                                                         </div>
                                                     )}
@@ -2362,12 +2362,12 @@ export default function Dashboard() {
                                                     {/* Estremi dei Task Creati */}
                                                     {(user.overrunDetails || user.underrunDetails) && (
                                                         <div className="pt-3 border-t space-y-3">
-                                                            <div className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider text-center">
+                                                            <div className="text-xs font-bold uppercase text-muted-foreground tracking-wider text-center">
                                                                 Estremi stime
                                                             </div>
                                                             {user.overrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-red-500/5 border border-red-500/10 text-xs">
-                                                                    <div className="flex justify-between font-semibold text-[10px] text-red-500 uppercase">
+                                                                    <div className="flex justify-between font-semibold text-xs text-red-500 uppercase">
                                                                         <span> Sforamento Maggiore</span>
                                                                         <span className="font-mono">
                                                                             +{ (user.overrunDetails.actualHours - user.overrunDetails.estimatedHours).toFixed(1) }h
@@ -2376,7 +2376,7 @@ export default function Dashboard() {
                                                                     <div className="font-medium text-foreground truncate mt-1" title={user.overrunDetails.title}>
                                                                         {user.overrunDetails.title}
                                                                     </div>
-                                                                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                                                                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
                                                                         <span>Assegnato: <span className="font-semibold">{user.overrunDetails.assigneeName}</span></span>
                                                                         <span>{user.overrunDetails.estimatedHours}h vs {user.overrunDetails.actualHours}h</span>
                                                                     </div>
@@ -2384,7 +2384,7 @@ export default function Dashboard() {
                                                             )}
                                                             {user.underrunDetails && (
                                                                 <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-xs">
-                                                                    <div className="flex justify-between font-semibold text-[10px] text-emerald-600 uppercase">
+                                                                    <div className="flex justify-between font-semibold text-xs text-emerald-600 uppercase">
                                                                         <span> Risparmio Maggiore</span>
                                                                         <span className="font-mono">
                                                                             { (user.underrunDetails.actualHours - user.underrunDetails.estimatedHours).toFixed(1) }h
@@ -2393,7 +2393,7 @@ export default function Dashboard() {
                                                                     <div className="font-medium text-foreground truncate mt-1" title={user.underrunDetails.title}>
                                                                         {user.underrunDetails.title}
                                                                     </div>
-                                                                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                                                                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
                                                                         <span>Assegnato: <span className="font-semibold">{user.underrunDetails.assigneeName}</span></span>
                                                                         <span>{user.underrunDetails.estimatedHours}h vs {user.underrunDetails.actualHours}h</span>
                                                                     </div>
@@ -2467,7 +2467,7 @@ export default function Dashboard() {
                                                 {/* Priority Badge */}
                                                 {project.priority === 'Critica' && (
                                                     <div className="absolute top-2 right-2">
-                                                        <Badge variant="destructive" className="text-[10px] uppercase font-bold animate-pulse">
+                                                        <Badge variant="destructive" className="text-xs uppercase font-bold animate-pulse">
                                                              Critico
                                                         </Badge>
                                                     </div>
@@ -2494,7 +2494,7 @@ export default function Dashboard() {
                                                     {teamLeader && (
                                                         <div className="flex items-center gap-2">
                                                             <Avatar className="h-6 w-6 border" style={{ borderColor: teamLeader.color || '#6366f1' }}>
-                                                                <AvatarFallback className="text-[10px]" style={{ backgroundColor: teamLeader.color || '#6366f1', color: 'white' }}>
+                                                                <AvatarFallback className="text-xs" style={{ backgroundColor: teamLeader.color || '#6366f1', color: 'white' }}>
                                                                     {teamLeader.name ? getInitials(teamLeader.name) : '?'}
                                                                 </AvatarFallback>
                                                             </Avatar>
@@ -2509,7 +2509,7 @@ export default function Dashboard() {
                                                             <span className="font-semibold">{progress.toFixed(0)}%</span>
                                                         </div>
                                                         <Progress value={progress} className="h-2" />
-                                                        <div className="text-[10px] text-muted-foreground">
+                                                        <div className="text-xs text-muted-foreground">
                                                             {completedTasks}/{projectTasks.length} task completati
                                                         </div>
                                                     </div>
@@ -2528,7 +2528,7 @@ export default function Dashboard() {
                                                         </div>
                                                         <Badge
                                                             variant={isOverdue ? 'destructive' : isUrgent ? 'secondary' : 'outline'}
-                                                            className="text-[10px] h-5"
+                                                            className="text-xs h-5"
                                                         >
                                                             {isDone ? (
                                                                 project.status === 'Completato' ? 'Completato' : 'Da chiudere'
@@ -2604,7 +2604,7 @@ export default function Dashboard() {
                                                 <div>
                                                     <p className="font-medium text-sm">{user.name}</p>
                                                     <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                        <Badge variant="outline" className="text-[10px] h-5 px-1 font-normal bg-muted">
+                                                        <Badge variant="outline" className="text-xs h-5 px-1 font-normal bg-muted">
                                                             {absence.type}
                                                         </Badge>
                                                         <span>fino al {format(parseISO(absence.endDate), 'dd/MM')}</span>
@@ -2898,14 +2898,14 @@ export default function Dashboard() {
                                                 <Card key={task.id} className="border-l-4 border-l-red-500 bg-red-500/5 hover:bg-red-500/10 transition-all p-3 flex flex-col justify-between gap-2">
                                                     <div className="flex items-start justify-between gap-2">
                                                         <h4 className="font-semibold text-sm truncate" title={task.title}>{task.title}</h4>
-                                                        <Badge variant="destructive" className="shrink-0 text-[10px] font-bold">
+                                                        <Badge variant="destructive" className="shrink-0 text-xs font-bold">
                                                             +{daysOverdue}gg
                                                         </Badge>
                                                     </div>
                                                     <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-red-500/10">
                                                         <div className="flex items-center gap-1.5">
                                                             <Avatar className="h-5 w-5">
-                                                                <AvatarFallback style={{ backgroundColor: assigned?.color || '#6b7280', color: 'white' }} className="text-[10px]">
+                                                                <AvatarFallback style={{ backgroundColor: assigned?.color || '#6b7280', color: 'white' }} className="text-xs">
                                                                     {assigned?.name ? getInitials(assigned.name) : '?'}
                                                                 </AvatarFallback>
                                                             </Avatar>
@@ -2952,7 +2952,7 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                     <span className="text-base font-bold text-primary">{formatNumber(hours)}h</span>
-                                                    <p className="text-[10px] text-muted-foreground font-mono">{count > 0 ? (hours / count).toFixed(1) : 0}h/att</p>
+                                                    <p className="text-xs text-muted-foreground font-mono">{count > 0 ? (hours / count).toFixed(1) : 0}h/att</p>
                                                 </div>
                                             </Card>
                                         ))}
@@ -2984,11 +2984,11 @@ export default function Dashboard() {
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2 text-xs">
                                                     <div className="bg-muted/50 rounded-md p-1.5 text-center">
-                                                        <span className="text-muted-foreground text-[10px] uppercase block">Attività</span>
+                                                        <span className="text-muted-foreground text-xs uppercase block">Attività</span>
                                                         <span className="font-bold">{count}</span>
                                                     </div>
                                                     <div className="bg-muted/50 rounded-md p-1.5 text-center">
-                                                        <span className="text-muted-foreground text-[10px] uppercase block">Ore</span>
+                                                        <span className="text-muted-foreground text-xs uppercase block">Ore</span>
                                                         <span className="font-bold font-mono">{formatNumber(hours)}h</span>
                                                     </div>
                                                 </div>
@@ -3036,13 +3036,13 @@ export default function Dashboard() {
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2">
                                                         <Avatar className="h-6 w-6">
-                                                            <AvatarFallback className="text-[10px] font-bold">
+                                                            <AvatarFallback className="text-xs font-bold">
                                                                 {getInitials(u.name)}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <span className="font-semibold text-xs truncate">{u.name}</span>
                                                     </div>
-                                                    <Badge variant={isOver ? "destructive" : "secondary"} className="text-[10px] font-mono">
+                                                    <Badge variant={isOver ? "destructive" : "secondary"} className="text-xs font-mono">
                                                         {ratio > 0 ? `${ratio.toFixed(0)}% stima` : 'No stime'}
                                                     </Badge>
                                                 </div>
@@ -3095,7 +3095,7 @@ export default function Dashboard() {
                                                                     h > 0 ? "bg-primary/10 text-primary font-medium" :
                                                                     "bg-muted/40 text-muted-foreground/50"
                                                                 )}>
-                                                                    <span className="text-[10px] uppercase tracking-tighter opacity-70">{day}</span>
+                                                                    <span className="text-xs uppercase tracking-tighter opacity-70">{day}</span>
                                                                     <span className="font-mono text-xs mt-0.5">{h > 0 ? h.toFixed(1) + 'h' : '-'}</span>
                                                                 </div>
                                                             );
@@ -3259,12 +3259,12 @@ export default function Dashboard() {
                                     <div key={client.clientId || client.name} className="p-3.5 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm space-y-1.5 shadow-sm">
                                         <div className="flex items-center justify-between gap-2">
                                             <p className="font-semibold text-xs text-foreground truncate" title={client.name}>{client.name || 'Cliente'}</p>
-                                            <Badge variant={profit >= 0 ? "secondary" : "destructive"} className="text-[10px] px-1.5 py-0 font-bold">
+                                            <Badge variant={profit >= 0 ? "secondary" : "destructive"} className="text-xs px-1.5 py-0 font-bold">
                                                 Margine {margin.toFixed(0)}%
                                             </Badge>
                                         </div>
                                         <div className="flex items-baseline justify-between pt-1">
-                                            <span className="text-[11px] text-muted-foreground">Utile / Perdita</span>
+                                            <span className="text-xs text-muted-foreground">Utile / Perdita</span>
                                             <span className={cn(
                                                 "text-sm font-extrabold font-mono",
                                                 profit >= 0 ? "text-emerald-500 dark:text-emerald-400" : "text-rose-500 dark:text-rose-400"
@@ -3304,7 +3304,7 @@ export default function Dashboard() {
                                     )}>
                                         <div className="flex items-start justify-between gap-2">
                                             <h4 className="font-semibold text-sm truncate" title={prediction.task.title}>{prediction.task.title}</h4>
-                                            <Badge variant={prediction.risk === 'high' ? 'destructive' : prediction.risk === 'medium' ? 'default' : 'secondary'} className="text-[10px] shrink-0 font-bold">
+                                            <Badge variant={prediction.risk === 'high' ? 'destructive' : prediction.risk === 'medium' ? 'default' : 'secondary'} className="text-xs shrink-0 font-bold">
                                                 {prediction.risk === 'high' ? ' Alto' : prediction.risk === 'medium' ? ' Medio' : ' Basso'}
                                             </Badge>
                                         </div>
