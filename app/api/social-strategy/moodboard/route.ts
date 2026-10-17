@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
+import { askClaude, isClaudeConfigured } from '@/lib/claude';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -13,16 +14,7 @@ export async function POST(req: NextRequest) {
     try {
         const { topic, platform, mediaType, clientName, toneOfVoice } = await req.json();
 
-        const geminiApiKey = process.env.GEMINI_API_KEY;
-
-        if (!geminiApiKey || geminiApiKey === 'your_gemini_key_here') {
-            return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
-        }
-
-        // 1. Use Gemini 2.0 Flash to generate a "Perfect Creative Prompt"
-        const promptModel = 'gemini-3.6-flash';
-        const promptUrl = `https://generativelanguage.googleapis.com/v1beta/models/${promptModel}:generateContent?key=${geminiApiKey}`;
-
+        // 1. Claude scrive il prompt creativo per l'immagine
         const visualSystemPrompt = `Sei un esperto Visual Designer. Crea un prompt in INGLESE per generare un'immagine fotografica di altissima qualità (stile editoriale, 8k, bokeh) per un post social.
         Dati:
         - Cliente: ${clientName || 'N/D'}
@@ -32,22 +24,19 @@ export async function POST(req: NextRequest) {
 
         Sii descrittivo, evita testi nell'immagine, concentrati su texture, luci e composizione. Rispondi SOLO con il prompt in inglese.`;
 
-        const promptResponse = await fetch(promptUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: visualSystemPrompt }] }]
-            })
-        });
-
         let imagePrompt = `${topic} professional social media photography`;
-        if (promptResponse.ok) {
-            const promptResult = await promptResponse.json();
-            imagePrompt = promptResult.candidates[0].content.parts[0].text.trim();
+        if (isClaudeConfigured()) {
+            try {
+                imagePrompt = (await askClaude({ prompt: visualSystemPrompt, maxTokens: 400, temperature: 0.8, timeoutMs: 25_000 })).trim();
+            } catch (e: any) {
+                console.error('Claude non ha scritto il prompt immagine, uso quello di base:', e.message);
+            }
         }
 
-        // 2. Try to generate REAL image using Gemini Imagen 3
-        try {
+        // 2. L'IMMAGINE vera la genera ancora Google Imagen 3: Claude non genera immagini.
+        //    Senza GEMINI_API_KEY si salta e si usa l'immagine di ripiego del punto 3.
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (geminiApiKey && !/^your_/.test(geminiApiKey)) try {
             // Updated model name to match current Google AI Studio Imagen 3 availability
             const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${geminiApiKey}`;
             const imagenResponse = await fetch(imagenUrl, {

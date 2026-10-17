@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
+import { askClaude, isClaudeConfigured } from '@/lib/claude';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -17,13 +18,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
         }
 
-        const geminiApiKey = process.env.GEMINI_API_KEY;
-        if (!geminiApiKey || geminiApiKey === 'your_gemini_key_here') {
-            return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 500 });
+        if (!isClaudeConfigured()) {
+            return NextResponse.json({ error: 'ANTHROPIC_API_KEY non configurata' }, { status: 500 });
         }
-
-        const model = 'gemini-3.6-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
 
         const systemPrompt = `Sei un esperto Copywriter Social Senior.
 Il tuo compito è riscrivere una caption esistente mantenendo lo stesso concetto, ma cambiando il tono di voce richiesto.
@@ -43,24 +40,7 @@ Regole:
 2. Sii creativo ed efficace per i social.
 3. Rispondi SOLO con il testo della nuova caption, senza spiegazioni o virgolette.`;
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: systemPrompt }] }],
-                generationConfig: {
-                    temperature: 0.8,
-                    maxOutputTokens: 1000,
-                }
-            })
-        });
-
-        if (!response.ok) {
-            return NextResponse.json({ error: 'AI Error' }, { status: 500 });
-        }
-
-        const result = await response.json();
-        const rewritten = result.candidates[0].content.parts[0].text.trim();
+        const rewritten = (await askClaude({ prompt: systemPrompt, maxTokens: 1000, temperature: 0.8, timeoutMs: 25_000 })).trim();
 
         return NextResponse.json({ rewritten });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
+import { askClaudeJson, isClaudeConfigured } from '@/lib/claude';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -18,14 +19,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Topic and Media Type are required' }, { status: 400 });
         }
 
-        const geminiApiKey = process.env.GEMINI_API_KEY;
-
-        if (!geminiApiKey || geminiApiKey === 'your_gemini_key_here') {
-            console.error('CRITICAL: GEMINI_API_KEY is not defined in production environment.');
+        if (!isClaudeConfigured()) {
+            console.error('CRITICAL: ANTHROPIC_API_KEY non è definita nell\'ambiente del server.');
             return NextResponse.json({
                 error: 'Configurazione API mancante in produzione.',
-                details: 'Assicurati di aver aggiunto GEMINI_API_KEY nelle variabili d\'ambiente del server (es. Dashboard Vercel).',
-                env_status: !!geminiApiKey
+                details: 'Assicurati di aver aggiunto ANTHROPIC_API_KEY nelle variabili d\'ambiente del server (es. Dashboard Vercel).',
+                env_status: false,
             }, { status: 500 });
         }
 
@@ -60,38 +59,14 @@ Genera un JSON con questa struttura:
 
 Restituisci SOLO il JSON pulito.`;
 
-        const model = 'gemini-3.6-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: systemPrompt }] }],
-                generationConfig: {
-                    temperature: 0.7,
-                    maxOutputTokens: 2000,
-                    responseMimeType: "application/json",
-                }
-            })
-        });
-
-        if (!response.ok) {
-            const errorBody = await response.json().catch(() => ({}));
-            return NextResponse.json({
-                error: 'Errore generazione brief media',
-                details: errorBody.error?.message || response.statusText
-            }, { status: 500 });
-        }
-
-        const result = await response.json();
-        const content = result.candidates[0].content.parts[0].text;
-
         try {
-            const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim();
-            return NextResponse.json(JSON.parse(cleanContent));
-        } catch (e) {
-            return NextResponse.json({ error: 'JSON non valido', raw: content }, { status: 500 });
+            return NextResponse.json(await askClaudeJson({ prompt: systemPrompt, maxTokens: 2000, temperature: 0.7, timeoutMs: 55_000 }));
+        } catch (e: any) {
+            const nonLeggibile = /non leggibile/.test(e.message);
+            return NextResponse.json(
+                nonLeggibile ? { error: 'JSON non valido' } : { error: 'Errore generazione brief media', details: e.message },
+                { status: 500 },
+            );
         }
 
     } catch (error: any) {

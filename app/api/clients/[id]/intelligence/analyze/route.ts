@@ -7,15 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
-import {
-    assertPublicHttpUrl, htmlToText, buildPrompt, normalizeIntelligence, parseModelJson,
-} from '@/lib/site-intelligence';
+import { assertPublicHttpUrl, htmlToText, buildPrompt, normalizeIntelligence } from '@/lib/site-intelligence';
+import { askClaudeJson } from '@/lib/claude';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// Claude Sonnet 5.5; se non risponde si ripiega sul modello più piccolo (Haiku 5.5)
-const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-haiku-5-5'];
 const MAX_REDIRECTS = 3;
 const MAX_HTML_BYTES = 2_000_000;
 
@@ -37,38 +34,6 @@ async function fetchPage(rawUrl: string): Promise<{ url: string; html: string }>
         return { url: url.href, html };
     }
     throw new Error('Troppi reindirizzamenti leggendo il sito');
-}
-
-async function askClaude(prompt: string): Promise<string> {
-    const key = process.env.ANTHROPIC_API_KEY;
-    if (!key || key === 'your_anthropic_api_key') throw new Error('ANTHROPIC_API_KEY non configurata');
-
-    let lastError = 'nessun modello disponibile';
-    for (const model of CLAUDE_MODELS) {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-            body: JSON.stringify({
-                model,
-                max_tokens: 4096,
-                temperature: 0.3,
-                system: 'Rispondi sempre e solo con un oggetto JSON valido, senza testo prima o dopo e senza recinti markdown.',
-                messages: [{ role: 'user', content: prompt }],
-            }),
-            signal: AbortSignal.timeout(45_000),
-        });
-        if (!res.ok) {
-            const body = await res.json().catch(() => ({}));
-            lastError = `${model}: ${body?.error?.message || res.statusText}`;
-            console.warn('[intelligence/analyze] modello non disponibile:', lastError);
-            continue; // prova il successivo
-        }
-        const json = await res.json();
-        const text = json?.content?.find((c: any) => c.type === 'text')?.text;
-        if (text) return text;
-        lastError = `${model}: risposta vuota`;
-    }
-    throw new Error(`Claude non ha risposto (${lastError})`);
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -94,7 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         }
 
         const prompt = buildPrompt({ name: String(client.name || ''), industry: client.industry, url: page.url, text });
-        const intelligence = normalizeIntelligence(parseModelJson(await askClaude(prompt)));
+        const intelligence = normalizeIntelligence(await askClaudeJson({ prompt, temperature: 0.3, maxTokens: 4096 }));
 
         await clientRef.set({ intelligence, intelligenceUpdatedAt: Date.now(), intelligenceUpdatedBy: user.uid }, { merge: true });
         return NextResponse.json({ success: true, intelligence });
