@@ -231,7 +231,7 @@ export function MarketingReportTab({
                   {!p.connected && <span className="text-xs text-red-600">Errore: {p.error}</span>}
                   {meta.detail && (
                     <Link
-                      href={`/clients/${clientId}/${meta.detail}`}
+                      href={`/clients/${clientId}/${meta.detail}${p.platform === 'gbp' && row.account_id ? `?sede=${encodeURIComponent(String(row.account_id))}` : ''}`}
                       className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                     >
                       Dettaglio <ArrowUpRight size={13} />
