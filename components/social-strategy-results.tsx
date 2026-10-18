@@ -260,9 +260,11 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
 
             if (!response.ok) throw new Error('Moodboard failed');
 
-            const { imageUrl } = await response.json();
+            const { imageUrl, fallback, imageError } = await response.json();
             setMoodboards(prev => ({ ...prev, [index]: imageUrl }));
-            toast({ title: 'Moodboard Pronta', description: 'Immagine di anteprima generata.' });
+            toast(fallback
+                ? { title: 'Immagine di ripiego', description: imageError ? `Nano Banana non ha risposto: ${imageError}` : 'Nano Banana non è configurato: è un\'immagine generica.', variant: 'destructive' }
+                : { title: 'Moodboard Pronta', description: 'Immagine generata con Nano Banana.' });
         } catch (error) {
             toast({ title: 'Errore', description: 'Impossibile generare la moodboard.', variant: 'destructive' });
         } finally {
