@@ -9,15 +9,40 @@ export function isClaudeConfigured(): boolean {
     return !!key && !/^your_|placeholder/i.test(key);
 }
 
+export interface ClaudeImage {
+    mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    /** Solo i dati base64, senza il prefisso "data:...;base64,". */
+    data: string;
+}
+
 export interface AskClaudeOptions {
     prompt: string;
     system?: string;
     maxTokens?: number;
     timeoutMs?: number;
+    /** Immagini da far leggere a Claude insieme al prompt (es. screenshot della Ads Library). */
+    images?: ClaudeImage[];
+    /** Ricerca web fatta da Claude (strumento lato server di Anthropic). `maxUses` limita le ricerche. */
+    webSearch?: { maxUses?: number };
+}
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
+/** Anthropic accetta fino a 5 MB per immagine; in base64 sono ~4/3 dei byte. */
+export const MAX_IMAGE_BASE64_CHARS = Math.floor((5 * 1024 * 1024 * 4) / 3);
+
+/** "data:image/png;base64,AAAA" → { mediaType, data }; null se non è un'immagine supportata o è troppo grande. */
+export function parseDataUrlImage(dataUrl: string): ClaudeImage | null {
+    const m = /^data:(image\/[a-z+.-]+);base64,([A-Za-z0-9+/=\s]+)$/i.exec((dataUrl || '').trim());
+    if (!m) return null;
+    const mediaType = m[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : m[1].toLowerCase();
+    if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(mediaType)) return null;
+    const data = m[2].replace(/\s+/g, '');
+    if (data.length > MAX_IMAGE_BASE64_CHARS) return null;
+    return { mediaType: mediaType as ClaudeImage['mediaType'], data };
 }
 
 /** Restituisce il testo della risposta. Lancia con un messaggio chiaro se manca la chiave o nessun modello risponde. */
-export async function askClaude({ prompt, system, maxTokens = 4096, timeoutMs = 45_000 }: AskClaudeOptions): Promise<string> {
+export async function askClaude({ prompt, system, maxTokens = 4096, timeoutMs = 45_000, images, webSearch }: AskClaudeOptions): Promise<string> {
     const key = process.env.ANTHROPIC_API_KEY;
     if (!key || /^your_|placeholder/i.test(key)) throw new Error('ANTHROPIC_API_KEY non configurata');
 
@@ -31,7 +56,17 @@ export async function askClaude({ prompt, system, maxTokens = 4096, timeoutMs = 
             body: JSON.stringify({
                 model, max_tokens: maxTokens,
                 ...(system ? { system } : {}),
-                messages: [{ role: 'user', content: prompt }],
+                ...(webSearch ? { tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: webSearch.maxUses ?? 5 }] } : {}),
+                messages: [{
+                    role: 'user',
+                    // Con immagini il contenuto è una lista di blocchi: prima le immagini, poi il testo
+                    content: images?.length
+                        ? [
+                            ...images.map(img => ({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } })),
+                            { type: 'text', text: prompt },
+                        ]
+                        : prompt,
+                }],
             }),
             signal: AbortSignal.timeout(timeoutMs),
         });
@@ -43,7 +78,8 @@ export async function askClaude({ prompt, system, maxTokens = 4096, timeoutMs = 
             continue; // prova il successivo
         }
         const json = await res.json();
-        const text = json?.content?.find((c: any) => c.type === 'text')?.text;
+        // Con la ricerca web la risposta ha più blocchi di testo (commenti, citazioni): si uniscono tutti
+        const text = (json?.content ?? []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n').trim();
         if (text) return text;
         errors.push(`${model}: risposta vuota`);
     }

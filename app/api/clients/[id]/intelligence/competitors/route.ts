@@ -1,104 +1,48 @@
 /**
- * GET    /api/clients/[id]/intelligence/competitors   → Lista competitor
- * POST   /api/clients/[id]/intelligence/competitors   → Aggiungi competitor
- * DELETE /api/clients/[id]/intelligence/competitors   → Rimuovi competitor (body: {index})
+ * GET  /api/clients/[id]/intelligence/competitors → elenco dei competitor della scheda AI Intelligence
+ * POST /api/clients/[id]/intelligence/competitors → aggiunge un competitor { name, url? } (solo staff)
+ * Eliminazione: DELETE .../competitors/[index]. Ricerca automatica: POST .../competitors/discover.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
-import { adminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed, denyUnlessStaff } from '@/lib/api-auth';
+import { loadClient, competitorsOf, saveCompetitors } from '@/lib/intelligence-store';
+import { assertPublicHttpUrl } from '@/lib/site-intelligence';
+import type { SavedCompetitor } from '@/lib/competitor-discovery';
 
-const competitorsRef = (clientId: string) =>
-  adminDb.collection('clients').doc(clientId).collection('intelligence').doc('competitors');
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
   const denied = await denyUnlessClientAllowed(user.uid, params.id);
   if (denied) return denied;
 
-  const { id: clientId } = params;
-
-  try {
-    const snap = await competitorsRef(clientId).get();
-    if (!snap.exists) {
-      return NextResponse.json({ competitors: [], analyses: [] });
-    }
-    const data = snap.data() || {};
-    return NextResponse.json({
-      competitors: data.list || [],
-      analyses: data.analyses || [],
-    });
-  } catch (error) {
-    console.error(`[intelligence/competitors] GET error:`, error);
-    return NextResponse.json({ error: 'Failed to fetch competitors' }, { status: 500 });
-  }
+  const { exists, data } = await loadClient(params.id);
+  if (!exists) return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 });
+  return NextResponse.json({ competitors: competitorsOf(data) });
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
-  const denied = await denyUnlessClientAllowed(user.uid, params.id);
+  const denied = await denyUnlessStaff(user.uid);
   if (denied) return denied;
 
-  const { id: clientId } = params;
+  const body = await request.json().catch(() => ({}));
+  const name = String(body?.name ?? '').trim().slice(0, 80);
+  const rawUrl = String(body?.url ?? '').trim();
+  if (!name) return NextResponse.json({ error: 'Scrivi il nome del competitor' }, { status: 400 });
 
-  try {
-    const body = await request.json();
-    const { name, url, notes } = body as { name: string; url: string; notes?: string };
-
-    if (!name || !url) {
-      return NextResponse.json({ error: 'name and url are required' }, { status: 400 });
-    }
-
-    const competitor = {
-      name,
-      url,
-      notes: notes || '',
-      addedAt: new Date().toISOString(),
-      addedBy: user.uid,
-    };
-
-    await competitorsRef(clientId).set(
-      { list: FieldValue.arrayUnion(competitor) },
-      { merge: true }
-    );
-
-    return NextResponse.json({ success: true, competitor }, { status: 201 });
-  } catch (error) {
-    console.error(`[intelligence/competitors] POST error:`, error);
-    return NextResponse.json({ error: 'Failed to add competitor' }, { status: 500 });
+  // Il sito è facoltativo (la scheda chiede solo il nome), ma se c'è deve essere pubblico: il Hub lo leggerà dal server
+  let url = '';
+  if (rawUrl) {
+    try { url = assertPublicHttpUrl(rawUrl).href; }
+    catch (e: any) { return NextResponse.json({ error: e.message }, { status: 400 }); }
   }
-}
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const user = await verifyAuth(request);
-  if (!user) return unauthorizedResponse();
-  const denied = await denyUnlessClientAllowed(user.uid, params.id);
-  if (denied) return denied;
+  const { ref, exists, data } = await loadClient(params.id);
+  if (!exists) return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 });
 
-  const { id: clientId } = params;
-
-  try {
-    const body = await request.json();
-    const { competitor } = body as { competitor: object };
-
-    await competitorsRef(clientId).update({
-      list: FieldValue.arrayRemove(competitor),
-    });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(`[intelligence/competitors] DELETE error:`, error);
-    return NextResponse.json({ error: 'Failed to remove competitor' }, { status: 500 });
-  }
+  const competitor: SavedCompetitor = { name, url, addedAt: Date.now(), addedBy: user.uid };
+  const list = [...competitorsOf(data), competitor];
+  await saveCompetitors(ref, list, user.uid);
+  return NextResponse.json({ success: true, competitor, competitors: list }, { status: 201 });
 }

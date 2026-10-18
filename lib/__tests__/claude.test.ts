@@ -55,3 +55,51 @@ describe('claude', () => {
         await expect(askClaudeJson({ prompt: 'p' })).rejects.toThrow('Risposta AI non leggibile');
     });
 });
+
+import { parseDataUrlImage } from '../claude';
+
+describe('claude: immagini e ricerca web', () => {
+    beforeEach(() => { process.env.ANTHROPIC_API_KEY = 'sk-test'; });
+    afterEach(() => vi.unstubAllGlobals());
+
+    const capture = (response: any) => {
+        const bodies: any[] = [];
+        vi.stubGlobal('fetch', vi.fn(async (_u: string, init: any) => { bodies.push(JSON.parse(init.body)); return response; }));
+        return bodies;
+    };
+
+    it('manda le immagini come blocchi prima del testo', async () => {
+        const bodies = capture({ ok: true, json: async () => ({ content: [{ type: 'text', text: 'ok' }] }) });
+        await askClaude({ prompt: 'cosa vedi?', images: [{ mediaType: 'image/png', data: 'AAAA' }] });
+        expect(bodies[0].messages[0].content).toEqual([
+            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: 'AAAA' } },
+            { type: 'text', text: 'cosa vedi?' },
+        ]);
+    });
+
+    it('con webSearch aggiunge lo strumento e unisce tutti i blocchi di testo', async () => {
+        const bodies = capture({ ok: true, json: async () => ({ content: [
+            { type: 'text', text: 'Cerco...' }, { type: 'server_tool_use', name: 'web_search' },
+            { type: 'web_search_tool_result' }, { type: 'text', text: '{"a":1}' },
+        ] }) });
+        const out = await askClaude({ prompt: 'p', webSearch: { maxUses: 3 } });
+        expect(bodies[0].tools).toEqual([{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }]);
+        expect(out).toBe('Cerco...\n{"a":1}');
+    });
+
+    it('senza immagini né ricerca: nessun tools e contenuto semplice (come prima)', async () => {
+        const bodies = capture({ ok: true, json: async () => ({ content: [{ type: 'text', text: 'x' }] }) });
+        await askClaude({ prompt: 'p' });
+        expect(bodies[0]).not.toHaveProperty('tools');
+        expect(bodies[0].messages[0].content).toBe('p');
+    });
+
+    it('parseDataUrlImage accetta solo immagini supportate e non troppo grandi', () => {
+        expect(parseDataUrlImage('data:image/jpeg;base64,/9j/4AAQ')).toEqual({ mediaType: 'image/jpeg', data: '/9j/4AAQ' });
+        expect(parseDataUrlImage('data:image/jpg;base64,AAAA')?.mediaType).toBe('image/jpeg');
+        expect(parseDataUrlImage('data:image/svg+xml;base64,AAAA')).toBeNull();
+        expect(parseDataUrlImage('data:text/plain;base64,AAAA')).toBeNull();
+        expect(parseDataUrlImage('non è un data url')).toBeNull();
+        expect(parseDataUrlImage('data:image/png;base64,' + 'A'.repeat(7_000_000))).toBeNull();
+    });
+});
