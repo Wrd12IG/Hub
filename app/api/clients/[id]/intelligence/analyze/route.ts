@@ -61,11 +61,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         const prompt = buildPrompt({ name: String(client.name || ''), industry: client.industry, url: page.url, text });
         const intelligence = normalizeIntelligence(await askClaudeJson({ prompt, maxTokens: 4096 }));
 
-        await clientRef.set({ intelligence, intelligenceUpdatedAt: Date.now(), intelligenceUpdatedBy: user.uid }, { merge: true });
+        // JSON round trip: toglie ogni `undefined` residuo, che Firestore rifiuta (il progetto non ha ignoreUndefinedProperties)
+        await clientRef.set(JSON.parse(JSON.stringify({ intelligence, intelligenceUpdatedAt: Date.now(), intelligenceUpdatedBy: user.uid })), { merge: true });
         return NextResponse.json({ success: true, intelligence });
     } catch (err: any) {
         console.error(`[intelligence/analyze] ${params.id}:`, err.message);
         const known = /sito|indirizzo|reindirizz|ANTHROPIC|Claude|Risposta AI/i.test(err.message);
-        return NextResponse.json({ error: known ? err.message : 'Analisi non riuscita' }, { status: known ? 422 : 500 });
+        // Route solo staff: si mostra la causa vera. Prima 'Analisi non riuscita' nascondeva sia il guasto di Claude sia questo di Firestore.
+        return NextResponse.json({ error: known ? err.message : `Analisi non riuscita: ${String(err.message).slice(0, 200)}` }, { status: known ? 422 : 500 });
     }
 }

@@ -36,7 +36,10 @@ describe('site-intelligence', () => {
         expect(n.confidenceScore).toBe(100);
         expect(n.targetPainPoints).toEqual([]);
         expect(n.targetTriggers).toEqual(['rottamazione']);
-        expect(n.competitors).toEqual([{ name: 'Rivale', url: undefined, estimatedBudget: undefined, notes: undefined }]);
+        expect(n.competitors).toEqual([{ name: 'Rivale' }]);
+        // Firestore rifiuta `undefined` ovunque: il risultato deve sopravvivere a un giro JSON identico
+        expect(JSON.parse(JSON.stringify(n))).toEqual(n);
+        expect(Object.keys(n.competitors[0])).toEqual(['name']);
         expect(n.priceRange).toBeNull();
         expect(n.websiteScraped).toBe(true);
         expect(normalizeIntelligence(null).metaInterests).toEqual([]);

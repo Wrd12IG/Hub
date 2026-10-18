@@ -116,13 +116,15 @@ const num = (v: unknown, min: number, max: number, fallback = 0): number => {
 /** Porta qualunque JSON dell'AI nello schema della scheda: array sempre array (la scheda fa .map), numeri in range. */
 export function normalizeIntelligence(raw: any): SiteIntelligence {
     const r = raw && typeof raw === 'object' ? raw : {};
+    // Niente chiavi `undefined`: Firestore le rifiuta e questo progetto non ha ignoreUndefinedProperties
     const competitors = (Array.isArray(r.competitors) ? r.competitors : [])
-        .map((c: any) => ({
-            name: str(c?.name),
-            url: strOrNull(c?.url) ?? undefined,
-            estimatedBudget: strOrNull(c?.estimatedBudget) ?? undefined,
-            notes: strOrNull(c?.notes) ?? undefined,
-        }))
+        .map((c: any) => {
+            const out: { name: string; url?: string; estimatedBudget?: string; notes?: string } = { name: str(c?.name) };
+            const url = strOrNull(c?.url); if (url) out.url = url;
+            const budget = strOrNull(c?.estimatedBudget); if (budget) out.estimatedBudget = budget;
+            const notes = strOrNull(c?.notes); if (notes) out.notes = notes;
+            return out;
+        })
         .filter((c: { name: string }) => c.name);
     return {
         productDescription: str(r.productDescription),
