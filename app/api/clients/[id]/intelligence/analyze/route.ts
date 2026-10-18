@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         }
 
         const prompt = buildPrompt({ name: String(client.name || ''), industry: client.industry, url: page.url, text });
-        const intelligence = normalizeIntelligence(await askClaudeJson({ prompt, temperature: 0.3, maxTokens: 4096 }));
+        const intelligence = normalizeIntelligence(await askClaudeJson({ prompt, maxTokens: 4096 }));
 
         await clientRef.set({ intelligence, intelligenceUpdatedAt: Date.now(), intelligenceUpdatedBy: user.uid }, { merge: true });
         return NextResponse.json({ success: true, intelligence });

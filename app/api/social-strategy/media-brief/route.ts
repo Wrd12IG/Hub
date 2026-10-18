@@ -60,7 +60,7 @@ Genera un JSON con questa struttura:
 Restituisci SOLO il JSON pulito.`;
 
         try {
-            return NextResponse.json(await askClaudeJson({ prompt: systemPrompt, maxTokens: 2000, temperature: 0.7, timeoutMs: 55_000 }));
+            return NextResponse.json(await askClaudeJson({ prompt: systemPrompt, maxTokens: 2000, timeoutMs: 55_000 }));
         } catch (e: any) {
             const nonLeggibile = /non leggibile/.test(e.message);
             return NextResponse.json(

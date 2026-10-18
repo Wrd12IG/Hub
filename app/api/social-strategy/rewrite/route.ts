@@ -40,7 +40,7 @@ Regole:
 2. Sii creativo ed efficace per i social.
 3. Rispondi SOLO con il testo della nuova caption, senza spiegazioni o virgolette.`;
 
-        const rewritten = (await askClaude({ prompt: systemPrompt, maxTokens: 1000, temperature: 0.8, timeoutMs: 25_000 })).trim();
+        const rewritten = (await askClaude({ prompt: systemPrompt, maxTokens: 1000, timeoutMs: 25_000 })).trim();
 
         return NextResponse.json({ rewritten });
 

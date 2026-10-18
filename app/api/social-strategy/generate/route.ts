@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         }
 
         try {
-            const strategy = await askClaudeJson({ prompt, system: systemPrompt, maxTokens: 8000, temperature: 0.7, timeoutMs: 55_000 });
+            const strategy = await askClaudeJson({ prompt, system: systemPrompt, maxTokens: 8000, timeoutMs: 55_000 });
             return NextResponse.json(strategy);
         } catch (e: any) {
             console.error('Claude failed in /api/social-strategy/generate:', e.message);

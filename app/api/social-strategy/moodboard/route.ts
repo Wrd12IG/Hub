@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         let imagePrompt = `${topic} professional social media photography`;
         if (isClaudeConfigured()) {
             try {
-                imagePrompt = (await askClaude({ prompt: visualSystemPrompt, maxTokens: 400, temperature: 0.8, timeoutMs: 25_000 })).trim();
+                imagePrompt = (await askClaude({ prompt: visualSystemPrompt, maxTokens: 400, timeoutMs: 25_000 })).trim();
             } catch (e: any) {
                 console.error('Claude non ha scritto il prompt immagine, uso quello di base:', e.message);
             }
