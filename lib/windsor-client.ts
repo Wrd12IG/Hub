@@ -84,8 +84,12 @@ export async function getData({
     if (accountId) {
         params.set('account_id', accountId);
     }
-    if (accountIds && accountIds.length > 0) {
-        params.set('filter', JSON.stringify([['account_id', 'in', JSON.stringify(accountIds)]]));
+    // Un singolo `accountId` passa dallo stesso filtro lato Windsor delle liste: il parametro semplice `account_id`
+    // viene ignorato dal server, che restituisce TUTTI gli account del connector e il Hub ne teneva uno.
+    // Misurato il 18/10/2026 su City Motors: Meta 27,2 s → 0,9 s, Instagram 6,5 s → 1,6 s (e GBP 19,5 s → 3 s).
+    const serverSideIds = accountIds && accountIds.length > 0 ? accountIds : accountId ? [accountId] : [];
+    if (serverSideIds.length > 0) {
+        params.set('filter', JSON.stringify([['account_id', 'in', JSON.stringify(serverSideIds)]]));
     }
 
     const url = `${BASE_URL}/all?${params.toString()}`;
