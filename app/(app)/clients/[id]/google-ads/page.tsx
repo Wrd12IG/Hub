@@ -18,6 +18,8 @@ import { MetricoolTable } from '@/components/metricool/MetricoolTable'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { throwIfNotOk } from '@/lib/fetch-json'
+import { PageError } from '@/components/PageError'
 
 // --- Types ---
 interface Campaign {
@@ -101,6 +103,7 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isMock, setIsMock] = useState(false);
   // Le query Google Ads accettano 7, 30 o 90 giorni: sono le uniche finestre
   // che l'API espone come costanti, e coprono i casi d'uso reali.
@@ -108,13 +111,14 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
 
   useEffect(() => {
     const fetchData = async () => {
+      setError(null);
       try {
         const token = localStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
 
         // Fetch summary + campagne
         const response = await fetch(`/api/clients/${id}/google-ads?days=${days}`, { headers });
-        if (!response.ok) throw new Error('Failed to fetch Google Ads data');
+        await throwIfNotOk(response, 'Google Ads');
         const result = await response.json();
 
         // Il chartData potrebbe essere vuoto; lo sostituiamo subito con quello daily
@@ -143,7 +147,13 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
       }
     };
     fetchData();
-  }, [id, days]);
+  }, [id, days, reloadKey]);
+
+  // L'errore va controllato PRIMA dello scheletro: con `loading || !data` per primo una richiesta fallita lasciava
+  // lo scheletro grigio per sempre e il motivo non compariva mai.
+  if (error && !loading) {
+    return <PageError message={error} onRetry={() => setReloadKey((k) => k + 1)} />;
+  }
 
   if (loading || !data) {
     return (
@@ -165,14 +175,6 @@ export default function GoogleAdsPage({ params: propsParams }: { params?: { id: 
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[500px] text-destructive">
-        <AlertCircle size={48} className="mb-4" />
-        <p className="font-semibold">Errore nel caricamento: {error}</p>
-      </div>
-    );
-  }
 
   const tooltipStyle = {
     borderRadius: '8px', 
