@@ -68,21 +68,35 @@ export default function GbpPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(`/api/clients/${id}/gbp`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-        if (!response.ok) throw new Error('Failed to fetch GBP data');
-        const result = await response.json();
-        setData(result);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id]);
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/clients/${id}/gbp`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const result = await response.json().catch(() => ({}));
+      // Il messaggio dell'API (es. "nessuna sede configurata") è quello utile, non un generico "failed to fetch"
+      if (!response.ok) throw new Error(result?.error || `Errore ${response.status}`);
+      setData(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, [id]);
+
+  // L'errore va controllato PRIMA dello scheletro: con `loading || !data` per primo, una richiesta fallita
+  // lasciava lo scheletro grigio per sempre e l'errore non compariva mai.
+  if (error && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[500px] gap-4 text-center px-6">
+        <AlertCircle size={48} className="text-destructive" />
+        <p className="font-semibold text-destructive max-w-xl">Errore nel caricamento: {error}</p>
+        <button onClick={fetchData} className="px-4 py-2 rounded-lg border text-sm font-semibold hover:bg-muted transition-colors">Riprova</button>
+      </div>
+    );
+  }
 
   if (loading || !data) {
     return (
@@ -90,15 +104,6 @@ export default function GbpPage() {
         <Skeleton className="h-8 w-64" />
         <Skeleton className="h-48 w-full" />
         <Skeleton className="h-96 w-full" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[500px] text-destructive">
-        <AlertCircle size={48} className="mb-4" />
-        <p className="font-semibold">Errore nel caricamento: {error}</p>
       </div>
     );
   }

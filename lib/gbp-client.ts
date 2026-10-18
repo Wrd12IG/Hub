@@ -77,22 +77,6 @@ export async function getGBPLocations(clientId: string): Promise<GBPLocation[]> 
   }
 }
 
-// ─── Mock Fallback ────────────────────────────────────────────────────────────
-
-// ─── Mock Fallback ────────────────────────────────────────────────────────────
-
-export function getMockGBPLocations(clientId: string): GBPLocation[] {
-  return [
-    {
-      name: `accounts/mock/locations/${clientId}-1`,
-      title: 'Sede Principale W[r]Digital',
-      phone: '+39 039 123 4567',
-      website: 'https://wrdigital.it',
-      address: 'Via Roma 1, Monza (MB)',
-    }
-  ];
-}
-
 export interface GBPInsights {
   totalImpressions: number;
   totalActions: number;
