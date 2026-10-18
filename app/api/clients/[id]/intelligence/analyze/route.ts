@@ -1,6 +1,6 @@
 /**
  * POST /api/clients/[id]/intelligence/analyze
- * Analisi AI del sito del cliente: legge la home, la fa riassumere a Gemini (target, competitor, interessi Meta)
+ * Analisi AI del sito del cliente: legge la home, la fa riassumere a Claude (target, competitor, interessi Meta)
  * e salva il risultato in `clients/{id}.intelligence`, che è ciò che la scheda "AI Intelligence" mostra.
  * Solo staff: ogni analisi consuma crediti AI.
  */
@@ -14,7 +14,8 @@ import {
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const GEMINI_MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+// Claude Sonnet 5.5; se non risponde si ripiega sul modello più piccolo (Haiku 5.5)
+const CLAUDE_MODELS = ['claude-sonnet-5-5', 'claude-haiku-5-5'];
 const MAX_REDIRECTS = 3;
 const MAX_HTML_BYTES = 2_000_000;
 
@@ -38,24 +39,24 @@ async function fetchPage(rawUrl: string): Promise<{ url: string; html: string }>
     throw new Error('Troppi reindirizzamenti leggendo il sito');
 }
 
-async function askGemini(prompt: string): Promise<string> {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key || key === 'your_gemini_api_key') throw new Error('GEMINI_API_KEY non configurata');
+async function askClaude(prompt: string): Promise<string> {
+    const key = process.env.ANTHROPIC_API_KEY;
+    if (!key || key === 'your_anthropic_api_key') throw new Error('ANTHROPIC_API_KEY non configurata');
 
     let lastError = 'nessun modello disponibile';
-    for (const model of GEMINI_MODELS) {
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.3, maxOutputTokens: 4096, responseMimeType: 'application/json' },
-                }),
-                signal: AbortSignal.timeout(40_000),
-            },
-        );
+    for (const model of CLAUDE_MODELS) {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({
+                model,
+                max_tokens: 4096,
+                temperature: 0.3,
+                system: 'Rispondi sempre e solo con un oggetto JSON valido, senza testo prima o dopo e senza recinti markdown.',
+                messages: [{ role: 'user', content: prompt }],
+            }),
+            signal: AbortSignal.timeout(45_000),
+        });
         if (!res.ok) {
             const body = await res.json().catch(() => ({}));
             lastError = `${model}: ${body?.error?.message || res.statusText}`;
@@ -63,11 +64,11 @@ async function askGemini(prompt: string): Promise<string> {
             continue; // prova il successivo
         }
         const json = await res.json();
-        const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const text = json?.content?.find((c: any) => c.type === 'text')?.text;
         if (text) return text;
         lastError = `${model}: risposta vuota`;
     }
-    throw new Error(`Gemini non ha risposto (${lastError})`);
+    throw new Error(`Claude non ha risposto (${lastError})`);
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
@@ -93,13 +94,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         }
 
         const prompt = buildPrompt({ name: String(client.name || ''), industry: client.industry, url: page.url, text });
-        const intelligence = normalizeIntelligence(parseModelJson(await askGemini(prompt)));
+        const intelligence = normalizeIntelligence(parseModelJson(await askClaude(prompt)));
 
         await clientRef.set({ intelligence, intelligenceUpdatedAt: Date.now(), intelligenceUpdatedBy: user.uid }, { merge: true });
         return NextResponse.json({ success: true, intelligence });
     } catch (err: any) {
         console.error(`[intelligence/analyze] ${params.id}:`, err.message);
-        const known = /sito|indirizzo|reindirizz|GEMINI|Gemini|Risposta AI/i.test(err.message);
+        const known = /sito|indirizzo|reindirizz|ANTHROPIC|Claude|Risposta AI/i.test(err.message);
         return NextResponse.json({ error: known ? err.message : 'Analisi non riuscita' }, { status: known ? 422 : 500 });
     }
 }

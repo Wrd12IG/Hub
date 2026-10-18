@@ -14,10 +14,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface GbpLocation {
+interface GbpSede {
   id: string
-  name: string
-  address?: string
+  nome: string
+  totaleRecensioni: number
+  valutazione: number | null
 }
 
 interface GbpInsights {
@@ -59,8 +60,35 @@ interface GbpData {
 
 interface GbpDashboardProps {
   clientId: string
-  locations?: GbpLocation[]
-  activeLocationId?: string | null
+}
+
+/**
+ * Porta la risposta di /api/clients/[id]/gbp (chiavi italiane: coperturaSummary, clicSummary, recensioni...)
+ * nella forma che questa scheda mostra. La scheda leggeva ancora `insights`/`reviews`/`keywords`
+ * di una vecchia API finta: per questo tutti i valori restavano "—".
+ */
+function fromApi(json: any): GbpData {
+  const clic = json?.clicSummary
+  const cop = json?.coperturaSummary
+  const rec = json?.recensioniSummary
+  return {
+    insights: cop && clic ? {
+      totalImpressions: cop.totale ?? 0,
+      totalActions: clic.totale ?? 0,
+      websiteClicks: clic.sitoWeb ?? 0,
+      phoneCalls: clic.telefono ?? 0,
+      directionRequests: clic.indirizzo ?? 0,
+    } : undefined,
+    reviews: rec ? {
+      totalReviews: rec.totale ?? 0,
+      averageRating: rec.valutazione ?? 0,
+      unansweredCount: rec.senzaRisposta ?? 0,
+      recent: (json.recensioni ?? []).map((r: any) => ({
+        author: r.utenteNome, rating: r.valutazione, text: r.messaggio, date: r.data, replied: r.risposta,
+      })),
+    } : undefined,
+    keywords: (json?.paroleChiave ?? []).map((k: any) => ({ keyword: k.parola, impressions: k.impression })),
+  }
 }
 
 type TabType = 'overview' | 'directories' | 'reviews' | 'seo' | 'reporting' | 'content'
@@ -158,28 +186,28 @@ function KpiCard({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function GbpDashboardTab({
-  clientId,
-  locations = [],
-  activeLocationId,
-}: GbpDashboardProps) {
+export default function GbpDashboardTab({ clientId }: GbpDashboardProps) {
   const [activeTab, setActiveTab] = useState<TabType>('overview')
   const [daysBack, setDaysBack] = useState(30)
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
-    activeLocationId || (locations[0]?.id ?? null)
-  )
+  // null = tutte le sedi del cliente
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null)
+  const [sedi, setSedi] = useState<GbpSede[]>([])
   const [gbpData, setGbpData] = useState<GbpData | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [configured, setConfigured] = useState(!!selectedLocationId)
+  // Si presume configurato finché l'API non dice il contrario (503: nessuna sede in Setup API).
+  // Prima dipendeva dai campi vecchi gbpLocations/gbpLocationId, che i clienti su Windsor non hanno.
+  const [configured, setConfigured] = useState(true)
 
-  const fetchGbpData = useCallback(async (locationId: string) => {
+  const fetchGbpData = useCallback(async (locationId: string | null) => {
     setLoading(true)
     setError(null)
     try {
       const token = localStorage.getItem('token')
+      const query = new URLSearchParams({ days: String(daysBack) })
+      if (locationId) query.set('locationId', locationId)
       const res = await fetch(
-        `${API_URL}/api/clients/${clientId}/gbp?locationId=${locationId}&daysBack=${daysBack}`,
+        `${API_URL}/api/clients/${clientId}/gbp?${query}`,
         { headers: { Authorization: `Bearer ${token}` } }
       )
       const json = await res.json()
@@ -200,7 +228,8 @@ export default function GbpDashboardTab({
       }
 
       setConfigured(true)
-      setGbpData(json)
+      setSedi(json.sedi ?? [])
+      setGbpData(fromApi(json))
     } catch (err: any) {
       setError(err.message || 'Impossibile caricare i dati GBP')
     } finally {
@@ -209,12 +238,7 @@ export default function GbpDashboardTab({
   }, [clientId, daysBack])
 
   useEffect(() => {
-    if (selectedLocationId) {
-      setConfigured(true)
-      fetchGbpData(selectedLocationId)
-    } else {
-      setConfigured(false)
-    }
+    fetchGbpData(selectedLocationId)
   }, [selectedLocationId, fetchGbpData])
 
   // ─── Tab: Overview ────────────────────────────────────────────────────────
@@ -230,7 +254,7 @@ export default function GbpDashboardTab({
           <p className="text-sm text-muted-foreground mt-1">{error}</p>
         </div>
         <button
-          onClick={() => selectedLocationId && fetchGbpData(selectedLocationId)}
+          onClick={() => fetchGbpData(selectedLocationId)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold hover:bg-white/10 transition-all"
         >
           <RefreshCw size={14} /> Riprova
@@ -238,21 +262,18 @@ export default function GbpDashboardTab({
       </div>
     )
 
-    // API pending (configured but no data yet from Google)
-    if (configured && !gbpData) return (
-      <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
+    // Configurata ma senza dati: non è un'attesa di approvazione, vuol dire che per queste sedi
+    // e questo periodo Windsor non ha restituito righe.
+    if (configured && !gbpData?.insights) return (
+      <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
           <Clock className="h-8 w-8 text-amber-400/60" />
         </div>
         <div className="max-w-sm space-y-2">
-          <h3 className="font-bold text-foreground">GBP Configurato — Dati in attesa</h3>
+          <h3 className="font-bold text-foreground">Nessun dato per questo periodo</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            L'integrazione con Google Business Profile API è in corso di approvazione. I dati reali verranno mostrati non appena disponibili.
+            Windsor non ha restituito dati per le sedi selezionate. Prova un periodo più lungo o controlla le sedi in Setup API.
           </p>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-amber-400 font-bold">
-          <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-          Sede collegata: {selectedLocationId}
         </div>
       </div>
     )
@@ -334,73 +355,60 @@ export default function GbpDashboardTab({
         <div className="flex items-center gap-3">
           <MapPin className="h-5 w-5 text-amber-400" />
           <div>
-            <h3 className="font-bold text-foreground">Sedi Collegate</h3>
+            <h3 className="font-bold text-foreground">Sedi collegate</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Gestisci le informazioni NAP (Nome, Indirizzo, Telefono) su tutti i network locali.
+              Le sedi Google Business di questo cliente, lette da Windsor. Selezionane una per vedere solo i suoi dati.
             </p>
           </div>
         </div>
 
-        {/* Locations list */}
         <div className="space-y-3">
-          {locations.length === 0 ? (
+          {sedi.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-white/10 rounded-xl">
-              Nessuna sede configurata. Vai in <strong>Setup API → GBP</strong> per aggiungere sedi.
+              {loading ? 'Caricamento delle sedi…' : <>Nessuna sede configurata. Vai in <strong>Setup API → GBP</strong> per aggiungere sedi.</>}
             </div>
           ) : (
-            locations.map((loc) => (
-              <div
-                key={loc.id}
-                className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                  loc.id === selectedLocationId
-                    ? 'border-amber-500/30 bg-amber-500/[0.04]'
-                    : 'border-white/5 bg-white/[0.01]'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${loc.id === selectedLocationId ? 'bg-emerald-400' : 'bg-white/20'}`} />
-                  <div>
-                    <div className="text-sm font-bold text-foreground">{loc.name}</div>
-                    {loc.address && <div className="text-xs text-muted-foreground">{loc.address}</div>}
-                    <div className="text-xs font-mono text-muted-foreground/50 mt-0.5">{loc.id}</div>
+            <>
+              <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${selectedLocationId === null ? 'border-amber-500/30 bg-amber-500/[0.04]' : 'border-white/5 bg-white/[0.01]'}`}>
+                <div className="text-sm font-bold text-foreground">Tutte le sedi ({sedi.length})</div>
+                <button
+                  onClick={() => setSelectedLocationId(null)}
+                  disabled={selectedLocationId === null}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-40"
+                >
+                  {selectedLocationId === null ? 'In uso' : 'Seleziona'}
+                </button>
+              </div>
+              {sedi.map((sede) => (
+                <div
+                  key={sede.id}
+                  className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                    sede.id === selectedLocationId ? 'border-amber-500/30 bg-amber-500/[0.04]' : 'border-white/5 bg-white/[0.01]'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${sede.id === selectedLocationId ? 'bg-emerald-400' : 'bg-white/20'}`} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-foreground truncate">{sede.nome}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {sede.totaleRecensioni > 0
+                          ? `${sede.totaleRecensioni} recensioni · voto ${sede.valutazione?.toFixed(1) ?? '—'}`
+                          : 'Nessuna recensione'}
+                      </div>
+                      <div className="text-xs font-mono text-muted-foreground/50 mt-0.5">{sede.id}</div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {loc.id === selectedLocationId && (
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      ATTIVA
-                    </span>
-                  )}
                   <button
-                    onClick={() => setSelectedLocationId(loc.id)}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+                    onClick={() => setSelectedLocationId(sede.id)}
+                    disabled={sede.id === selectedLocationId}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-40 shrink-0"
                   >
-                    Seleziona
+                    {sede.id === selectedLocationId ? 'In uso' : 'Seleziona'}
                   </button>
                 </div>
-              </div>
-            ))
+              ))}
+            </>
           )}
-        </div>
-
-        {/* Directory network sync */}
-        <div>
-          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">Stato Sincronizzazione Network</h4>
-          <div className="space-y-2">
-            {[
-              { name: 'Google Business Profile', status: configured ? 'sync' : 'pending' },
-              { name: 'Apple Maps', status: 'pending' },
-              { name: 'Bing Places', status: 'pending' },
-            ].map((net, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] border border-white/5">
-                <span className="text-sm font-medium text-foreground">{net.name}</span>
-                {net.status === 'sync'
-                  ? <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400">Sincronizzato</span>
-                  : <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">In sospeso</span>
-                }
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     )
@@ -454,11 +462,6 @@ export default function GbpDashboardTab({
                 <StarRating rating={review.rating} />
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">"{review.text}"</p>
-              <div className="flex justify-end pt-1 border-t border-white/5">
-                <button className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-violet-500/10 text-violet-400 border border-violet-500/20 hover:bg-violet-500/20 transition-all">
-                  <Sparkles size={12} /> Genera Risposta AI
-                </button>
-              </div>
             </div>
           ))}
         </div>
@@ -522,19 +525,15 @@ export default function GbpDashboardTab({
               <FileBarChart className="h-5 w-5 text-amber-400" /> Reportistica &amp; Export PDF
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Tutti i KPI GBP, recensioni e Local SEO sono automaticamente collegati al Report Mensile del cliente.
+              Esporta ore e costi del cliente dalla pagina Report; le metriche GBP del periodo sono qui sotto.
             </p>
           </div>
-          <button 
-            onClick={() => {
-              const el = document.querySelector('button[onClick*="report"]') || document.querySelector('[data-tab="report"]');
-              if (el) (el as HTMLElement).click();
-              else window.location.hash = 'report';
-            }}
+          <a
+            href={`/reports?client=${clientId}`}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-black font-bold text-xs hover:bg-amber-400 transition-all active:scale-95 shadow-lg shadow-amber-500/20"
           >
-            <Download size={14} /> Vai al Report Mensile PDF
-          </button>
+            <Download size={14} /> Vai ai Report
+          </a>
         </div>
 
         {ins && (
@@ -553,7 +552,7 @@ export default function GbpDashboardTab({
             </div>
             <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
               <span className="text-xs text-muted-foreground font-medium">Rating Recensioni</span>
-              <p className="text-lg font-black text-amber-400">{gbpData?.reviews?.averageRating?.toFixed(1) || '4.8'} ★</p>
+              <p className="text-lg font-black text-amber-400">{gbpData?.reviews?.averageRating ? `${gbpData.reviews.averageRating.toFixed(1)} ★` : '—'}</p>
             </div>
           </div>
         )}
@@ -573,16 +572,13 @@ export default function GbpDashboardTab({
               <Megaphone className="h-5 w-5 text-amber-400" /> Gestione Post & Contenuti
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Crea, programma e pubblica Aggiornamenti, Offerte ed Eventi sulla scheda Google.
+              Aggiornamenti, Offerte ed Eventi sulla scheda Google.
             </p>
           </div>
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-400 transition-all active:scale-95">
-            <Plus size={14} /> Nuovo Post
-          </button>
         </div>
         <div className="text-center py-10 border border-dashed border-white/10 rounded-xl text-muted-foreground text-sm">
           <Megaphone className="h-8 w-8 mx-auto mb-2 opacity-20" />
-          Funzionalità disponibile con API GBP attiva.
+          Non ancora disponibile qui: i post sulla scheda Google non si possono ancora creare dal Hub.
         </div>
       </div>
     )
@@ -611,17 +607,19 @@ export default function GbpDashboardTab({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Location selector (only if multiple) */}
-          {locations.length > 1 && (
+          {/* Selettore sedi (solo se ce n'è più di una) */}
+          {sedi.length > 1 && (
             <div className="relative">
               <select
+                aria-label="Sede"
                 value={selectedLocationId ?? ''}
                 onChange={(e) => setSelectedLocationId(e.target.value || null)}
-                className="text-xs font-semibold pr-8 pl-3 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-foreground outline-none focus:border-amber-500/50 cursor-pointer appearance-none"
+                className="text-xs font-semibold pr-8 pl-3 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-foreground outline-none focus:border-amber-500/50 cursor-pointer appearance-none max-w-[260px]"
               >
-                {locations.map((loc) => (
-                  <option key={loc.id} value={loc.id} className="bg-neutral-900">
-                    {loc.name}
+                <option value="" className="bg-neutral-900">Tutte le sedi ({sedi.length})</option>
+                {sedi.map((sede) => (
+                  <option key={sede.id} value={sede.id} className="bg-neutral-900">
+                    {sede.nome}
                   </option>
                 ))}
               </select>
@@ -636,16 +634,15 @@ export default function GbpDashboardTab({
               onChange={(e) => setDaysBack(Number(e.target.value))}
               className="text-xs font-semibold pr-8 pl-3 py-2 rounded-lg bg-white/[0.05] border border-white/10 text-foreground outline-none focus:border-primary/50 cursor-pointer appearance-none"
             >
+              {/* Solo i periodi che l'API gestisce: 180 e 365 venivano trattati come 30 senza dirlo */}
               <option value={7}>Ultimi 7 giorni</option>
               <option value={30}>Ultimi 30 giorni</option>
               <option value={90}>Ultimi 90 giorni</option>
-              <option value={180}>Ultimi 6 mesi</option>
-              <option value={365}>Ultimo Anno</option>
             </select>
           )}
 
           {/* Refresh button */}
-          {configured && selectedLocationId && (
+          {configured && (
             <button
               onClick={() => fetchGbpData(selectedLocationId)}
               disabled={loading}

@@ -2072,11 +2072,7 @@ export default function ClientDetailPage() {
 
       {/* TAB: GBP PROFILE */}
       {activeTab === "gbp" && (
-        <GbpDashboardTab
-          clientId={client.id}
-          locations={client.gbpLocations ?? (client.gbpLocationId ? [{ id: client.gbpLocationId, name: 'Sede Principale' }] : [])}
-          activeLocationId={client.gbpActiveLocationId ?? client.gbpLocationId ?? null}
-        />
+        <GbpDashboardTab clientId={client.id} />
       )}
 
       {/* TAB: API SETTINGS */}

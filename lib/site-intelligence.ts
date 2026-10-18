@@ -1,4 +1,4 @@
-// Analisi AI del sito di un cliente: legge la home, la fa riassumere a Gemini in uno schema fisso e il Hub
+// Analisi AI del sito di un cliente: legge la home, la fa riassumere a Claude in uno schema fisso e il Hub
 // la mostra nella scheda "AI Intelligence" (target, competitor, interessi Meta). Funzioni pure dove possibile.
 
 export interface SiteIntelligence {
