@@ -214,6 +214,7 @@ export default function ClientDetailPage() {
     | "gbp"
   >("overview");
   const [newCompetitorName, setNewCompetitorName] = useState("");
+  const [isDiscovering, setIsDiscovering] = useState(false);
   const [uploadingVisionIndex, setUploadingVisionIndex] = useState<
     number | null
   >(null);
@@ -379,12 +380,12 @@ export default function ClientDetailPage() {
           body: JSON.stringify({ name: newCompetitorName }),
         },
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Errore ${res.status}`);
       setNewCompetitorName("");
       window.location.reload();
-    } catch (e) {
+    } catch (e: any) {
       console.error("[competitor] Error adding competitor:", e);
-      toast.error("Impossibile aggiungere il competitor. Riprova.");
+      toast.error(e.message || "Impossibile aggiungere il competitor. Riprova.");
     }
   };
 
@@ -439,45 +440,86 @@ export default function ClientDetailPage() {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Errore ${res.status}`);
       window.location.reload();
-    } catch (e) {
+    } catch (e: any) {
       console.error("[competitor] Error deleting competitor:", e);
-      toast.error("Impossibile eliminare il competitor. Riprova.");
+      toast.error(e.message || "Impossibile eliminare il competitor. Riprova.");
     }
   };
+
+  // Cerca i concorrenti veri (Claude + web); il server verifica che ogni sito esista prima di salvarlo
+  const handleDiscoverCompetitors = async () => {
+    if (!client) return;
+    setIsDiscovering(true);
+    try {
+      const res = await fetch(`${API_URL}/api/clients/${client.id}/intelligence/competitors/discover`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Errore ${res.status}`);
+      if (data.warning) toast.warning(data.warning);
+      else toast.success(`Trovati ${data.added} competitor verificati`, {
+        description: [
+          data.removed ? `${data.removed} voci generiche senza sito tolte` : "",
+          data.source === "claude" ? "Ricerca web non disponibile: controlla i nomi" : "",
+        ].filter(Boolean).join(" · ") || undefined,
+      });
+      if (data.added > 0 || data.removed > 0) window.location.reload();
+    } catch (e: any) {
+      toast.error(e.message || "Ricerca competitor non riuscita");
+    } finally {
+      setIsDiscovering(false);
+    }
+  };
+
+  // Riduce lo screenshot (max 1600 px, JPEG): resta sotto il limite di 4,5 MB delle funzioni Vercel e costa meno token
+  const shrinkImage = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
+      img.onload = () => {
+        const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { URL.revokeObjectURL(url); return reject(new Error("Immagine non leggibile")); }
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Immagine non leggibile")); };
+      img.src = url;
+    });
 
   const handleScreenshotUpload = async (index: number, file: File) => {
     if (!client || !file) return;
     setUploadingVisionIndex(index);
-
-    // Convert to base64
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Image = reader.result as string;
-      const token = localStorage.getItem("token");
-      try {
-        const res = await fetch(
-          `${API_URL}/api/clients/${client.id}/intelligence/competitors/${index}/vision`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ base64Image }),
+    try {
+      const base64Image = await shrinkImage(file);
+      const res = await fetch(
+        `${API_URL}/api/clients/${client.id}/intelligence/competitors/${index}/vision`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
           },
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        window.location.reload();
-      } catch (e) {
-        console.error("[vision] Error uploading screenshot:", e);
-        toast.error("Impossibile caricare lo screenshot. Riprova.");
-      } finally {
-        setUploadingVisionIndex(null);
-      }
-    };
-    reader.readAsDataURL(file);
+          body: JSON.stringify({ base64Image }),
+        },
+      );
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Errore ${res.status}`);
+      window.location.reload();
+    } catch (e: any) {
+      console.error("[vision] Error uploading screenshot:", e);
+      toast.error(e.message || "Impossibile analizzare lo screenshot. Riprova.");
+    } finally {
+      setUploadingVisionIndex(null);
+    }
   };
 
 
@@ -1560,6 +1602,14 @@ export default function ClientDetailPage() {
                         Competitor & Ads Library (Vision AI)
                       </h3>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleDiscoverCompetitors}
+                      disabled={isDiscovering}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-cyan-500/30 text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isDiscovering ? "Ricerca in corso (fino a 1 minuto)..." : "Trova competitor veri (AI + web)"}
+                    </button>
                     {client.intelligence.competitors?.length > 0 && (
                       <button
                         type="button"
@@ -1596,6 +1646,17 @@ export default function ClientDetailPage() {
                                     <h4 className="font-extrabold text-foreground text-sm sm:text-base tracking-tight">
                                       {c.name}
                                     </h4>
+                                    {(c.url || c.city) && (
+                                      <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
+                                        {c.url && (
+                                          <a href={c.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+                                            {String(c.url).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")}
+                                          </a>
+                                        )}
+                                        {c.city && <span>· {c.city}</span>}
+                                        {c.verified && <span className="text-emerald-400 font-semibold">· sito verificato</span>}
+                                      </div>
+                                    )}
                                     {c.estimatedBudget && (
                                       <Badge
                                         variant="secondary"
@@ -1645,6 +1706,20 @@ export default function ClientDetailPage() {
                                     {c.adStyle || "Non ancora analizzato."}
                                   </span>
                                 </div>
+                                {c.adAnalysis && (
+                                  <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+                                    {([["Angoli", c.adAnalysis.angles], ["Ganci", c.adAnalysis.hooks], ["Call to action", c.adAnalysis.ctas], ["Offerte", c.adAnalysis.offers]] as const).map(
+                                      ([label, items]) => (items?.length ?? 0) > 0 && (
+                                        <div key={label}>
+                                          <div className="font-bold text-muted-foreground/75 mb-1">{label}</div>
+                                          <ul className="list-disc list-inside space-y-0.5 text-foreground">
+                                            {items.map((it: string, k: number) => <li key={k}>{it}</li>)}
+                                          </ul>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+                                )}
                               </div>
 
                               {/* Vision Upload Box */}
@@ -1657,7 +1732,7 @@ export default function ClientDetailPage() {
                                 </div>
                                 <p className="text-xs text-muted-foreground leading-relaxed m-0">
                                   Carica uno screenshot della Facebook Ads
-                                  Library del competitor. Gemini Vision
+                                  Library del competitor. Claude
                                   analizzerà l'immagine per dedurre angoli, hook
                                   e ganci creativi usati.
                                 </p>
@@ -1689,7 +1764,7 @@ export default function ClientDetailPage() {
                                   <div className="text-primary text-xs font-bold flex items-center gap-1.5 mt-1 animate-pulse">
                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     <span>
-                                       Lettura Vision in corso... (10s)
+                                       Lettura dello screenshot in corso... (fino a 1 minuto)
                                     </span>
                                   </div>
                                 )}
