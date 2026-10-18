@@ -41,7 +41,15 @@ interface ParolaChiave {
   impression: number;
 }
 
+interface Sede {
+  id: string;
+  nome: string;
+  totaleRecensioni: number;
+  valutazione: number | null;
+}
+
 interface DashboardData {
+  sedi?: Sede[];
   coperturaSummary: any;
   clicSummary: any;
   recensioniSummary: any;
@@ -67,12 +75,26 @@ export default function GbpPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Sede e periodo prima stavano solo nella scheda "Profilo GBP" del cliente, che duplicava questa pagina
+  const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [sede, setSede] = useState<string>('');
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    setSede(q.get('sede') ?? '');
+    const d = Number(q.get('days'));
+    if (d === 7 || d === 90) setDays(d);
+    setReady(true);
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/clients/${id}/gbp`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const query = new URLSearchParams({ days: String(days) });
+      if (sede) query.set('locationId', sede);
+      const response = await fetch(`/api/clients/${id}/gbp?${query}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
       const result = await response.json().catch(() => ({}));
       // Il messaggio dell'API (es. "nessuna sede configurata") è quello utile, non un generico "failed to fetch"
       if (!response.ok) throw new Error(result?.error || `Errore ${response.status}`);
@@ -84,7 +106,7 @@ export default function GbpPage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [id]);
+  useEffect(() => { if (ready) fetchData(); }, [id, days, sede, ready]);
 
   // L'errore va controllato PRIMA dello scheletro: con `loading || !data` per primo, una richiesta fallita
   // lasciava lo scheletro grigio per sempre e l'errore non compariva mai.
@@ -98,7 +120,7 @@ export default function GbpPage() {
     );
   }
 
-  if (loading || !data) {
+  if (!data) {
     return (
       <div className="p-8 space-y-8 animate-in fade-in duration-500">
         <Skeleton className="h-8 w-64" />
@@ -199,8 +221,41 @@ export default function GbpPage() {
   ];
 
   return (
-    <div className="flex-1 space-y-8 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-      
+    <div className={`flex-1 space-y-8 p-4 md:p-8 pt-6 max-w-[1600px] mx-auto animate-in fade-in duration-500 transition-opacity ${loading ? 'opacity-50' : ''}`} aria-busy={loading}>
+
+      {/* BARRA: sede e periodo */}
+      <section className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Google Business Profile</h1>
+          <p className="text-sm text-muted-foreground">
+            {sede ? (data.sedi?.find(s => s.id === sede)?.nome ?? sede) : `Tutte le sedi${data.sedi ? ` (${data.sedi.length})` : ''}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {(data.sedi?.length ?? 0) > 1 && (
+            <select
+              aria-label="Sede"
+              value={sede}
+              onChange={(e) => setSede(e.target.value)}
+              className="text-sm font-medium px-3 py-2 rounded-lg border bg-card max-w-[300px]"
+            >
+              <option value="">Tutte le sedi</option>
+              {data.sedi!.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+            </select>
+          )}
+          <select
+            aria-label="Periodo"
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value) as 7 | 30 | 90)}
+            className="text-sm font-medium px-3 py-2 rounded-lg border bg-card"
+          >
+            <option value={7}>Ultimi 7 giorni</option>
+            <option value={30}>Ultimi 30 giorni</option>
+            <option value={90}>Ultimi 90 giorni</option>
+          </select>
+        </div>
+      </section>
+
       {/* 1. COPERTURA */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Copertura</h2>
@@ -300,6 +355,28 @@ export default function GbpPage() {
         </div>
       </section>
 
+      {/* SEDI: totali di sempre e voto di ogni sede */}
+      {(data.sedi?.length ?? 0) > 1 && !sede && (
+        <section className="space-y-3 pt-4 border-t">
+          <h2 className="text-xl font-semibold tracking-tight">Sedi</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            {data.sedi!.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSede(s.id)}
+                className="text-left bg-card border rounded-xl p-4 shadow-sm hover:border-primary/40 transition-colors"
+              >
+                <div className="text-sm font-semibold line-clamp-2">{s.nome}</div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {s.totaleRecensioni > 0 ? `${s.totaleRecensioni} recensioni · voto ${s.valutazione?.toFixed(1) ?? '—'}` : 'Nessuna recensione'}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* 4. RECENSIONI */}
       <section className="space-y-4 pt-4 border-t">
         <div className="flex justify-between items-end mb-4">
@@ -307,6 +384,8 @@ export default function GbpPage() {
           <div className="flex gap-2">
             <MetricoolCard title="Valutazione" value={data.recensioniSummary.valutazione} variant="blue" className="w-36" size="sm"/>
             <MetricoolCard title="Totale" value={data.recensioniSummary.totale} variant="orange" className="w-36" size="sm"/>
+            <MetricoolCard title="Nel periodo" value={data.recensioniSummary.nelPeriodo ?? 0} variant="green" className="w-36" size="sm"/>
+            <MetricoolCard title="Senza risposta" value={data.recensioniSummary.senzaRisposta ?? 0} variant="pink" className="w-36" size="sm"/>
           </div>
         </div>
         <div className="h-[250px] w-full bg-card border rounded-xl p-4 shadow-sm">

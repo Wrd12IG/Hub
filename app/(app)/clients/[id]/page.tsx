@@ -65,7 +65,6 @@ const SeoAuditModal = dynamic(
   () => import("@/components/SeoAuditModal").then((m) => m.SeoAuditModal),
   { ssr: false },
 );
-import GbpDashboardTab from "@/components/GbpDashboardTab";
 import { MetaTokenManager } from "@/components/MetaTokenManager";
 import PlatformConnections from "@/components/PlatformConnections";
 import { Button } from "@/components/ui/button";
@@ -211,7 +210,6 @@ export default function ClientDetailPage() {
     | "campaigns"
     | "settings"
     | "heatmaps"
-    | "gbp"
   >("overview");
   const [newCompetitorName, setNewCompetitorName] = useState("");
   const [uploadingVisionIndex, setUploadingVisionIndex] = useState<
@@ -638,7 +636,6 @@ export default function ClientDetailPage() {
       iconColor: "text-emerald-400",
     },
     { id: "heatmaps", label: "Heatmaps & Registrazioni", icon: Eye, iconColor: "text-rose-400" },
-    { id: "gbp", label: "Profilo GBP", icon: MapPin, iconColor: "text-blue-400" },
     { id: "settings", label: "Setup API", icon: Settings, iconColor: "text-amber-400" },
   ];
 
@@ -2068,11 +2065,6 @@ export default function ClientDetailPage() {
             </div>
           )}
         </div>
-      )}
-
-      {/* TAB: GBP PROFILE */}
-      {activeTab === "gbp" && (
-        <GbpDashboardTab clientId={client.id} />
       )}
 
       {/* TAB: API SETTINGS */}
