@@ -20,6 +20,13 @@ describe('claude', () => {
         expect(calls[0]).toMatchObject({ model: 'claude-sonnet-5-5', system: 's', messages: [{ role: 'user', content: 'p' }] });
     });
 
+    it('NON manda temperature: i modelli Claude 5 la rifiutano (errore visto in produzione il 18/10)', async () => {
+        stub(ok('x'), ok('y'));
+        await askClaude({ prompt: 'p' });
+        await askClaudeJson({ prompt: 'p' }).catch(() => {});
+        for (const body of calls) expect(body).not.toHaveProperty('temperature');
+    });
+
     it('se il primo modello fallisce ripiega su Haiku 5.5', async () => {
         stub(fail('overloaded'), ok('ok'));
         expect(await askClaude({ prompt: 'p' })).toBe('ok');
@@ -28,7 +35,7 @@ describe('claude', () => {
 
     it('se falliscono tutti, un errore che dice perché', async () => {
         stub(fail('a'), fail('b'));
-        await expect(askClaude({ prompt: 'p' })).rejects.toThrow(/Claude non ha risposto.*haiku.*b/);
+        await expect(askClaude({ prompt: 'p' })).rejects.toThrow(/Claude non ha risposto.*sonnet-5-5: a.*haiku-5-5: b/);
     });
 
     it('senza chiave non chiama nessuno', async () => {
