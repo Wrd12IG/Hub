@@ -71,7 +71,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     catch { return NextResponse.json({ error: `Sito non valido o non consentito per "${c.nome || c.sito}"` }, { status: 400 }); }
   }
 
-  await ref(params.id).set({ competitors: clean, updatedAt: Date.now() }, { merge: true });
+  // Firestore rifiuta `undefined` (instagram/facebook/linkedin vuoti) e questo progetto non ha ignoreUndefinedProperties:
+  // senza il giro JSON il salvataggio falliva ogni volta che un social era vuoto.
+  await ref(params.id).set(JSON.parse(JSON.stringify({ competitors: clean, updatedAt: Date.now() })), { merge: true });
   return NextResponse.json({ competitors: clean });
 }
 
