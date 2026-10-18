@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
 import { askClaude, isClaudeConfigured } from '@/lib/claude';
+import { generateImage, isNanoBananaConfigured } from '@/lib/nano-banana';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -33,43 +34,20 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // 2. L'IMMAGINE vera la genera ancora Google Imagen 3: Claude non genera immagini.
-        //    Senza GEMINI_API_KEY si salta e si usa l'immagine di ripiego del punto 3.
-        const geminiApiKey = process.env.GEMINI_API_KEY;
-        if (geminiApiKey && !/^your_/.test(geminiApiKey)) try {
-            // Updated model name to match current Google AI Studio Imagen 3 availability
-            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generateImages?key=${geminiApiKey}`;
-            const imagenResponse = await fetch(imagenUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    prompt: imagePrompt,
-                    numberOfImages: 1,
-                    safetySettings: [
-                        { category: "HATE_SPEECH", threshold: "BLOCK_LOW_AND_ABOVE" },
-                        { category: "HARASSMENT", threshold: "BLOCK_LOW_AND_ABOVE" },
-                        { category: "SEXUALLY_EXPLICIT", threshold: "BLOCK_LOW_AND_ABOVE" },
-                        { category: "DANGEROUS_CONTENT", threshold: "BLOCK_LOW_AND_ABOVE" }
-                    ]
-                })
-            });
-
-            if (imagenResponse.ok) {
-                const imagenData = await imagenResponse.json();
-                if (imagenData.images && imagenData.images[0]) {
-                    const base64 = imagenData.images[0].base64Data;
-                    const mimeType = imagenData.images[0].mimeType || 'image/png';
-                    return NextResponse.json({ imageUrl: `data:${mimeType};base64,${base64}` });
-                }
-            } else {
-                console.error('Imagen 3 API returned error:', await imagenResponse.text());
+        // 2. L'immagine la genera Nano Banana (Gemini image) con il prompt scritto da Claude.
+        let imageError: string | undefined;
+        if (isNanoBananaConfigured()) {
+            try {
+                const aspectRatio = platform === 'instagram' ? '4:5' : mediaType === 'video' ? '9:16' : '1:1';
+                return NextResponse.json({ imageUrl: await generateImage(imagePrompt, { aspectRatio }) });
+            } catch (e: any) {
+                imageError = e.message;
+                console.error('Nano Banana non ha generato l\'immagine:', e.message);
             }
-        } catch (e) {
-            console.error('Gemini Imagen 3 not available or failed:', e);
         }
 
         // 3. Fallback: High-quality UNIQUE placeholder based on TOPIC
-        // If Imagen fails, we use a search-based unsplash URL to ensure post diversity.
+        // Se Nano Banana non è disponibile, we use a search-based unsplash URL to ensure post diversity.
         const encodedTopic = encodeURIComponent(topic || 'business');
         const randomSeed = Math.floor(Math.random() * 1000);
         const imageUrl = `https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=800&q=80&sig=${encodedTopic}-${randomSeed}`;
@@ -77,7 +55,7 @@ export async function POST(req: NextRequest) {
         // Alternative reliable unique image service
         const finalUrl = `https://loremflickr.com/800/600/${encodedTopic}?random=${randomSeed}`;
 
-        return NextResponse.json({ imageUrl: finalUrl });
+        return NextResponse.json({ imageUrl: finalUrl, fallback: true, ...(imageError ? { imageError } : {}) });
 
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
