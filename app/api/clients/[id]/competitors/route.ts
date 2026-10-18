@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed, denyUnlessStaff } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { fetchCompetitorPage, diffSnapshots, type CompetitorSnapshot } from '@/lib/competitors-client';
+import { assertPublicHttpUrl } from '@/lib/site-intelligence';
 
 export const maxDuration = 60;
 
@@ -62,6 +63,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     facebook: String(c.facebook ?? '').trim() || undefined,
     linkedin: String(c.linkedin ?? '').trim() || undefined,
   })).filter((c: Competitor) => c.nome || c.sito);
+
+  // Il Hub legge questi siti dal server ogni notte: solo indirizzi pubblici (niente localhost / reti interne)
+  for (const c of clean) {
+    if (!c.sito) continue;
+    try { assertPublicHttpUrl(c.sito); }
+    catch { return NextResponse.json({ error: `Sito non valido o non consentito per "${c.nome || c.sito}"` }, { status: 400 }); }
+  }
 
   await ref(params.id).set({ competitors: clean, updatedAt: Date.now() }, { merge: true });
   return NextResponse.json({ competitors: clean });
