@@ -7,6 +7,7 @@ import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
 import { ReportAlertList } from '@/components/ReportAlertList'
+import { ReportProgress } from '@/components/ReportProgress'
 import { PLATFORM_DEFS, COST_KEYS, computeAlerts, type PlatformKey } from '@/lib/report-metrics'
 import type { MarketingReportState } from '@/hooks/use-marketing-report'
 
@@ -48,7 +49,7 @@ export function MarketingReportTab({
   compare?: 'prev_period' | 'prev_year' | 'none'
   report: MarketingReportState
 }) {
-  const { platforms, loading, error: loadError, computedAt, fromCache, reload: fetchReport } = report
+  const { platforms, loading, error: loadError, computedAt, fromCache, progress, reload: fetchReport } = report
 
   const connectedCount = platforms?.filter(p => p.connected).length ?? 0
   const noPlatformsConfigured = platforms !== null && platforms.length === 0
@@ -81,6 +82,9 @@ export function MarketingReportTab({
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Aggiorna
         </button>
       </div>
+
+      {/* Mentre si aggiorna: quante fonti sono già arrivate */}
+      <ReportProgress loading={loading && !!platforms} progress={progress} />
 
       {!loadError && platforms && compare !== 'none' && (
         <ReportAlertList alerts={alerts} compare={compare as 'prev_period' | 'prev_year'} />

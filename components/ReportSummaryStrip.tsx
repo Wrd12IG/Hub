@@ -3,6 +3,7 @@
 import React from 'react'
 import { Coins, Target, Wallet } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ReportProgress } from '@/components/ReportProgress'
 import { summarizeReport } from '@/lib/report-metrics'
 import { formatEuro } from '@/lib/format'
 import type { MarketingReportState } from '@/hooks/use-marketing-report'
@@ -43,7 +44,12 @@ export function ReportSummaryStrip({
 
   if (!platforms) {
     if (error) return <p className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">Riepilogo non disponibile: {error}</p>
-    return <Skeleton className="h-[92px] rounded-2xl" />
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-[92px] rounded-2xl" />
+        <ReportProgress loading={loading} progress={report.progress} />
+      </div>
+    )
   }
 
   const s = summarizeReport(platforms, days)
@@ -71,6 +77,11 @@ export function ReportSummaryStrip({
           <span>{s.costPerResult === null ? '—' : formatEuro(s.costPerResult)}</span>
         </Tile>
       </div>
+      {loading && (
+        <div className="border-t border-border px-5 py-3">
+          <ReportProgress loading={loading} progress={report.progress} />
+        </div>
+      )}
     </div>
   )
 }

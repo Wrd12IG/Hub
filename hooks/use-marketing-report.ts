@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PlatformReport } from '@/lib/reporting'
 
 /** Periodo della pagina (in giorni) → date_preset del report. */
@@ -20,6 +20,8 @@ export interface MarketingReportState {
   error: string | null
   computedAt: string | null
   fromCache: boolean
+  /** A che punto è il calcolo in corso (null finché il server non ha detto niente o se la risposta arriva dalla cache). */
+  progress: { done: number; total: number; label: string } | null
   /** `force` salta la cache lato server: l'apertura della pagina non lo usa, «Aggiorna» sì. */
   reload: (force?: boolean) => Promise<void>
 }
@@ -34,14 +36,30 @@ export function useMarketingReport(clientId: string, daysBack: number, compare: 
   const [error, setError] = useState<string | null>(null)
   const [computedAt, setComputedAt] = useState<string | null>(null)
   const [fromCache, setFromCache] = useState(false)
+  const [progress, setProgress] = useState<MarketingReportState['progress']>(null)
+  const poll = useRef<ReturnType<typeof setInterval> | null>(null)
+  const stopPolling = () => { if (poll.current) { clearInterval(poll.current); poll.current = null } }
 
   const reload = useCallback(async (force = false) => {
     setLoading(true)
     setError(null)
+    setProgress(null)
+    // Identificativo di questo calcolo: il server scrive l'avanzamento sotto di esso, qui lo si legge ogni poco
+    const runId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+    const headers = { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    stopPolling()
+    poll.current = setInterval(async () => {
+      try {
+        const r = await fetch(`/api/clients/${clientId}/reporting/progress?run=${runId}`, { headers })
+        const j = r.ok ? await r.json() : null
+        const p = j?.progress
+        if (p && p.total > 0) setProgress({ done: p.done, total: p.total, label: p.steps?.[p.steps.length - 1]?.label ?? '' })
+      } catch { /* l'avanzamento è un extra: se non risponde, la barra resta generica */ }
+    }, 1200)
     try {
       const res = await fetch(
-        `/api/clients/${clientId}/reporting?date_preset=${toDatePreset(daysBack)}&days=${daysBack}&compare=${compare}${force ? '&refresh=1' : ''}`,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } },
+        `/api/clients/${clientId}/reporting?date_preset=${toDatePreset(daysBack)}&days=${daysBack}&compare=${compare}&run=${runId}${force ? '&refresh=1' : ''}`,
+        { headers },
       )
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -54,12 +72,14 @@ export function useMarketingReport(clientId: string, daysBack: number, compare: 
     } catch (err: any) {
       setError(err.message || 'Impossibile caricare il report')
     } finally {
+      stopPolling()
       setLoading(false)
     }
   }, [clientId, daysBack, compare])
 
   // Solo quando serve (tab Panoramica aperta): il server lo tiene in cache, ma non c'è motivo di chiederlo dalle altre tab
   useEffect(() => { if (enabled) reload(false) }, [reload, enabled])
+  useEffect(() => stopPolling, [])
 
-  return { platforms, loading, error, computedAt, fromCache, reload }
+  return { platforms, loading, error, computedAt, fromCache, progress, reload }
 }
