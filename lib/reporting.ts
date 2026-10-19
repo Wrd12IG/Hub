@@ -16,6 +16,7 @@
 import { getData } from './windsor-client';
 import { withMetaDerived } from './meta-metrics';
 import { dailyFromRows, type DailyPoint } from './report-series';
+import { PLATFORM_DEFS } from './report-metrics';
 import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
@@ -321,7 +322,7 @@ export async function getClientMarketingReport(
     client: ClientReportSource,
     datePreset = 'last_30d',
     windows?: { current: { dateFrom: string; dateTo: string }; previous: { dateFrom: string; dateTo: string } | null },
-    options: { fresh?: boolean } = {}
+    options: { fresh?: boolean; onProgress?: (e: { done: number; total: number; label: string; ok: boolean }) => void } = {}
 ): Promise<PlatformReport[]> {
     const fresh = !!options.fresh;
     // facebook/google_ads/ga4 prefer the ids already entered in "Setup API";
@@ -635,17 +636,27 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
         }
     };
 
-    const [single, gbp] = await Promise.all([
-        Promise.all([
-            ...platforms.map((platform) => fetchOne(platform, mapping[platform]!)),
-            ...(client.googleAdAccountId ? [fetchGoogleAds(client.googleAdAccountId)] : []),
-            ...(client.ga4PropertyId ? [fetchGa4(client.ga4PropertyId)] : []),
-            ...(searchConsoleSite ? [fetchSearchConsole(searchConsoleSite)] : []),
-            ...(client.klaviyo ? [fetchKlaviyo(client.klaviyo)] : []),
-            ...(client.awinAdvertiserId ? [fetchAwin(client.awinAdvertiserId)] : []),
-        ]),
-        gbpAccountIds.length > 0 ? fetchGbpBatch(gbpAccountIds) : Promise.resolve([] as PlatformReport[]),
-    ]);
+    // Ogni fonte parte subito (come prima) e, quando finisce, avvisa chi ascolta: serve alla barra di avanzamento.
+    // L'ordine del risultato resta quello di sempre: fonti nell'ordine elencato, GBP in coda.
+    const jobs: { label: string; promise: Promise<PlatformReport | PlatformReport[]> }[] = [
+        ...platforms.map((platform) => ({ label: PLATFORM_DEFS[platform].label, promise: fetchOne(platform, mapping[platform]!) })),
+        ...(client.googleAdAccountId ? [{ label: PLATFORM_DEFS.google_ads.label, promise: fetchGoogleAds(client.googleAdAccountId) }] : []),
+        ...(client.ga4PropertyId ? [{ label: PLATFORM_DEFS.ga4.label, promise: fetchGa4(client.ga4PropertyId) }] : []),
+        ...(searchConsoleSite ? [{ label: PLATFORM_DEFS.searchconsole.label, promise: fetchSearchConsole(searchConsoleSite) }] : []),
+        ...(client.klaviyo ? [{ label: PLATFORM_DEFS.klaviyo.label, promise: fetchKlaviyo(client.klaviyo) }] : []),
+        ...(client.awinAdvertiserId ? [{ label: PLATFORM_DEFS.awin.label, promise: fetchAwin(client.awinAdvertiserId) }] : []),
+        ...(gbpAccountIds.length > 0 ? [{ label: PLATFORM_DEFS.gbp.label, promise: fetchGbpBatch(gbpAccountIds) }] : []),
+    ];
+    const total = jobs.length;
+    let done = 0;
+    options.onProgress?.({ done, total, label: '', ok: true });
+    const results = await Promise.all(jobs.map(async (job) => {
+        const r = await job.promise;
+        done += 1;
+        const ok = Array.isArray(r) ? r.every((x) => x.connected) : r.connected;
+        options.onProgress?.({ done, total, label: job.label, ok });
+        return r;
+    }));
 
-    return [...single, ...gbp];
+    return results.flat();
 }
