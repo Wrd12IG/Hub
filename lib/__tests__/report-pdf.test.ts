@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pdfRange, formatMetric, buildPdfSections } from '../report-pdf';
+import { pdfRange, formatMetric, buildPdfSections, buildHighlights, pickChart } from '../report-pdf';
 import type { PlatformReport } from '../reporting';
 
 const NOW = new Date(2026, 9, 19, 12); // 19 ottobre 2026
@@ -46,5 +46,41 @@ describe('sezioni per piattaforma', () => {
     });
     it('salta piattaforme non collegate e quelle tutte a zero', () => {
         expect(buildPdfSections([off, zero])).toEqual([]);
+    });
+});
+
+describe('sintesi in frasi', () => {
+    it('risultato, spesa, costo e variazioni notevoli', () => {
+        const h = buildHighlights({
+            spend: { value: 623.47, previous: 640 },
+            result: { label: 'lead', value: 51, previous: 30, source: 'Meta Ads — lead' },
+            costPerResult: 7.9,
+            alerts: [
+                { platform: 'Meta Ads', key: 'leads', label: 'Lead', value: 70, good: true, from: 30, to: 51 },
+                { platform: 'Instagram', key: 'reach', label: 'Reach', value: -30, good: false, from: 100, to: 70 },
+            ],
+        });
+        expect(h[0]).toBe('51 lead nel periodo (+70% rispetto al periodo precedente), da Meta Ads.');
+        expect(h[1]).toContain('€623,47');
+        expect(h[1]).toContain('−2,6%');
+        expect(h).toContain('Costo medio di ogni risultato (lead): €7,90.');
+        expect(h).toContain('In crescita: Lead su Meta Ads +70%.');
+        expect(h).toContain("Da tenere d'occhio: Reach su Instagram −30%.");
+    });
+    it('senza dati nessuna frase inventata', () => {
+        expect(buildHighlights({ spend: null, result: null, costPerResult: null, alerts: [] })).toEqual([]);
+    });
+});
+
+describe('grafico di una piattaforma', () => {
+    const daily = (key: string, vals: number[]) => vals.map((v, i) => ({ date: `2026-09-${String(i + 1).padStart(2, '0')}`, [key]: v }));
+    it('prende la prima metrica con dati', () => {
+        const c = pickChart({ platform: 'searchconsole', connected: true, rows: [], daily: daily('clicks', [5, 7, 9, 3]) } as unknown as PlatformReport);
+        expect(c).toMatchObject({ label: 'Click organici', euro: false });
+        expect(c?.points).toHaveLength(4);
+    });
+    it('meno di 3 giorni o tutto zero: nessun grafico', () => {
+        expect(pickChart({ platform: 'searchconsole', connected: true, rows: [], daily: daily('clicks', [5, 7]) } as unknown as PlatformReport)).toBeNull();
+        expect(pickChart({ platform: 'searchconsole', connected: true, rows: [], daily: daily('clicks', [0, 0, 0, 0]) } as unknown as PlatformReport)).toBeNull();
     });
 });
