@@ -22,7 +22,8 @@ const TABLE = 'bigquery-public-data.google_ads_transparency_center.creative_stat
 /** Tetto di sicurezza per query: oltre questo BigQuery rifiuta senza addebitare. */
 export const MAX_BYTES_BILLED = 150_000_000_000;
 
-export interface TransparencyTarget { id: string; nome: string; sito?: string }
+/** `handles`: nomi dei profili social salvati per il competitor (instagram, facebook, ...): altri nomi con cui l'inserzionista può comparire. */
+export interface TransparencyTarget { id: string; nome: string; sito?: string; handles?: string[] }
 
 export interface AdvertiserResult {
     competitorId: string;
@@ -40,7 +41,7 @@ export interface AdvertiserResult {
 const strip = (s: string) =>
     s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
-/** Modelli di ricerca per un competitor: il nome e, se diverso, l'etichetta del dominio ("finiguerra.it" → "finiguerra"). */
+/** Modelli di ricerca per un competitor: il nome, l'etichetta del dominio ("finiguerra.it" → "finiguerra") e i nomi dei profili social salvati. */
 export function patternsFor(target: TransparencyTarget): string[] {
     const out = new Set<string>();
     const name = strip(target.nome);
@@ -52,14 +53,24 @@ export function patternsFor(target: TransparencyTarget): string[] {
             if (label.length >= 4) out.add(label);
         } catch { /* sito non valido: si cerca solo per nome */ }
     }
+    for (const h of target.handles ?? []) {
+        const handle = strip(h.replace(/[._-]+/g, ' '));
+        if (handle.length >= 4) out.add(handle);
+    }
     return Array.from(out);
 }
 
 const sqlString = (s: string) => `'${s.replace(/[\\']/g, '')}'`;
 
+/**
+ * Il modello come PAROLE INTERE: "sarco" non deve agganciare "Isarco" né "Sarcoli". Il modello contiene solo lettere,
+ * cifre e spazi (vedi strip): gli spazi diventano "uno o più separatori", e prima e dopo ci vuole un confine di parola.
+ */
+export const wordRegex = (pattern: string) => `(^|[^a-z0-9])${pattern.replace(/ /g, '[^a-z0-9]+')}([^a-z0-9]|$)`;
+
 export function buildQuery(targets: TransparencyTarget[], since: string): string {
     const rows = targets.flatMap((t) =>
-        patternsFor(t).map((p) => `SELECT ${sqlString(t.id)} AS k, ${sqlString(`%${p}%`)} AS pattern`));
+        patternsFor(t).map((p) => `SELECT ${sqlString(t.id)} AS k, ${sqlString(wordRegex(p))} AS pattern`));
     if (rows.length === 0) throw new Error('Nessun competitor con un nome utilizzabile');
     return `WITH targets AS (
   ${rows.join('\n  UNION ALL ')}
@@ -78,7 +89,7 @@ SELECT
 FROM \`${TABLE}\` AS c
 CROSS JOIN UNNEST(c.region_stats) AS rs
 JOIN targets AS t
-  ON LOWER(c.advertiser_disclosed_name) LIKE t.pattern OR LOWER(c.advertiser_legal_name) LIKE t.pattern
+  ON REGEXP_CONTAINS(LOWER(c.advertiser_disclosed_name), t.pattern) OR REGEXP_CONTAINS(LOWER(c.advertiser_legal_name), t.pattern)
 WHERE rs.region_code = 'IT' AND c.advertiser_location = 'IT'
 GROUP BY t.k, c.advertiser_id
 ORDER BY recent DESC, creatives DESC

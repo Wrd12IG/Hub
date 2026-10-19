@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed, denyUnlessStaff } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { searchAdvertisers, type TransparencyTarget } from '@/lib/google-ads-transparency';
+import { socialHandle } from '@/lib/social-links';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -30,12 +31,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const registry = await adminDb.collection('clients').doc(params.id).collection('intelligence').doc('competitors').get();
   const targets: TransparencyTarget[] = ((registry.data()?.competitors ?? []) as any[])
     .filter((c) => c?.id && c?.nome)
-    .map((c) => ({ id: String(c.id), nome: String(c.nome), sito: c.sito ? String(c.sito) : undefined }));
+    .map((c) => ({
+      id: String(c.id), nome: String(c.nome), sito: c.sito ? String(c.sito) : undefined,
+      // Le pagine salvate per il competitor: i loro nomi sono altri modi in cui l'inserzionista può comparire
+      handles: [c.instagram, c.facebook, c.linkedin, c.youtube, c.tiktok].map((v) => socialHandle(v)).filter((h): h is string => !!h),
+    }));
 
   if (targets.length === 0) return NextResponse.json({ results: [], targets: 0 });
 
   // La voce di cache vale solo per questo elenco di competitor: se ne cambia uno, si rilegge.
-  const signature = targets.map((t) => `${t.id}|${t.nome}|${t.sito ?? ''}`).sort().join(';');
+  const signature = targets.map((t) => `${t.id}|${t.nome}|${t.sito ?? ''}|${(t.handles ?? []).join(',')}`).sort().join(';');
   const cacheRef = adminDb.collection('clients').doc(params.id).collection('cache').doc('transparency_google');
 
   if (!refresh) {

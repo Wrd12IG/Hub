@@ -6,7 +6,7 @@ import type { AdvertiserResult } from '@/lib/google-ads-transparency'
 import { Skeleton } from '@/components/ui/skeleton'
 import { adLibraryLinks, domainOf } from '@/lib/ad-library-links'
 
-interface Competitor { id: string; nome: string; sito: string }
+interface Competitor { id: string; nome: string; sito: string; facebook?: string; linkedin?: string }
 
 const LIBRARIES = [
   { key: 'meta', label: 'Meta' },
@@ -99,7 +99,7 @@ export function CompetitorAdLibrary({ clientId }: { clientId: string }) {
       ) : (
         <ul className="divide-y divide-white/5 rounded-xl border border-white/5 bg-white/[0.02]">
           {competitors.map((c) => {
-            const links = adLibraryLinks({ nome: c.nome, sito: c.sito })
+            const links = adLibraryLinks({ nome: c.nome, sito: c.sito, facebook: c.facebook, linkedin: c.linkedin })
             return (
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0 space-y-1">
@@ -127,6 +127,7 @@ export function CompetitorAdLibrary({ clientId }: { clientId: string }) {
                       href={links[l.key]}
                       target="_blank"
                       rel="noopener noreferrer"
+                      title={`Ricerca per ${links.basis[l.key]}${links.basis[l.key] === 'nome' ? ': aggiungi la pagina del competitor per un risultato più preciso' : ''}`}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/[0.06] transition-colors"
                     >
                       {l.label} <ExternalLink size={11} />

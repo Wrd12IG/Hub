@@ -32,3 +32,29 @@ describe('normalizeSocial', () => {
         expect(normalizeSocial('tiktok', 'a')).toBeUndefined();
     });
 });
+
+import { socialHandle, facebookPageId } from '../social-links';
+
+describe('socialHandle e facebookPageId', () => {
+    it('ricava il nome del profilo dal link salvato', () => {
+        expect(socialHandle('https://www.instagram.com/SpotornoCar/')).toBe('spotornocar');
+        expect(socialHandle('https://www.tiktok.com/@spotornocar')).toBe('spotornocar');
+        expect(socialHandle('https://www.youtube.com/@SpotornoCar')).toBe('spotornocar');
+        expect(socialHandle('https://www.linkedin.com/company/spotorno-car/')).toBe('spotorno-car');
+        expect(socialHandle('https://www.facebook.com/people/Spotorno-Car/100012345678901/')).toBe('spotorno-car');
+    });
+
+    it('niente nome quando il link non ne ha uno utilizzabile', () => {
+        expect(socialHandle('https://www.facebook.com/profile.php?id=100012345678901')).toBeUndefined();
+        expect(socialHandle('https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv')).toBeUndefined();
+        expect(socialHandle('@spotornocar')).toBeUndefined();
+        expect(socialHandle(undefined)).toBeUndefined();
+    });
+
+    it('l\'ID pagina Facebook solo se il link lo contiene davvero', () => {
+        expect(facebookPageId('https://www.facebook.com/profile.php?id=100012345678901')).toBe('100012345678901');
+        expect(facebookPageId('https://www.facebook.com/pages/Spotorno-Car/123456789012345')).toBe('123456789012345');
+        expect(facebookPageId('https://www.facebook.com/spotornocar')).toBeUndefined();
+        expect(facebookPageId('https://www.facebook.com/spotornocar2023')).toBeUndefined();
+    });
+});

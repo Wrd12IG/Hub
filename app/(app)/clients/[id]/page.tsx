@@ -61,6 +61,7 @@ import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
+import { stripCitations } from "@/lib/clean-text";
 import { CampaignsTable } from "@/components/CampaignsTable";
 import { CompetitorAdLibrary } from "@/components/CompetitorAdLibrary";
 import { ClientHealthBadge } from "@/components/ClientHealthBadge";
@@ -394,6 +395,34 @@ export default function ClientDetailPage() {
     } catch (e: any) {
       console.error("[competitor] Error adding competitor:", e);
       toast.error(e.message || "Impossibile aggiungere il competitor. Riprova.");
+    }
+  };
+
+  // Aggiunge al monitoraggio notturno UN solo competitor, quello scelto: l'aggiunta in blocco prendeva i primi dell'elenco
+  // che entravano nei 5 posti, e un altro poteva passare davanti a quello che volevi.
+  const handleMonitorOne = async (index: number) => {
+    if (!client?.intelligence) return;
+    const c: any = (client.intelligence.competitors ?? [])[index];
+    if (!c) return;
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    try {
+      const current = await fetch(`${API_URL}/api/clients/${client.id}/competitors`, { headers });
+      if (!current.ok) throw new Error(`HTTP ${current.status}`);
+      const existing = (await current.json()).competitors ?? [];
+      const plan = mergeCompetitors(existing, [{ name: c.name ?? c.nome, url: c.url ?? c.website ?? c.sito }]);
+      const nome = c.name ?? c.nome ?? "Competitor";
+      if (plan.skippedNoUrl.length) return void toast.error(`${nome} non ha un sito: aggiungilo prima, il Hub legge il sito ogni notte.`);
+      if (plan.skippedDuplicate.length) return void toast.message(`${nome} è già monitorato`, { description: "C'è già un competitor con lo stesso sito o lo stesso nome." });
+      if (plan.skippedFull.length) return void toast.error("Elenco pieno: 5 competitor su 5", { description: "Togline uno da Setup API → Competitor per fare posto." });
+      const res = await fetch(`${API_URL}/api/clients/${client.id}/competitors`, {
+        method: "POST", headers, body: JSON.stringify({ competitors: plan.merged }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      toast.success(`${nome} aggiunto al monitoraggio notturno`, { description: plan.added[0]?.sito });
+    } catch (e: any) {
+      toast.error(e.message || "Impossibile aggiungere il competitor");
     }
   };
 
@@ -1630,7 +1659,7 @@ export default function ClientDetailPage() {
                         onClick={handleSaveToMonitoring}
                         className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-pink-500/30 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer"
                       >
-                        Aggiungi al monitoraggio notturno
+                        Aggiungi tutti al monitoraggio (max 5)
                       </button>
                     )}
                   </div>
@@ -1681,12 +1710,22 @@ export default function ClientDetailPage() {
                                     )}
                                   </div>
                                 </div>
+                                <div className="flex items-start gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => handleMonitorOne(i)}
+                                  title="Aggiungi solo questo competitor al monitoraggio notturno"
+                                  className="shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-pink-500/30 text-pink-600 dark:text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer"
+                                >
+                                  Monitora
+                                </button>
                                 <button
                                   onClick={() => handleDeleteCompetitor(i)}
                                   className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-all active:scale-95 cursor-pointer border-none"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </button>
+                                </div>
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1696,7 +1735,7 @@ export default function ClientDetailPage() {
                                     di forza
                                   </div>
                                   <div className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                    {c.strength || "—"}
+                                    {c.strength ? stripCitations(String(c.strength)) : "—"}
                                   </div>
                                 </div>
                                 <div className="bg-white/[0.02] border border-white/8 p-3.5 rounded-xl space-y-1 border-l-2 border-l-rose-500/60">
@@ -1705,10 +1744,10 @@ export default function ClientDetailPage() {
                                     deboli
                                   </div>
                                   <div className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                    {c.weakness || (
+                                    {c.weakness ? stripCitations(String(c.weakness)) : (
                                       <span className="italic text-muted-foreground/60">
                                         {c.analysisNote
-                                          ? `Analizzato: ${c.analysisNote}`
+                                          ? `Analizzato: ${stripCitations(String(c.analysisNote))}`
                                           : "Non ancora analizzato: non vuol dire che non ce ne siano."}
                                       </span>
                                     )}
@@ -1740,7 +1779,7 @@ export default function ClientDetailPage() {
                                     Stile Creativo:
                                   </span>
                                   <span className="text-foreground font-semibold">
-                                    {c.adStyle || "Non ancora analizzato."}
+                                    {c.adStyle ? stripCitations(String(c.adStyle)) : "Non ancora analizzato."}
                                   </span>
                                 </div>
                                 {c.adAnalysis && (
