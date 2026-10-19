@@ -69,6 +69,8 @@ export interface ClientHealth {
     metricLabel: string | null;
     /** Da dove viene il numero, per poterlo dichiarare invece di farlo apparire. */
     source: string | null;
+    /** Piattaforma da cui viene il numero (serve per dividere la spesa di quel canale per il suo risultato). */
+    sourcePlatform: PlatformReport['platform'] | null;
     periodLabel: string;
     current: number | null;
     previous: number | null;
@@ -227,6 +229,7 @@ export function computeClientHealth(input: {
         metric,
         metricLabel,
         source: outcome?.label ?? null,
+        sourcePlatform: outcome?.platform ?? null,
         periodLabel,
         current: outcome?.current ?? null,
         previous: outcome?.previous ?? null,

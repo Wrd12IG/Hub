@@ -133,6 +133,13 @@ const NON_SUMMABLE = new Set([
     'review_average_rating', 'review_average_rating_total',
 ]);
 
+/** Contatti di una sede: chiamate + richieste di indicazioni + click sul sito. */
+export function withGbpContacts(row: Record<string, string | number | undefined>): Record<string, string | number | undefined> {
+    const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+    const contacts = n(row.call_clicks) + n(row.direction_requests) + n(row.website_clicks);
+    return { ...row, contacts: contacts || undefined };
+}
+
 function aggregateRows(rows: Record<string, string | number | undefined>[]): Record<string, string | number | undefined> {
     const totals: Record<string, string | number | undefined> = {};
     for (const row of rows) {
@@ -414,8 +421,8 @@ export async function getClientMarketingReport(
                     connected: true,
                     // Resta riconoscibile anche quando Windsor non restituisce righe (sede non interrogabile)
                     accountLabel: (cur[0]?.account_name as string) || accountId,
-                    rows: cur.length > 0 ? [aggregateRows(cur)] : [],
-                    previousRows: prev.length > 0 ? [aggregateRows(prev)] : [],
+                    rows: cur.length > 0 ? [withGbpContacts(aggregateRows(cur))] : [],
+                    previousRows: prev.length > 0 ? [withGbpContacts(aggregateRows(prev))] : [],
                 };
             });
         } catch (err: any) {

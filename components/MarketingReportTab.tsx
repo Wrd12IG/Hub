@@ -1,41 +1,25 @@
 "use client"
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail, Handshake } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
+import { PLATFORM_DEFS, COST_KEYS, computeAlerts, type PlatformKey } from '@/lib/report-metrics'
+import type { MarketingReportState } from '@/hooks/use-marketing-report'
 
-// Matches lib/reporting.ts's PlatformReport shape.
-type PlatformKey = 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo' | 'awin'
-
-interface PlatformReport {
-  platform: PlatformKey
-  /** Present when a client has several accounts on one platform (GBP: one per sede). */
-  accountLabel?: string
-  connected: boolean
-  error?: string
-  rows: Record<string, string | number | undefined>[]
-  previousRows?: Record<string, string | number | undefined>[]
-}
-
-// `detail` is the existing per-platform deep-dive page, when one exists — the
-// KPI card here is the summary, that page is the drill-down.
-const PLATFORM_META: Record<PlatformKey, { label: string; icon: any; variant: 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gray'; detail?: string; metrics: { key: string; label: string }[] }> = {
-  facebook: { label: 'Meta Ads', icon: Facebook, variant: 'blue', detail: 'meta-ads', metrics: [{ key: 'spend', label: 'Spesa €' }, { key: 'leads', label: 'Lead' }, { key: 'cost_per_lead', label: 'Costo per lead €' }, { key: 'lead_rate_pct', label: 'Click → lead %' }, { key: 'clicks', label: 'Click' }, { key: 'ctr_pct', label: 'CTR %' }, { key: 'cpc_calc', label: 'CPC €' }, { key: 'cpm_calc', label: 'CPM €' }, { key: 'impressions', label: 'Impression' }, { key: 'reach', label: 'Reach' }] },
-  instagram: { label: 'Instagram', icon: Instagram, variant: 'pink', detail: 'instagram', metrics: [{ key: 'followers_count', label: 'Follower' }, { key: 'reach', label: 'Reach' }, { key: 'likes', label: 'Like' }, { key: 'profile_views', label: 'Visite profilo' }] },
-  google_ads: { label: 'Google Ads', icon: TrendingUp, variant: 'green', detail: 'google-ads', metrics: [{ key: 'cost', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'conversions', label: 'Conversioni' }, { key: 'impressions', label: 'Impression' }] },
-  ga4: { label: 'Google Analytics 4', icon: TrendingUp, variant: 'purple', detail: 'ga4', metrics: [{ key: 'sessions', label: 'Sessioni' }, { key: 'active_users', label: 'Utenti attivi' }, { key: 'conversions', label: 'Conversioni' }, { key: 'purchase_revenue', label: 'Revenue €' }] },
-  searchconsole: { label: 'Search Console', icon: SearchIcon, variant: 'gray', detail: 'search-console', metrics: [{ key: 'clicks', label: 'Click organici' }, { key: 'impressions', label: 'Impression' }, { key: 'position', label: 'Posizione media' }] },
-  linkedin_organic: { label: 'LinkedIn', icon: Linkedin, variant: 'blue', detail: 'linkedin', metrics: [{ key: 'organization_follower_count', label: 'Follower' }, { key: 'account_analytics_impression_count', label: 'Impression' }, { key: 'account_analytics_click_count', label: 'Click' }, { key: 'account_analytics_like_count', label: 'Like' }] },
-  klaviyo: { label: 'Klaviyo (Email)', icon: Mail, variant: 'orange', detail: 'klaviyo', metrics: [{ key: 'recipients', label: 'Destinatari' }, { key: 'open_rate', label: 'Tasso apertura %' }, { key: 'conversion_value', label: 'Fatturato totale €' }, { key: 'flow_value', label: 'di cui flussi €' }, { key: 'campaign_value', label: 'di cui campagne €' }, { key: 'unsubscribe_rate', label: 'Disiscrizioni %' }] },
-  awin: { label: 'Awin (Affiliazione)', icon: Handshake, variant: 'purple', detail: 'awin', metrics: [{ key: 'sale_amount', label: 'Ordini €' }, { key: 'transactions', label: 'Transazioni' }, { key: 'total_cost', label: 'Costo canale €' }, { key: 'roas', label: 'ROAS' }, { key: 'average_order_value', label: 'Scontrino medio €' }, { key: 'pending_sale_amount', label: 'Non confermato €' }] },
-  gbp: { label: 'Google Business Profile', icon: MapPin, variant: 'green', detail: 'gbp', metrics: [{ key: 'impressions', label: 'Visualizzazioni' }, { key: 'website_clicks', label: 'Click sito' }, { key: 'call_clicks', label: 'Chiamate' }, { key: 'direction_requests', label: 'Indicazioni' }, { key: 'review_count', label: 'Nuove recensioni' }, { key: 'review_average_rating_total', label: 'Rating' }] },
-}
-
-function authHeaders() {
-  return { Authorization: `Bearer ${localStorage.getItem('token')}` }
+// Icona, colore e pagina di dettaglio per piattaforma; etichette e metriche stanno in lib/report-metrics.ts
+const PLATFORM_META: Record<PlatformKey, { icon: any; variant: 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gray'; detail?: string }> = {
+  facebook: { icon: Facebook, variant: 'blue', detail: 'meta-ads' },
+  instagram: { icon: Instagram, variant: 'pink', detail: 'instagram' },
+  google_ads: { icon: TrendingUp, variant: 'green', detail: 'google-ads' },
+  ga4: { icon: TrendingUp, variant: 'purple', detail: 'ga4' },
+  searchconsole: { icon: SearchIcon, variant: 'gray', detail: 'search-console' },
+  linkedin_organic: { icon: Linkedin, variant: 'blue', detail: 'linkedin' },
+  klaviyo: { icon: Mail, variant: 'orange', detail: 'klaviyo' },
+  awin: { icon: Handshake, variant: 'purple', detail: 'awin' },
+  gbp: { icon: MapPin, variant: 'green', detail: 'gbp' },
 }
 
 /**
@@ -45,94 +29,31 @@ function authHeaders() {
  */
 function trendFor(
   current: string | number | undefined,
-  previous: string | number | undefined
+  previous: string | number | undefined,
+  inverse = false
 ): { value: number; isPositive: boolean } | undefined {
   if (typeof current !== 'number' || typeof previous !== 'number' || previous === 0) return undefined
   const delta = ((current - previous) / previous) * 100
-  return { value: Math.round(delta * 10) / 10, isPositive: delta >= 0 }
-}
-
-/** Maps the page's "Periodo" selector (in days) to a Windsor date_preset. */
-function toDatePreset(daysBack?: number): string {
-  switch (daysBack) {
-    case 7: return 'last_7d'
-    case 60: return 'last_60d'
-    case 90: return 'last_90d'
-    case 180: return 'last_180d'
-    default: return 'last_30d'
-  }
+  // Per i costi un calo è una buona notizia: il verde segue il significato, non il segno.
+  return { value: Math.round(delta * 10) / 10, isPositive: inverse ? delta <= 0 : delta >= 0 }
 }
 
 export function MarketingReportTab({
   clientId,
-  daysBack,
   compare = 'none',
+  report,
 }: {
   clientId: string
-  daysBack?: number
   compare?: 'prev_period' | 'prev_year' | 'none'
+  report: MarketingReportState
 }) {
-  const datePreset = toDatePreset(daysBack)
-  const [platforms, setPlatforms] = useState<PlatformReport[] | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
-
-  const [computedAt, setComputedAt] = useState<string | null>(null)
-  const [fromCache, setFromCache] = useState(false)
-
-  /**
-   * `refresh` salta la cache lato server. L'apertura della pagina non lo usa —
-   * è tutto il punto della cache — ma "Aggiorna" sì: un bottone che rilegge la
-   * stessa copia non aggiorna niente e lo si preme due volte chiedendosi
-   * perché non cambia.
-   */
-  const fetchReport = useCallback(async (refresh = false) => {
-    setLoading(true)
-    setLoadError(null)
-    try {
-      const res = await fetch(
-        `/api/clients/${clientId}/reporting?date_preset=${datePreset}&days=${daysBack ?? 30}&compare=${compare}${refresh ? '&refresh=1' : ''}`,
-        { headers: authHeaders() }
-      )
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error || `Errore ${res.status}`)
-      }
-      const data = await res.json()
-      setPlatforms(data.platforms || [])
-      setComputedAt(data.computedAt ?? null)
-      setFromCache(!!data.cached)
-    } catch (err: any) {
-      setLoadError(err.message || 'Impossibile caricare il report')
-    } finally {
-      setLoading(false)
-    }
-  }, [clientId, datePreset, daysBack, compare])
-
-  useEffect(() => { fetchReport(false) }, [fetchReport])
+  const { platforms, loading, error: loadError, computedAt, fromCache, reload: fetchReport } = report
 
   const connectedCount = platforms?.filter(p => p.connected).length ?? 0
   const noPlatformsConfigured = platforms !== null && platforms.length === 0
 
-  // Real alerts, derived from the comparison the user already asked for rather
-  // than from a separate source: anything moving more than 25% either way is
-  // worth a line. Only possible when a comparison window was fetched.
-  const alerts = (platforms ?? []).flatMap((p) => {
-    const meta = PLATFORM_META[p.platform]
-    const prev = p.previousRows?.[0]
-    if (!prev || !p.connected) return []
-    return meta.metrics.flatMap((m) => {
-      const t = trendFor(p.rows[0]?.[m.key], prev[m.key])
-      if (!t || Math.abs(t.value) < 25) return []
-      return [{
-        platform: meta.label,
-        label: m.label,
-        value: t.value,
-        // For cost-type metrics a rise is not good news.
-        good: ['spend', 'cost', 'cpc', 'cpc_calc', 'cpm_calc', 'cost_per_lead', 'position', 'unsubscribe_rate', 'bounced', 'spam_complaints', 'total_cost', 'pending_sale_amount'].includes(m.key) ? t.value < 0 : t.value > 0,
-      }]
-    })
-  })
+  // Gli avvisi vengono da lib/report-metrics.ts: scostamento oltre il 25% E base minima nel periodo precedente
+  const alerts = computeAlerts(platforms ?? [])
 
   return (
     <div className="space-y-6">
@@ -214,9 +135,15 @@ export function MarketingReportTab({
       {!loadError && platforms && platforms.length > 0 && (
         <div className={`space-y-4 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`} aria-busy={loading}>
           {platforms.map((p) => {
-            const meta = PLATFORM_META[p.platform]
+            const meta = { ...PLATFORM_META[p.platform], ...PLATFORM_DEFS[p.platform] }
             const row = p.rows[0] || {}
-            const headline = p.connected && p.rows.length > 0 ? meta.metrics[0] : undefined
+            const prevRow = p.previousRows?.[0]
+            // Titolo della scheda chiusa: il RISULTATO (lead, conversioni, contatti), non la spesa. Si prende la prima
+            // metrica del suo elenco che ha un valore; se nessuna ce l'ha, la prima mostrata.
+            const headline = p.connected && p.rows.length > 0
+              ? meta.metrics.find((m) => m.key === meta.headline.find((k) => typeof row[k] === 'number' && (row[k] as number) > 0)) ?? meta.metrics[0]
+              : undefined
+            const headlineTrend = headline ? trendFor(row[headline.key], prevRow?.[headline.key], COST_KEYS.has(headline.key)) : undefined
             return (
               // A platform can appear more than once (GBP: one entry per sede),
               // so the key has to include the account, not just the platform.
@@ -231,6 +158,11 @@ export function MarketingReportTab({
                   : headline ? (
                     <span className="text-xs text-muted-foreground">
                       {headline.label}: <strong className="text-foreground">{typeof row[headline.key] === 'number' ? (row[headline.key] as number).toLocaleString('it-IT', { maximumFractionDigits: 2 }) : '—'}</strong>
+                      {headlineTrend && (
+                        <span className={`ml-1.5 font-semibold ${headlineTrend.isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
+                          {headlineTrend.value > 0 ? '+' : ''}{headlineTrend.value}%
+                        </span>
+                      )}
                     </span>
                   ) : undefined
                 }
@@ -254,7 +186,7 @@ export function MarketingReportTab({
                         title={m.label}
                         value={(row[m.key] as number) ?? 0}
                         variant={meta.variant}
-                        trend={trendFor(row[m.key], p.previousRows?.[0]?.[m.key])}
+                        trend={trendFor(row[m.key], prevRow?.[m.key], COST_KEYS.has(m.key))}
                       />
                     ))}
                   </div>
