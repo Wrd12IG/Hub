@@ -30,7 +30,7 @@ const DIAGNOSI: Record<Campaign['diagnosi'], { testo: string; classe: string }> 
   nessuna: { testo: 'quadro equilibrato', classe: 'border-white/15 text-muted-foreground' },
 }
 
-export function CompetitivePressureSection({ clientId, daysBack }: { clientId: string; daysBack: number }) {
+export function CompetitivePressureSection({ clientId, daysBack, range }: { clientId: string; daysBack: number; range?: { from: string; to: string } | null }) {
   const [data, setData] = useState<Data | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -41,7 +41,8 @@ export function CompetitivePressureSection({ clientId, daysBack }: { clientId: s
       setLoading(true)
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch(`/api/clients/${clientId}/competitive-pressure?days=${days}`, {
+        const query = range ? `from=${range.from}&to=${range.to}` : `days=${days}`
+        const res = await fetch(`/api/clients/${clientId}/competitive-pressure?${query}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const j = await res.json()
@@ -49,7 +50,7 @@ export function CompetitivePressureSection({ clientId, daysBack }: { clientId: s
       } finally { if (!cancelled) setLoading(false) }
     })()
     return () => { cancelled = true }
-  }, [clientId, daysBack])
+  }, [clientId, daysBack, range?.from, range?.to])
 
   if (loading) return <Skeleton className="h-40" />
   if (!data) return null
