@@ -55,8 +55,9 @@ export async function middleware(request: NextRequest) {
 
   const isAdminRoute = path.startsWith('/admin');
   const isClientsRoute = path.startsWith('/clients');
+  const isReportPdfRoute = path.startsWith('/report-pdf');
 
-  if (isAdminRoute || isClientsRoute) {
+  if (isAdminRoute || isClientsRoute || isReportPdfRoute) {
     const authed = await isAuthenticated(request);
     if (!authed) {
       const loginUrl = new URL('/login', request.url);
@@ -72,5 +73,6 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/clients/:path*',
+    '/report-pdf/:path*',
   ],
 };
