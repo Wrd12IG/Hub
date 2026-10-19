@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail, Handshake } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CollapsibleCard } from '@/components/CollapsibleCard'
 
 // Matches lib/reporting.ts's PlatformReport shape.
 type PlatformKey = 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo' | 'awin'
@@ -137,9 +138,8 @@ export function MarketingReportTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold">Performance per Account</h2>
-          <p className="text-sm text-muted-foreground">
-            KPI reali da Windsor.ai per il periodo selezionato. Apri &quot;Dettaglio&quot; per la vista completa di un account.
+          <p className="text-xs text-muted-foreground">
+            Apri una piattaforma per vedere i dati, &quot;Dettaglio&quot; per la vista completa.
           </p>
           {computedAt && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -212,32 +212,40 @@ export function MarketingReportTab({
       {/* Durante un ricarico (cambio periodo) restano i dati precedenti, attenuati:
           svuotare la sezione per 10-15s a ogni cambio sembrava che i dati fossero spariti. */}
       {!loadError && platforms && platforms.length > 0 && (
-        <div className={`space-y-8 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`} aria-busy={loading}>
+        <div className={`space-y-4 transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`} aria-busy={loading}>
           {platforms.map((p) => {
             const meta = PLATFORM_META[p.platform]
             const row = p.rows[0] || {}
+            const headline = p.connected && p.rows.length > 0 ? meta.metrics[0] : undefined
             return (
               // A platform can appear more than once (GBP: one entry per sede),
               // so the key has to include the account, not just the platform.
-              <div key={`${p.platform}-${p.accountLabel ?? 'single'}`} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <meta.icon size={18} />
-                  <h3 className="font-semibold">{meta.label}</h3>
-                  {p.accountLabel && (
-                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                      {p.accountLabel}
+              <CollapsibleCard
+                key={`${p.platform}-${p.accountLabel ?? 'single'}`}
+                icon={meta.icon}
+                title={meta.label}
+                description={p.accountLabel}
+                className="bg-white/[0.02] shadow-none"
+                summary={
+                  !p.connected ? <span className="text-xs font-semibold text-red-500">Errore</span>
+                  : headline ? (
+                    <span className="text-xs text-muted-foreground">
+                      {headline.label}: <strong className="text-foreground">{typeof row[headline.key] === 'number' ? (row[headline.key] as number).toLocaleString('it-IT', { maximumFractionDigits: 2 }) : '—'}</strong>
                     </span>
-                  )}
-                  {!p.connected && <span className="text-xs text-red-600">Errore: {p.error}</span>}
-                  {meta.detail && (
-                    <Link
-                      href={`/clients/${clientId}/${meta.detail}${p.platform === 'gbp' && row.account_id ? `?sede=${encodeURIComponent(String(row.account_id))}` : ''}`}
-                      className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                    >
-                      Dettaglio <ArrowUpRight size={13} />
-                    </Link>
-                  )}
-                </div>
+                  ) : undefined
+                }
+                actions={meta.detail ? (
+                  <Link
+                    href={`/clients/${clientId}/${meta.detail}${p.platform === 'gbp' && row.account_id ? `?sede=${encodeURIComponent(String(row.account_id))}` : ''}`}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                  >
+                    Dettaglio <ArrowUpRight size={13} />
+                  </Link>
+                ) : undefined}
+              >
+                {!p.connected && (
+                  <div className="text-sm text-red-600 p-3 rounded-lg border border-red-200 bg-red-50">{p.error}</div>
+                )}
                 {p.connected && p.rows.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {meta.metrics.map(m => (
@@ -252,14 +260,14 @@ export function MarketingReportTab({
                   </div>
                 ) : p.connected ? (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
-                    Nessun dato nel periodo selezionato. Può voler dire che l'account non ha avuto attività — prova ad allargare il "Periodo" — oppure che l'id inserito in Setup API non corrisponde a un account collegato su Windsor: da lì i due casi non sono distinguibili.
+                    Nessun dato nel periodo selezionato. Può voler dire che l'account non ha avuto attività — prova ad allargare il "Periodo" — oppure che l'id inserito in Setup API non corrisponde a un account collegato: da qui i due casi non sono distinguibili.
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
                     Dati non disponibili al momento per questa piattaforma.
                   </div>
                 )}
-              </div>
+              </CollapsibleCard>
             )
           })}
           <p className="text-xs text-muted-foreground pt-2">{connectedCount} di {platforms.length} piattaforme con dati disponibili. Per aggiungerne altre, vai in <strong>Setup API</strong>.</p>

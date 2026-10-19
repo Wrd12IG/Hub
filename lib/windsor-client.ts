@@ -104,13 +104,13 @@ export async function getData({
         response = await fetch(url, fresh ? { cache: 'no-store' } : { next: { revalidate: 300 } });
     } catch (err) {
         console.error(`[windsor-client] Network error calling ${connector}:`, err);
-        throw new Error(`Impossibile contattare Windsor.ai per ${connector}`);
+        throw new Error(`Impossibile contattare il servizio dati per ${connector}`);
     }
 
     if (!response.ok) {
         const errorBody = await response.text().catch(() => '');
         console.error(`[windsor-client] ${connector} → HTTP ${response.status}:`, errorBody);
-        throw new Error(`Windsor.ai ha risposto ${response.status} per ${connector}`);
+        throw new Error(`Il servizio dati ha risposto ${response.status} per ${connector}`);
     }
 
     const json = await response.json();
@@ -138,7 +138,7 @@ export async function listActions(connector: WindsorConnector): Promise<unknown>
     const params = new URLSearchParams({ api_key: getApiKey() });
     const response = await fetch(`${BASE_URL}/${connector}/actions?${params.toString()}`);
     if (!response.ok) {
-        throw new Error(`Windsor.ai ha risposto ${response.status} nel listare le azioni di ${connector}`);
+        throw new Error(`Il servizio dati ha risposto ${response.status} nel listare le azioni di ${connector}`);
     }
     return response.json();
 }
@@ -164,7 +164,7 @@ export async function executeAction(
     if (!response.ok) {
         const errorBody = await response.text().catch(() => '');
         console.error(`[windsor-client] action ${connector}/${action} failed:`, errorBody);
-        throw new Error(`Windsor.ai: azione ${action} su ${connector} fallita (HTTP ${response.status})`);
+        throw new Error(`Azione ${action} su ${connector} fallita (HTTP ${response.status})`);
     }
     return response.json();
 }

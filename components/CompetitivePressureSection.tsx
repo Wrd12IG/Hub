@@ -74,13 +74,6 @@ export function CompetitivePressureSection({ clientId, daysBack }: { clientId: s
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="text-base font-bold flex items-center gap-2"><Swords size={16} /> Pressione competitiva</h3>
-        <p className="text-xs text-muted-foreground">
-          Quante delle ricerche disponibili stai prendendo su Google Ads, e perché perdi il resto.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
           <p className="text-xs text-muted-foreground">Quota impression</p>
