@@ -15,10 +15,10 @@
 
 import { getData } from './windsor-client';
 import { withMetaDerived } from './meta-metrics';
-import { dailyFromRows, type DailyPoint } from './report-series';
+import { dailyFromRows, metricRowsFromRows, withSumColumn, type DailyPoint, type DailyFieldMap, type MetricRow } from './report-series';
 import { PLATFORM_DEFS } from './report-metrics';
-import { getGA4Totals } from './ga4-client';
-import { getSearchConsoleTotals } from './search-console-client';
+import { getGA4Totals, getGA4Daily } from './ga4-client';
+import { getSearchConsoleTotals, getSearchConsoleDaily } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
 import { getAwinTotals } from './awin-client';
 import { getGoogleAdsAccountTotals as getGoogleAdsAccountTotalsDirect, getGoogleAdsDailySeries } from './google-ads-client';
@@ -64,6 +64,8 @@ export interface PlatformReport {
     previousRows?: Record<string, string | number | undefined>[];
     /** Andamento giornaliero del periodo corrente (solo canali a pagamento: Meta e Google Ads). Opzionale: se non arriva, il resto del report c'è comunque. */
     series?: DailyPoint[];
+    /** Andamento giornaliero con le metriche della piattaforma (una riga per giorno, chiavi del report). Opzionale come `series`. */
+    daily?: MetricRow[];
 }
 
 // ⚠️ Every field id below must exist in that connector's Windsor catalogue.
@@ -78,6 +80,31 @@ export interface PlatformReport {
 // con una chiave privata per cliente. Restano nel tipo PlatformReport (la UI li
 // mostra come gli altri) ma non hanno un connector qui.
 type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo' | 'awin' | 'google_ads'>;
+
+/**
+ * Colonne giornaliere per piattaforma Windsor: verificate il 19/10/2026 con letture vere (30 giorni di valori, non colonne
+ * nulle): Instagram reach/likes/views/follower_count_1d, LinkedIn impression/click/like/visite, GBP le quattro azioni.
+ * Meta Ads ha la sua serie (`series`, spesa e lead).
+ */
+const DAILY_MAPS: Partial<Record<string, { fields: string[]; map: DailyFieldMap }>> = {
+    instagram: {
+        fields: ['reach', 'likes', 'views', 'follower_count_1d'],
+        map: { reach: { field: 'reach' }, likes: { field: 'likes' }, views: { field: 'views' }, new_followers: { field: 'follower_count_1d' } },
+    },
+    linkedin_organic: {
+        fields: ['account_analytics_impression_count', 'account_analytics_click_count', 'account_analytics_like_count', 'all_page_views'],
+        map: {
+            account_analytics_impression_count: { field: 'account_analytics_impression_count' },
+            account_analytics_click_count: { field: 'account_analytics_click_count' },
+            account_analytics_like_count: { field: 'account_analytics_like_count' },
+            page_views: { field: 'all_page_views' },
+        },
+    },
+    gbp: {
+        fields: ['impressions', 'website_clicks', 'call_clicks', 'direction_requests'],
+        map: { impressions: { field: 'impressions' }, website_clicks: { field: 'website_clicks' }, call_clicks: { field: 'call_clicks' }, direction_requests: { field: 'direction_requests' } },
+    },
+};
 
 const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
     facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc', 'cpm', 'frequency', 'actions_lead'] },
@@ -370,7 +397,8 @@ export async function getClientMarketingReport(
         // Meta: lead, costo per lead e percentuali si ricalcolano sui totali aggregati.
         const derive = platform === 'facebook' ? withMetaDerived : (r: Record<string, string | number | undefined>) => r;
         try {
-            const [rows, previousRows, dailyRows] = await withTimeout(platform, Promise.all([
+            const dailyCfg = DAILY_MAPS[platform];
+            const [rows, previousRows, dailyRows, otherDaily] = await withTimeout(platform, Promise.all([
                 getData({
                     connector, accountId, fields: allFields, fresh,
                     ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
@@ -388,11 +416,19 @@ export async function getClientMarketingReport(
                         ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
                     }).catch((e) => { console.error('[reporting] serie giornaliera Meta non disponibile:', e.message); return [] as any[]; })
                     : Promise.resolve([] as any[]),
+                // Righe per giorno delle altre piattaforme Windsor (Instagram, LinkedIn…): facoltative come quelle di Meta
+                dailyCfg
+                    ? getData({
+                        connector, accountId, fresh, fields: ['date', ...dailyCfg.fields, 'account_id'],
+                        ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
+                    }).catch((e) => { console.error(`[reporting] serie giornaliera ${platform} non disponibile:`, e.message); return [] as any[]; })
+                    : Promise.resolve([] as any[]),
             ]));
             return {
                 platform,
                 connected: true,
                 accountLabel: (rows[0]?.account_name as string) || undefined,
+                ...(dailyCfg && otherDaily.length > 0 ? { daily: metricRowsFromRows(otherDaily, dailyCfg.map) } : {}),
                 ...(dailyRows.length > 0 ? { series: dailyFromRows(dailyRows, { spend: 'spend', results: 'actions_lead', clicks: 'clicks', impressions: 'impressions' }) } : {}),
                 // One aggregated row — see aggregateRows for why raw rows can't
                 // be read positionally.
@@ -413,7 +449,8 @@ export async function getClientMarketingReport(
         const { connector, fields } = PLATFORM_FIELDS.gbp;
         const allFields = [...fields, 'account_id', 'account_name'];
         try {
-            const [rows, previousRows] = await withTimeout('gbp', Promise.all([
+            const gbpDaily = DAILY_MAPS.gbp!;
+            const [rows, previousRows, dailyRows] = await withTimeout('gbp', Promise.all([
                 getData({
                     connector, accountIds, fields: allFields, fresh,
                     ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
@@ -424,6 +461,11 @@ export async function getClientMarketingReport(
                         dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
                     })
                     : Promise.resolve([]),
+                // Una riga per giorno e per sede (facoltativa): il grafico di ogni sede
+                getData({
+                    connector, accountIds, fresh, fields: ['date', ...gbpDaily.fields, 'account_id'],
+                    ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
+                }).catch((e) => { console.error('[reporting] serie giornaliera GBP non disponibile:', e.message); return [] as any[]; }),
             ]));
             return accountIds.map((accountId): PlatformReport => {
                 const cur = rows.filter((r) => String(r.account_id) === accountId);
@@ -435,6 +477,11 @@ export async function getClientMarketingReport(
                     accountLabel: (cur[0]?.account_name as string) || accountId,
                     rows: cur.length > 0 ? [withGbpContacts(aggregateRows(cur))] : [],
                     previousRows: prev.length > 0 ? [withGbpContacts(aggregateRows(prev))] : [],
+                    ...(() => {
+                        const mine = dailyRows.filter((r) => String(r.account_id) === accountId);
+                        if (mine.length === 0) return {};
+                        return { daily: withSumColumn(metricRowsFromRows(mine, gbpDaily.map), 'contacts', ['call_clicks', 'direction_requests', 'website_clicks']) };
+                    })(),
                 };
             });
         } catch (err: any) {
@@ -450,19 +497,25 @@ export async function getClientMarketingReport(
     // It still emits the same keys the UI reads, so nothing downstream changes.
     const fetchGa4 = async (propertyId: string): Promise<PlatformReport> => {
         try {
-            const [cur, prev] = await withTimeout('GA4', Promise.all([
+            const [cur, prev, daily] = await withTimeout('GA4', Promise.all([
                 windows
                     ? getGA4Totals(propertyId, windows.current.dateFrom, windows.current.dateTo)
                     : getGA4Totals(propertyId, `${presetToDays(datePreset)}daysAgo`, 'today'),
                 windows?.previous
                     ? getGA4Totals(propertyId, windows.previous.dateFrom, windows.previous.dateTo)
                     : Promise.resolve(null),
+                // Sessioni, utenti ed eventi chiave per giorno (facoltativi)
+                (windows
+                    ? getGA4Daily(propertyId, windows.current.dateFrom, windows.current.dateTo)
+                    : getGA4Daily(propertyId, `${presetToDays(datePreset)}daysAgo`, 'today'))
+                    .catch((e) => { console.error('[reporting] serie giornaliera GA4 non disponibile:', e.message); return [] as { date: string }[]; }),
             ]));
             return {
                 platform: 'ga4',
                 connected: true,
                 rows: [cur],
                 previousRows: prev ? [prev] : [],
+                ...(daily.length > 0 ? { daily: daily as MetricRow[] } : {}),
             };
         } catch (err: any) {
             console.error(`[reporting] ga4 failed for property ${propertyId}:`, err.message);
@@ -475,15 +528,20 @@ export async function getClientMarketingReport(
     // vale tale e quale sia per Windsor sia per l'API nativa.
     const fetchSearchConsole = async (siteUrl: string): Promise<PlatformReport> => {
         try {
-            const [cur, prev] = await withTimeout('Search Console', Promise.all([
+            const [cur, prev, daily] = await withTimeout('Search Console', Promise.all([
                 windows
                     ? getSearchConsoleTotals(siteUrl, windows.current.dateFrom, windows.current.dateTo)
                     : getSearchConsoleTotals(siteUrl, isoDaysAgo(presetToDays(datePreset)), isoDaysAgo(0)),
                 windows?.previous
                     ? getSearchConsoleTotals(siteUrl, windows.previous.dateFrom, windows.previous.dateTo)
                     : Promise.resolve(null),
+                // Click e impression per giorno (facoltativi)
+                (windows
+                    ? getSearchConsoleDaily(siteUrl, windows.current.dateFrom, windows.current.dateTo)
+                    : getSearchConsoleDaily(siteUrl, isoDaysAgo(presetToDays(datePreset)), isoDaysAgo(0)))
+                    .catch((e) => { console.error('[reporting] serie giornaliera Search Console non disponibile:', e.message); return [] as { date: string }[]; }),
             ]));
-            return { platform: 'searchconsole', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
+            return { platform: 'searchconsole', connected: true, rows: [cur], previousRows: prev ? [prev] : [], ...(daily.length > 0 ? { daily: daily as MetricRow[] } : {}) };
         } catch (err: any) {
             console.error(`[reporting] searchconsole failed for ${siteUrl}:`, err.message);
             return { platform: 'searchconsole', connected: false, error: err.message, rows: [], previousRows: [] };

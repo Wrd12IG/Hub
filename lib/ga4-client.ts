@@ -130,6 +130,35 @@ export async function getGA4Totals(
   };
 }
 
+/**
+ * Sessioni, utenti attivi ed eventi chiave PER GIORNO (dimensione `date`). Serve al grafico di andamento: le chiavi sono
+ * quelle già usate dalle schede (`sessions`, `active_users`, `conversions`) e la data è yyyy-MM-dd.
+ */
+export async function getGA4Daily(
+  propertyId: string,
+  startDate: string,
+  endDate: string
+): Promise<{ date: string; sessions: number; active_users: number; conversions: number }[]> {
+  const client = getGa4Client();
+  try {
+    const [res] = await client.runReport({
+      property: `properties/${propertyId}`,
+      dateRanges: [{ startDate, endDate }],
+      dimensions: [{ name: 'date' }],
+      metrics: ['sessions', 'activeUsers', 'keyEvents'].map((name) => ({ name })),
+      orderBys: [{ dimension: { dimensionName: 'date' } }],
+      limit: 400,
+    });
+    return (res.rows || []).map((r) => {
+      const d = String(r.dimensionValues?.[0]?.value ?? '');   // yyyymmdd
+      const v = (i: number) => Number(r.metricValues?.[i]?.value ?? 0) || 0;
+      return { date: `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`, sessions: v(0), active_users: v(1), conversions: v(2) };
+    });
+  } catch (err: any) {
+    throw new Error(explainGa4Error(err, propertyId));
+  }
+}
+
 export interface GA4Row {
   key: string;
   sessions: number;

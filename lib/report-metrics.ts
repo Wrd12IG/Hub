@@ -7,37 +7,46 @@ import { computeClientHealth } from './client-health';
 export type PlatformKey = PlatformReport['platform'];
 export interface MetricDef { key: string; label: string }
 
+/** Una metrica del grafico giornaliero di una scheda. `bar` per i conteggi del giorno, `line` per gli stati o i confronti. */
+export interface ChartMetric { key: string; label: string; kind: 'bar' | 'line'; unit?: 'euro' }
+
 /** Metriche mostrate per piattaforma e quali usare come "titolo" della scheda chiusa (la prima con un valore). */
-export const PLATFORM_DEFS: Record<PlatformKey, { label: string; metrics: MetricDef[]; headline: string[] }> = {
+export const PLATFORM_DEFS: Record<PlatformKey, { label: string; metrics: MetricDef[]; headline: string[]; chart?: ChartMetric[] }> = {
     facebook: {
         label: 'Meta Ads',
         metrics: [{ key: 'spend', label: 'Spesa €' }, { key: 'leads', label: 'Lead' }, { key: 'cost_per_lead', label: 'Costo per lead €' }, { key: 'lead_rate_pct', label: 'Click → lead %' }, { key: 'clicks', label: 'Click' }, { key: 'ctr_pct', label: 'CTR %' }, { key: 'cpc_calc', label: 'CPC €' }, { key: 'cpm_calc', label: 'CPM €' }, { key: 'impressions', label: 'Impression' }, { key: 'reach', label: 'Reach' }],
         headline: ['leads', 'spend'],
+        chart: [{ key: 'spend', label: 'Spesa', kind: 'bar', unit: 'euro' }, { key: 'leads', label: 'Lead', kind: 'line' }, { key: 'clicks', label: 'Click', kind: 'bar' }, { key: 'impressions', label: 'Impression', kind: 'bar' }],
     },
     instagram: {
         label: 'Instagram',
         metrics: [{ key: 'followers_count', label: 'Follower' }, { key: 'reach', label: 'Reach' }, { key: 'likes', label: 'Like' }, { key: 'profile_views', label: 'Visite profilo' }],
         headline: ['reach', 'followers_count'],
+        chart: [{ key: 'reach', label: 'Copertura', kind: 'bar' }, { key: 'views', label: 'Visualizzazioni', kind: 'bar' }, { key: 'likes', label: 'Mi piace', kind: 'line' }, { key: 'new_followers', label: 'Nuovi follower', kind: 'bar' }],
     },
     google_ads: {
         label: 'Google Ads',
         metrics: [{ key: 'cost', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'conversions', label: 'Conversioni' }, { key: 'impressions', label: 'Impression' }],
         headline: ['conversions', 'cost'],
+        chart: [{ key: 'cost', label: 'Spesa', kind: 'bar', unit: 'euro' }, { key: 'conversions', label: 'Conversioni', kind: 'line' }, { key: 'clicks', label: 'Click', kind: 'bar' }, { key: 'impressions', label: 'Impression', kind: 'bar' }],
     },
     ga4: {
         label: 'Google Analytics 4',
         metrics: [{ key: 'sessions', label: 'Sessioni' }, { key: 'active_users', label: 'Utenti attivi' }, { key: 'conversions', label: 'Conversioni' }, { key: 'purchase_revenue', label: 'Revenue €' }],
         headline: ['purchase_revenue', 'conversions', 'sessions'],
+        chart: [{ key: 'sessions', label: 'Sessioni', kind: 'bar' }, { key: 'active_users', label: 'Utenti attivi', kind: 'line' }, { key: 'conversions', label: 'Eventi chiave', kind: 'line' }],
     },
     searchconsole: {
         label: 'Search Console',
         metrics: [{ key: 'clicks', label: 'Click organici' }, { key: 'impressions', label: 'Impression' }, { key: 'position', label: 'Posizione media' }],
         headline: ['clicks'],
+        chart: [{ key: 'clicks', label: 'Click organici', kind: 'bar' }, { key: 'impressions', label: 'Impression', kind: 'line' }],
     },
     linkedin_organic: {
         label: 'LinkedIn',
         metrics: [{ key: 'organization_follower_count', label: 'Follower' }, { key: 'account_analytics_impression_count', label: 'Impression' }, { key: 'account_analytics_click_count', label: 'Click' }, { key: 'account_analytics_like_count', label: 'Like' }],
         headline: ['account_analytics_impression_count', 'organization_follower_count'],
+        chart: [{ key: 'account_analytics_impression_count', label: 'Impression', kind: 'bar' }, { key: 'page_views', label: 'Visite pagina', kind: 'bar' }, { key: 'account_analytics_click_count', label: 'Click', kind: 'line' }, { key: 'account_analytics_like_count', label: 'Like', kind: 'line' }],
     },
     klaviyo: {
         label: 'Klaviyo (Email)',
@@ -53,6 +62,7 @@ export const PLATFORM_DEFS: Record<PlatformKey, { label: string; metrics: Metric
         label: 'Google Business Profile',
         metrics: [{ key: 'contacts', label: 'Contatti' }, { key: 'impressions', label: 'Visualizzazioni' }, { key: 'website_clicks', label: 'Click sito' }, { key: 'call_clicks', label: 'Chiamate' }, { key: 'direction_requests', label: 'Indicazioni' }, { key: 'review_count', label: 'Nuove recensioni' }, { key: 'review_average_rating_total', label: 'Rating' }],
         headline: ['contacts', 'impressions'],
+        chart: [{ key: 'contacts', label: 'Contatti', kind: 'bar' }, { key: 'impressions', label: 'Visualizzazioni', kind: 'line' }, { key: 'call_clicks', label: 'Chiamate', kind: 'line' }, { key: 'direction_requests', label: 'Indicazioni', kind: 'line' }, { key: 'website_clicks', label: 'Click sito', kind: 'line' }],
     },
 };
 

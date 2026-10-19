@@ -80,3 +80,52 @@ export function buildTrend(series: DailyPoint[], extraSpend: DailyPoint[] = [], 
         };
     });
 }
+
+// ── Serie giornaliere con più metriche (una scheda di piattaforma = un grafico con le sue metriche) ──
+
+export type MetricRow = { date: string } & Record<string, number | string>;
+
+/**
+ * Come leggere una colonna giornaliera: `sum` somma le righe dello stesso giorno (impression, click…);
+ * `last` tiene l'ultimo valore del giorno (i totali che sono uno stato, come i follower: sommarli li raddoppierebbe).
+ */
+export type DailyFieldMap = Record<string, { field: string; mode?: 'sum' | 'last' }>;
+
+/** Righe giornaliere grezze (Windsor) → una riga per giorno con le chiavi del report, ordinata per data. */
+export function metricRowsFromRows(rows: Record<string, unknown>[], map: DailyFieldMap): MetricRow[] {
+    const byDay = new Map<string, MetricRow>();
+    for (const r of rows) {
+        const date = dayOf(r.date);
+        if (!date) continue;
+        const row = byDay.get(date) ?? ({ date } as MetricRow);
+        for (const [key, { field, mode = 'sum' }] of Object.entries(map)) {
+            const v = r[field];
+            if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+            row[key] = mode === 'last' ? v : ((row[key] as number | undefined) ?? 0) + v;
+        }
+        byDay.set(date, row);
+    }
+    return Array.from(byDay.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Le serie dei canali a pagamento (spesa, risultato, click, impression) nel formato delle schede. */
+export function metricRowsFromSeries(platform: 'facebook' | 'google_ads', series: DailyPoint[]): MetricRow[] {
+    const spendKey = platform === 'facebook' ? 'spend' : 'cost';
+    const resultKey = platform === 'facebook' ? 'leads' : 'conversions';
+    return series.map((p) => {
+        const row = { date: p.date } as MetricRow;
+        if (p.spend !== undefined) row[spendKey] = round2(p.spend);
+        if (p.results !== undefined) row[resultKey] = round2(p.results);
+        if (p.clicks !== undefined) row.clicks = p.clicks;
+        if (p.impressions !== undefined) row.impressions = p.impressions;
+        return row;
+    });
+}
+
+/** Aggiunge a ogni riga la somma di più colonne (es. contatti GBP = chiamate + indicazioni + click sul sito). */
+export function withSumColumn(rows: MetricRow[], target: string, parts: string[]): MetricRow[] {
+    return rows.map((r) => {
+        const total = parts.reduce((s, k) => s + (typeof r[k] === 'number' ? (r[k] as number) : 0), 0);
+        return total > 0 ? { ...r, [target]: total } : r;
+    });
+}

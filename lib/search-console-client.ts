@@ -110,6 +110,19 @@ export async function getSearchConsoleTotals(
     };
 }
 
+/** Click e impression PER GIORNO (dimensione `date`), per il grafico di andamento. */
+export async function getSearchConsoleDaily(
+    siteUrl: string,
+    startDate: string,
+    endDate: string
+): Promise<{ date: string; clicks: number; impressions: number }[]> {
+    const rows = await query(siteUrl, { startDate, endDate, dimensions: ['date'], rowLimit: 400 });
+    return rows
+        .map((r: any) => ({ date: String(r.keys?.[0] ?? '').slice(0, 10), clicks: r.clicks ?? 0, impressions: r.impressions ?? 0 }))
+        .filter((r: { date: string }) => /^\d{4}-\d{2}-\d{2}$/.test(r.date))
+        .sort((a: { date: string }, b: { date: string }) => a.date.localeCompare(b.date));
+}
+
 export interface SearchConsoleRow {
     key: string;
     clicks: number;

@@ -40,3 +40,37 @@ describe('report-series', () => {
         expect(buildTrend([])).toEqual([]);
     });
 });
+
+import { metricRowsFromRows, metricRowsFromSeries, withSumColumn } from '../report-series';
+
+describe('serie con più metriche', () => {
+    it('somma le righe dello stesso giorno ma tiene l\'ultimo valore degli stati (follower)', () => {
+        const rows = metricRowsFromRows([
+            { date: '2026-10-02', page_impressions: 10, page_fans: 4656 },
+            { date: '2026-10-02', page_impressions: 5, page_fans: 4657 },
+            { date: '2026-10-01', page_impressions: 7, page_fans: 4650 },
+            { date: 'boh', page_impressions: 99 },
+        ], { impressions: { field: 'page_impressions' }, followers: { field: 'page_fans', mode: 'last' } });
+        expect(rows).toEqual([
+            { date: '2026-10-01', impressions: 7, followers: 4650 },
+            { date: '2026-10-02', impressions: 15, followers: 4657 },
+        ]);
+    });
+
+    it('i valori nulli o assenti non diventano zero', () => {
+        expect(metricRowsFromRows([{ date: '2026-10-01', a: null, b: 3 }], { a: { field: 'a' }, b: { field: 'b' } })).toEqual([{ date: '2026-10-01', b: 3 }]);
+    });
+
+    it('le serie a pagamento prendono le chiavi della scheda (Meta: spend/leads, Google: cost/conversions)', () => {
+        expect(metricRowsFromSeries('facebook', [{ date: '2026-10-01', spend: 12.345, results: 2, clicks: 30 }]))
+            .toEqual([{ date: '2026-10-01', spend: 12.35, leads: 2, clicks: 30 }]);
+        expect(metricRowsFromSeries('google_ads', [{ date: '2026-10-01', spend: 5, results: 1 }]))
+            .toEqual([{ date: '2026-10-01', cost: 5, conversions: 1 }]);
+    });
+
+    it('somma più colonne in una (contatti GBP), senza creare la colonna se è tutto zero', () => {
+        const rows = withSumColumn([{ date: 'a', call_clicks: 2, direction_requests: 3 }, { date: 'b', call_clicks: 0 }] as any, 'contacts', ['call_clicks', 'direction_requests', 'website_clicks']);
+        expect(rows[0].contacts).toBe(5);
+        expect(rows[1]).not.toHaveProperty('contacts');
+    });
+});
