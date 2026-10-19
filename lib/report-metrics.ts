@@ -89,7 +89,7 @@ export function hasEnoughBase(key: string, prev: Row): boolean {
     return p >= MIN_BASE.counts;
 }
 
-export interface ReportAlert { platform: string; key: string; label: string; value: number; good: boolean }
+export interface ReportAlert { platform: string; key: string; label: string; value: number; good: boolean; from: number; to: number }
 
 export function computeAlerts(platforms: PlatformReport[]): ReportAlert[] {
     return platforms.flatMap((p) => {
@@ -104,7 +104,7 @@ export function computeAlerts(platforms: PlatformReport[]): ReportAlert[] {
             if (!hasEnoughBase(m.key, prev)) return [];
             const value = Math.round(((c - pv) / pv) * 1000) / 10;
             if (Math.abs(value) < ALERT_THRESHOLD_PCT) return [];
-            return [{ platform: def.label + (p.accountLabel && p.platform === 'gbp' ? ` · ${p.accountLabel}` : ''), key: m.key, label: m.label, value, good: COST_KEYS.has(m.key) ? value < 0 : value > 0 }];
+            return [{ platform: def.label + (p.accountLabel && p.platform === 'gbp' ? ` · ${p.accountLabel}` : ''), key: m.key, label: m.label, value, good: COST_KEYS.has(m.key) ? value < 0 : value > 0, from: pv, to: c }];
         });
     });
 }
