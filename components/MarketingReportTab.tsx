@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail, Handshake } from 'lucide-react'
+import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail, Handshake, Youtube } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
@@ -16,6 +16,8 @@ import type { MarketingReportState } from '@/hooks/use-marketing-report'
 // Icona, colore e pagina di dettaglio per piattaforma; etichette e metriche stanno in lib/report-metrics.ts
 const PLATFORM_META: Record<PlatformKey, { icon: any; variant: 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gray'; detail?: string }> = {
   facebook: { icon: Facebook, variant: 'blue', detail: 'meta-ads' },
+  facebook_page: { icon: Facebook, variant: 'blue', detail: 'facebook' },
+  youtube: { icon: Youtube, variant: 'orange', detail: 'youtube' },
   instagram: { icon: Instagram, variant: 'pink', detail: 'instagram' },
   google_ads: { icon: TrendingUp, variant: 'green', detail: 'google-ads' },
   ga4: { icon: TrendingUp, variant: 'purple', detail: 'ga4' },

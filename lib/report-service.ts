@@ -128,9 +128,14 @@ export async function getReport(opts: {
         ? { apiKey: klaviyoToken.accessToken, conversionMetricId: klaviyoToken.extra?.conversionMetricId, cacheKey: clientId }
         : undefined;
 
+    // Il canale YouTube pubblico (solo ID canale) sta in `integrations`, come la chiave Klaviyo: lo si risolve qui
+    const ytSnap = await adminDb.collection('clients').doc(clientId).collection('integrations').doc('youtube_public').get().catch(() => null);
+    const channelId = ytSnap?.exists ? (ytSnap.data() as any)?.channelId : null;
+    const youtube = channelId ? { channelId: String(channelId) } : undefined;
+
     const write = runId ? makeProgressWriter(clientId, runId) : null;
     let last = { done: 0, total: 0, label: '', ok: true };
-    const platforms = await getClientMarketingReport({ ...client, klaviyo }, datePreset, windows, {
+    const platforms = await getClientMarketingReport({ ...client, klaviyo, youtube }, datePreset, windows, {
         fresh: refresh,
         onProgress: write ? (e) => { last = e; void write(e); } : undefined,
     });
