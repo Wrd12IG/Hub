@@ -11,40 +11,48 @@ import { PRIVATE_CLIENT_FIELDS } from './client-private';
 
 export interface MigrationResult { log: string[]; copied: number; deleted: number; skipped: number; mismatched: number }
 
-export async function migrateClientPrivate(db: Firestore, opts: { apply: boolean; deleteLegacy: boolean }): Promise<MigrationResult> {
-    const { apply, deleteLegacy } = opts;
-    const log: string[] = [];
-    let copied = 0, deleted = 0, skipped = 0, mismatched = 0;
+type DocLike = { id: string; get: (f: string) => unknown; ref: { collection: (n: string) => { doc: (f: string) => { get: () => Promise<{ data: () => any }>; set: (v: any) => Promise<unknown> } }; update: (patch: Record<string, unknown>) => Promise<unknown> } };
 
-    const clients = await db.collection('clients').get();
-    for (const c of clients.docs) {
-        for (const f of PRIVATE_CLIENT_FIELDS) {
-            const legacy = c.get(f);
-            if (legacy == null) continue;
-            const target = c.ref.collection('private').doc(f);
-            const label = `${c.id} (${c.get('name') ?? '?'}) · ${f}`;
+/** I campi riservati ancora nel documento cliente (cioè da migrare): serve a decidere in fretta se c'è da fare qualcosa. */
+export const hasLegacyPrivateFields = (data: Record<string, unknown> | undefined | null): boolean =>
+    !!data && PRIVATE_CLIENT_FIELDS.some((f) => data[f] != null);
 
-            let existing = (await target.get()).data();
-            if (!existing || !isDeepStrictEqual(existing, legacy)) {
-                if (!apply) { log.push(`[prova] copierei ${label}`); skipped++; continue; }
-                await target.set(legacy);
-                existing = (await target.get()).data(); // rilettura: la verifica è sul dato scritto davvero
-                copied++;
-                log.push(`copiato ${label}`);
-            }
+/** Un cliente solo: copia, rilegge, verifica e (se richiesto) toglie il vecchio campo. Usata dal giro completo e dall'apertura del cliente. */
+export async function migrateClientDoc(c: DocLike, opts: { apply: boolean; deleteLegacy: boolean }, acc?: MigrationResult): Promise<MigrationResult> {
+    const r = acc ?? { log: [], copied: 0, deleted: 0, skipped: 0, mismatched: 0 };
+    for (const f of PRIVATE_CLIENT_FIELDS) {
+        const legacy = c.get(f);
+        if (legacy == null) continue;
+        const target = c.ref.collection('private').doc(f);
+        const label = `${c.id} (${c.get('name') ?? '?'}) · ${f}`;
 
-            if (!isDeepStrictEqual(existing, legacy)) {
-                log.push(`ATTENZIONE copia diversa dall'originale, non tocco ${label}`);
-                mismatched++;
-                continue;
-            }
-            if (deleteLegacy && apply) {
-                await c.ref.update({ [f]: FieldValue.delete() });
-                deleted++;
-                log.push(`rimosso il vecchio campo ${label}`);
-            }
+        let existing = (await target.get()).data();
+        if (!existing || !isDeepStrictEqual(existing, legacy)) {
+            if (!opts.apply) { r.log.push(`[prova] copierei ${label}`); r.skipped++; continue; }
+            await target.set(legacy);
+            existing = (await target.get()).data(); // rilettura: la verifica è sul dato scritto davvero
+            r.copied++;
+            r.log.push(`copiato ${label}`);
+        }
+
+        if (!isDeepStrictEqual(existing, legacy)) {
+            r.log.push(`ATTENZIONE copia diversa dall'originale, non tocco ${label}`);
+            r.mismatched++;
+            continue;
+        }
+        if (opts.deleteLegacy && opts.apply) {
+            await c.ref.update({ [f]: FieldValue.delete() });
+            r.deleted++;
+            r.log.push(`rimosso il vecchio campo ${label}`);
         }
     }
-    if (log.length === 0) log.push('Niente da migrare: nessun cliente ha piano media o dati post-lead nel documento.');
-    return { log, copied, deleted, skipped, mismatched };
+    return r;
+}
+
+export async function migrateClientPrivate(db: Firestore, opts: { apply: boolean; deleteLegacy: boolean }): Promise<MigrationResult> {
+    const result: MigrationResult = { log: [], copied: 0, deleted: 0, skipped: 0, mismatched: 0 };
+    const clients = await db.collection('clients').get();
+    for (const c of clients.docs) await migrateClientDoc(c as unknown as DocLike, opts, result);
+    if (result.log.length === 0) result.log.push('Niente da migrare: nessun cliente ha piano media o dati post-lead nel documento.');
+    return result;
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { splitPrivateFields, savePrivateFields, readPrivateFields } from '@/lib/client-private';
+import { hasLegacyPrivateFields, migrateClientDoc } from '@/lib/client-private-migrate';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource, saveClientToken } from '@/lib/api-auth';
 
 export async function GET(
@@ -23,6 +24,14 @@ export async function GET(
 
     if (!doc.exists) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+    }
+
+    // Migrazione automatica dei dati interni (piano media, post-lead) nell'area solo-staff: al primo accesso a questo
+    // cliente, chiunque sia a chiederlo, i vecchi campi del documento vengono copiati, verificati e tolti. Se fallisce,
+    // niente di grave: la lettura ripiega sul vecchio campo e ci riprova la volta dopo (e il giro notturno).
+    if (hasLegacyPrivateFields(doc.data() as Record<string, unknown>)) {
+      await migrateClientDoc(doc as any, { apply: true, deleteLegacy: true })
+        .catch((e) => console.error(`[clients/${id}] migrazione dati interni fallita:`, e?.message));
     }
 
     // Leggi le integrazioni social in parallelo (solo presence, nessun token in chiaro)

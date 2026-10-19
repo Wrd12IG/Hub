@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { migrateClientPrivate } from '../client-private-migrate';
+import { migrateClientPrivate, migrateClientDoc, hasLegacyPrivateFields } from '../client-private-migrate';
 
 // Firestore finto in memoria: solo quello che serve alla migrazione
 function fakeDb(clients: Record<string, Record<string, any>>) {
@@ -45,5 +45,23 @@ describe('migrateClientPrivate', () => {
         const f = fakeDb({ c1: { name: 'X' } });
         const r = await migrateClientPrivate(f.db, { apply: true, deleteLegacy: true });
         expect(r.log[0]).toContain('Niente da migrare');
+    });
+});
+
+describe('migrazione di un cliente solo (all\'apertura)', () => {
+    it('sa se ci sono campi da spostare', () => {
+        expect(hasLegacyPrivateFields({ name: 'X', mediaPlan: plan })).toBe(true);
+        expect(hasLegacyPrivateFields({ name: 'X' })).toBe(false);
+        expect(hasLegacyPrivateFields(undefined)).toBe(false);
+    });
+    it('copia, verifica e toglie il vecchio campo; una seconda volta non fa nulla', async () => {
+        const f = fakeDb({ c1: { name: 'X', mediaPlan: plan } });
+        const doc = (await f.db.collection().get()).docs[0];
+        const r1 = await migrateClientDoc(doc, { apply: true, deleteLegacy: true });
+        expect(r1).toMatchObject({ copied: 1, deleted: 1, mismatched: 0 });
+        expect(f.clients.c1.mediaPlan).toBeUndefined();
+        const r2 = await migrateClientDoc(doc, { apply: true, deleteLegacy: true });
+        expect(r2).toMatchObject({ copied: 0, deleted: 0 });
+        expect(f.priv['c1/mediaPlan']).toEqual(plan);
     });
 });
