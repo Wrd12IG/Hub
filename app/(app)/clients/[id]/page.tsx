@@ -58,6 +58,8 @@ import {
 } from "lucide-react";
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
+import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
+import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { CampaignsTable } from "@/components/CampaignsTable";
 import { CompetitorAdLibrary } from "@/components/CompetitorAdLibrary";
@@ -288,6 +290,8 @@ export default function ClientDetailPage() {
   };
   const [overviewDaysBack, setOverviewDaysBack] = useState(30);
   const [compareMode, setCompareMode] = useState("prev_period");
+  // Un solo caricamento del report, condiviso fra il riepilogo in cima e le schede delle piattaforme
+  const marketingReport = useMarketingReport(id as string, overviewDaysBack, compareMode as "prev_period" | "prev_year" | "none", activeTab === "overview");
   const [ga4Properties, setGa4Properties] = useState<
     {
       propertyId: string;
@@ -996,6 +1000,13 @@ export default function ClientDetailPage() {
             </div>
           </div>
 
+          {/* RIEPILOGO: spesa, risultato, costo per risultato, anomalie */}
+          <ReportSummaryStrip
+            report={marketingReport}
+            days={overviewDaysBack}
+            compare={compareMode as "prev_period" | "prev_year" | "none"}
+          />
+
           {/* BENTO GRID: Overview Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
@@ -1443,8 +1454,8 @@ export default function ClientDetailPage() {
           >
             <MarketingReportTab
               clientId={id as string}
-              daysBack={overviewDaysBack}
               compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
+              report={marketingReport}
             />
           </CollapsibleCard>
 
