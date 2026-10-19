@@ -303,13 +303,20 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
           const userDoc = await getDoc(userDocRef);
 
           if (userDoc.exists()) {
-            setCurrentUser({ id: userDoc.id, ...userDoc.data() } as User);
-            const [perms, prioritySettings] = await Promise.all([
-              getRolePermissions(),
-              getTaskPrioritySettings(),
-            ]);
-            setPermissions(perms);
-            setTaskPrioritySettings(prioritySettings);
+            const profile = { id: userDoc.id, ...userDoc.data() } as User;
+            setCurrentUser(profile);
+            // Permessi di menu e priorità dei task servono solo allo staff. Per l'utente «Cliente» le regole Firestore
+            // negano la lettura di `settings`: prima l'errore finiva nel catch qui sotto, che faceva il logout, e il
+            // cliente rimbalzava sul login subito dopo essere entrato (visto nei log: POST /api/auth/session, GET
+            // /clients/<id>, DELETE /api/auth/session). Un errore su questi due dati, comunque, non deve mai buttar fuori.
+            if (profile.role !== 'Cliente') {
+              const [perms, prioritySettings] = await Promise.all([
+                getRolePermissions().catch((e) => { console.error('Permessi di ruolo non letti:', e); return {} as RolePermissions; }),
+                getTaskPrioritySettings().catch((e) => { console.error('Impostazioni priorità non lette:', e); return null; }),
+              ]);
+              setPermissions(perms);
+              setTaskPrioritySettings(prioritySettings);
+            }
             loadedUidRef.current = user.uid;
           } else {
             console.error(`User profile not found in Firestore for UID: ${user.uid}. Logging out.`);
@@ -373,7 +380,10 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     const isClientRole = currentUser.role === 'Cliente';
     const scopeClientId = currentUser.clientId;
 
-    const unsubs = collectionsToListen.map(({ name, setter, tenantField }) => {
+    // L'utente «Cliente» legge solo `users` (nomi nei commenti) e il proprio `clients`: le altre raccolte sono dello staff
+    // e le regole Firestore le negano (ogni ascolto darebbe un errore di permessi, non c'è niente da mostrare).
+    const clientVisible = new Set(['users', 'clients']);
+    const unsubs = collectionsToListen.filter(({ name }) => !isClientRole || clientVisible.has(name)).map(({ name, setter, tenantField }) => {
       let ref: Query = collection(db, name);
       if (isClientRole && tenantField) {
         // A Cliente user with no clientId on their profile shouldn't fall back to
