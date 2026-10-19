@@ -215,26 +215,20 @@ function ModalWrapper({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backdropFilter: "blur(8px)", background: "rgba(0,0,0,0.65)" }}
+      style={{ backdropFilter: "blur(8px)", background: "rgba(15,23,42,0.45)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      {/* ⚠️ `dark` non è decorativa. Il pannello è fisso su #0f0f12, ma i
-          token del tema (text-foreground, text-muted-foreground,
-          bg-background) seguono il tema dell'app: in tema chiaro diventavano
-          scuri, quindi su questo fondo il titolo, i testi e gli input erano
-          illeggibili — in tutti gli otto modali di questo file, non solo uno.
-          `darkMode: ["class"]` + il blocco `.dark` in globals.css fanno sì
-          che questa singola classe rimetta a posto l'intera palette interna.
-          Va tolta solo se il pannello smette di essere scuro. */}
-      <div className="dark bg-[#0f0f12] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in-0 zoom-in-95 duration-150">
+      {/* Il pannello segue il tema dell'app (token bg-card / border-border): era fisso su #0f0f12 con la classe `dark`,
+          quindi nero dentro un'interfaccia chiara. */}
+      <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-in fade-in-0 zoom-in-95 duration-150">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-foreground">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all cursor-pointer"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all cursor-pointer"
           >
             <X size={14} />
           </button>
@@ -295,21 +289,21 @@ function MetaModal({
         <div className="space-y-1.5">
           <label htmlFor="meta-ad-account-id" className="text-xs font-bold text-muted-foreground">Ad Account ID</label>
           <input id="meta-ad-account-id" value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="act_123456789"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-page-id" className="text-xs font-bold text-muted-foreground">Page ID (Facebook)</label>
           <input id="meta-page-id" value={pageId} onChange={(e) => setPageId(e.target.value)} placeholder="es. 104345345345"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-system-user-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
             System User Token
-            {hasToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
+            {hasToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
           <input id="meta-system-user-token" type="password" value={token} onChange={(e) => setToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "EAAB... (System User Token)"}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <button onClick={save} disabled={saving}
           className="w-full py-2.5 text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
@@ -359,16 +353,16 @@ function GA4Modal({
         <div className="space-y-1.5">
           <label htmlFor="ga4-property-id" className="text-xs font-bold text-muted-foreground">GA4 Property ID</label>
           <input id="ga4-property-id" value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="es. 345678901"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="ga4-refresh-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
             Google OAuth Refresh Token
-            {hasGoogleToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Già configurato</span>}
+            {hasGoogleToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
           <input id="ga4-refresh-token" type="password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder={hasGoogleToken ? "Lascia vuoto per mantenere" : "1//04ABCD..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">Il token è condiviso tra Google Ads, GA4 e GBP.</p>
         </div>
         <button onClick={save} disabled={saving}
@@ -410,14 +404,14 @@ function GoogleAdsModal({
     <ModalWrapper title="Google Ads — Customer ID" onClose={onClose}>
       <div className="space-y-4">
         {!hasGoogleToken && (
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-400">
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-700 dark:text-amber-400">
              Configura prima il <strong>Google OAuth Token</strong> nella card Google Analytics.
           </div>
         )}
         <div className="space-y-1.5">
           <label htmlFor="google-ads-customer-id" className="text-xs font-bold text-muted-foreground">Customer ID</label>
           <input id="google-ads-customer-id" value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="es. 123-456-7890"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">Trovalo su ads.google.com in alto a destra.</p>
         </div>
         <button onClick={save} disabled={saving || !customerId.trim()}
@@ -461,10 +455,10 @@ function ClarityModal({
         <div className="space-y-1.5">
           <label htmlFor="clarity-project-id" className="text-xs font-bold text-muted-foreground">Project ID</label>
           <input id="clarity-project-id" value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="es. 8abc123def"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-violet-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-violet-500/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             Trovalo su{" "}
-            <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">clarity.microsoft.com</a>
+            <a href="https://clarity.microsoft.com" target="_blank" rel="noopener noreferrer" className="text-violet-700 dark:text-violet-400 hover:underline">clarity.microsoft.com</a>
             {" "}→ Impostazioni progetto.
           </p>
         </div>
@@ -531,7 +525,7 @@ function WindsorGbpModal({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={"accounts/123456789/locations/111\naccounts/123456789/locations/222"}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground font-mono"
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground font-mono"
           />
           <p className="text-xs text-muted-foreground">
             Una riga per ogni sede del cliente. Il nome della sede viene letto in automatico,
@@ -611,13 +605,13 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
   // 1,3:1 — invisibile, e i campi vuoti sembravano disabilitati.
   //
   // La causa principale però stava altrove: il modale non portava la palette
-  // scura, quindi bg-background/50 rendeva un blocco quasi bianco sotto un
+  // scura, quindi bg-background rendeva un blocco quasi bianco sotto un
   // testo scuro. Vedi la nota sulla classe `dark` in ModalWrapper.
   //
   // `outline-none` senza un focus visibile toglie anche l'unico segnale di
   // quale campo è attivo, quindi il ring va rimesso a mano.
   const input =
-    "w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2 rounded-lg outline-none transition-all " +
+    "w-full text-sm bg-background border border-border text-foreground px-3 py-2 rounded-lg outline-none transition-all " +
     "placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/25";
 
   return (
@@ -633,7 +627,7 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
         ) : (
           <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
             {rows.map((r, i) => (
-              <div key={r.id} className="space-y-2 rounded-lg border border-white/5 p-3">
+              <div key={r.id} className="space-y-2 rounded-lg border border-border/60 p-3">
                 <div className="grid grid-cols-2 gap-2">
                   <input value={r.nome} onChange={(e) => set(i, "nome", e.target.value)}
                     placeholder={`Competitor ${i + 1}`} className={input} />
@@ -654,7 +648,7 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
         )}
 
         <button onClick={save} disabled={saving || loading}
-          className="w-full text-sm font-semibold py-2.5 rounded-lg bg-slate-500/10 border border-slate-500/20 text-slate-300 hover:bg-slate-500/20 transition-all disabled:opacity-40 cursor-pointer">
+          className="w-full text-sm font-semibold py-2.5 rounded-lg bg-slate-500/10 border border-slate-500/20 text-slate-600 dark:text-slate-300 hover:bg-slate-500/20 transition-all disabled:opacity-40 cursor-pointer">
           {saving ? "Salvataggio…" : "Salva competitor"}
         </button>
       </div>
@@ -716,7 +710,7 @@ function KlaviyoModal({
           <label htmlFor="klaviyo-key" className="text-xs font-bold text-muted-foreground">Private API Key</label>
           <input id="klaviyo-key" type="password" autoComplete="off" value={apiKey}
             onChange={(e) => setApiKey(e.target.value)} placeholder="pk_..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             In Klaviyo: Settings → Account → API keys → Create Private API Key. Scegli <strong>Custom Key</strong> e dai
             la sola lettura su <code>accounts</code>, <code>metrics</code>, <code>campaigns</code>, <code>flows</code>,
@@ -725,7 +719,7 @@ function KlaviyoModal({
           </p>
         </div>
         <button onClick={save} disabled={saving || !apiKey.trim()}
-          className="w-full text-sm font-semibold py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all disabled:opacity-40 cursor-pointer">
+          className="w-full text-sm font-semibold py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all disabled:opacity-40 cursor-pointer">
           {saving ? "Verifico la chiave…" : "Verifica e salva"}
         </button>
       </div>
@@ -788,7 +782,7 @@ function WindsorFieldModal({
         <div className="space-y-1.5">
           <label htmlFor={`windsor-${fieldKey}`} className="text-xs font-bold text-muted-foreground">ID account</label>
           <input id={`windsor-${fieldKey}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
         <button onClick={save} disabled={saving || !value.trim()}
@@ -885,11 +879,11 @@ function GbpAddModal({
                     "w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all cursor-pointer",
                     alreadyAdded ? "border-emerald-500/20 bg-emerald-500/5 cursor-not-allowed opacity-60"
                       : isSelected ? "border-emerald-500/40 bg-emerald-500/10"
-                      : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                      : "border-border bg-muted/40 hover:border-foreground/30"
                   )}>
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-foreground">{loc.title}</span>
-                    {(alreadyAdded || isSelected) && <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />}
+                    {(alreadyAdded || isSelected) && <CheckCircle2 size={12} className="text-emerald-700 dark:text-emerald-400 shrink-0" />}
                   </div>
                   <span className="text-xs text-muted-foreground">{loc.address} {loc.isVerified ? "" : ""}</span>
                 </button>
@@ -1013,9 +1007,9 @@ function YoutubeModal({
         {hasToken && (
           <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <div className="flex items-center gap-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-700 dark:text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
               <div>
-                <p className="text-xs font-bold text-emerald-400">Canale connesso</p>
+                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Canale connesso</p>
                 {channelName && <p className="text-xs text-muted-foreground mt-0.5">{channelName}</p>}
               </div>
             </div>
@@ -1023,13 +1017,13 @@ function YoutubeModal({
           </div>
         )}
         {status && (
-          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"}`}>
+          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400"}`}>
             {status.valid
               ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12" /></svg>Token valido &mdash; {status.channelName}</>
               : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
           </div>
         )}
-        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+        <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-2">
           <p className="text-xs font-bold text-muted-foreground">Solo dati pubblici (basta l&apos;ID del canale)</p>
           <p className="text-xs text-muted-foreground">
             Iscritti, visualizzazioni totali e ultimi video, senza nessuna autorizzazione di Google. Non include tempo di visione,
@@ -1037,22 +1031,22 @@ function YoutubeModal({
           </p>
           {publicChannelId && (
             <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <span className="text-xs font-semibold text-emerald-400 truncate">{publicChannelName || publicChannelId}</span>
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 truncate">{publicChannelName || publicChannelId}</span>
               <button type="button" onClick={removePublicChannel} disabled={savingPublic}
-                className="text-xs text-rose-400 hover:text-rose-300 underline cursor-pointer disabled:opacity-50">Rimuovi</button>
+                className="text-xs text-rose-700 dark:text-rose-400 hover:text-rose-300 underline cursor-pointer disabled:opacity-50">Rimuovi</button>
             </div>
           )}
           <div className="flex gap-2">
             <input id="youtube-public-channel" aria-label="ID canale YouTube" value={publicInput} onChange={(e) => setPublicInput(e.target.value)}
               placeholder="UC... oppure @handle"
-              className="flex-1 min-w-0 text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
+              className="flex-1 min-w-0 text-sm bg-background border border-border text-foreground px-3 py-2 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
             <button type="button" onClick={savePublicChannel} disabled={savingPublic || !publicInput.trim()}
               className="flex-none px-3 py-2 text-xs font-bold bg-red-600 hover:bg-red-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer">
               {savingPublic && <Loader2 size={12} className="animate-spin" />} Usa dati pubblici
             </button>
           </div>
         </div>
-        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
+        <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-1.5">
           <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
           <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>Google Cloud Console → Credenziali → OAuth 2.0</li>
@@ -1065,18 +1059,18 @@ function YoutubeModal({
           <label htmlFor="youtube-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
           <input id="youtube-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "ya29.a0..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="youtube-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato per rinnovo automatico)</label>
           <input id="youtube-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="1//0e..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="flex gap-2">
           {hasToken && (
             <button onClick={disconnect} disabled={disconnecting}
-              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
+              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-700 dark:text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
               {disconnecting ? <Loader2 size={12} className="animate-spin" /> : "Disconnetti"}
             </button>
           )}
@@ -1156,9 +1150,9 @@ function TikTokModal({
         {hasToken && (
           <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <div className="flex items-center gap-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-700 dark:text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
               <div>
-                <p className="text-xs font-bold text-emerald-400">Account connesso</p>
+                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Account connesso</p>
                 {displayName && <p className="text-xs text-muted-foreground mt-0.5">@{displayName}</p>}
               </div>
             </div>
@@ -1166,13 +1160,13 @@ function TikTokModal({
           </div>
         )}
         {status && (
-          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"}`}>
+          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400"}`}>
             {status.valid
               ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12" /></svg>Token valido &mdash; @{status.displayName}</>
               : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
           </div>
         )}
-        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
+        <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-1.5">
           <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
           <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>developers.tiktok.com → crea app → aggiungi scopes</li>
@@ -1185,18 +1179,18 @@ function TikTokModal({
           <label htmlFor="tiktok-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
           <input id="tiktok-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "act.xxx..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="tiktok-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato)</label>
           <input id="tiktok-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="rft.xxx..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="flex gap-2">
           {hasToken && (
             <button onClick={disconnect} disabled={disconnecting}
-              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
+              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-700 dark:text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
               {disconnecting ? <Loader2 size={12} className="animate-spin" /> : "Disconnetti"}
             </button>
           )}
@@ -1281,9 +1275,9 @@ function LinkedinModal({
         {hasToken && (
           <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
             <div className="flex items-center gap-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-700 dark:text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
               <div>
-                <p className="text-xs font-bold text-emerald-400">Pagina connessa</p>
+                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Pagina connessa</p>
                 {orgName && <p className="text-xs text-muted-foreground mt-0.5">{orgName}</p>}
               </div>
             </div>
@@ -1291,13 +1285,13 @@ function LinkedinModal({
           </div>
         )}
         {status && (
-          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"}`}>
+          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400"}`}>
             {status.valid
               ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12" /></svg>Token valido &mdash; {status.orgLabel}</>
               : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
           </div>
         )}
-        <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10 space-y-1.5">
+        <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-1.5">
           <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
           <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
             <li>linkedin.com/developers → crea app → prodotti: Marketing API</li>
@@ -1310,25 +1304,25 @@ function LinkedinModal({
           <label htmlFor="linkedin-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
           <input id="linkedin-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "AQV..."}
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="linkedin-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (se disponibile)</label>
           <input id="linkedin-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="AQW..."
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="linkedin-org-id" className="text-xs font-bold text-muted-foreground">Organization ID (numero della pagina)</label>
           <input id="linkedin-org-id" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
             placeholder="es. 12345678"
-            className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
         </div>
         <div className="flex gap-2">
           {hasToken && (
             <button onClick={disconnect} disabled={disconnecting}
-              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
+              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-700 dark:text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
               {disconnecting ? <Loader2 size={12} className="animate-spin" /> : "Disconnetti"}
             </button>
           )}
