@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { decodeEntities } from '@/lib/html-entities'
 import { AlertCircle, ExternalLink, Users, RefreshCw, Instagram, Facebook, Linkedin, Youtube, Music2 } from 'lucide-react'
 import { normalizeSocial } from '@/lib/social-links'
+import type { SocialReading } from '@/lib/competitor-social'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
@@ -11,6 +12,10 @@ import { toast } from 'sonner'
 interface Competitor { id: string; nome: string; sito: string; instagram?: string; facebook?: string; linkedin?: string; youtube?: string; tiktok?: string }
 interface Snapshot { url: string; fetchedAt: number; via: string; title: string; description: string; offers: string[]; textLength: number }
 interface Change { at: number; competitor: string; text: string; url: string }
+
+const nf = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })
+const dayIta = (iso: string) => new Date(iso).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
+const NAMES = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' } as const
 
 const dataIta = (ms: number) =>
   new Date(ms).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -21,6 +26,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
   const [changes, setChanges] = useState<Change[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [lastRun, setLastRun] = useState<number | null>(null)
+  const [social, setSocial] = useState<Record<string, SocialReading>>({})
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -33,7 +39,18 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
     setChanges(j.changes ?? []); setErrors(j.errors ?? {}); setLastRun(j.lastRun ?? null)
   }
 
-  useEffect(() => { load().finally(() => setLoading(false)) }, [clientId])
+  // Dati pubblici dei social salvati (YouTube, LinkedIn): in parallelo, senza bloccare l'elenco
+  const loadSocial = async (force = false) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`/api/clients/${clientId}/competitors/social${force ? '?refresh=1' : ''}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) return
+      const j = await res.json()
+      setSocial(Object.fromEntries((j.results ?? []).map((r: SocialReading) => [r.competitorId, r])))
+    } catch { /* i social sono un extra: se non rispondono, restano le icone */ }
+  }
+
+  useEffect(() => { load().finally(() => setLoading(false)); loadSocial() }, [clientId])
 
   const refresh = async () => {
     setRefreshing(true)
@@ -45,7 +62,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
       const j = await res.json()
       if (!res.ok) throw new Error(j?.error || 'Lettura non riuscita.')
       toast.success(j.changes?.length ? `${j.changes.length} cambiamenti rilevati` : 'Nessun cambiamento dall\'ultima lettura')
-      await load()
+      await Promise.all([load(), loadSocial(true)])
     } catch (e: any) { toast.error(e.message) }
     finally { setRefreshing(false) }
   }
@@ -109,6 +126,34 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                   })}
                 </div>
               </div>
+
+              {(() => {
+                const r = social[c.id]
+                if (!r) return null
+                const yt = r.youtube
+                const li = r.linkedin
+                return (
+                  <div className="space-y-0.5 text-xs text-muted-foreground">
+                    {yt && ('error' in yt
+                      ? <p className="text-amber-600/80 dark:text-amber-500/80">YouTube: {yt.error}</p>
+                      : <p>
+                          <span className="font-semibold text-foreground">YouTube</span>
+                          {yt.subscribers !== null && <> · {nf.format(yt.subscribers)} iscritti</>}
+                          {' '}· {nf.format(yt.videos)} video · {nf.format(yt.views)} visualizzazioni
+                          {yt.lastUpload && <> · ultimo video il {dayIta(yt.lastUpload)}</>}
+                          {yt.lastUpload && <> · {yt.uploadsCapped ? `almeno ${yt.uploadsLast30d}` : yt.uploadsLast30d} negli ultimi 30 giorni</>}
+                        </p>)}
+                    {li && ('error' in li
+                      ? <p className="text-amber-600/80 dark:text-amber-500/80">LinkedIn: {li.error}</p>
+                      : <p><span className="font-semibold text-foreground">LinkedIn</span> · {nf.format(li.followers)} follower</p>)}
+                    {r.unreadable.length > 0 && (
+                      <p className="text-muted-foreground/60">
+                        {r.unreadable.map((k) => NAMES[k]).join(', ')}: nessun dato pubblico leggibile da qui (chiedono l&apos;accesso). Apri il profilo dall&apos;icona.
+                      </p>
+                    )}
+                  </div>
+                )
+              })()}
 
               {err ? (
                 <p className="text-xs text-amber-500/90 flex items-start gap-1.5">
