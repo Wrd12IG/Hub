@@ -258,6 +258,9 @@ export function FloatingCommandDock() {
                     })}
                 </nav>
 
+                {/* La ricerca/comandi (⌘K) porta a pagine dello staff: non per l'utente Cliente */}
+                {currentUser?.role !== 'Cliente' && (
+                <>
                 <div className="h-6 w-px bg-border/50 mx-1" />
 
                 {/* ── Ricerca (⌘K) ── */}
@@ -277,6 +280,8 @@ export function FloatingCommandDock() {
                         Cerca o esegui comandi (⌘K)
                     </TooltipContent>
                 </Tooltip>
+                </>
+                )}
             </div>
         </TooltipProvider>
     );
