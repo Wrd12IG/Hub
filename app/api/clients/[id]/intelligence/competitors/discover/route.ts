@@ -48,7 +48,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     });
 
     const merged = mergeDiscovered(competitorsOf(data), verified);
-    if (merged.added > 0 || merged.removed > 0) await saveCompetitors(ref, merged.list, user.uid);
+    if (merged.added > 0 || merged.removed > 0 || merged.updated > 0) await saveCompetitors(ref, merged.list, user.uid);
 
     return NextResponse.json({
       success: true,
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       candidates: candidates.length,
       added: merged.added,
       removed: merged.removed,
+      updated: merged.updated,
       rejected,
       competitors: merged.list,
       ...(verified.length === 0 ? { warning: 'Nessun sito verificato: i candidati proposti non sono raggiungibili o sono portali' } : {}),

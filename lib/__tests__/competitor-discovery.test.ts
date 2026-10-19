@@ -54,7 +54,7 @@ describe('competitor-discovery', () => {
         expect(m.list.map(c => c.name)).toEqual(['Spotorno', 'Scritto a mano', 'Finiguerra']);
         expect(m).toMatchObject({ added: 1, removed: 2 });
         // nulla trovato: niente cambia, non si cancella nulla
-        expect(mergeDiscovered(existing, [])).toEqual({ list: existing, added: 0, removed: 0 });
+        expect(mergeDiscovered(existing, [])).toEqual({ list: existing, added: 0, removed: 0, updated: 0 });
     });
 
     it('normalizeAdAnalysis limita le liste e non crea undefined', () => {
@@ -62,5 +62,30 @@ describe('competitor-discovery', () => {
         expect(a.summary).toBe('Prezzi in evidenza');
         expect(a.analysis).toMatchObject({ angles: ['prezzo'], hooks: [], ctas: ['Scopri'], offers: [] });
         expect(normalizeAdAnalysis(null).analysis.angles).toEqual([]);
+    });
+
+    it('normalizeCandidates tiene il punto debole solo se scritto', () => {
+        const r = normalizeCandidates({ competitors: [
+            { name: 'A', url: 'https://a-auto.it', weak: ' Recensioni lente sul post-vendita ' },
+            { name: 'B', url: 'https://b-auto.it', weak: '' },
+        ] });
+        expect(r[0].weak).toBe('Recensioni lente sul post-vendita');
+        expect(r[1]).not.toHaveProperty('weak');
+    });
+
+    it('mergeDiscovered completa i campi vuoti di chi c\'era già e non sovrascrive quelli scritti', () => {
+        const existing = [
+            { name: 'A', url: 'https://a-auto.it' },
+            { name: 'B', url: 'https://b-auto.it', weakness: 'scritto da una persona' },
+        ] as SavedCompetitor[];
+        const found = [
+            { name: 'A', url: 'https://a-auto.it', weakness: 'sito senza prezzi', strength: 'vicino' },
+            { name: 'B', url: 'https://b-auto.it', weakness: 'altro' },
+        ] as SavedCompetitor[];
+        const m = mergeDiscovered(existing, found);
+        expect(m.updated).toBe(1);
+        expect(m.added).toBe(0);
+        expect(m.list[0]).toMatchObject({ weakness: 'sito senza prezzi', strength: 'vicino' });
+        expect(m.list[1].weakness).toBe('scritto da una persona');
     });
 });

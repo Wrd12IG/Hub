@@ -3,7 +3,7 @@
 import { domainOf } from '@/lib/competitor-merge';
 import { fetchPage } from '@/lib/safe-fetch';
 
-export interface CompetitorCandidate { name: string; url: string; city?: string; kind?: string; why?: string }
+export interface CompetitorCandidate { name: string; url: string; city?: string; kind?: string; why?: string; weak?: string }
 
 export interface SavedCompetitor {
     name: string;
@@ -45,9 +45,10 @@ Regole:
 - Stessa categoria del cliente e area raggiungibile dai suoi clienti (entro circa 40 km dalle sedi indicate).
 - Escludi il cliente stesso e le aziende dello stesso gruppo.
 - Fino a 8 candidati, i più rilevanti per primi.
+- "weak" è un punto debole REALE e verificabile di quel concorrente, emerso da ciò che hai trovato (recensioni negative ricorrenti, sito lento o senza prezzi, offerta poco visibile, presenza social trascurata, copertura limitata). Una frase, concreta. Se non hai trovato evidenze, lascia "weak" vuoto: NON inventare lacune generiche.
 
 Rispondi SOLO con questo JSON:
-{ "competitors": [ { "name": "", "url": "https://", "city": "", "kind": "es. concessionaria ufficiale, multimarca usato/km0", "why": "perché è un concorrente diretto, una frase" } ] }`;
+{ "competitors": [ { "name": "", "url": "https://", "city": "", "kind": "es. concessionaria ufficiale, multimarca usato/km0", "why": "perché è un concorrente diretto, una frase", "weak": "punto debole verificato, oppure vuoto" } ] }`;
 }
 
 /** Porta l'output dell'AI nella forma dei candidati; scarta portali, voci senza nome/URL e doppioni. */
@@ -67,6 +68,7 @@ export function normalizeCandidates(raw: any): CompetitorCandidate[] {
         if (str(c?.city)) cand.city = str(c.city).slice(0, 60);
         if (str(c?.kind)) cand.kind = str(c.kind).slice(0, 80);
         if (str(c?.why)) cand.why = str(c.why).slice(0, 300);
+        if (str(c?.weak)) cand.weak = str(c.weak).slice(0, 300);
         out.push(cand);
     }
     return out;
@@ -111,6 +113,7 @@ export async function verifyCandidates(
             if (c.city) saved.city = c.city;
             if (c.kind) saved.kind = c.kind;
             if (c.why) saved.strength = c.why;
+            if (c.weak) saved.weakness = c.weak;
             const title = titleOf(r.value.html);
             if (title) saved.siteTitle = title;
             result.verified.push(saved);
@@ -123,13 +126,27 @@ export async function verifyCandidates(
  * Aggiorna l'elenco: tiene chi ha già un sito o è stato aggiunto a mano, toglie le voci senza sito (categorie generiche
  * dell'analisi: non si possono monitorare e non portano dati), aggiunge i nuovi verificati non già presenti per dominio.
  */
-export function mergeDiscovered(existing: SavedCompetitor[], found: SavedCompetitor[]): { list: SavedCompetitor[]; added: number; removed: number } {
-    if (found.length === 0) return { list: existing, added: 0, removed: 0 };
+export function mergeDiscovered(existing: SavedCompetitor[], found: SavedCompetitor[]): { list: SavedCompetitor[]; added: number; removed: number; updated: number } {
+    if (found.length === 0) return { list: existing, added: 0, removed: 0, updated: 0 };
     // Si tiene chi ha un sito e chi è stato aggiunto a mano (addedBy): una voce scritta da una persona non va cancellata
-    const keep = existing.filter(c => c.addedBy || domainOf(String(c.url ?? c.website ?? c.sito ?? '')));
+    const kept = existing.filter(c => c.addedBy || domainOf(String(c.url ?? c.website ?? c.sito ?? '')));
+    const byDomain = new Map(found.map(c => [domainOf(c.url), c]));
+    // Chi c'era già non viene riscritto, ma si completano i campi vuoti (punti di forza e deboli) con quelli appena trovati:
+    // mai sovrascrivere ciò che è già scritto, a mano o da un'analisi precedente.
+    let updated = 0;
+    const keep = kept.map(c => {
+        const f = byDomain.get(domainOf(String(c.url ?? c.website ?? c.sito ?? '')));
+        if (!f) return c;
+        const patch: Partial<SavedCompetitor> = {};
+        if (!c.weakness && f.weakness) patch.weakness = f.weakness;
+        if (!c.strength && f.strength) patch.strength = f.strength;
+        if (Object.keys(patch).length === 0) return c;
+        updated++;
+        return { ...c, ...patch };
+    });
     const known = new Set(keep.map(c => domainOf(String(c.url ?? c.website ?? c.sito ?? ''))));
     const fresh = found.filter(c => !known.has(domainOf(c.url)));
-    return { list: [...keep, ...fresh], added: fresh.length, removed: existing.length - keep.length };
+    return { list: [...keep, ...fresh], added: fresh.length, removed: existing.length - kept.length, updated };
 }
 
 // ── Analisi di uno screenshot della Ads Library ──
