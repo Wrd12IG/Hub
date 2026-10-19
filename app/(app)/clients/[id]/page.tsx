@@ -787,7 +787,7 @@ export default function ClientDetailPage() {
   return (
     <div className="space-y-6 w-full min-w-0">
       {/* ── PAGE HEADER ── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between bg-white/[0.01] border border-white/5 p-6 rounded-2xl shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between bg-muted/40 border border-border p-6 rounded-2xl shadow-sm">
         {/* LEFT: back + title */}
         <div className="space-y-3">
           <Link
@@ -828,7 +828,7 @@ export default function ClientDetailPage() {
               {client.industry && (
                 <Badge
                   variant="secondary"
-                  className="font-bold rounded-lg border border-white/5 bg-white/5 px-2 py-0.5 text-xs"
+                  className="font-bold rounded-lg border border-border bg-muted px-2 py-0.5 text-xs"
                 >
                   {client.industry}
                 </Badge>
@@ -836,7 +836,7 @@ export default function ClientDetailPage() {
               {client.creativeMode && (
                 <Badge
                   variant="outline"
-                  className="font-bold rounded-lg border-white/10 px-2 py-0.5 text-xs text-muted-foreground"
+                  className="font-bold rounded-lg border-border px-2 py-0.5 text-xs text-muted-foreground"
                 >
                   Modalità: {client.creativeMode}
                 </Badge>
@@ -872,7 +872,7 @@ export default function ClientDetailPage() {
           • "Maps & GBP" duplicava la scheda GBP che ora sta nella Overview,
             da cui si raggiunge il dettaglio per sede.
       ── */}
-      <div className="relative z-20 flex flex-wrap items-center gap-2.5 bg-white/[0.01] border border-white/5 p-4 rounded-2xl shadow-sm">
+      <div className="relative z-20 flex flex-wrap items-center gap-2.5 bg-muted/40 border border-border p-4 rounded-2xl shadow-sm">
         {[
           {
             href: `/clients/${id}/editorial-plan`,
@@ -916,14 +916,14 @@ export default function ClientDetailPage() {
           },
         ].map((item, i) => {
           if ('separator' in item) {
-            return <span key={`sep-${i}`} aria-hidden className="h-6 w-px bg-white/10 mx-1" />;
+            return <span key={`sep-${i}`} aria-hidden className="h-6 w-px bg-muted mx-1" />;
           }
           const { href, icon: Icon, label, dot } = item;
           return (
             <Link
               key={href}
               href={href}
-              className="relative z-10 cursor-pointer glass-card inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-white/5 bg-white/[0.02] hover:bg-white/[0.07] hover:border-white/10 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-foreground"
+              className="relative z-10 cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-border bg-muted/40 hover:bg-muted hover:border-foreground/30 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-foreground"
             >
               <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />
               <Icon className="h-3.5 w-3.5 text-muted-foreground/80" />
@@ -962,7 +962,7 @@ export default function ClientDetailPage() {
       {activeTab === "overview" && (
         <div className="flex flex-col gap-8">
           {/* CONTROL BAR: Date Filter & Comparazione */}
-          <div className="glass-card flex flex-col md:flex-row md:justify-between md:items-center p-4 rounded-2xl gap-4 border border-white/10 bg-white/[0.03] shadow-md">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center p-4 rounded-2xl gap-4 border border-border bg-muted/40 shadow-md">
             <PeriodPicker
               mode={periodMode}
               daysBack={overviewDaysBack}
@@ -979,14 +979,14 @@ export default function ClientDetailPage() {
               <div className="text-sm font-bold text-muted-foreground">
                 Compara con:
               </div>
-              <div className="flex bg-white/5 rounded-xl p-1 border border-white/5">
+              <div className="flex bg-muted rounded-xl p-1 border border-border">
                 <button
                   onClick={() => setCompareMode("prev_period")}
                   className={cn(
                     "px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all duration-200 active:scale-[0.95]",
                     compareMode === "prev_period"
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
                   )}
                 >
                   Periodo Prec.
@@ -997,7 +997,7 @@ export default function ClientDetailPage() {
                     "px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all duration-200 active:scale-[0.95]",
                     compareMode === "prev_year"
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
                   )}
                 >
                   Anno Prec.
@@ -1008,7 +1008,7 @@ export default function ClientDetailPage() {
                     "px-4 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all duration-200 active:scale-[0.95]",
                     compareMode === "none"
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
                   )}
                 >
                   Nessuno
@@ -1102,7 +1102,7 @@ export default function ClientDetailPage() {
             >
               {/* WEB ANALYTICS COMPLETO */}
               {loadingGa4 ? (
-                <div className="bg-white/[0.01] p-8 rounded-xl text-center flex flex-col items-center justify-center min-h-[120px] gap-2 border border-dashed border-white/10">
+                <div className="bg-muted/40 p-8 rounded-xl text-center flex flex-col items-center justify-center min-h-[120px] gap-2 border border-dashed border-border">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
                   <span className="text-sm text-muted-foreground animate-pulse">
                     Elaborazione Report Godmode GA4 e calcolo deltas storici...
@@ -1153,7 +1153,7 @@ export default function ClientDetailPage() {
                       ].map((item, i) => (
                         <div
                           key={i}
-                          className="glass-card hover:bg-white/[0.06] hover:border-white/15 p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
                           <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
                             {item.label}
@@ -1170,7 +1170,7 @@ export default function ClientDetailPage() {
                                     ? "bg-emerald-500/10 text-emerald-400"
                                     : item.metric.chg < 0
                                       ? "bg-rose-500/10 text-rose-400"
-                                      : "bg-white/5 text-muted-foreground",
+                                      : "bg-muted text-muted-foreground",
                                 )}
                               >
                                 {item.metric.chg > 0 ? "+" : ""}
@@ -1213,7 +1213,7 @@ export default function ClientDetailPage() {
                       ].map((item, i) => (
                         <div
                           key={i}
-                          className="glass-card hover:bg-white/[0.06] hover:border-white/15 p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
                           <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
                             {item.label}
@@ -1230,7 +1230,7 @@ export default function ClientDetailPage() {
                                     ? "bg-rose-500/10 text-rose-400"
                                     : item.metric.chg < 0
                                       ? "bg-emerald-500/10 text-emerald-400"
-                                      : "bg-white/5 text-muted-foreground",
+                                      : "bg-muted text-muted-foreground",
                                 )}
                               >
                                 {item.metric.chg > 0 ? "+" : ""}
@@ -1287,7 +1287,7 @@ export default function ClientDetailPage() {
                         .map((item, i) => (
                         <div
                           key={i}
-                          className="glass-card hover:bg-white/[0.06] hover:border-white/15 p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
                           <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
                             {item.label}
@@ -1304,7 +1304,7 @@ export default function ClientDetailPage() {
                                     ? "bg-emerald-500/10 text-emerald-400"
                                     : item.metric.chg < 0
                                       ? "bg-rose-500/10 text-rose-400"
-                                      : "bg-white/5 text-muted-foreground",
+                                      : "bg-muted text-muted-foreground",
                                 )}
                               >
                                 {item.metric.chg > 0 ? "+" : ""}
@@ -1339,13 +1339,13 @@ export default function ClientDetailPage() {
               {loadingCampaigns ? (
                 <div className="text-xs text-muted-foreground/60 animate-pulse">Calcolo in corso...</div>
               ) : adsHealth.length === 0 ? (
-                <div className="text-xs text-muted-foreground bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                <div className="text-xs text-muted-foreground bg-muted/40 border border-border rounded-xl p-3">
                   Nessuna campagna Meta o Google Ads trovata. Collega le piattaforme in &quot;Setup API&quot;.
                 </div>
               ) : (
                 <div className="space-y-3">
                   {adsHealth.map((h) => (
-                    <div key={h.platform} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 space-y-2">
+                    <div key={h.platform} className="bg-muted/40 border border-border rounded-xl p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-foreground">{h.label}</span>
                         <span
@@ -1406,10 +1406,10 @@ export default function ClientDetailPage() {
                   </Button>
 
                   {seoReportsList.length > 0 && (
-                    <div className="w-full sm:w-64 border border-white/10 rounded-xl overflow-hidden bg-background/40 backdrop-blur-md">
+                    <div className="w-full sm:w-64 border border-border rounded-xl overflow-hidden bg-background/40 backdrop-blur-md">
                       <div
                         onClick={() => setIsReportsOpen(!isReportsOpen)}
-                        className="flex justify-between items-center p-3 cursor-pointer hover:bg-white/5 transition-colors"
+                        className="flex justify-between items-center p-3 cursor-pointer hover:bg-muted transition-colors"
                       >
                         <span className="text-xs font-bold text-foreground">
                           Archivio Report ({seoReportsList.length})
@@ -1424,11 +1424,11 @@ export default function ClientDetailPage() {
                         </span>
                       </div>
                       {isReportsOpen && (
-                        <div className="p-3 pt-0 flex flex-col gap-1.5 border-t border-white/5 max-h-32 overflow-y-auto scrollbar-thin">
+                        <div className="p-3 pt-0 flex flex-col gap-1.5 border-t border-border max-h-32 overflow-y-auto scrollbar-thin">
                           {seoReportsList.map((report) => (
                             <div
                               key={report.id}
-                              className="flex justify-between items-center p-2 bg-white/[0.02] hover:bg-white/[0.05] rounded-lg text-xs transition-colors border border-white/5"
+                              className="flex justify-between items-center p-2 bg-muted/40 hover:bg-muted rounded-lg text-xs transition-colors border border-border"
                             >
                               <div className="flex items-center gap-1.5 text-muted-foreground">
                                 <FileText className="h-3 w-3" />
@@ -1527,7 +1527,7 @@ export default function ClientDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 flex flex-col gap-6">
             {!client.intelligence ? (
-              <div className="glass-card p-10 text-center rounded-2xl border border-white/10 bg-white/[0.03] shadow-md">
+              <div className="p-10 text-center rounded-2xl border border-border bg-muted/40 shadow-md">
                 <Brain
                   size={48}
                   className="opacity-20 mx-auto mb-4 text-cyan-400"
@@ -1570,7 +1570,7 @@ export default function ClientDetailPage() {
             ) : (
               <div className="flex flex-col gap-6">
                 {/* USP e Prodotto */}
-                <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] flex flex-col gap-4 shadow-md">
+                <div className="p-6 rounded-2xl border border-border bg-muted/40 flex flex-col gap-4 shadow-md">
                   <div className="flex items-center gap-3">
                     <Target className="text-amber-400" size={20} />
                     <h3 className="text-base font-extrabold text-foreground tracking-tight">
@@ -1591,13 +1591,13 @@ export default function ClientDetailPage() {
                     {client.intelligence.uniqueValueProp}
                   </div>
                   <div className="flex gap-3 mt-1">
-                    <div className="bg-white/5 px-3 py-1.5 rounded-xl text-xs border border-white/5 font-semibold">
+                    <div className="bg-muted px-3 py-1.5 rounded-xl text-xs border border-border font-semibold">
                       <span className="text-muted-foreground/80">Tipo: </span>
                       <strong className="text-amber-400">
                         {client.intelligence.businessType}
                       </strong>
                     </div>
-                    <div className="bg-white/5 px-3 py-1.5 rounded-xl text-xs border border-white/5 font-semibold">
+                    <div className="bg-muted px-3 py-1.5 rounded-xl text-xs border border-border font-semibold">
                       <span className="text-muted-foreground/80">Ticket: </span>
                       <strong className="text-emerald-400">
                         {client.intelligence.priceRange || "Sconosciuto"}
@@ -1607,7 +1607,7 @@ export default function ClientDetailPage() {
                 </div>
 
                 {/* Target Avatar */}
-                <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-md">
+                <div className="p-6 rounded-2xl border border-border bg-muted/40 shadow-md">
                   <div className="flex items-center gap-3 mb-4">
                     <Users className="text-cyan-400" size={20} />
                     <h3 className="text-base font-extrabold text-foreground tracking-tight">
@@ -1646,7 +1646,7 @@ export default function ClientDetailPage() {
                 </div>
 
                 {/* Competitor */}
-                <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-md space-y-4">
+                <div className="p-6 rounded-2xl border border-border bg-muted/40 shadow-md space-y-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
                       <Target className="text-pink-400" size={20} />
@@ -1687,7 +1687,7 @@ export default function ClientDetailPage() {
                           return (
                             <div
                               key={i}
-                              className="glass-card border-l-4 border-l-pink-500/50 bg-white/[0.02] p-6 rounded-2xl border border-white/5 shadow-md flex flex-col gap-4 hover:bg-white/[0.05] hover:shadow-lg hover:shadow-pink-500/5 transition-all duration-300"
+                              className="border-l-4 border-l-pink-500/50 bg-muted/40 p-6 rounded-2xl border border-border shadow-md flex flex-col gap-4 hover:bg-muted hover:shadow-lg hover:shadow-pink-500/5 transition-all duration-300"
                             >
                               <div className="flex justify-between items-center">
                                 <div className="flex items-center gap-3">
@@ -1738,7 +1738,7 @@ export default function ClientDetailPage() {
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="bg-white/[0.02] border border-white/8 p-3.5 rounded-xl space-y-1 border-l-2 border-l-emerald-500/60">
+                                <div className="bg-muted/40 border border-border p-3.5 rounded-xl space-y-1 border-l-2 border-l-emerald-500/60">
                                   <div className="text-xs font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
                                     <CheckCircle2 className="h-3 w-3" /> Punti
                                     di forza
@@ -1747,7 +1747,7 @@ export default function ClientDetailPage() {
                                     {c.strength ? stripCitations(String(c.strength)) : "—"}
                                   </div>
                                 </div>
-                                <div className="bg-white/[0.02] border border-white/8 p-3.5 rounded-xl space-y-1 border-l-2 border-l-rose-500/60">
+                                <div className="bg-muted/40 border border-border p-3.5 rounded-xl space-y-1 border-l-2 border-l-rose-500/60">
                                   <div className="text-xs font-black text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
                                     <AlertTriangle className="h-3 w-3" /> Punti
                                     deboli
@@ -1781,7 +1781,7 @@ export default function ClientDetailPage() {
                                 </div>
                               </div>
 
-                              <div className="bg-white/[0.01] border border-white/5 p-3.5 rounded-xl flex items-center justify-between flex-wrap gap-2 text-xs">
+                              <div className="bg-muted/40 border border-border p-3.5 rounded-xl flex items-center justify-between flex-wrap gap-2 text-xs">
                                 <div className="flex items-center gap-2">
                                   <Zap className="h-3.5 w-3.5 text-pink-400" />
                                   <span className="text-muted-foreground/75 font-bold">
@@ -1808,7 +1808,7 @@ export default function ClientDetailPage() {
                               </div>
 
                               {/* Vision Upload Box */}
-                              <div className="p-4 bg-white/[0.01] rounded-xl border border-dashed border-white/10 hover:border-white/20 transition-colors flex flex-col gap-3 relative group/upload">
+                              <div className="p-4 bg-muted/40 rounded-xl border border-dashed border-border hover:border-foreground/30 transition-colors flex flex-col gap-3 relative group/upload">
                                 <div className="flex items-center gap-2">
                                   <Brain className="h-4 w-4 text-indigo-400" />
                                   <span className="text-xs font-bold text-foreground">
@@ -1824,7 +1824,7 @@ export default function ClientDetailPage() {
 
                                 <label
                                   htmlFor={`screenshot-upload-${i}`}
-                                  className="flex flex-col items-center justify-center p-4 border border-dashed border-white/10 rounded-lg cursor-pointer hover:bg-white/[0.04] hover:border-primary/30 transition-all duration-300"
+                                  className="flex flex-col items-center justify-center p-4 border border-dashed border-border rounded-lg cursor-pointer hover:bg-muted hover:border-primary/30 transition-all duration-300"
                                 >
                                   <div className="flex items-center gap-2 text-muted-foreground text-xs font-bold">
                                     <ImageIcon className="h-4 w-4" />
@@ -1862,7 +1862,7 @@ export default function ClientDetailPage() {
                   )}
 
                   {/* Add Manual Competitor */}
-                  <div className="flex gap-2 items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                  <div className="flex gap-2 items-center bg-muted p-3 rounded-xl border border-border">
                     <input
                       type="text"
                       placeholder="Aggiungi nome concorrente (es. Sephora)"
@@ -1871,7 +1871,7 @@ export default function ClientDetailPage() {
                       onKeyDown={(e) =>
                         e.key === "Enter" && handleAddCompetitor()
                       }
-                      className="flex-1 bg-background/50 border border-white/10 hover:border-white/20 focus:border-primary/50 text-foreground px-3 py-2 rounded-lg text-xs outline-none transition-all placeholder:text-muted-foreground/60"
+                      className="flex-1 bg-background/50 border border-border hover:border-foreground/30 focus:border-primary/50 text-foreground px-3 py-2 rounded-lg text-xs outline-none transition-all placeholder:text-muted-foreground/60"
                     />
                     <button
                       onClick={handleAddCompetitor}
@@ -1890,7 +1890,7 @@ export default function ClientDetailPage() {
             {client.intelligence && (
               <>
                 {/* Meta Targeting */}
-                <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] flex flex-col gap-4 shadow-md">
+                <div className="p-6 rounded-2xl border border-border bg-muted/40 flex flex-col gap-4 shadow-md">
                   <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
                     Input per Algoritmo Meta
                   </h3>
@@ -1917,7 +1917,7 @@ export default function ClientDetailPage() {
                     <div className="text-xs text-muted-foreground/80 font-bold uppercase tracking-wider mb-2">
                       Dati Demografici Estesi
                     </div>
-                    <div className="text-xs text-muted-foreground/90 leading-relaxed space-y-1.5 bg-white/5 p-3.5 rounded-xl border border-white/5">
+                    <div className="text-xs text-muted-foreground/90 leading-relaxed space-y-1.5 bg-muted p-3.5 rounded-xl border border-border">
                       <div>
                         Età:{" "}
                         <strong className="text-foreground">
@@ -1947,7 +1947,7 @@ export default function ClientDetailPage() {
 
                 {/* Ultra Senior Notes */}
                 {client.intelligence.analysisNotes && (
-                  <div className="glass-card p-5 rounded-2xl border border-white/10 bg-white/[0.03] shadow-sm">
+                  <div className="p-5 rounded-2xl border border-border bg-muted/40 shadow-sm">
                     <h3 className="text-xs font-black text-primary uppercase tracking-widest mb-2">
                       Ultra Senior Insight
                     </h3>
@@ -2033,7 +2033,7 @@ export default function ClientDetailPage() {
             </div>
 
             {!loadingCampaigns && filtered.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center gap-3 bg-white/[0.02] border border-white/5 rounded-2xl">
+              <div className="text-center py-16 text-muted-foreground flex flex-col items-center justify-center gap-3 bg-muted/40 border border-border rounded-2xl">
                 <Zap size={40} className="opacity-20 text-muted-foreground" />
                 <h3 className="font-bold text-foreground">
                   {allCampaigns.length === 0 ? "Nessuna campagna trovata" : "Nessuna campagna corrisponde ai filtri"}
@@ -2089,7 +2089,7 @@ export default function ClientDetailPage() {
 
       {/* TAB: HEATMAPS */}
       {activeTab === "heatmaps" && (
-        <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] min-h-[80vh] flex flex-col gap-6 shadow-lg">
+        <div className="p-6 sm:p-8 rounded-2xl border border-border bg-muted/40 min-h-[80vh] flex flex-col gap-6 shadow-lg">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <MousePointerClick size={24} className="text-violet-400" />
@@ -2139,7 +2139,7 @@ export default function ClientDetailPage() {
                sessione — cioè il motivo per cui si usa Clarity — non escono
                dalla loro API, si vedono solo dentro Clarity. Meglio un
                collegamento che funziona di un riquadro che finge. */
-            <div className="flex-1 rounded-xl border border-white/10 bg-white/[0.02] p-10 flex flex-col items-center justify-center text-center gap-4 min-h-[320px]">
+            <div className="flex-1 rounded-xl border border-border bg-muted/40 p-10 flex flex-col items-center justify-center text-center gap-4 min-h-[320px]">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-violet-500/10 border border-violet-500/20">
                 <MousePointerClick size={22} className="text-violet-400" />
               </div>

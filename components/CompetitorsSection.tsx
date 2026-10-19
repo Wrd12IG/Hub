@@ -71,7 +71,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
 
   if (competitors.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-white/10 p-6 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
         Nessun competitor configurato. Aggiungili in <strong className="text-foreground">Setup API → Competitor</strong>:
         il Hub leggerà i loro siti ogni notte e segnalerà cosa cambia.
       </div>
@@ -85,7 +85,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
           {lastRun ? `Ultima lettura ${dataIta(lastRun)}` : 'Mai letti'}
         </p>
         <button onClick={refresh} disabled={refreshing}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg border border-white/10 hover:bg-white/[0.06] transition-all disabled:opacity-40 cursor-pointer">
+          className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg border border-border hover:bg-muted transition-all disabled:opacity-40 cursor-pointer">
           <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> Leggi ora
         </button>
       </div>
@@ -95,7 +95,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
           const s = snapshots[c.id]
           const err = errors[c.id]
           return (
-            <div key={c.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-2">
+            <div key={c.id} className="rounded-xl border border-border bg-muted/40 p-4 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="font-bold text-sm truncate">{c.nome || c.sito}</p>
@@ -187,7 +187,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
           <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cosa è cambiato</h4>
           <div className="space-y-1.5">
             {changes.slice(0, 8).map((c, i) => (
-              <div key={i} className="flex items-start gap-3 text-xs rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+              <div key={i} className="flex items-start gap-3 text-xs rounded-lg border border-border bg-muted/40 px-3 py-2">
                 <Badge variant="outline" className="font-normal shrink-0 text-xs">{dataIta(c.at)}</Badge>
                 <span className="flex-1">
                   <strong className="text-foreground">{c.competitor}</strong> — {c.text}

@@ -81,7 +81,7 @@ export function CompetitorAdLibrary({ clientId }: { clientId: string }) {
           <button
             onClick={() => loadGoogle(true)}
             disabled={googleLoading}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/[0.06] transition-colors disabled:opacity-40 cursor-pointer"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer"
           >
             <RefreshCw size={12} className={googleLoading ? 'animate-spin' : ''} /> Aggiorna Google
           </button>
@@ -93,11 +93,11 @@ export function CompetitorAdLibrary({ clientId }: { clientId: string }) {
         </p>
       )}
       {competitors.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
           Nessun competitor configurato. Aggiungili in <strong className="text-foreground">Setup API → Competitor</strong>.
         </div>
       ) : (
-        <ul className="divide-y divide-white/5 rounded-xl border border-white/5 bg-white/[0.02]">
+        <ul className="divide-y divide-white/5 rounded-xl border border-border bg-muted/40">
           {competitors.map((c) => {
             const links = adLibraryLinks({ nome: c.nome, sito: c.sito, facebook: c.facebook, linkedin: c.linkedin })
             return (
@@ -128,7 +128,7 @@ export function CompetitorAdLibrary({ clientId }: { clientId: string }) {
                       target="_blank"
                       rel="noopener noreferrer"
                       title={`Ricerca per ${links.basis[l.key]}${links.basis[l.key] === 'nome' ? ': aggiungi la pagina del competitor per un risultato più preciso' : ''}`}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold hover:bg-white/[0.06] transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted transition-colors"
                     >
                       {l.label} <ExternalLink size={11} />
                     </a>
