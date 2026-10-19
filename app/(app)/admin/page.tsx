@@ -757,21 +757,13 @@ function AdminPageContent() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h1 className="text-3xl font-bold font-headline">
-                        Pannello di Amministrazione
-                    </h1>
-                    <p className="text-muted-foreground">
-                        Gestisci utenti, clienti, reparti, team, attività e permessi.
-                    </p>
-                </div>
-                {/* Pagina di servizio per spostare i dati interni dei clienti nell'area solo-staff: solo amministratori */}
-                {currentUser?.role === 'Amministratore' && (
-                    <Button asChild variant="outline" size="sm" className="gap-1.5">
-                        <Link href="/admin/migrazione-dati"><Database className="h-4 w-4 text-sky-400" /> Migrazione dati</Link>
-                    </Button>
-                )}
+            <div>
+                <h1 className="text-3xl font-bold font-headline">
+                    Pannello di Amministrazione
+                </h1>
+                <p className="text-muted-foreground">
+                    Gestisci utenti, clienti, reparti, team, attività e permessi.
+                </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -791,6 +783,13 @@ function AdminPageContent() {
                     <TabsTrigger value="automations" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Zap className="h-4 w-4 text-amber-400" /> Automazioni</TabsTrigger>
                     <TabsTrigger value="company_costs" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Coins className="h-4 w-4 text-emerald-400" /> Costi Aziendali</TabsTrigger>
                     <TabsTrigger value="site_icons" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><ImageIcon className="h-4 w-4 text-fuchsia-400" /> Icone Sito</TabsTrigger>
+                    {/* Pagina di servizio per spostare i dati interni dei clienti nell'area solo-staff: solo amministratori.
+                        Stesso aspetto e stessa riga delle schede, ma apre una pagina a parte. */}
+                    {currentUser?.role === 'Amministratore' && (
+                        <Link href="/admin/migrazione-dati" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
+                            <Database className="h-4 w-4 text-sky-400" /> Migrazione dati
+                        </Link>
+                    )}
                 </TabsList>
 
                 <TabsContent value="users">
