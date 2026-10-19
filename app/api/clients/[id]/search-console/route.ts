@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getSearchConsoleTotals, getSearchConsoleBreakdown } from '@/lib/search-console-client';
+import { validateRange } from '@/lib/date-range';
 
 // Quattro dimensioni più i totali: cinque chiamate a Google, tutte veloci e
 // senza rate limit stretti come Klaviyo. Il tetto esplicito c'è comunque.
@@ -27,8 +28,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const denied = await denyUnlessClientAllowed(auth.uid, params.id);
   if (denied) return denied;
 
-  const raw = request.nextUrl.searchParams.get('days');
+  const sp = request.nextUrl.searchParams;
+  const raw = sp.get('days');
   const days = raw === '7' ? 7 : raw === '90' ? 90 : 30;
+  // Intervallo scelto a mano (?from=&to=, stesse regole del report) e versione leggera per la Panoramica:
+  // ?compact=1 salta dispositivi e paesi e limita query e pagine alle prime 10.
+  const custom = sp.has('from') || sp.has('to') ? validateRange(sp.get('from'), sp.get('to')) : null;
+  if (custom && !custom.ok) return NextResponse.json({ error: custom.error }, { status: 400 });
+  const compact = sp.get('compact') === '1';
 
   const snap = await adminDb.collection('clients').doc(params.id).get();
   const siteUrl = snap.exists ? (snap.data() as any)?.windsorAccounts?.searchconsole : null;
@@ -39,18 +46,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     );
   }
 
-  const from = isoDaysAgo(days);
-  const to = isoDaysAgo(0);
+  const from = custom?.ok ? custom.range.from : isoDaysAgo(days);
+  const to = custom?.ok ? custom.range.to : isoDaysAgo(0);
 
   try {
+    const limit = compact ? 10 : 100;
     const [totals, queries, pages, devices, countries] = await Promise.all([
       getSearchConsoleTotals(siteUrl, from, to),
-      getSearchConsoleBreakdown(siteUrl, from, to, 'query', 100),
-      getSearchConsoleBreakdown(siteUrl, from, to, 'page', 100),
-      getSearchConsoleBreakdown(siteUrl, from, to, 'device', 10),
-      getSearchConsoleBreakdown(siteUrl, from, to, 'country', 20),
+      getSearchConsoleBreakdown(siteUrl, from, to, 'query', limit),
+      getSearchConsoleBreakdown(siteUrl, from, to, 'page', limit),
+      compact ? Promise.resolve([]) : getSearchConsoleBreakdown(siteUrl, from, to, 'device', 10),
+      compact ? Promise.resolve([]) : getSearchConsoleBreakdown(siteUrl, from, to, 'country', 20),
     ]);
-    return NextResponse.json({ siteUrl, days, totals, queries, pages, devices, countries });
+    return NextResponse.json({ siteUrl, days, from, to, totals, queries, pages, devices, countries });
   } catch (err: any) {
     console.error(`[search-console] fallita per ${params.id}:`, err.message);
     return NextResponse.json({ error: err.message }, { status: 503 });

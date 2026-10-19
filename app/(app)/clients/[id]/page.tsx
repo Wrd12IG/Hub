@@ -60,6 +60,7 @@ import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
 import { BudgetGoalsCard } from "@/components/BudgetGoalsCard";
+import { SearchConsoleCard } from "@/components/SearchConsoleCard";
 import { ReportTrendCard } from "@/components/ReportTrendCard";
 import { validateRange, rangeLabel } from "@/lib/date-range";
 import { PeriodPicker } from "@/components/PeriodPicker";
@@ -1033,6 +1034,10 @@ export default function ClientDetailPage() {
           {/* ANDAMENTO: spesa e risultato per giorno */}
           <ReportTrendCard report={marketingReport} days={effectiveDays} periodText={activeRange ? rangeLabel(activeRange.from, activeRange.to) : undefined} />
           <MonthlyCommentEditor clientId={id as string} />
+          {client?.windsorAccounts?.searchconsole && (
+            <SearchConsoleCard clientId={id as string} days={effectiveDays} range={activeRange ?? null} />
+          )}
+
 
           {/* ==================================================== */}
           {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}
