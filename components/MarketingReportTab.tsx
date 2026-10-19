@@ -48,11 +48,15 @@ export function MarketingReportTab({
   clientId,
   compare = 'none',
   report,
+  audience = 'staff',
 }: {
   clientId: string
   compare?: 'prev_period' | 'prev_year' | 'none'
   report: MarketingReportState
+  /** `client`: niente riferimenti a Setup API, errori tecnici, «Aggiorna» né link ai dettagli dello staff. */
+  audience?: 'staff' | 'client'
 }) {
+  const forClient = audience === 'client'
   const { platforms, loading, error: loadError, computedAt, fromCache, progress, reload: fetchReport } = report
 
   const connectedCount = platforms?.filter(p => p.connected).length ?? 0
@@ -66,7 +70,7 @@ export function MarketingReportTab({
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">
-            Apri una piattaforma per vedere i dati, &quot;Dettaglio&quot; per la vista completa.
+            {forClient ? 'Apri una piattaforma per vedere i suoi dati.' : 'Apri una piattaforma per vedere i dati, "Dettaglio" per la vista completa.'}
           </p>
           {computedAt && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -74,10 +78,11 @@ export function MarketingReportTab({
               {new Date(computedAt).toLocaleString('it-IT', {
                 day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
               })}
-              {fromCache && ' — premi Aggiorna per rileggere le piattaforme'}
+              {fromCache && !forClient && ' — premi Aggiorna per rileggere le piattaforme'}
             </p>
           )}
         </div>
+        {!forClient && (
         <button
           onClick={() => fetchReport(true)}
           disabled={loading}
@@ -85,6 +90,7 @@ export function MarketingReportTab({
         >
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Aggiorna
         </button>
+        )}
       </div>
 
       {/* Mentre si aggiorna: quante fonti sono già arrivate */}
@@ -102,7 +108,7 @@ export function MarketingReportTab({
 
       {!loading && loadError && (
         <div className="flex items-center gap-2 p-4 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm">
-          <AlertCircle size={16} /> {loadError}
+          <AlertCircle size={16} /> {forClient ? 'I dati non sono disponibili al momento. Riprova fra poco.' : loadError}
         </div>
       )}
 
@@ -111,7 +117,9 @@ export function MarketingReportTab({
           <AlertCircle className="h-10 w-10 text-muted-foreground/40" />
           <h3 className="font-semibold">Nessuna piattaforma collegata</h3>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Vai nella tab <strong>Setup API</strong> e collega almeno un account (Meta Ads, Google Ads, GA4, Instagram, Search Console o LinkedIn) per vedere i primi dati qui.
+            {forClient
+              ? 'I dati compariranno qui appena il tuo referente W[r]Digital avrà collegato le piattaforme.'
+              : <>Vai nella tab <strong>Setup API</strong> e collega almeno un account (Meta Ads, Google Ads, GA4, Instagram, Search Console o LinkedIn) per vedere i primi dati qui.</>}
           </p>
         </div>
       )}
@@ -143,7 +151,7 @@ export function MarketingReportTab({
                 description={p.accountLabel}
                 className="bg-muted/40 shadow-none"
                 summary={
-                  !p.connected ? <span className="text-xs font-semibold text-red-500">Errore</span>
+                  !p.connected ? <span className={`text-xs font-semibold ${forClient ? 'text-muted-foreground' : 'text-red-500'}`}>{forClient ? 'Non disponibile' : 'Errore'}</span>
                   : headline ? (
                     <span className="text-xs text-muted-foreground">
                       {headline.label}: <strong className="text-foreground">{typeof row[headline.key] === 'number' ? (row[headline.key] as number).toLocaleString('it-IT', { maximumFractionDigits: 2 }) : '—'}</strong>
@@ -155,7 +163,7 @@ export function MarketingReportTab({
                     </span>
                   ) : undefined
                 }
-                actions={meta.detail ? (
+                actions={meta.detail && !forClient ? (
                   <Link
                     href={`/clients/${clientId}/${meta.detail}${p.platform === 'gbp' && row.account_id ? `?sede=${encodeURIComponent(String(row.account_id))}` : ''}`}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
@@ -165,7 +173,9 @@ export function MarketingReportTab({
                 ) : undefined}
               >
                 {!p.connected && (
-                  <div className="text-sm text-red-600 p-3 rounded-lg border border-red-200 bg-red-50">{p.error}</div>
+                  forClient
+                    ? <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">Dati non disponibili al momento per questa piattaforma.</div>
+                    : <div className="text-sm text-red-600 p-3 rounded-lg border border-red-200 bg-red-50">{p.error}</div>
                 )}
                 {p.connected && p.rows.length > 0 ? (
                   <>
@@ -184,7 +194,9 @@ export function MarketingReportTab({
                   </>
                 ) : p.connected ? (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
-                    Nessun dato nel periodo selezionato. Può voler dire che l'account non ha avuto attività — prova ad allargare il "Periodo" — oppure che l'id inserito in Setup API non corrisponde a un account collegato: da qui i due casi non sono distinguibili.
+                    {forClient
+                      ? 'Nessun dato nel periodo selezionato: prova ad allargare il periodo.'
+                      : 'Nessun dato nel periodo selezionato. Può voler dire che l\'account non ha avuto attività — prova ad allargare il "Periodo" — oppure che l\'id inserito in Setup API non corrisponde a un account collegato: da qui i due casi non sono distinguibili.'}
                   </div>
                 ) : (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
@@ -194,7 +206,10 @@ export function MarketingReportTab({
               </CollapsibleCard>
             )
           })}
-          <p className="text-xs text-muted-foreground pt-2">{connectedCount} di {platforms.length} piattaforme con dati disponibili. Per aggiungerne altre, vai in <strong>Setup API</strong>.</p>
+          <p className="text-xs text-muted-foreground pt-2">
+            {connectedCount} di {platforms.length} piattaforme con dati disponibili.
+            {!forClient && <> Per aggiungerne altre, vai in <strong>Setup API</strong>.</>}
+          </p>
         </div>
       )}
     </div>

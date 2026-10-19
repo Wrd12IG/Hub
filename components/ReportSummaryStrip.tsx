@@ -38,12 +38,13 @@ function Tile({ icon: Icon, label, children, hint }: { icon: any; label: string;
  * account. Calcolata dal report già caricato.
  */
 export function ReportSummaryStrip({
-  report, days, compare,
-}: { report: MarketingReportState; days: number; compare: 'prev_period' | 'prev_year' | 'none' }) {
+  report, days, compare, audience = 'staff',
+}: { report: MarketingReportState; days: number; compare: 'prev_period' | 'prev_year' | 'none'; audience?: 'staff' | 'client' }) {
+  const forClient = audience === 'client'
   const { platforms, loading, error } = report
 
   if (!platforms) {
-    if (error) return <p className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">Riepilogo non disponibile: {error}</p>
+    if (error) return <p className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">{forClient ? 'Il riepilogo non è disponibile al momento. Riprova fra poco.' : `Riepilogo non disponibile: ${error}`}</p>
     return (
       <div className="space-y-3">
         <Skeleton className="h-[92px] rounded-2xl" />
@@ -56,7 +57,7 @@ export function ReportSummaryStrip({
   if (!s.spend && !s.result) {
     return (
       <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-        Nessun dato di risultato nel periodo: collega una piattaforma da Setup API per vedere qui il riepilogo.
+        {forClient ? 'Nessun dato di risultato nel periodo selezionato.' : 'Nessun dato di risultato nel periodo: collega una piattaforma da Setup API per vedere qui il riepilogo.'}
       </p>
     )
   }
