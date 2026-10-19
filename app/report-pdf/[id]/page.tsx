@@ -134,6 +134,12 @@ export default function ReportPdfPage() {
         <>
           {/* Copertina */}
           <section className="sheet cover relative mx-auto my-6 flex flex-col justify-end bg-[#141414] p-[22mm] text-white shadow-lg">
+            {/* Logo in alto: il marchio dell'agenzia, con il nome scritto accanto */}
+            <div className="absolute left-[22mm] top-[22mm] flex items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icons/Icon_512x512px.png" alt="W[r]Digital" width={64} height={64} className="h-16 w-16 rounded-xl object-contain" />
+              <span className="text-2xl font-semibold tracking-tight text-white">W<span className="text-[hsl(var(--primary))]">[</span>r<span className="text-[hsl(var(--primary))]">]</span>Digital</span>
+            </div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--primary))]">Report marketing</p>
             <h1 className="mt-3 text-4xl font-light leading-tight tracking-tight">{clientName || 'Cliente'}</h1>
             <p className="mt-3 text-base text-[#9ca3af]">{longPeriod} · {periodText}</p>
