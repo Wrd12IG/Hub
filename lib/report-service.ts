@@ -9,7 +9,7 @@ import { adminDb } from './firebase-admin';
 import { getClientToken } from './api-auth';
 import { getClientMarketingReport, buildWindows, type CompareMode, type PlatformReport } from './reporting';
 import type { Client } from './data';
-import type { ReportProgress } from './report-warm';
+import { sourcesSignature, type ReportProgress } from './report-warm';
 import { buildRangeWindows, type DateRange } from './date-range';
 
 /**
@@ -100,19 +100,22 @@ export async function getReport(opts: {
     const daysRaw = range ? `${range.from}_${range.to}` : opts.daysRaw;
     const ref = cacheRef(clientId, reportCacheKey(datePreset, daysRaw, compare));
 
-    if (!refresh) {
-        const cached = await ref.get().catch(() => null);
-        const hit = cached?.exists ? (cached.data() as any) : null;
-        if (hit?.computedAt && Date.now() - Date.parse(hit.computedAt) < (hit.ttlMs ?? TTL_OK_MS)) {
-            return { clientId, datePreset, compare, windows: hit.windows ?? null, platforms: hit.platforms as PlatformReport[], computedAt: hit.computedAt, cached: true };
-        }
-    }
-
+    // Il cliente si legge prima della cache: l'impronta delle fonti collegate dice se la copia è ancora buona. Senza,
+    // una pagina Facebook o un profilo LinkedIn appena abbinati in Setup API non comparivano finché la cache non scadeva.
     let client = opts.client;
     if (!client) {
         const snap = await adminDb.collection('clients').doc(clientId).get();
         if (!snap.exists) return null;
         client = snap.data() as Client;
+    }
+    const sig = sourcesSignature(client);
+
+    if (!refresh) {
+        const cached = await ref.get().catch(() => null);
+        const hit = cached?.exists ? (cached.data() as any) : null;
+        if (hit?.computedAt && hit.sig === sig && Date.now() - Date.parse(hit.computedAt) < (hit.ttlMs ?? TTL_OK_MS)) {
+            return { clientId, datePreset, compare, windows: hit.windows ?? null, platforms: hit.platforms as PlatformReport[], computedAt: hit.computedAt, cached: true };
+        }
     }
 
     const days = parseInt(daysRaw, 10);
@@ -142,7 +145,7 @@ export async function getReport(opts: {
     if (write) await write({ ...last, done: last.total }, true);
 
     const computedAt = new Date().toISOString();
-    await ref.set(forFirestore({ computedAt, ttlMs: ttlFor(platforms), windows: windows ?? null, platforms }))
+    await ref.set(forFirestore({ computedAt, ttlMs: ttlFor(platforms), sig, windows: windows ?? null, platforms }))
         .catch((err: any) => console.error(`[report-service] cache non scritta per ${clientId}:`, err.message));
 
     return { clientId, datePreset, compare, windows: windows ?? null, platforms, computedAt, cached: false };

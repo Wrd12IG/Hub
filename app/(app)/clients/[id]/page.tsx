@@ -831,10 +831,11 @@ export default function ClientDetailPage() {
     <>
           {/* BENTO GRID: Overview Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* Due colonne indipendenti: chiudere una scheda non lascia buchi sotto l'altra */}
+            <div className={cn("flex min-w-0 flex-col gap-6", isClient ? "lg:col-span-3" : "lg:col-span-2")}>
             {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
             <CollapsibleCard
               defaultOpen
-              className={isClient ? "lg:col-span-3" : "lg:col-span-2"}
               icon={Globe}
               title="Performance dominio"
               description={client.websiteUrl?.replace("https://", "") || "Nessun dominio"}
@@ -921,7 +922,7 @@ export default function ClientDetailPage() {
                           format: (v: number) => itNum(v),
                         },
                         {
-                          label: "Persone che hanno visitato",
+                          label: "Visitatori unici",
                           hint: "Ogni persona è contata una volta sola",
                           metric: ga4Data.traffic?.users,
                           format: (v: number) => itNum(v),
@@ -944,7 +945,7 @@ export default function ClientDetailPage() {
                           className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
                           <div>
-                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate" title={item.label}>
+                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider leading-tight">
                               {item.label}
                             </div>
                             {item.hint && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground/70">{item.hint}</div>}
@@ -1000,7 +1001,7 @@ export default function ClientDetailPage() {
                           format: (v: number) => itNum(v, 2),
                         },
                         {
-                          label: "Durata media della visita",
+                          label: "Durata media visita",
                           hint: "Tempo medio passato sul sito",
                           metric: ga4Data.behavior?.avgSessionDuration,
                           format: (v: number) => { const t = Math.round(v); return t >= 60 ? `${Math.floor(t / 60)} min ${t % 60} s` : `${t} s` },
@@ -1011,7 +1012,7 @@ export default function ClientDetailPage() {
                           className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
                           <div>
-                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate" title={item.label}>
+                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider leading-tight">
                               {item.label}
                             </div>
                             {item.hint && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground/70">{item.hint}</div>}
@@ -1063,7 +1064,7 @@ export default function ClientDetailPage() {
                           format: (v: number) => itNum(v),
                         },
                         {
-                          label: "Visite che portano a un'azione",
+                          label: "Visite con azione",
                           hint: "Quota di visite con almeno un'azione completata",
                           metric: ga4Data.conversions?.conversionRate,
                           format: (v: number) => `${itNum(v, 2)}%`,
@@ -1092,7 +1093,7 @@ export default function ClientDetailPage() {
                           className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
                         >
                           <div>
-                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate" title={item.label}>
+                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider leading-tight">
                               {item.label}
                             </div>
                             {item.hint && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground/70">{item.hint}</div>}
@@ -1124,73 +1125,9 @@ export default function ClientDetailPage() {
                 </div>
               ) : null}
             </CollapsibleCard>
-
-            {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali (solo staff) */}
-            {!isClient && (
-            <CollapsibleCard
-              defaultOpen
-              icon={Activity}
-              title="Health Score Ads"
-              description="Su campagne Meta e Google Ads del periodo selezionato"
-              summary={
-                adsHealthOverall !== null ? (
-                  <span className={cn(
-                    "text-xl font-black",
-                    adsHealthOverall >= 80 ? "text-emerald-400" : adsHealthOverall >= 60 ? "text-amber-400" : "text-rose-400",
-                  )}>
-                    {adsHealthOverall}<span className="text-xs font-bold text-muted-foreground/60"> / 100</span>
-                  </span>
-                ) : undefined
-              }
-            >
-              {loadingCampaigns ? (
-                <div className="text-xs text-muted-foreground/60 animate-pulse">Calcolo in corso...</div>
-              ) : adsHealth.length === 0 ? (
-                <div className="text-xs text-muted-foreground bg-muted/40 border border-border rounded-xl p-3">
-                  Nessuna campagna Meta o Google Ads trovata. Collega le piattaforme in &quot;Setup API&quot;.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {adsHealth.map((h) => (
-                    <div key={h.platform} className="bg-muted/40 border border-border rounded-xl p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-foreground">{h.label}</span>
-                        <span
-                          className={cn(
-                            "text-sm font-black",
-                            h.score === null ? "text-muted-foreground"
-                              : h.score >= 80 ? "text-emerald-400"
-                              : h.score >= 60 ? "text-amber-400"
-                              : "text-rose-400",
-                          )}
-                        >
-                          {h.score === null ? "n/d" : `${h.score}/100`}
-                        </span>
-                      </div>
-                      <ul className="space-y-1">
-                        {h.factors.map((f) => (
-                          <li
-                            key={f.id}
-                            className={cn(
-                              "text-xs leading-snug",
-                              f.applicable ? "text-muted-foreground" : "text-muted-foreground/40 italic",
-                            )}
-                          >
-                            <span className="font-semibold">{f.label}</span> ({f.weight}%): {f.detail}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CollapsibleCard>
-            )}
-
             {/* CARD 3: SEO Godmode Generator - Spans 2 cols on lg */}
             <CollapsibleCard
               defaultOpen
-              className={isClient ? "lg:col-span-3" : "lg:col-span-2"}
               icon={Sparkles}
               title="Audit SEO"
               description="Performance e Core Web Vitals reali da Google PageSpeed, più i dati di Search Console."
@@ -1263,7 +1200,70 @@ export default function ClientDetailPage() {
                   )}
                 </div>
             </CollapsibleCard>
-
+            </div>
+            {!isClient && (
+              <div className="flex min-w-0 flex-col gap-6">
+            {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali (solo staff) */}
+            {!isClient && (
+            <CollapsibleCard
+              defaultOpen
+              icon={Activity}
+              title="Health Score Ads"
+              description="Su campagne Meta e Google Ads del periodo selezionato"
+              summary={
+                adsHealthOverall !== null ? (
+                  <span className={cn(
+                    "text-xl font-black",
+                    adsHealthOverall >= 80 ? "text-emerald-400" : adsHealthOverall >= 60 ? "text-amber-400" : "text-rose-400",
+                  )}>
+                    {adsHealthOverall}<span className="text-xs font-bold text-muted-foreground/60"> / 100</span>
+                  </span>
+                ) : undefined
+              }
+            >
+              {loadingCampaigns ? (
+                <div className="text-xs text-muted-foreground/60 animate-pulse">Calcolo in corso...</div>
+              ) : adsHealth.length === 0 ? (
+                <div className="text-xs text-muted-foreground bg-muted/40 border border-border rounded-xl p-3">
+                  Nessuna campagna Meta o Google Ads trovata. Collega le piattaforme in &quot;Setup API&quot;.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {adsHealth.map((h) => (
+                    <div key={h.platform} className="bg-muted/40 border border-border rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">{h.label}</span>
+                        <span
+                          className={cn(
+                            "text-sm font-black",
+                            h.score === null ? "text-muted-foreground"
+                              : h.score >= 80 ? "text-emerald-400"
+                              : h.score >= 60 ? "text-amber-400"
+                              : "text-rose-400",
+                          )}
+                        >
+                          {h.score === null ? "n/d" : `${h.score}/100`}
+                        </span>
+                      </div>
+                      <ul className="space-y-1">
+                        {h.factors.map((f) => (
+                          <li
+                            key={f.id}
+                            className={cn(
+                              "text-xs leading-snug",
+                              f.applicable ? "text-muted-foreground" : "text-muted-foreground/40 italic",
+                            )}
+                          >
+                            <span className="font-semibold">{f.label}</span> ({f.weight}%): {f.detail}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CollapsibleCard>
+            )}
             {/* CARD 4: Collegamenti dati. Prima mostrava «Token Meta mancante» guardando hasMetaToken, ma i dati Meta
                 arrivano da Windsor col solo ID account: l'avviso compariva anche con tutto funzionante. */}
             {!isClient && (() => {
@@ -1310,6 +1310,8 @@ export default function ClientDetailPage() {
                 </CollapsibleCard>
               );
             })()}
+              </div>
+            )}
           </div>
     </>
   );
