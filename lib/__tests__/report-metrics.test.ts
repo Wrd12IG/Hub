@@ -15,7 +15,7 @@ describe('avvisi con base minima', () => {
     it('da 40 a 80 lead (+100%) è un avviso positivo', () => {
         const a = computeAlerts([p('facebook', { leads: 80 }, { leads: 40 })]);
         expect(a).toHaveLength(1);
-        expect(a[0]).toMatchObject({ key: 'leads', value: 100, good: true, platform: 'Meta Ads' });
+        expect(a[0]).toMatchObject({ key: 'leads', value: 100, good: true, platform: 'Meta Ads', from: 40, to: 80 });
     });
 
     it('la spesa che sale è una cattiva notizia, ma solo sopra 50 €', () => {
