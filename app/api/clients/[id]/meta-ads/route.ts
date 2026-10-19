@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getData } from '@/lib/windsor-client';
+import { metaDerived, ratio } from '@/lib/meta-metrics';
 
 export const maxDuration = 60;
 
@@ -77,9 +78,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const rows = await getData({
       connector: 'facebook',
       accountId,
-      fields: ['campaign', 'campaign_id', 'campaign_status', 'spend', 'clicks', 'impressions',
+      fields: ['campaign', 'campaign_id', 'campaign_status', 'spend', 'clicks', 'impressions', 'reach', 'actions_link_click',
         ...ACTION_FIELDS, 'action_values_omni_purchase', 'action_values_purchase', 'account_id'],
       datePreset: `last_${days}d`,
+      fresh: request.nextUrl.searchParams.get('refresh') === '1',
     });
 
     const num = (v: unknown) => (typeof v === 'number' ? v : 0);
@@ -93,12 +95,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       const e = byCampaign.get(key) || {
         id: key, name: String(r.campaign || key),
         status: String(r.campaign_status || 'UNKNOWN'),
-        spend: 0, clicks: 0, impressions: 0, conversionValue: 0,
+        spend: 0, clicks: 0, impressions: 0, reach: 0, linkClicks: 0, leads: 0, conversionValue: 0,
         actions: Object.fromEntries(ACTION_FIELDS.map((f) => [f, 0])) as Record<string, number>,
       };
       e.spend += num(r.spend);
       e.clicks += num(r.clicks);
       e.impressions += num(r.impressions);
+      e.reach += num(r.reach);
+      e.linkClicks += num(r.actions_link_click);
+      e.leads += num(r.actions_lead);
       for (const f of ACTION_FIELDS) e.actions[f] += num(r[f]);
       e.conversionValue += num(r.action_values_omni_purchase) || num(r.action_values_purchase);
       byCampaign.set(key, e);
@@ -130,6 +135,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           spend: round(c.spend),
           clicks: c.clicks,
           impressions: c.impressions,
+          reach: c.reach,
+          linkClicks: c.linkClicks,
+          leads: c.leads,
+          // Percentuali e costi ricalcolati dai totali della campagna.
+          ctr: ratio(c.clicks, c.impressions, 100) ?? null,
+          cpc: ratio(c.spend, c.clicks) ?? null,
+          cpm: ratio(c.spend, c.impressions, 1000) ?? null,
+          frequency: ratio(c.impressions, c.reach) ?? null,
+          costPerLead: ratio(c.spend, c.leads) ?? null,
           conversions: round(conversions),
           // Medie ricalcolate sui totali, non sommate.
           cpa: conversions > 0 ? round(c.spend / conversions) : 0,
@@ -143,6 +157,20 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({
       campaigns,
       summary: {
+        ...(() => {
+          const t = {
+            spend: all.reduce((s, c) => s + c.spend, 0),
+            impressions: all.reduce((s, c) => s + c.impressions, 0),
+            clicks: all.reduce((s, c) => s + c.clicks, 0),
+            leads: all.reduce((s, c) => s + c.leads, 0),
+          };
+          const d = metaDerived(t);
+          return {
+            leads: t.leads, clicks: t.clicks, impressions: t.impressions,
+            ctr: d.ctrPct ?? null, cpc: d.cpc ?? null, cpm: d.cpm ?? null,
+            costPerLead: d.costPerLead ?? null, leadRate: d.leadRatePct ?? null,
+          };
+        })(),
         activeCampaigns: campaigns.filter((c) => c.status.toUpperCase() === 'ACTIVE').length,
         totalSpend: round(campaigns.reduce((s, c) => s + c.spend, 0)),
         avgCpa: (() => {

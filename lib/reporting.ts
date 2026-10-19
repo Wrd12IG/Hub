@@ -14,6 +14,7 @@
  */
 
 import { getData } from './windsor-client';
+import { withMetaDerived } from './meta-metrics';
 import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
@@ -75,7 +76,7 @@ export interface PlatformReport {
 type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo' | 'awin' | 'google_ads'>;
 
 const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
-    facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc'] },
+    facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc', 'cpm', 'frequency', 'actions_lead'] },
     instagram: { connector: 'instagram', fields: ['followers_count', 'reach', 'profile_views', 'likes'] },
     linkedin_organic: {
         connector: 'linkedin_organic',
@@ -124,7 +125,7 @@ const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-cl
  * quando Windsor cambia granularità, e che nessuno collega alla causa.
  */
 const NON_SUMMABLE = new Set([
-    'ctr', 'cpc', 'position',
+    'ctr', 'cpc', 'cpm', 'frequency', 'position',
     'bounce_rate', 'engagement_rate', 'session_conversion_rate',
     'average_session_duration', 'screen_page_views_per_session',
     'followers_count', 'organization_follower_count',
@@ -164,7 +165,9 @@ function aggregateRows(rows: Record<string, string | number | undefined>[]): Rec
  * Con il limite, una piattaforma lenta diventa la **sua** scheda in errore e
  * tutte le altre arrivano.
  */
-const PLATFORM_TIMEOUT_MS = 20_000;
+// Misurato il 19/10/2026: una sola lettura Meta su Windsor impiega 8-12 s (a volte di più con due finestre),
+// quindi 20 s tagliavano il report proprio quando Windsor era lento. La route ha maxDuration 60 s.
+const PLATFORM_TIMEOUT_MS = 45_000;
 
 async function withTimeout<T>(label: string, promise: Promise<T>): Promise<T> {
     let timer: ReturnType<typeof setTimeout>;
@@ -307,8 +310,10 @@ export function buildWindows(days: number, compare: CompareMode) {
 export async function getClientMarketingReport(
     client: ClientReportSource,
     datePreset = 'last_30d',
-    windows?: { current: { dateFrom: string; dateTo: string }; previous: { dateFrom: string; dateTo: string } | null }
+    windows?: { current: { dateFrom: string; dateTo: string }; previous: { dateFrom: string; dateTo: string } | null },
+    options: { fresh?: boolean } = {}
 ): Promise<PlatformReport[]> {
+    const fresh = !!options.fresh;
     // facebook/google_ads/ga4 prefer the ids already entered in "Setup API";
     // instagram/linkedin_organic only exist under windsorAccounts.
     const mapping: Record<string, string | undefined> = {
@@ -351,15 +356,17 @@ export async function getClientMarketingReport(
     ): Promise<PlatformReport> => {
         const { connector, fields } = PLATFORM_FIELDS[platform];
         const allFields = [...fields, 'account_id', 'account_name'];
+        // Meta: lead, costo per lead e percentuali si ricalcolano sui totali aggregati.
+        const derive = platform === 'facebook' ? withMetaDerived : (r: Record<string, string | number | undefined>) => r;
         try {
             const [rows, previousRows] = await withTimeout(platform, Promise.all([
                 getData({
-                    connector, accountId, fields: allFields,
+                    connector, accountId, fields: allFields, fresh,
                     ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
                 }),
                 windows?.previous
                     ? getData({
-                        connector, accountId, fields: allFields,
+                        connector, accountId, fields: allFields, fresh,
                         dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
                     })
                     : Promise.resolve([]),
@@ -370,8 +377,8 @@ export async function getClientMarketingReport(
                 accountLabel: (rows[0]?.account_name as string) || undefined,
                 // One aggregated row — see aggregateRows for why raw rows can't
                 // be read positionally.
-                rows: rows.length > 0 ? [aggregateRows(rows)] : [],
-                previousRows: previousRows.length > 0 ? [aggregateRows(previousRows)] : [],
+                rows: rows.length > 0 ? [derive(aggregateRows(rows))] : [],
+                previousRows: previousRows.length > 0 ? [derive(aggregateRows(previousRows))] : [],
             };
         } catch (err: any) {
             console.error(`[reporting] ${platform} failed for account ${accountId}:`, err.message);
@@ -389,12 +396,12 @@ export async function getClientMarketingReport(
         try {
             const [rows, previousRows] = await withTimeout('gbp', Promise.all([
                 getData({
-                    connector, accountIds, fields: allFields,
+                    connector, accountIds, fields: allFields, fresh,
                     ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
                 }),
                 windows?.previous
                     ? getData({
-                        connector, accountIds, fields: allFields,
+                        connector, accountIds, fields: allFields, fresh,
                         dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
                     })
                     : Promise.resolve([]),
