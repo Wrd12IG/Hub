@@ -1054,29 +1054,9 @@ export default function ClientDetailPage() {
           {/* ANDAMENTO: spesa e risultato per giorno */}
           <ReportTrendCard report={marketingReport} days={effectiveDays} periodText={activeRange ? rangeLabel(activeRange.from, activeRange.to) : undefined} />
           {isClient ? <ClientCommentCard clientId={id as string} /> : <MonthlyCommentEditor clientId={id as string} />}
-          {client?.windsorAccounts?.searchconsole && (
-            <SearchConsoleCard clientId={id as string} days={effectiveDays} range={activeRange ?? null} />
-          )}
-
-
-          {/* ==================================================== */}
-          {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}
-          {/* Sostituisce le vecchie sezioni alimentate dalla       */}
-          {/* pipeline n8n (clients/{id}/performance), mai popolata */}
-          {/* ==================================================== */}
-          <CollapsibleCard
-            defaultOpen
-            icon={BarChart3}
-            title="Performance per account"
-            description="Dati delle piattaforme collegate per il periodo selezionato."
-          >
-            <MarketingReportTab
-              clientId={id as string}
-              compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
-              report={marketingReport}
-            />
-          </CollapsibleCard>
-
+          {/* Per il Cliente prima i dati del sito e l'audit (Performance dominio, Audit SEO), poi ricerca organica e performance per account */}
+          {isClient ? (
+            <>
           {/* BENTO GRID: Overview Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
@@ -1537,6 +1517,511 @@ export default function ClientDetailPage() {
               );
             })()}
           </div>
+          {client?.windsorAccounts?.searchconsole && (
+            <SearchConsoleCard clientId={id as string} days={effectiveDays} range={activeRange ?? null} />
+          )}
+          {/* ==================================================== */}
+          {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}
+          {/* Sostituisce le vecchie sezioni alimentate dalla       */}
+          {/* pipeline n8n (clients/{id}/performance), mai popolata */}
+          {/* ==================================================== */}
+          <CollapsibleCard
+            defaultOpen
+            icon={BarChart3}
+            title="Performance per account"
+            description="Dati delle piattaforme collegate per il periodo selezionato."
+          >
+            <MarketingReportTab
+              clientId={id as string}
+              compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
+              report={marketingReport}
+            />
+          </CollapsibleCard>
+            </>
+          ) : (
+            <>
+          {client?.windsorAccounts?.searchconsole && (
+            <SearchConsoleCard clientId={id as string} days={effectiveDays} range={activeRange ?? null} />
+          )}
+          {/* ==================================================== */}
+          {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}
+          {/* Sostituisce le vecchie sezioni alimentate dalla       */}
+          {/* pipeline n8n (clients/{id}/performance), mai popolata */}
+          {/* ==================================================== */}
+          <CollapsibleCard
+            defaultOpen
+            icon={BarChart3}
+            title="Performance per account"
+            description="Dati delle piattaforme collegate per il periodo selezionato."
+          >
+            <MarketingReportTab
+              clientId={id as string}
+              compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
+              report={marketingReport}
+            />
+          </CollapsibleCard>
+          {/* BENTO GRID: Overview Metrics */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
+            <CollapsibleCard
+              defaultOpen
+              className={isClient ? "lg:col-span-3" : "lg:col-span-2"}
+              icon={Globe}
+              title="Performance dominio"
+              description={client.websiteUrl?.replace("https://", "") || "Nessun dominio"}
+              actions={
+                isClient ? undefined : editingDomain ? (
+                  <form
+                    className="flex items-center gap-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      saveDomain();
+                    }}
+                  >
+                    <Input
+                      autoFocus
+                      value={domainDraft}
+                      onChange={(e) => setDomainDraft(e.target.value)}
+                      placeholder="www.esempio.it"
+                      className="h-8 w-56"
+                    />
+                    <Button type="submit" size="sm" disabled={savingDomain}>
+                      {savingDomain ? "Salvo…" : "Salva"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingDomain(false)}
+                    >
+                      Annulla
+                    </Button>
+                  </form>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setDomainDraft(client.websiteUrl || "");
+                      setEditingDomain(true);
+                    }}
+                  >
+                    {client.websiteUrl ? "Modifica" : "Imposta dominio"}
+                  </Button>
+                )
+              }
+            >
+              {/* WEB ANALYTICS COMPLETO */}
+              {loadingGa4 ? (
+                <div className="bg-muted/40 p-8 rounded-xl text-center flex flex-col items-center justify-center min-h-[120px] gap-2 border border-dashed border-border">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground animate-pulse">
+                    Elaborazione Report Godmode GA4 e calcolo deltas storici...
+                  </span>
+                </div>
+              ) : !client.ga4PropertyId ? (
+                <div className="bg-primary/5 border border-dashed border-primary/20 p-6 rounded-xl text-center space-y-3">
+                  <div className="text-sm font-semibold text-primary">
+                    Google Analytics Non Collegato
+                  </div>
+                  <div className="text-xs text-muted-foreground max-w-md mx-auto">
+                    {isClient
+                      ? "I dati di traffico del sito non sono ancora disponibili: li collega il tuo referente W[r]Digital."
+                      : "Collega il Property ID di GA4 in \"Setup API\" per sbloccare l'intelligenza contestuale avanzata sul traffico."}
+                  </div>
+                  {!isClient && (
+                    <Button onClick={() => setActiveTab("settings")} size="sm">
+                      Configura Analytics
+                    </Button>
+                  )}
+                </div>
+              ) : ga4Data ? (
+                <div className="space-y-6">
+                  {/* Traffic Category */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
+                      Traffico & Acquisizione
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        {
+                          label: "Sessioni Totali",
+                          metric: ga4Data.traffic?.sessions,
+                          format: (v: number) => v.toLocaleString(),
+                        },
+                        {
+                          label: "Utenti Unici",
+                          metric: ga4Data.traffic?.users,
+                          format: (v: number) => v.toLocaleString(),
+                        },
+                        {
+                          label: "Nuovi Utenti",
+                          metric: ga4Data.traffic?.newUsers,
+                          format: (v: number) => v.toLocaleString(),
+                        },
+                        {
+                          label: "Utenti di Ritorno",
+                          metric: ga4Data.traffic?.returningUsers,
+                          format: (v: number) => v.toLocaleString(),
+                        },
+                      ].map((item, i) => (
+                        <div
+                          key={i}
+                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                        >
+                          <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
+                            {item.label}
+                          </div>
+                          <div className="flex items-baseline justify-between mt-2">
+                            <span className="text-xl font-extrabold tracking-tight text-foreground">
+                              {item.metric ? item.format(item.metric.val) : "0"}
+                            </span>
+                            {item.metric && (
+                              <span
+                                className={cn(
+                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
+                                  item.metric.chg > 0
+                                    ? "bg-emerald-500/10 text-emerald-400"
+                                    : item.metric.chg < 0
+                                      ? "bg-rose-500/10 text-rose-400"
+                                      : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {item.metric.chg > 0 ? "+" : ""}
+                                {item.metric.chg}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Behavior Category */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
+                      Comportamento On-Site
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        {
+                          label: "Bounce Rate",
+                          metric: ga4Data.behavior?.bounceRate,
+                          format: (v: number) => `${v.toFixed(1)}%`,
+                        },
+                        {
+                          label: "Engagement Rate",
+                          metric: ga4Data.behavior?.engagementRate,
+                          format: (v: number) => `${v.toFixed(1)}%`,
+                        },
+                        {
+                          label: "Pagine / Sessione",
+                          metric: ga4Data.behavior?.pagesPerSession,
+                          format: (v: number) => v.toFixed(2),
+                        },
+                        {
+                          label: "Tempo Medio (s)",
+                          metric: ga4Data.behavior?.avgSessionDuration,
+                          format: (v: number) => `${v.toFixed(0)} s`,
+                        },
+                      ].map((item, i) => (
+                        <div
+                          key={i}
+                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                        >
+                          <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
+                            {item.label}
+                          </div>
+                          <div className="flex items-baseline justify-between mt-2">
+                            <span className="text-xl font-extrabold tracking-tight text-foreground">
+                              {item.metric ? item.format(item.metric.val) : "0"}
+                            </span>
+                            {item.metric && (
+                              <span
+                                className={cn(
+                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
+                                  item.metric.chg > 0
+                                    ? "bg-rose-500/10 text-rose-400"
+                                    : item.metric.chg < 0
+                                      ? "bg-emerald-500/10 text-emerald-400"
+                                      : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {item.metric.chg > 0 ? "+" : ""}
+                                {item.metric.chg}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Conversions Category */}
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
+                      Conversioni ({activeRange ? rangeLabel(activeRange.from, activeRange.to) : `ultimi ${overviewDaysBack}gg`} vs prec.)
+                    </h4>
+                    {(["transactions", "revenue"] as const).every(
+                      (k) => ga4Data.conversions?.[k]?.val === 0 && ga4Data.conversions?.[k]?.chg === 0,
+                    ) && (
+                      <p className="text-xs text-muted-foreground">
+                        Nessun acquisto online tracciato: acquisti e revenue non vengono mostrati. Per questo cliente il risultato
+                        sono i lead (vedi il riepilogo in alto).
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        {
+                          label: "Conversioni Totali",
+                          metric: ga4Data.conversions?.totalConversions,
+                          format: (v: number) => v.toLocaleString(),
+                        },
+                        {
+                          label: "Tasso di Conversione",
+                          metric: ga4Data.conversions?.conversionRate,
+                          format: (v: number) => `${v.toFixed(2)}%`,
+                        },
+                        {
+                          label: "Acquisti (Transazioni)",
+                          metric: ga4Data.conversions?.transactions,
+                          format: (v: number) => v.toLocaleString(),
+                          hideIfZero: true,
+                        },
+                        {
+                          label: "Revenue Generato",
+                          metric: ga4Data.conversions?.revenue,
+                          format: (v: number) => `€${v.toLocaleString()}`,
+                          hideIfZero: true,
+                        },
+                      ]
+                        // Acquisti e revenue a zero in entrambi i periodi (val 0 e variazione 0): il cliente non vende online,
+                        // quei riquadri sono solo rumore. Il suo risultato sono i lead (vedi il riepilogo in alto).
+                        .filter((item: any) => !(item.hideIfZero && item.metric && item.metric.val === 0 && item.metric.chg === 0))
+                        .map((item, i) => (
+                        <div
+                          key={i}
+                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                        >
+                          <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider truncate">
+                            {item.label}
+                          </div>
+                          <div className="flex items-baseline justify-between mt-2">
+                            <span className="text-xl font-extrabold tracking-tight text-foreground">
+                              {item.metric ? item.format(item.metric.val) : "0"}
+                            </span>
+                            {item.metric && (
+                              <span
+                                className={cn(
+                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
+                                  item.metric.chg > 0
+                                    ? "bg-emerald-500/10 text-emerald-400"
+                                    : item.metric.chg < 0
+                                      ? "bg-rose-500/10 text-rose-400"
+                                      : "bg-muted text-muted-foreground",
+                                )}
+                              >
+                                {item.metric.chg > 0 ? "+" : ""}
+                                {item.metric.chg}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </CollapsibleCard>
+
+            {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali (solo staff) */}
+            {!isClient && (
+            <CollapsibleCard
+              defaultOpen
+              icon={Activity}
+              title="Health Score Ads"
+              description="Su campagne Meta e Google Ads del periodo selezionato"
+              summary={
+                adsHealthOverall !== null ? (
+                  <span className={cn(
+                    "text-xl font-black",
+                    adsHealthOverall >= 80 ? "text-emerald-400" : adsHealthOverall >= 60 ? "text-amber-400" : "text-rose-400",
+                  )}>
+                    {adsHealthOverall}<span className="text-xs font-bold text-muted-foreground/60"> / 100</span>
+                  </span>
+                ) : undefined
+              }
+            >
+              {loadingCampaigns ? (
+                <div className="text-xs text-muted-foreground/60 animate-pulse">Calcolo in corso...</div>
+              ) : adsHealth.length === 0 ? (
+                <div className="text-xs text-muted-foreground bg-muted/40 border border-border rounded-xl p-3">
+                  Nessuna campagna Meta o Google Ads trovata. Collega le piattaforme in &quot;Setup API&quot;.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {adsHealth.map((h) => (
+                    <div key={h.platform} className="bg-muted/40 border border-border rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-foreground">{h.label}</span>
+                        <span
+                          className={cn(
+                            "text-sm font-black",
+                            h.score === null ? "text-muted-foreground"
+                              : h.score >= 80 ? "text-emerald-400"
+                              : h.score >= 60 ? "text-amber-400"
+                              : "text-rose-400",
+                          )}
+                        >
+                          {h.score === null ? "n/d" : `${h.score}/100`}
+                        </span>
+                      </div>
+                      <ul className="space-y-1">
+                        {h.factors.map((f) => (
+                          <li
+                            key={f.id}
+                            className={cn(
+                              "text-xs leading-snug",
+                              f.applicable ? "text-muted-foreground" : "text-muted-foreground/40 italic",
+                            )}
+                          >
+                            <span className="font-semibold">{f.label}</span> ({f.weight}%): {f.detail}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CollapsibleCard>
+            )}
+
+            {/* CARD 3: SEO Godmode Generator - Spans 2 cols on lg */}
+            <CollapsibleCard
+              defaultOpen
+              className={isClient ? "lg:col-span-3" : "lg:col-span-2"}
+              icon={Sparkles}
+              title="Audit SEO"
+              description="Performance e Core Web Vitals reali da Google PageSpeed, più i dati di Search Console."
+              summary={
+                typeof client.lastSeoScore === "number" ? (
+                  <span className={cn(
+                    "text-xl font-black",
+                    client.lastSeoScore >= 80 ? "text-emerald-400" : client.lastSeoScore >= 60 ? "text-amber-400" : "text-rose-400",
+                  )}>
+                    {client.lastSeoScore}<span className="text-xs font-bold text-muted-foreground/60"> / 100</span>
+                  </span>
+                ) : undefined
+              }
+            >
+                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pt-2">
+                  {isClient && typeof client.lastSeoScore !== "number" ? (
+                    <p className="text-sm text-muted-foreground">Il primo audit SEO non è ancora stato eseguito: lo prepara il tuo referente W[r]Digital.</p>
+                  ) : (
+                  <Button
+                    onClick={() => setSeoReportOpen(true)}
+                    className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 text-white border-0 py-4.5 px-6 rounded-xl font-bold shadow-lg shadow-indigo-500/20 active:scale-98 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    {typeof client.lastSeoScore === "number" ? "Apri audit SEO" : "Esegui audit SEO"}
+                  </Button>
+                  )}
+
+                  {seoReportsList.length > 0 && (
+                    <div className="w-full sm:w-64 border border-border rounded-xl overflow-hidden bg-background/40 backdrop-blur-md">
+                      <div
+                        onClick={() => setIsReportsOpen(!isReportsOpen)}
+                        className="flex justify-between items-center p-3 cursor-pointer hover:bg-muted transition-colors"
+                      >
+                        <span className="text-xs font-bold text-foreground">
+                          Archivio Report ({seoReportsList.length})
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xs transition-transform duration-200 text-muted-foreground",
+                            isReportsOpen && "transform rotate-180",
+                          )}
+                        >
+                          ▼
+                        </span>
+                      </div>
+                      {isReportsOpen && (
+                        <div className="p-3 pt-0 flex flex-col gap-1.5 border-t border-border max-h-32 overflow-y-auto scrollbar-thin">
+                          {seoReportsList.map((report) => (
+                            <div
+                              key={report.id}
+                              className="flex justify-between items-center p-2 bg-muted/40 hover:bg-muted rounded-lg text-xs transition-colors border border-border"
+                            >
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <FileText className="h-3 w-3" />
+                                <span>
+                                  {new Date(
+                                    report.createdAt,
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <span className="font-extrabold text-emerald-400">
+                                Score: {report.overallScore}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+            </CollapsibleCard>
+
+            {/* CARD 4: Collegamenti dati. Prima mostrava «Token Meta mancante» guardando hasMetaToken, ma i dati Meta
+                arrivano da Windsor col solo ID account: l'avviso compariva anche con tutto funzionante. */}
+            {!isClient && (() => {
+              const sources = [
+                { label: "Meta Ads", ok: !!client.metaAdAccountId },
+                { label: "Google Ads", ok: !!client.googleAdAccountId },
+                { label: "Google Analytics 4", ok: !!client.ga4PropertyId },
+                { label: "Search Console", ok: !!client.windsorAccounts?.searchconsole },
+                { label: "Google Business Profile", ok: (client.windsorAccounts?.gbp?.length ?? 0) > 0 },
+                { label: "Instagram", ok: !!client.windsorAccounts?.instagram },
+                { label: "Facebook (pagina)", ok: !!client.windsorAccounts?.facebook_page },
+                { label: "LinkedIn", ok: !!client.windsorAccounts?.linkedin_organic },
+                { label: "YouTube", ok: !!(client.youtubePublicChannelId || client.hasYoutubeToken) },
+                { label: "TikTok", ok: !!client.hasTiktokToken },
+              ];
+              const missing = sources.filter((x) => !x.ok).length;
+              return (
+                <CollapsibleCard
+                  defaultOpen
+                  icon={AlertTriangle}
+                  title="Collegamenti dati"
+                  description="Quali fonti sono collegate a questo cliente"
+                  summary={
+                    <span className={cn("text-xs font-semibold", missing === 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400")}>
+                      {sources.length - missing} di {sources.length}
+                    </span>
+                  }
+                >
+                  <ul className="divide-y divide-border rounded-lg border border-border bg-background">
+                    {sources.map((x) => (
+                      <li key={x.label} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                        <span className="font-medium text-foreground">{x.label}</span>
+                        <span className={cn("text-xs font-semibold", x.ok ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+                          {x.ok ? "Collegato" : "Non collegato"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {missing > 0 && (
+                    <Button onClick={() => setActiveTab("settings")} size="sm" variant="outline" className="h-8 text-xs font-semibold">
+                      Collega le fonti mancanti in Setup API
+                    </Button>
+                  )}
+                </CollapsibleCard>
+              );
+            })()}
+          </div>
+            </>
+          )}
 
           {!isClient && (
             <>

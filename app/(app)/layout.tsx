@@ -104,7 +104,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
               </PageTransition>
             </main>
-            <CommandMenu />
+            {currentUser.role !== 'Cliente' && <CommandMenu />}
             <FloatingCommandDock />
           </SidebarInset>
           <Toaster richColors position="top-right" />
