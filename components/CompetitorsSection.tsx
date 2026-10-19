@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
+import { decodeEntities } from '@/lib/html-entities'
 import { AlertCircle, ExternalLink, Users, RefreshCw, Instagram, Facebook, Linkedin } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -105,7 +106,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                   {s.offers.length > 0 ? (
                     <ul className="space-y-1">
                       {s.offers.slice(0, 3).map((o, i) => (
-                        <li key={i} className="text-xs text-muted-foreground leading-snug">· {o.slice(0, 90)}</li>
+                        <li key={i} className="text-xs text-muted-foreground leading-snug">· {decodeEntities(o).slice(0, 90)}</li>
                       ))}
                     </ul>
                   ) : (
