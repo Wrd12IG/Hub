@@ -59,6 +59,7 @@ import {
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
+import { CampaignsTable } from "@/components/CampaignsTable";
 import { CompetitorAdLibrary } from "@/components/CompetitorAdLibrary";
 import { ClientHealthBadge } from "@/components/ClientHealthBadge";
 import { CompetitorsSection } from "@/components/CompetitorsSection";
@@ -1916,23 +1917,6 @@ export default function ClientDetailPage() {
           return true;
         });
 
-        const statusBadge = (status: string) => {
-          const map: Record<string, { label: string; color: string; bg: string }> = {
-            active: { label: 'Attiva', color: '#34d399', bg: 'rgba(52,211,153,0.1)' },
-            paused: { label: 'In pausa', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)' },
-            ended: { label: 'Finita', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)' },
-          };
-          const s = map[status] || map.ended;
-          return (
-            <span
-              style={{ color: s.color, backgroundColor: s.bg, borderColor: `${s.color}25` }}
-              className="px-2.5 py-0.5 rounded-full font-extrabold text-xs tracking-wide uppercase border"
-            >
-              {s.label}
-            </span>
-          );
-        };
-
         return (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -2002,58 +1986,11 @@ export default function ClientDetailPage() {
                 </p>
               </div>
             ) : (
-              <div className="max-h-[600px] overflow-y-auto border border-white/10 rounded-2xl glass-card bg-white/[0.02] shadow-md scrollbar-thin">
-                <table className="w-full border-collapse text-left">
-                  <thead className="sticky top-0 bg-neutral-950/80 backdrop-blur-md border-b border-white/15 z-10 text-xs font-black uppercase tracking-wider text-muted-foreground/75">
-                    <tr>
-                      <th className="py-4.5 px-5">Nome</th>
-                      <th className="py-4.5 px-4">Piattaforma</th>
-                      <th className="py-4.5 px-4">Stato</th>
-                      <th className="py-4.5 px-4">Periodo</th>
-                      <th className="py-4.5 px-4">Spesa</th>
-                      <th className="py-4.5 px-4">Click</th>
-                      <th className="py-4.5 px-4">Conversioni</th>
-                      <th className="py-4.5 px-5 text-right">Azioni</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 text-xs text-muted-foreground">
-                    {filtered.map((c) => (
-                      <tr key={`${c.platform}-${c.id}`} className="hover:bg-white/[0.05] hover:shadow-md transition-all duration-200">
-                        <td className="py-5 px-5 font-bold text-foreground">{c.name}</td>
-                        <td className="py-5 px-4 font-semibold">
-                          {c.platform === 'meta' ? 'Meta Ads' : 'Google Ads'}
-                        </td>
-                        <td className="py-5 px-4">{statusBadge(c.status)}</td>
-                        <td className="py-5 px-4 font-medium tracking-tight">
-                          {c.startDate || '—'} {c.endDate ? `→ ${c.endDate}` : ''}
-                        </td>
-                        <td className="py-5 px-4 font-extrabold text-foreground">€{c.spend.toFixed(2)}</td>
-                        <td className="py-5 px-4">{c.clicks.toLocaleString('it-IT')}</td>
-                        <td className="py-5 px-4">{c.conversions.toLocaleString('it-IT')}</td>
-                        <td className="py-5 px-5 text-right">
-                          {c.platform === 'meta' ? (
-                            <button
-                              onClick={() => handleOpenReport(c.id, c.objective || 'Sconosciuto', c.name)}
-                              disabled={loadingReportId === c.id}
-                              className={cn(
-                                "py-2 px-4 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5 active:scale-95 cursor-pointer hover:-translate-y-0.5",
-                                loadingReportId === c.id
-                                  ? "bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5"
-                                  : "bg-cyan-500/10 text-cyan-400 border border-cyan-500/15 hover:bg-cyan-500/20 hover:border-cyan-500/25 hover:shadow-lg hover:shadow-cyan-500/5",
-                              )}
-                            >
-                              {loadingReportId === c.id ? <Loader2 size={12} className="animate-spin animate-duration-1000" /> : <BarChart2 size={12} />}
-                              <span>{loadingReportId === c.id ? "Sincronizzazione..." : "Report KPI"}</span>
-                            </button>
-                          ) : (
-                            <span className="text-muted-foreground/40">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <CampaignsTable
+                rows={filtered}
+                loadingReportId={loadingReportId}
+                onOpenReport={(c) => handleOpenReport(c.id, c.objective || 'Sconosciuto', c.name)}
+              />
             )}
           </div>
         );
