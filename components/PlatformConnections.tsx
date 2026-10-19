@@ -523,7 +523,7 @@ function WindsorGbpModal({
       <div className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="windsor-gbp" className="text-xs font-bold text-muted-foreground">
-            ID account GBP su Windsor — uno per riga (o separati da virgola)
+            ID account GBP — uno per riga (o separati da virgola)
           </label>
           <textarea
             id="windsor-gbp"
@@ -534,9 +534,8 @@ function WindsorGbpModal({
             className="w-full text-sm bg-background/50 border border-white/10 text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground font-mono"
           />
           <p className="text-xs text-muted-foreground">
-            Una riga per ogni sede del cliente. Il nome della sede viene letto automaticamente da Windsor,
-            non serve scriverlo qui. Richiede che il connector Google Business Profile sia collegato su
-            onboard.windsor.ai.
+            Una riga per ogni sede del cliente. Il nome della sede viene letto in automatico,
+            non serve scriverlo qui. Richiede che Google Business Profile sia già collegato nel pannello dati dell'agenzia.
           </p>
         </div>
         <button onClick={save} disabled={saving}
@@ -1814,7 +1813,7 @@ export default function PlatformConnections({
           fieldKey="instagram"
           currentValue={client.windsorAccounts?.instagram}
           placeholder="es. 17841407927101615"
-          hint="Lo trovi nel pannello Windsor.ai (onboard.windsor.ai) sotto il connector Instagram."
+          hint="Lo trovi nel pannello dati dell'agenzia, alla voce Instagram."
           accentColor="#E1306C"
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }}
@@ -1827,7 +1826,7 @@ export default function PlatformConnections({
           fieldKey="searchconsole"
           currentValue={client.windsorAccounts?.searchconsole}
           placeholder="es. https://www.esempio.it/"
-          hint="L'URL esatto del sito così come verificato in Google Search Console (con lo slash finale se presente su Windsor)."
+          hint="L'URL esatto del sito così come verificato in Google Search Console (con lo slash finale, se c'è)."
           accentColor="#4285F4"
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }}
@@ -1848,7 +1847,7 @@ export default function PlatformConnections({
           fieldKey="linkedin_organic"
           currentValue={client.windsorAccounts?.linkedin_organic}
           placeholder="es. 53113725"
-          hint="Numero dell'Organization ID LinkedIn collegato su Windsor.ai — non è legato alla connessione LinkedIn qui sopra."
+          hint="Numero dell'Organization ID LinkedIn collegato nel pannello dati dell'agenzia — non è legato alla connessione LinkedIn qui sopra."
           accentColor="#34A853"
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }}

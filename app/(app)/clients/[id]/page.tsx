@@ -53,9 +53,12 @@ import {
   CalendarDays,
   Settings,
   FileBarChart,
+  BarChart3,
+  Swords,
 } from "lucide-react";
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
+import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { ClientHealthBadge } from "@/components/ClientHealthBadge";
 import { CompetitorsSection } from "@/components/CompetitorsSection";
 import { CompetitivePressureSection } from "@/components/CompetitivePressureSection";
@@ -970,17 +973,15 @@ export default function ClientDetailPage() {
           </div>
 
           {/* BENTO GRID: Overview Metrics */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
-            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] lg:col-span-2 space-y-6 shadow-md">
-              <div className="flex items-center gap-2">
-                <Globe className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-bold font-headline">
-                  Performance Dominio:{" "}
-                  {client.websiteUrl?.replace("https://", "") ||
-                    "Nessun dominio"}
-                </h3>
-                {editingDomain ? (
+            <CollapsibleCard
+              className="lg:col-span-2"
+              icon={Globe}
+              title="Performance dominio"
+              description={client.websiteUrl?.replace("https://", "") || "Nessun dominio"}
+              actions={
+                editingDomain ? (
                   <form
                     className="flex items-center gap-2"
                     onSubmit={(e) => {
@@ -1019,9 +1020,9 @@ export default function ClientDetailPage() {
                   >
                     {client.websiteUrl ? "Modifica" : "Imposta dominio"}
                   </Button>
-                )}
-              </div>
-
+                )
+              }
+            >
               {/* WEB ANALYTICS COMPLETO */}
               {loadingGa4 ? (
                 <div className="bg-white/[0.01] p-8 rounded-xl text-center flex flex-col items-center justify-center min-h-[120px] gap-2 border border-dashed border-white/10">
@@ -1226,36 +1227,24 @@ export default function ClientDetailPage() {
                   </div>
                 </div>
               ) : null}
-            </div>
+            </CollapsibleCard>
 
             {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali */}
-            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-md space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
-                    Health Score Ads
-                  </h3>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
-                    Su campagne Meta e Google Ads del periodo selezionato
-                  </p>
-                </div>
-                {adsHealthOverall !== null && (
-                  <div className="text-right shrink-0">
-                    <div
-                      className={cn(
-                        "text-3xl font-black leading-none",
-                        adsHealthOverall >= 80 ? "text-emerald-400"
-                          : adsHealthOverall >= 60 ? "text-amber-400"
-                          : "text-rose-400",
-                      )}
-                    >
-                      {adsHealthOverall}
-                    </div>
-                    <div className="text-xs font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
-                  </div>
-                )}
-              </div>
-
+            <CollapsibleCard
+              icon={Activity}
+              title="Health Score Ads"
+              description="Su campagne Meta e Google Ads del periodo selezionato"
+              summary={
+                adsHealthOverall !== null ? (
+                  <span className={cn(
+                    "text-xl font-black",
+                    adsHealthOverall >= 80 ? "text-emerald-400" : adsHealthOverall >= 60 ? "text-amber-400" : "text-rose-400",
+                  )}>
+                    {adsHealthOverall}<span className="text-xs font-bold text-muted-foreground/60"> / 100</span>
+                  </span>
+                ) : undefined
+              }
+            >
               {loadingCampaigns ? (
                 <div className="text-xs text-muted-foreground/60 animate-pulse">Calcolo in corso...</div>
               ) : adsHealth.length === 0 ? (
@@ -1297,42 +1286,25 @@ export default function ClientDetailPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </CollapsibleCard>
 
             {/* CARD 3: SEO Godmode Generator - Spans 2 cols on lg */}
-            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-gradient-to-r from-indigo-950/20 via-purple-950/20 to-pink-950/20 lg:col-span-2 space-y-4 shadow-md relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-base font-extrabold text-foreground tracking-tight">
-                      Audit SEO
-                    </h3>
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">
-                      Performance e Core Web Vitals reali da Google PageSpeed, più i dati
-                      di Search Console.
-                    </p>
-                  </div>
-                  {typeof client.lastSeoScore === "number" && (
-                    <div className="text-right shrink-0">
-                      <div
-                        className={cn(
-                          "text-3xl font-black leading-none",
-                          client.lastSeoScore >= 80 ? "text-emerald-400"
-                            : client.lastSeoScore >= 60 ? "text-amber-400"
-                            : "text-rose-400",
-                        )}
-                      >
-                        {client.lastSeoScore}
-                      </div>
-                      <div className="text-xs font-bold text-muted-foreground/60 mt-0.5">/ 100</div>
-                    </div>
-                  )}
-                </div>
-
+            <CollapsibleCard
+              className="lg:col-span-2"
+              icon={Sparkles}
+              title="Audit SEO"
+              description="Performance e Core Web Vitals reali da Google PageSpeed, più i dati di Search Console."
+              summary={
+                typeof client.lastSeoScore === "number" ? (
+                  <span className={cn(
+                    "text-xl font-black",
+                    client.lastSeoScore >= 80 ? "text-emerald-400" : client.lastSeoScore >= 60 ? "text-amber-400" : "text-rose-400",
+                  )}>
+                    {client.lastSeoScore}<span className="text-xs font-bold text-muted-foreground/60"> / 100</span>
+                  </span>
+                ) : undefined
+              }
+            >
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pt-2">
                   <Button
                     onClick={() => setSeoReportOpen(true)}
@@ -1385,18 +1357,15 @@ export default function ClientDetailPage() {
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
+            </CollapsibleCard>
 
             {/* CARD 4: Anomalie Cliente (Alerts) - Spans 1 col */}
-            <div className="glass-card p-6 rounded-2xl border border-white/10 bg-white/[0.03] shadow-md flex flex-col justify-between gap-4">
+            <CollapsibleCard
+              icon={AlertTriangle}
+              title="Anomalie cliente"
+              description="Segnalazioni automatiche su collegamenti e dati"
+            >
               <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-rose-400 animate-pulse" />
-                  <h3 className="text-xs font-extrabold text-muted-foreground uppercase tracking-wider">
-                    Anomalie Cliente (Alerts)
-                  </h3>
-                </div>
                 {!client.hasMetaToken ? (
                   <div className="bg-rose-500/5 border border-rose-500/10 p-3.5 rounded-xl text-xs flex justify-between items-center gap-3">
                     <div>
@@ -1435,7 +1404,7 @@ export default function ClientDetailPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </CollapsibleCard>
           </div>
 
           {/* ==================================================== */}
@@ -1443,27 +1412,39 @@ export default function ClientDetailPage() {
           {/* Sostituisce le vecchie sezioni alimentate dalla       */}
           {/* pipeline n8n (clients/{id}/performance), mai popolata */}
           {/* ==================================================== */}
-          <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg">
+          <CollapsibleCard
+            icon={BarChart3}
+            title="Performance per account"
+            description="Dati delle piattaforme collegate per il periodo selezionato."
+          >
             <MarketingReportTab
               clientId={id as string}
               daysBack={overviewDaysBack}
               compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
             />
-          </div>
+          </CollapsibleCard>
 
           {/* Pressione competitiva: l'unico dato competitivo *numerico* che le
               API espongano. Segue il selettore "Periodo" perché è una metrica
               di periodo, a differenza del registro competitor qui sotto. */}
-          <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg">
+          <CollapsibleCard
+            icon={Swords}
+            title="Pressione competitiva"
+            description="Quante delle ricerche disponibili stai prendendo su Google Ads, e perché perdi il resto."
+          >
             <CompetitivePressureSection clientId={id as string} daysBack={overviewDaysBack} />
-          </div>
+          </CollapsibleCard>
 
           {/* Competitor: cosa fanno i concorrenti sul territorio. Non segue il
               selettore "Periodo" perché non è una metrica di periodo — è un
               registro di cambiamenti osservati, con la loro data. */}
-          <div className="glass-card p-6 sm:p-8 rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg">
+          <CollapsibleCard
+            icon={Users}
+            title="Competitor"
+            description="Cosa cambia sui siti dei concorrenti, letto ogni notte."
+          >
             <CompetitorsSection clientId={id as string} />
-          </div>
+          </CollapsibleCard>
         </div>
       )}
 

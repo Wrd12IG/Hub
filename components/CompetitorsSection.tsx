@@ -62,12 +62,9 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-base font-bold flex items-center gap-2"><Users size={16} /> Competitor</h3>
-          <p className="text-xs text-muted-foreground">
-            {lastRun ? `Ultima lettura ${dataIta(lastRun)}` : 'Mai letti'}
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          {lastRun ? `Ultima lettura ${dataIta(lastRun)}` : 'Mai letti'}
+        </p>
         <button onClick={refresh} disabled={refreshing}
           className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 rounded-lg border border-white/10 hover:bg-white/[0.06] transition-all disabled:opacity-40 cursor-pointer">
           <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} /> Leggi ora
