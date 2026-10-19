@@ -59,6 +59,7 @@ import {
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
+import { ReportTrendCard } from "@/components/ReportTrendCard";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { stripCitations } from "@/lib/clean-text";
@@ -1035,6 +1036,9 @@ export default function ClientDetailPage() {
             days={overviewDaysBack}
             compare={compareMode as "prev_period" | "prev_year" | "none"}
           />
+
+          {/* ANDAMENTO: spesa e risultato per giorno */}
+          <ReportTrendCard report={marketingReport} days={overviewDaysBack} />
 
           {/* ==================================================== */}
           {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}

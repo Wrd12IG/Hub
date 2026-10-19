@@ -397,6 +397,38 @@ export async function getGoogleAdsAccountTotals(
   };
 }
 
+/**
+ * Spesa e conversioni PER GIORNO di un account (stessa fonte dei totali, con segments.date nella SELECT).
+ * Serve ai grafici di andamento; un errore qui non deve far fallire il report: il chiamante la tratta come opzionale.
+ */
+export async function getGoogleAdsDailySeries(
+  customerId: string,
+  dateFrom: string,
+  dateTo: string
+): Promise<{ date: string; spend: number; results: number; clicks: number; impressions: number }[]> {
+  const rows = await query(customerId, `
+    SELECT segments.date, metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.conversions
+    FROM customer
+    WHERE segments.date BETWEEN '${dateFrom}' AND '${dateTo}'
+    ORDER BY segments.date
+  `);
+  const byDay = new Map<string, { date: string; spend: number; results: number; clicks: number; impressions: number }>();
+  for (const row of rows) {
+    const date = String(row.segments?.date ?? '').slice(0, 10);
+    if (!date) continue;
+    const m = row.metrics || {};
+    const p = byDay.get(date) ?? { date, spend: 0, results: 0, clicks: 0, impressions: 0 };
+    p.spend += fromMicros(m.costMicros);
+    p.results += Number(m.conversions || 0);
+    p.clicks += Number(m.clicks || 0);
+    p.impressions += Number(m.impressions || 0);
+    byDay.set(date, p);
+  }
+  return Array.from(byDay.values())
+    .map((p) => ({ ...p, spend: Math.round(p.spend * 100) / 100, results: Math.round(p.results * 100) / 100 }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 export function getMockGoogleAdsDailyMetrics(clientId: string): GoogleAdsDailyMetric[] {
   // Pesi giornalieri fissi per giorno della settimana (0=dom … 6=sab)
   const dayWeights = [0.08, 0.18, 0.20, 0.20, 0.18, 0.12, 0.04];

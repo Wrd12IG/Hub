@@ -3,6 +3,7 @@ import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib
 import { adminDb } from '@/lib/firebase-admin';
 import { getData } from '@/lib/windsor-client';
 import { metaDerived, ratio } from '@/lib/meta-metrics';
+import { dailyFromRows } from '@/lib/report-series';
 
 export const maxDuration = 60;
 
@@ -83,6 +84,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       datePreset: `last_${days}d`,
       fresh: request.nextUrl.searchParams.get('refresh') === '1',
     });
+
+    // Serie per giorno dello stesso account (spesa e risultato): per il grafico di andamento. Facoltativa.
+    const dailyRows = await getData({
+      connector: 'facebook',
+      accountId,
+      fields: ['date', 'spend', ...ACTION_FIELDS, 'account_id'],
+      datePreset: `last_${days}d`,
+      fresh: request.nextUrl.searchParams.get('refresh') === '1',
+    }).catch((e) => { console.error('[meta-ads] serie giornaliera non disponibile:', e.message); return [] as any[]; });
 
     const num = (v: unknown) => (typeof v === 'number' ? v : 0);
 
@@ -186,6 +196,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       },
       // Su quale azione stiamo contando le conversioni, e come chiamarla in
       // pagina: senza questa indicazione un CPA è un numero senza unità.
+      // Spesa e risultato per giorno, sulla stessa azione di conversione scelta per la pagina
+      daily: dailyFromRows(dailyRows, { spend: 'spend', ...(basis ? { results: basis } : {}) }),
       conversionBasis: basis,
       conversionLabel: basis ? ACTION_LABELS[basis] : null,
       _meta: { source: 'windsor', days },

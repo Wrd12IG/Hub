@@ -7,6 +7,8 @@ import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { MetricoolTable } from '@/components/metricool/MetricoolTable'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { ReportTrendChart } from '@/components/ReportTrendChart'
+import { buildTrend, type DailyPoint } from '@/lib/report-series'
 
 // --- Types ---
 interface Campaign {
@@ -45,6 +47,7 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [apiSummary, setApiSummary] = useState<Summary | null>(null);
   const [days, setDays] = useState<number>(30);
+  const [daily, setDaily] = useState<DailyPoint[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const forceRefresh = useRef(false);
@@ -72,6 +75,7 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
         setCampaigns(Array.isArray(data.campaigns) ? data.campaigns : []);
         setApiSummary(data.summary ?? null);
         setConversionLabel(data.conversionLabel ?? null);
+        setDaily(Array.isArray(data.daily) ? data.daily : []);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -249,6 +253,14 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
           <MetricoolCard title="ROAS" value={summary.roas === null ? '—' : `${summary.roas.toFixed(2)}x`} icon={TrendingUp} variant="gray" size="sm" />
         </div>
       </div>
+
+      {daily.length > 0 && (
+        <div className={`rounded-xl border bg-card p-5 shadow-sm transition-opacity ${refreshing ? 'opacity-50' : ''}`}>
+          <h2 className="text-base font-semibold tracking-tight">Andamento giornaliero</h2>
+          <p className="mb-3 text-xs text-muted-foreground">Spesa e {unit} giorno per giorno, ultimi {days} giorni</p>
+          <ReportTrendChart points={buildTrend(daily, [], daily.some((d) => d.results !== undefined))} resultLabel={conversionLabel || 'Conversioni'} />
+        </div>
+      )}
 
       <div className="pt-4 border-t">
         <h2 className="text-xl font-semibold tracking-tight mb-4">Elenco Campagne</h2>
