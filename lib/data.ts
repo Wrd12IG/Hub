@@ -30,9 +30,6 @@ export interface Client {
     phone?: string;
     address?: string;
     budget?: number;
-    /** Budget pubblicitario mensile concordato (€) e obiettivo mensile di risultati: alimentano la scheda Budget e obiettivi. */
-    adBudgetMonthly?: number;
-    resultTargetMonthly?: number;
     color?: string;
     notes?: string;
     managedBy?: string[]; // User IDs managing this client
