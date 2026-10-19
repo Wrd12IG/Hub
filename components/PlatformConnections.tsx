@@ -552,7 +552,7 @@ function WindsorGbpModal({
 
 interface CompetitorRow {
   id: string; nome: string; sito: string;
-  instagram?: string; facebook?: string; linkedin?: string;
+  instagram?: string; facebook?: string; linkedin?: string; youtube?: string; tiktok?: string;
 }
 
 function CompetitorsModal({ clientId, onClose, onSaved }: {
@@ -619,7 +619,7 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
       <div className="space-y-4">
         <p className="text-xs text-muted-foreground">
           Il sito viene letto ogni notte per segnalare offerte e cambiamenti. I link social si salvano come
-          scorciatoie: Instagram e LinkedIn non si lasciano leggere da un server, quindi da lì non ricaviamo numeri.
+          scorciatoie: bastano l'indirizzo o il nome del profilo (es. @spotornocar). I social non si lasciano leggere da un server, quindi da lì non ricaviamo numeri.
         </p>
 
         {loading ? (
@@ -641,6 +641,12 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
                     placeholder="Facebook" className={input} />
                   <input value={r.linkedin ?? ""} onChange={(e) => set(i, "linkedin", e.target.value)}
                     placeholder="LinkedIn" className={input} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <input value={r.youtube ?? ""} onChange={(e) => set(i, "youtube", e.target.value)}
+                    placeholder="YouTube" className={input} />
+                  <input value={r.tiktok ?? ""} onChange={(e) => set(i, "tiktok", e.target.value)}
+                    placeholder="TikTok" className={input} />
                 </div>
               </div>
             ))}
