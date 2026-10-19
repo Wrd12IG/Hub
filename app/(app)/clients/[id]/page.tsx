@@ -59,6 +59,7 @@ import {
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
+import { CompetitorAdLibrary } from "@/components/CompetitorAdLibrary";
 import { ClientHealthBadge } from "@/components/ClientHealthBadge";
 import { CompetitorsSection } from "@/components/CompetitorsSection";
 import { CompetitivePressureSection } from "@/components/CompetitivePressureSection";
@@ -1430,9 +1431,10 @@ export default function ClientDetailPage() {
           <CollapsibleCard
             icon={Swords}
             title="Pressione competitiva"
-            description="Quante delle ricerche disponibili stai prendendo su Google Ads, e perché perdi il resto."
+            description="Quota di ricerche su Google Ads e annunci attivi dei competitor su Meta, Google e LinkedIn."
           >
             <CompetitivePressureSection clientId={id as string} daysBack={overviewDaysBack} />
+            <CompetitorAdLibrary clientId={id as string} />
           </CollapsibleCard>
 
           {/* Competitor: cosa fanno i concorrenti sul territorio. Non segue il
