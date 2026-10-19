@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { normalizeSocial } from '@/lib/social-links';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed, denyUnlessStaff } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { fetchCompetitorPage, diffSnapshots, type CompetitorSnapshot } from '@/lib/competitors-client';
@@ -21,6 +22,8 @@ export interface Competitor {
   instagram?: string;
   facebook?: string;
   linkedin?: string;
+  youtube?: string;
+  tiktok?: string;
 }
 
 const MAX = 5;
@@ -59,9 +62,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     id: String(c.id || `c${i + 1}`),
     nome: String(c.nome ?? '').trim().slice(0, 80),
     sito: normalizeUrl(String(c.sito ?? '')),
-    instagram: String(c.instagram ?? '').trim() || undefined,
-    facebook: String(c.facebook ?? '').trim() || undefined,
-    linkedin: String(c.linkedin ?? '').trim() || undefined,
+    // Ogni profilo diventa un indirizzo https valido (anche da un semplice @nome) o niente: vedi lib/social-links.ts
+    instagram: normalizeSocial('instagram', c.instagram),
+    facebook: normalizeSocial('facebook', c.facebook),
+    linkedin: normalizeSocial('linkedin', c.linkedin),
+    youtube: normalizeSocial('youtube', c.youtube),
+    tiktok: normalizeSocial('tiktok', c.tiktok),
   })).filter((c: Competitor) => c.nome || c.sito);
 
   // Il Hub legge questi siti dal server ogni notte: solo indirizzi pubblici (niente localhost / reti interne)
@@ -71,7 +77,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     catch { return NextResponse.json({ error: `Sito non valido o non consentito per "${c.nome || c.sito}"` }, { status: 400 }); }
   }
 
-  // Firestore rifiuta `undefined` (instagram/facebook/linkedin vuoti) e questo progetto non ha ignoreUndefinedProperties:
+  // Firestore rifiuta `undefined` (social vuoti) e questo progetto non ha ignoreUndefinedProperties:
   // senza il giro JSON il salvataggio falliva ogni volta che un social era vuoto.
   await ref(params.id).set(JSON.parse(JSON.stringify({ competitors: clean, updatedAt: Date.now() })), { merge: true });
   return NextResponse.json({ competitors: clean });

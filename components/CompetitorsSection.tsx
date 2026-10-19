@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState } from 'react'
 import { decodeEntities } from '@/lib/html-entities'
-import { AlertCircle, ExternalLink, Users, RefreshCw, Instagram, Facebook, Linkedin } from 'lucide-react'
+import { AlertCircle, ExternalLink, Users, RefreshCw, Instagram, Facebook, Linkedin, Youtube, Music2 } from 'lucide-react'
+import { normalizeSocial } from '@/lib/social-links'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 
-interface Competitor { id: string; nome: string; sito: string; instagram?: string; facebook?: string; linkedin?: string }
+interface Competitor { id: string; nome: string; sito: string; instagram?: string; facebook?: string; linkedin?: string; youtube?: string; tiktok?: string }
 interface Snapshot { url: string; fetchedAt: number; via: string; title: string; description: string; offers: string[]; textLength: number }
 interface Change { at: number; competitor: string; text: string; url: string }
 
@@ -89,11 +90,23 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                   )}
                 </div>
                 {/* I social restano collegamenti: non se ne estraggono numeri,
-                    Instagram e LinkedIn non si lasciano leggere da un server. */}
-                <div className="flex gap-1.5 shrink-0">
-                  {c.instagram && <a href={c.instagram} target="_blank" rel="noopener noreferrer" title="Instagram"><Instagram size={13} className="text-muted-foreground hover:text-pink-400" /></a>}
-                  {c.facebook && <a href={c.facebook} target="_blank" rel="noopener noreferrer" title="Facebook"><Facebook size={13} className="text-muted-foreground hover:text-blue-400" /></a>}
-                  {c.linkedin && <a href={c.linkedin} target="_blank" rel="noopener noreferrer" title="LinkedIn"><Linkedin size={13} className="text-muted-foreground hover:text-sky-400" /></a>}
+                    I social non si lasciano leggere da un server. */}
+                <div className="flex gap-2 shrink-0">
+                  {([
+                    ['instagram', 'Instagram', Instagram, 'hover:text-pink-400'],
+                    ['facebook', 'Facebook', Facebook, 'hover:text-blue-400'],
+                    ['linkedin', 'LinkedIn', Linkedin, 'hover:text-sky-400'],
+                    ['youtube', 'YouTube', Youtube, 'hover:text-red-500'],
+                    ['tiktok', 'TikTok', Music2, 'hover:text-foreground'],
+                  ] as const).map(([key, label, Icon, hover]) => {
+                    // Anche le voci salvate prima, scritte come "@nome", diventano un indirizzo valido (o niente)
+                    const href = normalizeSocial(key, c[key])
+                    return href ? (
+                      <a key={key} href={href} target="_blank" rel="noopener noreferrer" title={label} aria-label={`${label} di ${c.nome}`}>
+                        <Icon size={13} className={`text-muted-foreground ${hover}`} />
+                      </a>
+                    ) : null
+                  })}
                 </div>
               </div>
 
