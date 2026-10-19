@@ -25,54 +25,60 @@ export default function MetaCampaignReportModal({ onClose, campaignTitle, object
     </div>
   )
 
+  // I valori che Windsor non ha per questa campagna arrivano null: si mostra «—», mai NaN o un errore
+  const num = (v: any, d = 0) => (typeof v === 'number' && Number.isFinite(v) ? v.toLocaleString('it-IT', { minimumFractionDigits: d, maximumFractionDigits: d }) : '—')
+  const eur = (v: any, d = 2) => (typeof v === 'number' && Number.isFinite(v) ? `€${num(v, d)}` : '—')
+  const pct = (v: any, d = 1) => (typeof v === 'number' && Number.isFinite(v) ? `${num(v, d)}%` : '—')
+  const sp = specificMetrics || {}
+
   const renderSpecifics = () => {
     switch (objective) {
       case 'SALES':
       case 'CATALOG_SALES':
         return (
           <>
-            {metricCard('ROAS (Ritorno Spesa)', specificMetrics.roas ? `x${specificMetrics.roas.toFixed(2)}` : 'N/A', `Target: > 3.00`, <TrendingUp size={32}/>)}
-            {metricCard('Acquisti', specificMetrics.purchases, `Cost / Acq: €${specificMetrics.costPerPurchase.toFixed(2)}`, <ShoppingCart size={32}/>)}
-            {metricCard('Valore Conversioni', `€${specificMetrics.purchaseValue.toFixed(2)}`, `Generato`, <HandCoins size={32}/>)}
-            {metricCard('Add to Cart', specificMetrics.addToCarts, `Checkout: ${specificMetrics.checkoutsInitiated}`, <Activity size={32}/>)}
+            {metricCard('ROAS (Ritorno Spesa)', typeof sp.roas === 'number' ? `x${num(sp.roas, 2)}` : '—', `Target: > 3,00`, <TrendingUp size={32}/>)}
+            {metricCard('Acquisti', num(sp.purchases), `Costo per acquisto: ${eur(sp.costPerPurchase)}`, <ShoppingCart size={32}/>)}
+            {metricCard('Valore Conversioni', eur(sp.purchaseValue), `Generato`, <HandCoins size={32}/>)}
+            {metricCard('Add to Cart', num(sp.addToCarts), `Checkout: ${num(sp.checkoutsInitiated)}`, <Activity size={32}/>)}
           </>
         )
       case 'LEADS':
          return (
           <>
-            {metricCard('Volume Lead', specificMetrics.leads, `Totale Contatti Acquisiti`, <Users size={32}/>)}
-            {metricCard('Cost per Lead (CPL)', `€${specificMetrics.costPerLead.toFixed(2)}`, `Costo medio acquisizione`, <Target size={32}/>)}
-            {metricCard('Form Completion', `${specificMetrics.formCompletionRate.toFixed(1)}%`, `Click to Lead Rate`, <Activity size={32}/>)}
+            {metricCard('Volume Lead', num(sp.leads), `Totale contatti acquisiti`, <Users size={32}/>)}
+            {metricCard('Costo per Lead (CPL)', eur(sp.costPerLead), `Costo medio acquisizione`, <Target size={32}/>)}
+            {metricCard('Da click a lead', pct(sp.formCompletionRate), `Lead sui click totali`, <Activity size={32}/>)}
           </>
         )
       case 'TRAFFIC':
          return (
           <>
-            {metricCard('Click in Uscita', specificMetrics.outboundClicks, `Totale visite indirizzate`, <ExternalLink size={32}/>)}
-            {metricCard('CTR Uscita', `${specificMetrics.outboundCtr}%`, `Media mercato: 1%`, <TrendingUp size={32}/>)}
-            {metricCard('Costo per Click', `€${specificMetrics.costPerOutboundClick.toFixed(2)}`, `Landing Page Views: ${specificMetrics.landingPageViews}`, <Target size={32}/>)}
+            {metricCard('Click in Uscita', num(sp.outboundClicks), `Visite indirizzate al sito`, <ExternalLink size={32}/>)}
+            {metricCard('CTR Uscita', pct(sp.outboundCtr, 2), `Media di mercato: 1%`, <TrendingUp size={32}/>)}
+            {metricCard('Costo per Click in uscita', eur(sp.costPerOutboundClick), `Visualizzazioni pagina: ${num(sp.landingPageViews)}`, <Target size={32}/>)}
           </>
         )
       case 'ENGAGEMENT':
          return (
           <>
-            {metricCard('Interazioni Post', specificMetrics.postEngagements, `Cost/Eng: €${specificMetrics.costPerEngagement.toFixed(3)}`, <Activity size={32}/>)}
-            {metricCard('Reazioni', specificMetrics.pageLikes + specificMetrics.postComments + specificMetrics.postShares, `${specificMetrics.postComments} commenti | ${specificMetrics.postShares} share`, <Users size={32}/>)}
-            {metricCard('Messaggi Avviati', specificMetrics.messages, `Lead per chat`, <Zap size={32}/>)}
+            {metricCard('Interazioni Post', num(sp.postEngagements), `Costo per interazione: ${eur(sp.costPerEngagement, 3)}`, <Activity size={32}/>)}
+            {metricCard('Reazioni', num(sp.reactions), `${num(sp.postComments)} commenti | ${num(sp.postShares)} condivisioni`, <Users size={32}/>)}
+            {metricCard('Messaggi Avviati', num(sp.messages), `Conversazioni iniziate`, <Zap size={32}/>)}
+            {metricCard('Visualizzazioni Video', num(sp.videoViews), `Riproduzioni`, <Target size={32}/>)}
           </>
         )
       case 'AWARENESS':
          return (
           <>
-            {metricCard('Copertura (Reach)', specificMetrics.reach.toLocaleString(), `Utenti unici raggiunti`, <Users size={32}/>)}
-            {metricCard('Ad Recall Lift', specificMetrics.estimatedAdRecallRate ? `${specificMetrics.estimatedAdRecallRate.toFixed(1)}%` : 'N/A', `Stima persone che ricordano l'AD`, <Activity size={32}/>)}
-            {metricCard('Video Views', specificMetrics.videoViews, `Play ≥3s`, <Target size={32}/>)}
+            {metricCard('Copertura (Reach)', num(sp.reach), `Persone uniche raggiunte`, <Users size={32}/>)}
+            {metricCard('Visualizzazioni Video', num(sp.videoViews), `Riproduzioni`, <Target size={32}/>)}
           </>
         )
       default:
         return (
           <div style={{ gridColumn: '1 / -1', padding: '2rem', textAlign: 'center', color: 'var(--text-tertiary)', background: 'rgba(0,0,0,0.02)', borderRadius: '12px' }}>
-            Nessun KPI specifico tracciato o obiettivo personalizzato non riconosciuto ({objective}).
+            Nessun KPI specifico per questo obiettivo ({objective}): qui sotto trovi le metriche di consegna.
           </div>
         )
     }
@@ -127,14 +133,14 @@ export default function MetaCampaignReportModal({ onClose, campaignTitle, object
 
           <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '1.25rem' }}> Metriche Base (Delivery)</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-            {metricCard('Spesa Totale', `€${baseMetrics.spend.toFixed(2)}`)}
-            {metricCard('Impression', baseMetrics.impressions.toLocaleString())}
-            {metricCard('Frequenza', baseMetrics.frequency.toFixed(2))}
-            {metricCard('CPM Medio', `€${baseMetrics.cpm.toFixed(2)}`)}
+            {metricCard('Spesa Totale', eur(baseMetrics?.spend))}
+            {metricCard('Impression', num(baseMetrics?.impressions))}
+            {metricCard('Frequenza', num(baseMetrics?.frequency, 2))}
+            {metricCard('CPM Medio', eur(baseMetrics?.cpm))}
             
-            {metricCard('Click Totali', baseMetrics.clicks.toLocaleString())}
-            {metricCard('CTR Globale', `${baseMetrics.ctr.toFixed(2)}%`)}
-            {metricCard('Costo per Click', `€${baseMetrics.cpc.toFixed(2)}`)}
+            {metricCard('Click Totali', num(baseMetrics?.clicks))}
+            {metricCard('CTR Globale', pct(baseMetrics?.ctr, 2))}
+            {metricCard('Costo per Click', eur(baseMetrics?.cpc))}
           </div>
         </div>
       </div>

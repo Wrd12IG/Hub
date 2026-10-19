@@ -379,14 +379,15 @@ export default function ClientDetailPage() {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      if (!res.ok) throw new Error("Failed to load insights");
-      const data = await res.json();
-      setReportModalData({ ...data, campaignId, campaignName, objective });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Failed to load insights");
+      // L'obiettivo lo dice Windsor (più affidabile di quello passato dalla tabella, spesso vuoto)
+      setReportModalData({ ...data, campaignId, campaignName, objective: data.objective && data.objective !== "ALTRO" ? data.objective : objective });
       setReportModalDatePreset(preset);
-    } catch (e) {
-      toast.error(
-        "Impossibile caricare il report. Controlla che la campagna abbia generato traffico.",
-      );
+      if (data.empty) toast.info("Nessun dato per questa campagna nel periodo scelto: prova un periodo più ampio.");
+    } catch (e: any) {
+      console.error("[campaign report] load failed:", e);
+      toast.error(e?.message && !/Failed to load/.test(e.message) ? e.message : "Impossibile caricare il report della campagna. Riprova fra poco.");
       if (!reportModalData) setReportModalData(null);
     } finally {
       setLoadingReportId(null);
