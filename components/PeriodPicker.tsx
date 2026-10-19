@@ -1,11 +1,18 @@
 "use client"
 
 import React from 'react'
-import { Calendar } from 'lucide-react'
+import { Calendar as CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
+import type { DateRange } from 'react-day-picker'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { presetRange, type RangeCheck } from '@/lib/date-range'
 
-const todayIso = () => new Date().toISOString().slice(0, 10)
-const fieldClass = 'px-2.5 py-1.5 rounded-lg border border-border bg-background text-sm font-medium text-foreground outline-none focus:border-primary/60'
+// yyyy-MM-dd <-> Date in ora locale (new Date('2026-09-01') sarebbe mezzanotte UTC e in Italia cade il giorno prima)
+const toDate = (iso: string) => { const [y, m, d] = iso.split('-').map(Number); return y && m && d ? new Date(y, m - 1, d) : undefined }
+const toIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const fieldClass = 'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-background/50 hover:border-foreground/30 text-sm font-medium text-foreground outline-none cursor-pointer transition-colors'
 
 /**
  * Selettore del periodo della Panoramica: gli intervalli di sempre più «Personalizzato…», con due date.
@@ -26,10 +33,11 @@ export function PeriodPicker({
   onFrom: (v: string) => void
   onTo: (v: string) => void
 }) {
+  const range: DateRange | undefined = from ? { from: toDate(from), to: to ? toDate(to) : undefined } : undefined
   return (
     <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-1.5 text-muted-foreground">
-        <Calendar className="h-4 w-4 text-primary" />
+        <CalendarIcon className="h-4 w-4 text-primary" />
         <span className="text-sm font-bold text-foreground">Periodo:</span>
       </div>
       <select
@@ -50,14 +58,35 @@ export function PeriodPicker({
       </select>
       {mode === 'custom' && (
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            Dal
-            <input type="date" value={from} max={to || todayIso()} onChange={(e) => onFrom(e.target.value)} className={fieldClass} />
-          </label>
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            al
-            <input type="date" value={to} min={from || undefined} max={todayIso()} onChange={(e) => onTo(e.target.value)} className={fieldClass} />
-          </label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button type="button" className={fieldClass} aria-label="Scegli le date">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                {range?.from ? (
+                  <>{format(range.from, 'dd MMM yyyy', { locale: it })} – {range.to ? format(range.to, 'dd MMM yyyy', { locale: it }) : '…'}</>
+                ) : (
+                  <span className="text-muted-foreground">Seleziona le date</span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={range?.from}
+                selected={range}
+                onSelect={(r) => {
+                  if (!r?.from) return
+                  // Primo clic = un giorno solo (periodo valido); il secondo clic lo allarga
+                  onFrom(toIso(r.from))
+                  onTo(toIso(r.to ?? r.from))
+                }}
+                numberOfMonths={2}
+                locale={it}
+                disabled={{ after: new Date() }}
+              />
+            </PopoverContent>
+          </Popover>
           {check && !check.ok ? (
             <span className="text-xs font-medium text-red-700 dark:text-red-400">{check.error}</span>
           ) : check?.ok ? (
