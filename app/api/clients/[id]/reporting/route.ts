@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource } from '@/lib/api-auth';
 import type { CompareMode } from '@/lib/reporting';
 import { getReport } from '@/lib/report-service';
+import { validateRange } from '@/lib/date-range';
 
 // Il report interroga più piattaforme insieme e alcune sono lente (Windsor impiega 8-12 s a lettura, misurato). Senza
 // un tetto esplicito Vercel usa il default e uccide la richiesta a metà: il client non riceve una risposta parziale,
@@ -26,7 +27,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   try {
     const { searchParams } = new URL(request.url);
+
+    // Intervallo scelto a mano: ?from=yyyy-MM-dd&to=yyyy-MM-dd (validato qui: mai date inventate fino alle piattaforme)
+    const hasRange = searchParams.has('from') || searchParams.has('to');
+    const check = hasRange ? validateRange(searchParams.get('from'), searchParams.get('to')) : null;
+    if (check && !check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
+
     const report = await getReport({
+      range: check?.ok ? check.range : undefined,
       clientId,
       datePreset: searchParams.get('date_preset') || 'last_30d',
       daysRaw: searchParams.get('days') || '',

@@ -10,6 +10,7 @@ import { getClientToken } from './api-auth';
 import { getClientMarketingReport, buildWindows, type CompareMode, type PlatformReport } from './reporting';
 import type { Client } from './data';
 import type { ReportProgress } from './report-warm';
+import { buildRangeWindows, type DateRange } from './date-range';
 
 /**
  * Quanto resta valido un report in cache.
@@ -90,8 +91,13 @@ export async function getReport(opts: {
     refresh?: boolean;
     runId?: string;
     client?: Client;
+    /** Intervallo scelto a mano (già validato): sostituisce periodo e giorni, con la sua cache. */
+    range?: DateRange;
 }): Promise<ReportResult | null> {
-    const { clientId, datePreset, daysRaw, compare, refresh = false, runId } = opts;
+    const { clientId, compare, refresh = false, runId, range } = opts;
+    // Un intervallo personalizzato ha una voce di cache sua (le date fanno parte della chiave)
+    const datePreset = range ? 'custom' : opts.datePreset;
+    const daysRaw = range ? `${range.from}_${range.to}` : opts.daysRaw;
     const ref = cacheRef(clientId, reportCacheKey(datePreset, daysRaw, compare));
 
     if (!refresh) {
@@ -111,7 +117,9 @@ export async function getReport(opts: {
 
     const days = parseInt(daysRaw, 10);
     // Finestre esplicite solo per il confronto; senza, resta il percorso semplice con date_preset
-    const windows = Number.isFinite(days) && compare !== 'none' ? buildWindows(days, compare) : undefined;
+    const windows = range
+        ? buildRangeWindows(range.from, range.to, compare)   // sempre esplicite, anche senza confronto
+        : Number.isFinite(days) && compare !== 'none' ? buildWindows(days, compare) : undefined;
 
     // La chiave Klaviyo vive cifrata nella sottocollection `integrations`: la si risolve qui così lib/reporting.ts non
     // dipende da Firestore. Un errore nel leggerla non deve far cadere il resto del report.

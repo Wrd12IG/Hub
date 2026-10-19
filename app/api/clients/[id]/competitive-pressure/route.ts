@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getGoogleAdsCompetitivePressure } from '@/lib/google-ads-client';
+import { validateRange } from '@/lib/date-range';
 
 export const maxDuration = 60;
 
@@ -39,9 +40,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const raw = request.nextUrl.searchParams.get('days');
   const days = raw === '7' ? 7 : raw === '90' ? 90 : 30;
 
+  // Intervallo scelto a mano (?from=&to=), validato come per il report
+  const sp = request.nextUrl.searchParams;
+  const check = sp.has('from') || sp.has('to') ? validateRange(sp.get('from'), sp.get('to')) : null;
+  if (check && !check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
+
   try {
-    const pressure = await getGoogleAdsCompetitivePressure(customerId, isoDaysAgo(days), isoDaysAgo(0));
-    return NextResponse.json({ ...pressure, days });
+    const pressure = check?.ok
+      ? await getGoogleAdsCompetitivePressure(customerId, check.range.from, check.range.to)
+      : await getGoogleAdsCompetitivePressure(customerId, isoDaysAgo(days), isoDaysAgo(0));
+    return NextResponse.json({ ...pressure, days: check?.ok ? check.days : days });
   } catch (err: any) {
     console.error(`[competitive-pressure] fallita per ${params.id}:`, err.message);
     return NextResponse.json({ error: err.message }, { status: 503 });

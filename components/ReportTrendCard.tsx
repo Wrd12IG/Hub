@@ -13,7 +13,7 @@ const spendOnly = (s: DailyPoint[] = []): DailyPoint[] => s.map((p) => ({ date: 
  * Usa lo stesso risultato del riepilogo (lead di Meta o conversioni di Google Ads); se l'esito del cliente viene da un altro
  * canale (es. contatti GBP) mostra solo la spesa.
  */
-export function ReportTrendCard({ report, days }: { report: MarketingReportState; days: number }) {
+export function ReportTrendCard({ report, days, periodText }: { report: MarketingReportState; days: number; periodText?: string }) {
   const { platforms } = report
   if (!platforms) return null
 
@@ -35,7 +35,7 @@ export function ReportTrendCard({ report, days }: { report: MarketingReportState
       <div className="mb-3">
         <h3 className="text-base font-extrabold tracking-tight text-foreground">Andamento giornaliero</h3>
         <p className="text-xs text-muted-foreground">
-          Spesa{withResults ? ` e ${label.toLowerCase()}` : ''} giorno per giorno, ultimi {days} giorni · {points.length} giorni con dati
+          Spesa{withResults ? ` e ${label.toLowerCase()}` : ''} giorno per giorno, {periodText ?? `ultimi ${days} giorni`} · {points.length} giorni con dati
         </p>
       </div>
       <ReportTrendChart points={points} resultLabel={label} />

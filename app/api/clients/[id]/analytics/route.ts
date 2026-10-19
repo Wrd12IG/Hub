@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getGA4Overview, buildWindows, type CompareMode } from '@/lib/reporting';
+import { validateRange, buildRangeWindows } from '@/lib/date-range';
 
 export async function GET(
   request: NextRequest,
@@ -30,6 +31,11 @@ export async function GET(
   const days = parseInt(rangeParam.replace('d', '')) || 30;
   const compare = (request.nextUrl.searchParams.get('compare') || 'prev_period') as CompareMode;
 
+  // Intervallo scelto a mano: ?from=&to= (stesse regole del report)
+  const sp = request.nextUrl.searchParams;
+  const check = sp.has('from') || sp.has('to') ? validateRange(sp.get('from'), sp.get('to')) : null;
+  if (check && !check.ok) return NextResponse.json({ error: check.error }, { status: 400 });
+
   try {
     const snap = await adminDb.collection('clients').doc(clientId).get();
     const propertyId = snap.exists ? (snap.data() as any)?.ga4PropertyId : null;
@@ -45,8 +51,9 @@ export async function GET(
       );
     }
 
-    const analytics = await getGA4Overview(propertyId, buildWindows(days, compare));
-    return NextResponse.json({ ...analytics, _meta: { source: 'ga4', days, compare } });
+    const windows = check?.ok ? buildRangeWindows(check.range.from, check.range.to, compare) : buildWindows(days, compare);
+    const analytics = await getGA4Overview(propertyId, windows);
+    return NextResponse.json({ ...analytics, _meta: { source: 'ga4', days: check?.ok ? check.days : days, compare } });
   } catch (error: any) {
     console.error(`[analytics] GA4 overview failed for client ${clientId}:`, error.message);
     return NextResponse.json(

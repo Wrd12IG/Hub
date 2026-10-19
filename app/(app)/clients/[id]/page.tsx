@@ -60,6 +60,8 @@ import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
 import { ReportTrendCard } from "@/components/ReportTrendCard";
+import { validateRange, rangeLabel } from "@/lib/date-range";
+import { PeriodPicker } from "@/components/PeriodPicker";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { stripCitations } from "@/lib/clean-text";
@@ -291,9 +293,17 @@ export default function ClientDetailPage() {
     }
   };
   const [overviewDaysBack, setOverviewDaysBack] = useState(30);
+  // Periodo scelto a mano: due date. Vale solo se è valido; finché non lo è, resta l'ultimo periodo buono.
+  const [periodMode, setPeriodMode] = useState<"preset" | "custom">("preset");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const customCheck = periodMode === "custom" ? validateRange(customFrom, customTo) : null;
+  const activeRange = customCheck?.ok ? customCheck.range : null;
+  /** I giorni del periodo in uso: quelli del menu, oppure la durata dell'intervallo scelto. */
+  const effectiveDays = customCheck?.ok ? customCheck.days : overviewDaysBack;
   const [compareMode, setCompareMode] = useState("prev_period");
   // Un solo caricamento del report, condiviso fra il riepilogo in cima e le schede delle piattaforme
-  const marketingReport = useMarketingReport(id as string, overviewDaysBack, compareMode as "prev_period" | "prev_year" | "none", activeTab === "overview");
+  const marketingReport = useMarketingReport(id as string, effectiveDays, compareMode as "prev_period" | "prev_year" | "none", activeTab === "overview", activeRange);
   const [ga4Properties, setGa4Properties] = useState<
     {
       propertyId: string;
@@ -644,7 +654,7 @@ export default function ClientDetailPage() {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          `${API_URL}/api/clients/${id}/analytics?dateRange=${overviewDaysBack}d&compare=${compareMode}`,
+          `${API_URL}/api/clients/${id}/analytics?${activeRange ? `from=${activeRange.from}&to=${activeRange.to}` : `dateRange=${overviewDaysBack}d`}&compare=${compareMode}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         const data = await res.json();
@@ -661,7 +671,7 @@ export default function ClientDetailPage() {
       }
     };
     fetchGa4();
-  }, [client?.ga4PropertyId, overviewDaysBack, compareMode, id]);
+  }, [client?.ga4PropertyId, overviewDaysBack, compareMode, id, activeRange?.from, activeRange?.to]);
 
   if (loading)
     return (
@@ -968,25 +978,17 @@ export default function ClientDetailPage() {
         <div className="flex flex-col gap-8">
           {/* CONTROL BAR: Date Filter & Comparazione */}
           <div className="glass-card flex flex-col md:flex-row md:justify-between md:items-center p-4 rounded-2xl gap-4 border border-white/10 bg-white/[0.03] shadow-md">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-muted-foreground">
-                <Calendar className="h-4 w-4 text-primary" />
-                <span className="text-sm font-bold text-foreground">
-                  Periodo:
-                </span>
-              </div>
-              <select
-                value={overviewDaysBack}
-                onChange={(e) => setOverviewDaysBack(Number(e.target.value))}
-                className="px-3 py-1.5 rounded-lg border border-white/10 bg-background/50 hover:border-white/20 text-sm font-medium outline-none cursor-pointer transition-colors text-foreground"
-              >
-                <option value={7}>Ultimi 7 Giorni</option>
-                <option value={30}>Ultimi 30 Giorni</option>
-                <option value={60}>Ultimi 60 Giorni</option>
-                <option value={90}>Ultimi 90 Giorni</option>
-                <option value={180}>Ultimi 6 Mesi</option>
-              </select>
-            </div>
+            <PeriodPicker
+              mode={periodMode}
+              daysBack={overviewDaysBack}
+              from={customFrom}
+              to={customTo}
+              check={customCheck}
+              onPreset={(d) => { setPeriodMode("preset"); setOverviewDaysBack(d); }}
+              onCustom={(r) => { setCustomFrom(r.from); setCustomTo(r.to); setPeriodMode("custom"); }}
+              onFrom={setCustomFrom}
+              onTo={setCustomTo}
+            />
 
             <div className="flex items-center gap-3">
               <div className="text-sm font-bold text-muted-foreground">
@@ -1033,12 +1035,12 @@ export default function ClientDetailPage() {
           {/* RIEPILOGO: spesa, risultato, costo per risultato, anomalie */}
           <ReportSummaryStrip
             report={marketingReport}
-            days={overviewDaysBack}
+            days={effectiveDays}
             compare={compareMode as "prev_period" | "prev_year" | "none"}
           />
 
           {/* ANDAMENTO: spesa e risultato per giorno */}
-          <ReportTrendCard report={marketingReport} days={overviewDaysBack} />
+          <ReportTrendCard report={marketingReport} days={effectiveDays} periodText={activeRange ? rangeLabel(activeRange.from, activeRange.to) : undefined} />
 
           {/* ==================================================== */}
           {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}
@@ -1254,7 +1256,7 @@ export default function ClientDetailPage() {
                   {/* Conversions Category */}
                   <div className="space-y-3">
                     <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      Conversioni (Ultimi {overviewDaysBack}gg vs prec.)
+                      Conversioni ({activeRange ? rangeLabel(activeRange.from, activeRange.to) : `ultimi ${overviewDaysBack}gg`} vs prec.)
                     </h4>
                     {(["transactions", "revenue"] as const).every(
                       (k) => ga4Data.conversions?.[k]?.val === 0 && ga4Data.conversions?.[k]?.chg === 0,
@@ -1509,7 +1511,7 @@ export default function ClientDetailPage() {
             title="Pressione competitiva"
             description="Quota di ricerche su Google Ads e annunci attivi dei competitor su Meta, Google e LinkedIn."
           >
-            <CompetitivePressureSection clientId={id as string} daysBack={overviewDaysBack} />
+            <CompetitivePressureSection clientId={id as string} daysBack={effectiveDays} range={activeRange} />
             <CompetitorAdLibrary clientId={id as string} />
           </CollapsibleCard>
 

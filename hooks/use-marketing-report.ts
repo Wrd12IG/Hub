@@ -30,7 +30,7 @@ export interface MarketingReportState {
  * Il report delle piattaforme di un cliente, caricato UNA volta per la pagina e condiviso fra il riepilogo in alto
  * e le schede in basso (prima lo caricava solo la sezione, e il riepilogo non poteva esistere).
  */
-export function useMarketingReport(clientId: string, daysBack: number, compare: 'prev_period' | 'prev_year' | 'none', enabled = true): MarketingReportState {
+export function useMarketingReport(clientId: string, daysBack: number, compare: 'prev_period' | 'prev_year' | 'none', enabled = true, range?: { from: string; to: string } | null): MarketingReportState {
   const [platforms, setPlatforms] = useState<PlatformReport[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,7 +58,7 @@ export function useMarketingReport(clientId: string, daysBack: number, compare: 
     }, 1200)
     try {
       const res = await fetch(
-        `/api/clients/${clientId}/reporting?date_preset=${toDatePreset(daysBack)}&days=${daysBack}&compare=${compare}&run=${runId}${force ? '&refresh=1' : ''}`,
+        `/api/clients/${clientId}/reporting?${range ? `from=${range.from}&to=${range.to}` : `date_preset=${toDatePreset(daysBack)}&days=${daysBack}`}&compare=${compare}&run=${runId}${force ? '&refresh=1' : ''}`,
         { headers },
       )
       if (!res.ok) {
@@ -75,7 +75,7 @@ export function useMarketingReport(clientId: string, daysBack: number, compare: 
       stopPolling()
       setLoading(false)
     }
-  }, [clientId, daysBack, compare])
+  }, [clientId, daysBack, compare, range?.from, range?.to])
 
   // Solo quando serve (tab Panoramica aperta): il server lo tiene in cache, ma non c'è motivo di chiederlo dalle altre tab
   useEffect(() => { if (enabled) reload(false) }, [reload, enabled])
