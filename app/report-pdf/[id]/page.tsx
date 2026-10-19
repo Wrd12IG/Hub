@@ -8,7 +8,8 @@ import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { useMarketingReport } from '@/hooks/use-marketing-report'
 import { buildPublicReport } from '@/lib/client-report-public'
-import { buildPdfSections, PDF_PERIODS, pdfRange, type PdfPeriod } from '@/lib/report-pdf'
+import { buildPdfSections, buildHighlights, PDF_PERIODS, pdfRange, type PdfChart, type PdfPeriod } from '@/lib/report-pdf'
+import { summarizeReport } from '@/lib/report-metrics'
 import { rangeDays, rangeLabel } from '@/lib/date-range'
 import { monthLabel } from '@/lib/monthly-comment'
 import { formatEuro } from '@/lib/format'
@@ -47,7 +48,9 @@ const PRINT_CSS = `
   /* un filo meno di 297mm: l'arrotondamento non deve spingere nulla sulla pagina dopo */
   .paper .cover { height: 296mm; overflow: hidden; break-after: page; page-break-after: always; }
   .paper .flow-table { width: 210mm; }
-  .paper .flow-table thead td, .paper .flow-table tfoot td { height: 14mm; }
+    .paper .flow-table thead td, .paper .flow-table tfoot td { height: 14mm; vertical-align: bottom; }
+  .paper .flow-table tfoot td { vertical-align: top; }
+  .paper .run-head, .paper .run-foot { display: flex !important; }
   .paper .flow { padding: 0; }
 }
 `
@@ -64,6 +67,33 @@ function Kpi({ label, value, delta, hint }: { label: string; value: string; delt
       <p className="mt-1 text-2xl font-bold [font-variant-numeric:tabular-nums]">{value}</p>
       <p className="mt-0.5 h-4 text-[11px]">{delta}{!delta && hint ? <span className="text-[hsl(var(--muted-foreground))]">{hint}</span> : null}</p>
     </div>
+  )
+}
+
+/** Grafico piccolo a barre in SVG: niente librerie, nessun ridimensionamento in stampa. */
+function MiniChart({ chart }: { chart: PdfChart }) {
+  const W = 600, H = 84, PAD_B = 16
+  const max = Math.max(...chart.points.map((p) => p.value), 1)
+  const slot = W / chart.points.length
+  const bar = Math.max(2, slot * 0.62)
+  const dayLabel = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+  const fmt = (v: number) => (chart.euro ? formatEuro(v, 0) : intFmt.format(v))
+  const first = chart.points[0], last = chart.points[chart.points.length - 1]
+  return (
+    <figure className="keep rounded-lg border border-[hsl(var(--border))] bg-white px-4 pb-2 pt-3">
+      <figcaption className="mb-1 flex items-baseline justify-between text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">
+        <span>{chart.label} per giorno</span><span className="normal-case tracking-normal">massimo {fmt(max)}</span>
+      </figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label={`${chart.label} per giorno`}>
+        <line x1="0" y1={H - PAD_B} x2={W} y2={H - PAD_B} stroke="hsl(0 0% 85%)" strokeWidth="1" />
+        {chart.points.map((p, i) => {
+          const h = Math.max(1, (p.value / max) * (H - PAD_B - 4))
+          return <rect key={p.date} x={i * slot + (slot - bar) / 2} y={H - PAD_B - h} width={bar} height={h} rx="1.5" fill="hsl(45 93% 47%)" fillOpacity="0.85" />
+        })}
+        <text x="0" y={H - 3} fontSize="9" fill="hsl(215 9% 38%)">{dayLabel(first.date)}</text>
+        <text x={W} y={H - 3} fontSize="9" fill="hsl(215 9% 38%)" textAnchor="end">{dayLabel(last.date)}</text>
+      </svg>
+    </figure>
   )
 }
 
@@ -100,6 +130,7 @@ export default function ReportPdfPage() {
     [report.platforms, clientName, report.computedAt],
   )
   const shown = sections.filter((s) => !hidden.has(s.id))
+  const highlights = useMemo(() => (report.platforms ? buildHighlights(summarizeReport(report.platforms, days)) : []), [report.platforms, days])
   const periodText = rangeLabel(range.from, range.to)
   const longPeriod = PDF_PERIODS.find((p) => p.id === period)?.label
   const today = new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -162,11 +193,27 @@ export default function ReportPdfPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[hsl(var(--primary))]">Report marketing</p>
             <h1 className="mt-3 text-4xl font-light leading-tight tracking-tight">{clientName || 'Cliente'}</h1>
             <p className="mt-3 text-base text-[#9ca3af]">{longPeriod} · {periodText}</p>
-            <div className="mt-16 h-px w-16 bg-[hsl(var(--primary))]" />
+            {pub && (pub.summary.spend || pub.summary.result) && (
+              <div className="mt-14 flex gap-12">
+                {pub.summary.result && (
+                  <div><p className="text-3xl font-light [font-variant-numeric:tabular-nums]">{intFmt.format(pub.summary.result.value)}</p><p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-[#6e7681]">{pub.summary.result.label}</p></div>
+                )}
+                {pub.summary.spend && (
+                  <div><p className="text-3xl font-light [font-variant-numeric:tabular-nums]">{formatEuro(pub.summary.spend.value, 0)}</p><p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-[#6e7681]">investimento ads</p></div>
+                )}
+                {pub.summary.costPerResult !== null && (
+                  <div><p className="text-3xl font-light [font-variant-numeric:tabular-nums]">{formatEuro(pub.summary.costPerResult)}</p><p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-[#6e7681]">costo per risultato</p></div>
+                )}
+              </div>
+            )}
+            <div className="mt-10 h-px w-16 bg-[hsl(var(--primary))]" />
             <p className="mt-4 text-xs text-[#6e7681]">Preparato da W[r]Digital · {today}</p>
           </section>
 
-          <table className="flow-table"><thead><tr><td /></tr></thead><tfoot><tr><td /></tr></tfoot><tbody><tr><td>
+          <table className="flow-table">
+            <thead><tr><td><div className="run-head hidden items-end justify-between px-[14mm] pb-2 text-[9px] uppercase tracking-[0.15em] text-[hsl(var(--muted-foreground))]"><span>{clientName} · Report marketing</span><span>{periodText}</span></div></td></tr></thead>
+            <tfoot><tr><td><div className="run-foot hidden items-start justify-between px-[14mm] pt-2 text-[9px] tracking-[0.1em] text-[hsl(var(--muted-foreground))]"><span>W[r]Digital</span><span>hub.wrdigital.it</span></div></td></tr></tfoot>
+            <tbody><tr><td>
           <div className="flow">
             {/* Sintesi */}
             <section className="space-y-5">
@@ -187,6 +234,15 @@ export default function ReportPdfPage() {
               )}
               <p className="text-[11px] text-[hsl(var(--muted-foreground))]">Variazioni rispetto al periodo precedente di pari durata.</p>
 
+              {highlights.length > 0 && (
+                <div className="keep space-y-1.5">
+                  <h3 className="text-sm font-semibold">In sintesi</h3>
+                  <ul className="list-disc space-y-1 pl-5 text-[13px] leading-relaxed">
+                    {highlights.map((h) => <li key={h}>{h}</li>)}
+                  </ul>
+                </div>
+              )}
+
               {note.trim() && (
                 <div className="keep rounded-lg border-l-4 border-[hsl(var(--primary))] bg-[#fffbeb] px-4 py-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-[hsl(var(--muted-foreground))]">Il nostro commento</p>
@@ -200,14 +256,24 @@ export default function ReportPdfPage() {
                   <ReportTrendChart points={pub.trend.points} resultLabel={pub.trend.resultLabel} height={230} />
                 </div>
               )}
+
+              {shown.length > 0 && (
+                <p className="text-[11px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+                  In questo report: {shown.map((x) => x.title).join(' · ')}.
+                </p>
+              )}
             </section>
 
             {/* Una sezione per piattaforma */}
             {shown.map((s) => (
               <section key={s.id} className="mt-8 space-y-3">
-                <div className="keep-next">
-                  <h2 className="text-lg font-normal tracking-tight">{s.title}</h2>
-                  <div className="mt-2 h-0.5 w-10 bg-[hsl(var(--primary))]" />
+                {/* Titolo e grafico viaggiano insieme: il titolo non resta solo in fondo a una pagina */}
+                <div className="keep space-y-3">
+                  <div>
+                    <h2 className="text-lg font-normal tracking-tight">{s.title}</h2>
+                    <div className="mt-2 h-0.5 w-10 bg-[hsl(var(--primary))]" />
+                  </div>
+                  {s.chart && <MiniChart chart={s.chart} />}
                 </div>
                 <table className="w-full border-collapse text-[12px]">
                   <thead>
@@ -229,7 +295,12 @@ export default function ReportPdfPage() {
               </section>
             ))}
 
-            <p className="mt-10 text-center text-[11px] text-[hsl(var(--muted-foreground))]">Dati delle piattaforme collegate · report preparato da W[r]Digital il {today}</p>
+            <div className="keep mt-10 space-y-1 text-center text-[11px] leading-relaxed text-[hsl(var(--muted-foreground))]">
+              <p>
+                Dati delle piattaforme collegate{report.computedAt ? `, aggiornati il ${new Date(report.computedAt).toLocaleString('it-IT', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}` : ''} · report preparato da W[r]Digital il {today}
+              </p>
+              <p>I dati di Search Console arrivano con circa 2 giorni di ritardo; Meta e Google Ads possono correggere i numeri degli ultimi giorni.</p>
+            </div>
           </div>
           </td></tr></tbody></table>
         </>
