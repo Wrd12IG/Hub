@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { AlertTriangle, CheckCircle2 } from 'lucide-react'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { cn } from '@/lib/utils'
+import { lighthouseDetailIt, lighthouseTitleIt, lighthouseValueIt } from '@/lib/lighthouse-it'
 
 interface Issue { title: string; detail?: string }
 interface Vital { id: string; label: string; value: string; status: 'good' | 'warn' | 'bad' }
@@ -39,7 +40,7 @@ export function SeoAuditHighlights({ clientId }: { clientId: string }) {
           {vitals.map((v) => (
             <div key={v.id} className="rounded-xl border border-border bg-muted/40 p-3">
               <div className="truncate text-xs text-muted-foreground">{v.label}</div>
-              <div className={cn('mt-1 text-sm font-bold', STATUS[v.status])}>{v.value}</div>
+              <div className={cn('mt-1 text-sm font-bold', STATUS[v.status])}>{lighthouseValueIt(v.value)}</div>
             </div>
           ))}
         </div>
@@ -53,7 +54,7 @@ export function SeoAuditHighlights({ clientId }: { clientId: string }) {
             {issues.map((i, idx) => (
               <li key={idx} className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3 text-sm">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-                <span><span className="font-semibold text-foreground">{i.title}</span>{i.detail && <span className="text-muted-foreground"> — {i.detail}</span>}</span>
+                <span><span className="font-semibold text-foreground">{lighthouseTitleIt(i.title)}</span>{i.detail && <span className="text-muted-foreground"> — {lighthouseDetailIt(i.detail)}</span>}</span>
               </li>
             ))}
           </ul>

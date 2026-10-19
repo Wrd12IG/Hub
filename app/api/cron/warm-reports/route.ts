@@ -3,7 +3,7 @@ import { denyUnlessCron } from '@/lib/cron-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getReport, reportCacheKey, DEFAULT_VIEW } from '@/lib/report-service';
 import { getHealth } from '@/lib/health-service';
-import { hasReportSources, needsWarming } from '@/lib/report-warm';
+import { hasReportSources, needsWarming, sourcesSignature } from '@/lib/report-warm';
 
 // Come le altre cron: legge gli header a ogni richiesta, quindi mai prerenderizzata.
 export const dynamic = 'force-dynamic';
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       return { id: d.id, name: String(d.data().name ?? d.id), data: d.data() as any, hit };
     }));
     const todo = withAge
-      .filter((c) => force || needsWarming(c.hit, started, FRESH_MS))
+      .filter((c) => force || needsWarming(c.hit, started, FRESH_MS, sourcesSignature(c.data)))
       .sort((a, b) => Date.parse(a.hit?.computedAt ?? '1970-01-01') - Date.parse(b.hit?.computedAt ?? '1970-01-01'));
 
     const results: { client: string; ok: boolean; seconds: number; error?: string }[] = [];

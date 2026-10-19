@@ -7,9 +7,26 @@ export function hasReportSources(client: any): boolean {
         || w.instagram || w.facebook_page || w.searchconsole || w.linkedin_organic || (Array.isArray(w.gbp) && w.gbp.length > 0));
 }
 
+/**
+ * L'impronta delle fonti collegate a un cliente: cambia quando in Setup API si abbina, toglie o cambia un account.
+ * Una copia del report con un'impronta diversa è vecchia anche se è di cinque minuti fa (altrimenti la scheda di una
+ * pagina appena abbinata non compare fino alla scadenza della cache).
+ */
+export function sourcesSignature(client: any): string {
+    const w = client?.windsorAccounts ?? {};
+    const gbp = Array.isArray(w.gbp) ? [...w.gbp].map(String).sort() : [];
+    const rest = Object.fromEntries(Object.entries(w).filter(([k]) => k !== 'gbp').sort(([a], [b]) => a.localeCompare(b)));
+    return JSON.stringify({
+        meta: client?.metaAdAccountId ?? null, google: client?.googleAdAccountId ?? null, ga4: client?.ga4PropertyId ?? null,
+        awin: client?.awinAdvertiserId ?? null, gbp, w: rest,
+    });
+}
+
 /** Da riscaldare se manca la copia, è vecchia oltre `maxAgeMs`, o era un report in errore (durata breve). */
-export function needsWarming(hit: { computedAt?: string; ttlMs?: number } | null | undefined, now: number, maxAgeMs: number): boolean {
+export function needsWarming(hit: { computedAt?: string; ttlMs?: number; sig?: string } | null | undefined, now: number, maxAgeMs: number, sig?: string): boolean {
     if (!hit?.computedAt) return true;
+    // Fonti cambiate da quando la copia è stata fatta (o copia vecchia senza impronta): va rifatta
+    if (sig !== undefined && hit.sig !== sig) return true;
     const age = now - Date.parse(hit.computedAt);
     if (!Number.isFinite(age)) return true;
     // Un report calcolato con una fonte in errore ha ttl breve: va rifatto anche se è di stanotte

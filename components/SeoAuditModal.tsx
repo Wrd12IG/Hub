@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { X, Loader2, Gauge, Search, TrendingUp, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { lighthouseDetailIt, lighthouseTitleIt, lighthouseValueIt } from '@/lib/lighthouse-it'
 import { Button } from '@/components/ui/button'
 
 interface SeoFactor { id: string; label: string; detail: string; weight: number; ratio: number; applicable: boolean }
@@ -173,7 +174,7 @@ export function SeoAuditModal({
                           v.status === 'good' ? 'text-emerald-400' : v.status === 'warn' ? 'text-amber-400' : 'text-rose-400',
                         )}
                       >
-                        {v.value}
+                        {lighthouseValueIt(v.value)}
                       </div>
                     </div>
                   ))}
@@ -190,8 +191,8 @@ export function SeoAuditModal({
                       <li key={idx} className="text-xs flex items-start gap-2 p-2.5 rounded-lg bg-muted/40 border border-border">
                         <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
                         <span>
-                          <span className="font-semibold text-foreground">{i.title}</span>
-                          {i.detail && <span className="text-muted-foreground"> — {i.detail}</span>}
+                          <span className="font-semibold text-foreground">{lighthouseTitleIt(i.title)}</span>
+                          {i.detail && <span className="text-muted-foreground"> — {lighthouseDetailIt(i.detail)}</span>}
                         </span>
                       </li>
                     ))}
