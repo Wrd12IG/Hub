@@ -4,6 +4,8 @@ import React, { useMemo, useRef, useState } from 'react'
 import { CalendarRange, FileSpreadsheet, LineChart, Plus, SlidersHorizontal, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
+import { PostLeadSection } from '@/components/PostLeadSection'
+import type { PostLeadData } from '@/lib/post-lead'
 import { Button } from '@/components/ui/button'
 import { useMarketingReport } from '@/hooks/use-marketing-report'
 import { computeBudgetPace, type PaceTone } from '@/lib/budget-pace'
@@ -118,7 +120,7 @@ function MonthPace({ clientId, plan }: { clientId: string; plan: MediaPlan }) {
 
 // ── Pagina ──
 
-export function MediaPlanTab({ clientId, initial, onSaved }: { clientId: string; initial?: MediaPlan | null; onSaved: (p: MediaPlan) => void }) {
+export function MediaPlanTab({ clientId, initial, postLead, onSaved, onPostLeadSaved }: { clientId: string; initial?: MediaPlan | null; postLead?: PostLeadData | null; onSaved: (p: MediaPlan) => void; onPostLeadSaved: (d: PostLeadData) => void }) {
   const [plan, setPlan] = useState<MediaPlan>(() => (initial?.lines ? { ...emptyPlan(), ...initial, assumptions: { ...emptyPlan().assumptions, ...initial.assumptions } } : emptyPlan()))
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -250,6 +252,13 @@ export function MediaPlanTab({ clientId, initial, onSaved }: { clientId: string;
           </div>
         )}
       </CollapsibleCard>
+
+      <PostLeadSection
+        clientId={clientId}
+        initial={postLead}
+        plannedAdsByMonth={Object.fromEntries(sum.months.map((m) => [m, sum.byChannel.Meta[m] + sum.byChannel.Google[m]]))}
+        onSaved={onPostLeadSaved}
+      />
 
       <CollapsibleCard icon={Plus} title="Righe del piano" description="Ogni riga è un investimento di un mese su un canale e una linea.">
         <div className="space-y-3">
