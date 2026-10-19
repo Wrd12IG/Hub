@@ -30,9 +30,9 @@ const TONE: Record<PaceTone, string> = {
 }
 const BAR: Record<PaceTone, string> = { good: 'bg-emerald-500', warn: 'bg-amber-500', bad: 'bg-red-500', neutral: 'bg-muted-foreground' }
 
-const inputCls = 'h-9 rounded-lg border border-border bg-background px-3 text-sm tabular-nums text-foreground'
+const inputCls = 'h-9 rounded-lg border border-border bg-background px-3 text-sm [font-variant-numeric:tabular-nums] text-foreground'
 const th = 'px-3 py-2 text-xs font-medium text-muted-foreground'
-const td = 'px-3 py-2 text-sm tabular-nums'
+const td = 'px-3 py-2 text-sm [font-variant-numeric:tabular-nums]'
 
 /** Numero modificabile: si scrive come testo e si conferma uscendo dal campo. `pct` mostra la frazione come percentuale. */
 function NumField({ value, onChange, pct = false, className = '' }: { value: number; onChange: (v: number) => void; pct?: boolean; className?: string }) {
@@ -87,7 +87,7 @@ function MonthPace({ clientId, plan }: { clientId: string; plan: MediaPlan }) {
         <div className="space-y-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-sm font-medium text-foreground">Spesa ads</p>
-            <p className="text-sm tabular-nums text-muted-foreground">Speso {formatEuro(pace.budget.spent, 0)} · previsto a oggi {formatEuro(pace.budget.planned, 0)} · piano del mese {formatEuro(monthAds, 0)}</p>
+            <p className="text-sm [font-variant-numeric:tabular-nums] text-muted-foreground">Speso {formatEuro(pace.budget.spent, 0)} · previsto a oggi {formatEuro(pace.budget.planned, 0)} · piano del mese {formatEuro(monthAds, 0)}</p>
           </div>
           <Bar pct={pace.budget.usedPct} tone={pace.budget.tone} />
           <p className={`text-xs font-semibold ${TONE[pace.budget.tone]}`}>Proiezione a fine mese {formatEuro(pace.budget.projected, 0)} ({pace.budget.usedPct}% del piano)</p>
@@ -97,7 +97,7 @@ function MonthPace({ clientId, plan }: { clientId: string; plan: MediaPlan }) {
         <div className="space-y-2">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-sm font-medium text-foreground">Risultati: {pace.goal.label}</p>
-            <p className="text-sm tabular-nums text-muted-foreground">Finora {intFmt.format(pace.goal.achieved)} · attesi nel mese (scenario base) {intFmt.format(pace.goal.monthly)}</p>
+            <p className="text-sm [font-variant-numeric:tabular-nums] text-muted-foreground">Finora {intFmt.format(pace.goal.achieved)} · attesi nel mese (scenario base) {intFmt.format(pace.goal.monthly)}</p>
           </div>
           <Bar pct={pace.goal.reachedPct} tone={pace.goal.tone} />
           <p className={`text-xs font-semibold ${TONE[pace.goal.tone]}`}>Proiezione a fine mese {intFmt.format(pace.goal.projected)} ({pace.goal.reachedPct}% dell'atteso)</p>
@@ -193,7 +193,7 @@ export function MediaPlanTab({ clientId, initial, onSaved }: { clientId: string;
       </CollapsibleCard>
 
       <CollapsibleCard icon={CalendarRange} title="Riepilogo del piano" description="Quanto si investe per canale e per mese." defaultOpen
-        summary={sum.total > 0 ? <span className="text-sm font-semibold tabular-nums">{formatEuro(sum.total, 0)}</span> : undefined}>
+        summary={sum.total > 0 ? <span className="text-sm font-semibold [font-variant-numeric:tabular-nums]">{formatEuro(sum.total, 0)}</span> : undefined}>
         {sum.months.length === 0 ? (
           <p className="text-sm text-muted-foreground">Il piano è vuoto: importa il foglio Excel o aggiungi le righe qui sotto.</p>
         ) : (
@@ -222,13 +222,13 @@ export function MediaPlanTab({ clientId, initial, onSaved }: { clientId: string;
                 </tbody>
               </table>
             </div>
-            <p className="text-sm text-muted-foreground">Di cui ads (Meta + Google): <span className="font-medium tabular-nums text-foreground">{formatEuro(sum.ads, 0)}</span> ({(Math.round(sum.adsShare * 1000) / 10).toLocaleString('it-IT')}% del budget). Il resto è off line.</p>
+            <p className="text-sm text-muted-foreground">Di cui ads (Meta + Google): <span className="font-medium [font-variant-numeric:tabular-nums] text-foreground">{formatEuro(sum.ads, 0)}</span> ({(Math.round(sum.adsShare * 1000) / 10).toLocaleString('it-IT')}% del budget). Il resto è off line.</p>
           </div>
         )}
       </CollapsibleCard>
 
       <CollapsibleCard icon={FileSpreadsheet} title="Risultati attesi" description="Stime dalle ipotesi qui sotto: da verificare con i dati reali dopo i primi 30 giorni." defaultOpen
-        summary={sum.base.leads > 0 ? <span className="text-sm font-semibold tabular-nums">~{intFmt.format(sum.prudent.leads)}–{intFmt.format(sum.base.leads)} lead</span> : undefined}>
+        summary={sum.base.leads > 0 ? <span className="text-sm font-semibold [font-variant-numeric:tabular-nums]">~{intFmt.format(sum.prudent.leads)}–{intFmt.format(sum.base.leads)} lead</span> : undefined}>
         {sum.total === 0 ? <p className="text-sm text-muted-foreground">Servono righe di piano per stimare i risultati.</p> : (
           <div className="space-y-3">
             <div className="overflow-x-auto rounded-xl border border-border">
