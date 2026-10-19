@@ -128,10 +128,12 @@ const GENDER_ORDER = ['female', 'male', 'unknown'];
 
 /** Una riga per fascia d'età e genere, in ordine di età (18-24, 25-34, …, 65+) e poi di genere. */
 export function byAgeGender(rows: Row[], basis: string | null): BreakdownRow[] {
-    const age = (r: Row) => str(r.age) || 'Non indicata';
+    // Windsor scrive «Unknown» per l'età che Meta non conosce
+    const age = (r: Row) => (!str(r.age) || str(r.age) === 'Unknown' ? 'Non indicata' : str(r.age));
     const gender = (r: Row) => str(r.gender) || 'unknown';
     const out = aggregateBreakdown(
-        rows,
+        // Le righe senza spesa né impression (ce n'è sempre una «Unknown» vuota) non dicono niente
+        rows.filter((r) => num(r.spend) > 0 || num(r.impressions) > 0),
         {
             key: (r) => `${age(r)}|${gender(r)}`,
             label: age,

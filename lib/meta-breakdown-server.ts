@@ -11,7 +11,7 @@ import { ACTION_FIELDS, ACTION_LABELS, LEAD_ALIAS_FIELD, pickConversionBasis, ty
 export async function metaBreakdownResponse(
     request: NextRequest,
     clientId: string,
-    opts: { dimensionFields: string[]; build: (rows: any[], basis: string | null) => BreakdownRow[] },
+    opts: { dimensionFields: string[]; omitFields?: string[]; build: (rows: any[], basis: string | null) => BreakdownRow[] },
 ) {
     const auth = await verifyAuth(request);
     if (!auth) return unauthorizedResponse();
@@ -23,7 +23,16 @@ export async function metaBreakdownResponse(
     if (!accountId) {
         return NextResponse.json({ rows: [], error: 'Questo cliente non ha un Meta Ad Account ID: inseriscilo in Setup API.' }, { status: 503 });
     }
+    return readBreakdown(request, clientId, accountId, opts);
+}
 
+/** La lettura vera e propria, dopo i controlli di accesso. */
+export async function readBreakdown(
+    request: NextRequest,
+    clientId: string,
+    accountId: string,
+    opts: { dimensionFields: string[]; omitFields?: string[]; build: (rows: any[], basis: string | null) => BreakdownRow[] },
+) {
     const raw = request.nextUrl.searchParams.get('days');
     const days = raw === '7' ? 7 : raw === '90' ? 90 : 30;
 
@@ -31,7 +40,7 @@ export async function metaBreakdownResponse(
         const data = await getData({
             connector: 'facebook',
             accountId,
-            fields: [...opts.dimensionFields, 'spend', 'impressions', 'clicks', 'reach', ...ACTION_FIELDS, LEAD_ALIAS_FIELD, 'account_id'],
+            fields: [...opts.dimensionFields, 'spend', 'impressions', 'clicks', 'reach', ...ACTION_FIELDS, LEAD_ALIAS_FIELD, 'account_id'].filter((f) => !opts.omitFields?.includes(f)),
             datePreset: `last_${days}d`,
             fresh: request.nextUrl.searchParams.get('refresh') === '1',
         });

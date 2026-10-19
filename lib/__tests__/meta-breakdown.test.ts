@@ -34,6 +34,11 @@ describe('meta-breakdown', () => {
         expect(byAd(rows, 'actions_lead')[0]).toMatchObject({ spend: 4, impressions: 40, clicks: 2, conversions: 2, costPerConversion: 2 });
     });
 
+    it('età sconosciuta: «Non indicata», e le righe vuote spariscono', () => {
+        const out = byAgeGender([{ age: 'Unknown', gender: 'unknown', spend: 0, impressions: 0 }, { age: 'Unknown', gender: 'male', spend: 0.01, impressions: 2 }], null);
+        expect(out.map((r) => `${r.label} ${r.detail}`)).toEqual(['Non indicata Uomini']);
+    });
+
     it('età e genere: ordine per età poi genere, etichette italiane', () => {
         const rows = [
             { age: '25-34', gender: 'male', spend: 1 },

@@ -7,6 +7,7 @@ import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { MetricoolTable } from '@/components/metricool/MetricoolTable'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { MetaBreakdownSection } from '@/components/meta/MetaBreakdownSection'
 import { ReportTrendChart } from '@/components/ReportTrendChart'
 import { buildTrend, type DailyPoint } from '@/lib/report-series'
 
@@ -277,6 +278,8 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
           />
         )}
       </div>
+
+      <MetaBreakdownSection clientId={id} days={days} reloadKey={reloadKey} />
 
     </div>
   )
