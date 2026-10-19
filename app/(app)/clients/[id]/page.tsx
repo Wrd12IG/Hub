@@ -1036,6 +1036,23 @@ export default function ClientDetailPage() {
             compare={compareMode as "prev_period" | "prev_year" | "none"}
           />
 
+          {/* ==================================================== */}
+          {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}
+          {/* Sostituisce le vecchie sezioni alimentate dalla       */}
+          {/* pipeline n8n (clients/{id}/performance), mai popolata */}
+          {/* ==================================================== */}
+          <CollapsibleCard
+            icon={BarChart3}
+            title="Performance per account"
+            description="Dati delle piattaforme collegate per il periodo selezionato."
+          >
+            <MarketingReportTab
+              clientId={id as string}
+              compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
+              report={marketingReport}
+            />
+          </CollapsibleCard>
+
           {/* BENTO GRID: Overview Metrics */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
@@ -1235,6 +1252,14 @@ export default function ClientDetailPage() {
                     <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
                       Conversioni (Ultimi {overviewDaysBack}gg vs prec.)
                     </h4>
+                    {(["transactions", "revenue"] as const).every(
+                      (k) => ga4Data.conversions?.[k]?.val === 0 && ga4Data.conversions?.[k]?.chg === 0,
+                    ) && (
+                      <p className="text-xs text-muted-foreground">
+                        Nessun acquisto online tracciato: acquisti e revenue non vengono mostrati. Per questo cliente il risultato
+                        sono i lead (vedi il riepilogo in alto).
+                      </p>
+                    )}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {[
                         {
@@ -1251,13 +1276,19 @@ export default function ClientDetailPage() {
                           label: "Acquisti (Transazioni)",
                           metric: ga4Data.conversions?.transactions,
                           format: (v: number) => v.toLocaleString(),
+                          hideIfZero: true,
                         },
                         {
                           label: "Revenue Generato",
                           metric: ga4Data.conversions?.revenue,
                           format: (v: number) => `€${v.toLocaleString()}`,
+                          hideIfZero: true,
                         },
-                      ].map((item, i) => (
+                      ]
+                        // Acquisti e revenue a zero in entrambi i periodi (val 0 e variazione 0): il cliente non vende online,
+                        // quei riquadri sono solo rumore. Il suo risultato sono i lead (vedi il riepilogo in alto).
+                        .filter((item: any) => !(item.hideIfZero && item.metric && item.metric.val === 0 && item.metric.chg === 0))
+                        .map((item, i) => (
                         <div
                           key={i}
                           className="glass-card hover:bg-white/[0.06] hover:border-white/15 p-4 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
@@ -1423,70 +1454,48 @@ export default function ClientDetailPage() {
                 </div>
             </CollapsibleCard>
 
-            {/* CARD 4: Anomalie Cliente (Alerts) - Spans 1 col */}
-            <CollapsibleCard
-              icon={AlertTriangle}
-              title="Anomalie cliente"
-              description="Segnalazioni automatiche su collegamenti e dati"
-            >
-              <div className="space-y-4">
-                {!client.hasMetaToken ? (
-                  <div className="bg-rose-500/5 border border-rose-500/10 p-3.5 rounded-xl text-xs flex justify-between items-center gap-3">
-                    <div>
-                      <div className="font-bold text-rose-400">
-                        Token Meta Mancante / Scaduto
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        Le campagne non possono sincronizzarsi.
-                      </div>
-                    </div>
-                    <Button
-                      onClick={() => setActiveTab("settings")}
-                      size="sm"
-                      variant="outline"
-                      className="h-7 border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:border-rose-500/50 text-xs font-bold rounded-lg px-2.5"
-                    >
-                      Configura
+            {/* CARD 4: Collegamenti dati. Prima mostrava «Token Meta mancante» guardando hasMetaToken, ma i dati Meta
+                arrivano da Windsor col solo ID account: l'avviso compariva anche con tutto funzionante. */}
+            {(() => {
+              const sources = [
+                { label: "Meta Ads", ok: !!client.metaAdAccountId },
+                { label: "Google Ads", ok: !!client.googleAdAccountId },
+                { label: "Google Analytics 4", ok: !!client.ga4PropertyId },
+                { label: "Search Console", ok: !!client.windsorAccounts?.searchconsole },
+                { label: "Google Business Profile", ok: (client.windsorAccounts?.gbp?.length ?? 0) > 0 },
+                { label: "Instagram", ok: !!client.windsorAccounts?.instagram },
+              ];
+              const missing = sources.filter((x) => !x.ok).length;
+              return (
+                <CollapsibleCard
+                  icon={AlertTriangle}
+                  title="Collegamenti dati"
+                  description="Quali fonti sono collegate a questo cliente"
+                  summary={
+                    <span className={cn("text-xs font-semibold", missing === 0 ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400")}>
+                      {sources.length - missing} di {sources.length}
+                    </span>
+                  }
+                >
+                  <ul className="divide-y divide-border rounded-lg border border-border bg-background">
+                    {sources.map((x) => (
+                      <li key={x.label} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                        <span className="font-medium text-foreground">{x.label}</span>
+                        <span className={cn("text-xs font-semibold", x.ok ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground")}>
+                          {x.ok ? "Collegato" : "Non collegato"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {missing > 0 && (
+                    <Button onClick={() => setActiveTab("settings")} size="sm" variant="outline" className="h-8 text-xs font-semibold">
+                      Collega le fonti mancanti in Setup API
                     </Button>
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground/80 font-medium">
-                    Nessuna anomalia grave rilevata. Operatività fluida.
-                  </div>
-                )}
-
-                {/* Alert reali — visibili solo quando GA4 o Meta sono collegati */}
-                {client.hasMetaToken && client.ga4PropertyId ? null : (
-                  <div className="bg-primary/5 border border-primary/10 p-3.5 rounded-xl text-xs">
-                    <div className="font-bold text-primary">
-                      Collega i servizi per gli alert automatici
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      Connetti Meta Ads e Google Analytics in "Setup API" per
-                      ricevere anomalie in tempo reale.
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CollapsibleCard>
+                  )}
+                </CollapsibleCard>
+              );
+            })()}
           </div>
-
-          {/* ==================================================== */}
-          {/* PERFORMANCE PER ACCOUNT (dati reali via Windsor.ai)  */}
-          {/* Sostituisce le vecchie sezioni alimentate dalla       */}
-          {/* pipeline n8n (clients/{id}/performance), mai popolata */}
-          {/* ==================================================== */}
-          <CollapsibleCard
-            icon={BarChart3}
-            title="Performance per account"
-            description="Dati delle piattaforme collegate per il periodo selezionato."
-          >
-            <MarketingReportTab
-              clientId={id as string}
-              compare={compareMode as 'prev_period' | 'prev_year' | 'none'}
-              report={marketingReport}
-            />
-          </CollapsibleCard>
 
           {/* Pressione competitiva: l'unico dato competitivo *numerico* che le
               API espongano. Segue il selettore "Periodo" perché è una metrica

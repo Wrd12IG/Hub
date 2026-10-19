@@ -3,7 +3,7 @@ import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed, getClientTok
 import { adminDb } from '@/lib/firebase-admin';
 import { getClientMarketingReport, buildWindows } from '@/lib/reporting';
 import { getGoogleAdsCompetitivePressure } from '@/lib/google-ads-client';
-import { computeClientHealth, type ClientHealth, type PressureSummary } from '@/lib/client-health';
+import { computeClientHealth, HEALTH_WINDOW_DAYS, type ClientHealth, type PressureSummary } from '@/lib/client-health';
 import type { Client } from '@/lib/data';
 
 // Il verdetto richiede il report su due finestre (corrente e precedente), che
@@ -17,7 +17,7 @@ export const maxDuration = 60;
  * stessa cosa. Un badge che cambia verdetto quando cambi il menù a tendina non
  * è un verdetto, è un grafico.
  */
-const DAYS = 30;
+const DAYS = HEALTH_WINDOW_DAYS;
 
 /**
  * Quanto resta valido un verdetto in cache.
