@@ -59,6 +59,7 @@ import {
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
+import { BudgetGoalsCard } from "@/components/BudgetGoalsCard";
 import { ReportTrendCard } from "@/components/ReportTrendCard";
 import { validateRange, rangeLabel } from "@/lib/date-range";
 import { PeriodPicker } from "@/components/PeriodPicker";
@@ -103,6 +104,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 // Nessun dato placeholder — tutti i dati sono reali da Firebase / API collegate
 
 interface Client {
+  adBudgetMonthly?: number;
+  resultTargetMonthly?: number;
   id: string;
   name: string;
   websiteUrl: string;
@@ -1016,6 +1019,15 @@ export default function ClientDetailPage() {
             report={marketingReport}
             days={effectiveDays}
             compare={compareMode as "prev_period" | "prev_year" | "none"}
+          />
+
+          <BudgetGoalsCard
+            clientId={id as string}
+            report={marketingReport}
+            days={effectiveDays}
+            adBudget={client?.adBudgetMonthly || undefined}
+            target={client?.resultTargetMonthly || undefined}
+            onSaved={(v) => setClient((c) => (c ? { ...c, ...v } : c))}
           />
 
           {/* ANDAMENTO: spesa e risultato per giorno */}
