@@ -1082,7 +1082,7 @@ export default function ClientDetailPage() {
             {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
             <CollapsibleCard
               defaultOpen
-              className="lg:col-span-2"
+              className={isClient ? "lg:col-span-3" : "lg:col-span-2"}
               icon={Globe}
               title="Performance dominio"
               description={client.websiteUrl?.replace("https://", "") || "Nessun dominio"}
@@ -1417,7 +1417,7 @@ export default function ClientDetailPage() {
             {/* CARD 3: SEO Godmode Generator - Spans 2 cols on lg */}
             <CollapsibleCard
               defaultOpen
-              className="lg:col-span-2"
+              className={isClient ? "lg:col-span-3" : "lg:col-span-2"}
               icon={Sparkles}
               title="Audit SEO"
               description="Performance e Core Web Vitals reali da Google PageSpeed, più i dati di Search Console."

@@ -193,10 +193,11 @@ export function Header() {
                     </BreadcrumbList>
                 </Breadcrumb>
                 <div className="h-4 w-px bg-border/60 hidden md:block" />
-                <ClientSwitcher variant="header" />
+                {currentUser?.role !== 'Cliente' && <ClientSwitcher variant="header" />}
             </div>
 
-            {/* Live Insights Strip - Real-time metrics */}
+            {/* Indicatori interni del team (capacità, fatturabile): non per l'utente Cliente */}
+            {currentUser?.role !== 'Cliente' && (
             <div className="hidden lg:flex items-center gap-3 px-3 py-1 rounded-xl bg-muted/40 border border-border/40 text-xs">
                 <div className="flex items-center gap-1.5">
                     <span className="relative flex h-2 w-2">
@@ -213,6 +214,7 @@ export function Header() {
                     <span className="font-mono font-bold text-foreground">32h (640€)</span>
                 </div>
             </div>
+            )}
 
             <div className="flex items-center gap-2 sm:gap-3">
 
