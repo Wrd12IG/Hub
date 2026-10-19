@@ -22,7 +22,7 @@ interface PlatformReport {
 // `detail` is the existing per-platform deep-dive page, when one exists — the
 // KPI card here is the summary, that page is the drill-down.
 const PLATFORM_META: Record<PlatformKey, { label: string; icon: any; variant: 'blue' | 'orange' | 'green' | 'pink' | 'purple' | 'gray'; detail?: string; metrics: { key: string; label: string }[] }> = {
-  facebook: { label: 'Meta Ads', icon: Facebook, variant: 'blue', detail: 'meta-ads', metrics: [{ key: 'spend', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'impressions', label: 'Impression' }, { key: 'reach', label: 'Reach' }] },
+  facebook: { label: 'Meta Ads', icon: Facebook, variant: 'blue', detail: 'meta-ads', metrics: [{ key: 'spend', label: 'Spesa €' }, { key: 'leads', label: 'Lead' }, { key: 'cost_per_lead', label: 'Costo per lead €' }, { key: 'lead_rate_pct', label: 'Click → lead %' }, { key: 'clicks', label: 'Click' }, { key: 'ctr_pct', label: 'CTR %' }, { key: 'cpc_calc', label: 'CPC €' }, { key: 'cpm_calc', label: 'CPM €' }, { key: 'impressions', label: 'Impression' }, { key: 'reach', label: 'Reach' }] },
   instagram: { label: 'Instagram', icon: Instagram, variant: 'pink', detail: 'instagram', metrics: [{ key: 'followers_count', label: 'Follower' }, { key: 'reach', label: 'Reach' }, { key: 'likes', label: 'Like' }, { key: 'profile_views', label: 'Visite profilo' }] },
   google_ads: { label: 'Google Ads', icon: TrendingUp, variant: 'green', detail: 'google-ads', metrics: [{ key: 'cost', label: 'Spesa €' }, { key: 'clicks', label: 'Click' }, { key: 'conversions', label: 'Conversioni' }, { key: 'impressions', label: 'Impression' }] },
   ga4: { label: 'Google Analytics 4', icon: TrendingUp, variant: 'purple', detail: 'ga4', metrics: [{ key: 'sessions', label: 'Sessioni' }, { key: 'active_users', label: 'Utenti attivi' }, { key: 'conversions', label: 'Conversioni' }, { key: 'purchase_revenue', label: 'Revenue €' }] },
@@ -128,7 +128,7 @@ export function MarketingReportTab({
         label: m.label,
         value: t.value,
         // For cost-type metrics a rise is not good news.
-        good: ['spend', 'cost', 'cpc', 'position', 'unsubscribe_rate', 'bounced', 'spam_complaints', 'total_cost', 'pending_sale_amount'].includes(m.key) ? t.value < 0 : t.value > 0,
+        good: ['spend', 'cost', 'cpc', 'cpc_calc', 'cpm_calc', 'cost_per_lead', 'position', 'unsubscribe_rate', 'bounced', 'spam_complaints', 'total_cost', 'pending_sale_amount'].includes(m.key) ? t.value < 0 : t.value > 0,
       }]
     })
   })

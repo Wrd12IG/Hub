@@ -53,6 +53,7 @@ export async function getData({
     datePreset = 'last_30d',
     dateFrom,
     dateTo,
+    fresh = false,
 }: {
     connector: WindsorConnector;
     accountId?: string;
@@ -67,6 +68,8 @@ export async function getData({
     datePreset?: string;
     dateFrom?: string;
     dateTo?: string;
+    /** Salta la cache condivisa e rilegge Windsor (pulsante Aggiorna). */
+    fresh?: boolean;
 }): Promise<WindsorRow[]> {
     const params = new URLSearchParams({
         api_key: getApiKey(),
@@ -96,7 +99,9 @@ export async function getData({
 
     let response: Response;
     try {
-        response = await fetch(url, { next: { revalidate: 0 } });
+        // Windsor impiega 8-12 s per lettura (misurato il 19/10/2026): la cache condivisa di Next (5 minuti, valida
+        // fra tutte le istanze Vercel) fa sì che la seconda apertura di una pagina sia istantanea.
+        response = await fetch(url, fresh ? { cache: 'no-store' } : { next: { revalidate: 300 } });
     } catch (err) {
         console.error(`[windsor-client] Network error calling ${connector}:`, err);
         throw new Error(`Impossibile contattare Windsor.ai per ${connector}`);

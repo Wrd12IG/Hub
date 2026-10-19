@@ -31,15 +31,16 @@ export const maxDuration = 60;
  * colleghi una vuoi vederla comparire, non aspettare sei ore.
  */
 const TTL_OK_MS = 6 * 60 * 60 * 1000;
-const TTL_DEGRADED_MS = 15 * 60 * 1000;
+const TTL_DEGRADED_MS = 2 * 60 * 1000;
 
 /**
  * Una voce di cache per combinazione di periodo e confronto: un report a 7
  * giorni e uno a 90 non sono lo stesso dato, e sovrascriverli a vicenda
  * mostrerebbe il periodo sbagliato.
+ * `report2`: le voci vecchie non hanno lead e costi di Meta (19/10/2026).
  */
 function cacheKey(datePreset: string, days: string, compare: CompareMode): string {
-  return `report_${datePreset}_${days}_${compare}`.replace(/[^A-Za-z0-9_-]/g, '');
+  return `report2_${datePreset}_${days}_${compare}`.replace(/[^A-Za-z0-9_-]/g, '');
 }
 
 /**
@@ -139,7 +140,7 @@ export async function GET(
         }
       : undefined;
 
-    const report = await getClientMarketingReport({ ...client, klaviyo }, datePreset, windows);
+    const report = await getClientMarketingReport({ ...client, klaviyo }, datePreset, windows, { fresh: refresh });
 
     const computedAt = new Date().toISOString();
     // Un errore di scrittura sulla cache non deve togliere all'utente un
