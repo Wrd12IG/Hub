@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { adsSetupReason, type ClientHealth, type HealthReason, type HealthState } from '@/lib/client-health'
+import { adsSetupReason, HEALTH_WINDOW_DAYS, type ClientHealth, type HealthReason, type HealthState } from '@/lib/client-health'
 
 /**
  * Il badge accanto al nome del cliente.
@@ -256,6 +256,7 @@ export function ClientHealthBadge({
     }
 
     return (
+        <div className="flex items-center gap-3">
         <Popover>
             <PopoverTrigger asChild>
                 <button
@@ -318,5 +319,15 @@ export function ClientHealthBadge({
                 </div>
             </PopoverContent>
         </Popover>
+        {/* Cosa misura la faccia e su quale periodo: senza, la faccia è un voto senza data. */}
+        <div className="hidden leading-tight sm:block">
+            <p className="text-xs font-semibold text-foreground">
+                {state === 'unknown' || !data.metricLabel ? 'Andamento non valutabile' : `${fmtChip(data)} ${data.metricLabel}`}
+            </p>
+            <p className="text-xs text-muted-foreground">
+                Ultimi {HEALTH_WINDOW_DAYS} giorni{state === 'unknown' ? '' : `, ${data.periodLabel}`}
+            </p>
+        </div>
+        </div>
     )
 }

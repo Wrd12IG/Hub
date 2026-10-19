@@ -31,6 +31,9 @@ import type { PlatformReport } from './reporting';
 
 export type HealthState = 'up' | 'flat' | 'down' | 'unknown';
 
+/** Finestra del verdetto: sempre gli ultimi 30 giorni contro i 30 precedenti, indipendente dal menu «Periodo» della pagina. */
+export const HEALTH_WINDOW_DAYS = 30;
+
 /** Oltre questa soglia in percentuale la variazione conta come crescita o calo. */
 export const NEUTRAL_BAND_PCT = 10;
 
