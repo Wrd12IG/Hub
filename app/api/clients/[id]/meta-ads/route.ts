@@ -3,6 +3,7 @@ import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib
 import { adminDb } from '@/lib/firebase-admin';
 import { getData } from '@/lib/windsor-client';
 import { metaDerived, ratio } from '@/lib/meta-metrics';
+import { PURCHASE_FIELDS, OTHER_ACTION_FIELDS, ACTION_FIELDS, ACTION_LABELS } from '@/lib/meta-breakdown';
 import { dailyFromRows } from '@/lib/report-series';
 
 export const maxDuration = 60;
@@ -19,44 +20,6 @@ export const maxDuration = 60;
  * "questo cliente non fa campagne Meta" e "il Hub non sa leggerle". È lo
  * stesso difetto che avevamo tolto a Google Ads e alla tab Campagne.
  */
-/**
- * Gli acquisti, in ordine di affidabilità. Se l'account ne registra, la
- * conversione è quella: è l'unica legata al fatturato.
- */
-const PURCHASE_FIELDS = [
-  'actions_omni_purchase',
-  'actions_offsite_conversion_fb_pixel_purchase',
-  'actions_purchase',
-] as const;
-
-/**
- * Le altre azioni possibili. Quando non ci sono acquisti si prende quella con
- * **più volume**, non la prima di una classifica teorica.
- *
- * Il primo tentativo ordinava per "vicinanza al fatturato" e su un account
- * reale ha scelto 9 registrazioni invece di 267 aggiunte al carrello,
- * producendo un CPA di €95 su €858 di spesa: un numero costruito sul rumore.
- * Le campagne di quell'account si chiamano letteralmente "Add to cart".
- */
-const OTHER_ACTION_FIELDS = [
-  'actions_lead',
-  'actions_complete_registration',
-  'actions_initiate_checkout',
-  'actions_add_to_cart',
-] as const;
-
-const ACTION_FIELDS = [...PURCHASE_FIELDS, ...OTHER_ACTION_FIELDS] as const;
-
-const ACTION_LABELS: Record<string, string> = {
-  actions_omni_purchase: 'Acquisti',
-  actions_offsite_conversion_fb_pixel_purchase: 'Acquisti (pixel)',
-  actions_purchase: 'Acquisti',
-  actions_lead: 'Lead',
-  actions_complete_registration: 'Registrazioni',
-  actions_initiate_checkout: 'Checkout avviati',
-  actions_add_to_cart: 'Aggiunte al carrello',
-};
-
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
