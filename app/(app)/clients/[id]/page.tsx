@@ -1065,6 +1065,7 @@ export default function ClientDetailPage() {
           {/* pipeline n8n (clients/{id}/performance), mai popolata */}
           {/* ==================================================== */}
           <CollapsibleCard
+            defaultOpen
             icon={BarChart3}
             title="Performance per account"
             description="Dati delle piattaforme collegate per il periodo selezionato."
@@ -1080,6 +1081,7 @@ export default function ClientDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
             <CollapsibleCard
+              defaultOpen
               className="lg:col-span-2"
               icon={Globe}
               title="Performance dominio"
@@ -1353,6 +1355,7 @@ export default function ClientDetailPage() {
             {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali (solo staff) */}
             {!isClient && (
             <CollapsibleCard
+              defaultOpen
               icon={Activity}
               title="Health Score Ads"
               description="Su campagne Meta e Google Ads del periodo selezionato"
@@ -1413,6 +1416,7 @@ export default function ClientDetailPage() {
 
             {/* CARD 3: SEO Godmode Generator - Spans 2 cols on lg */}
             <CollapsibleCard
+              defaultOpen
               className="lg:col-span-2"
               icon={Sparkles}
               title="Audit SEO"
@@ -1504,6 +1508,7 @@ export default function ClientDetailPage() {
               const missing = sources.filter((x) => !x.ok).length;
               return (
                 <CollapsibleCard
+                  defaultOpen
                   icon={AlertTriangle}
                   title="Collegamenti dati"
                   description="Quali fonti sono collegate a questo cliente"
@@ -1539,6 +1544,7 @@ export default function ClientDetailPage() {
               API espongano. Segue il selettore "Periodo" perché è una metrica
               di periodo, a differenza del registro competitor qui sotto. */}
           <CollapsibleCard
+            defaultOpen
             icon={Swords}
             title="Pressione competitiva"
             description="Quota di ricerche su Google Ads e annunci attivi dei competitor su Meta, Google e LinkedIn."
@@ -1551,6 +1557,7 @@ export default function ClientDetailPage() {
               selettore "Periodo" perché non è una metrica di periodo — è un
               registro di cambiamenti osservati, con la loro data. */}
           <CollapsibleCard
+            defaultOpen
             icon={Users}
             title="Competitor"
             description="Cosa cambia sui siti dei concorrenti, letto ogni notte."

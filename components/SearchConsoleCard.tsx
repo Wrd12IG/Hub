@@ -59,8 +59,8 @@ export function SearchConsoleCard({ clientId, days, range }: { clientId: string;
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  // La scheda parte chiusa: i dati si chiedono solo alla prima apertura
-  const [wanted, setWanted] = useState(false)
+  // La scheda parte aperta, come le altre della Panoramica: i dati si chiedono subito
+  const [wanted, setWanted] = useState(true)
 
   useEffect(() => {
     if (!wanted) return
@@ -81,6 +81,7 @@ export function SearchConsoleCard({ clientId, days, range }: { clientId: string;
   return (
     <div onClickCapture={() => setWanted(true)}>
       <CollapsibleCard
+        defaultOpen
         icon={Search}
         title="Ricerca organica"
         description="Query che portano traffico e pagine più viste su Google, per il periodo selezionato."
