@@ -217,4 +217,51 @@ describe('computeClientHealth', () => {
         expect(h.previous).toBe(500)
         expect(h.state).toBe('flat')
     })
+
+    describe('cliente senza vendite online (concessionaria)', () => {
+        it('giudica sui lead di Meta quando GA4 non ha acquisti', () => {
+            const h = computeClientHealth({
+                platforms: [
+                    p('ga4', { purchase_revenue: 0, transactions: 0, conversions: 0 }, { purchase_revenue: 0, transactions: 0, conversions: 0 }),
+                    p('facebook', { leads: 51, spend: 403 }, { leads: 30, spend: 380 }),
+                ],
+                days: 30,
+            })
+            expect(h.state).toBe('up')
+            expect(h.metricLabel).toBe('lead')
+            expect(h.source).toContain('Meta Ads')
+            expect(h.deltaPct).toBe(70)
+        })
+
+        it('ripiega sui contatti di Google Business Profile sommando tutte le sedi', () => {
+            const sede = (call: number, dir: number, web: number, prev: number): PlatformReport => ({
+                platform: 'gbp', connected: true,
+                rows: [{ call_clicks: call, direction_requests: dir, website_clicks: web }],
+                previousRows: [{ call_clicks: prev, direction_requests: prev, website_clicks: prev }],
+            })
+            const h = computeClientHealth({ platforms: [sede(10, 5, 5, 10), sede(20, 10, 10, 10)], days: 30 })
+            expect(h.metricLabel).toBe('contatti')
+            expect(h.current).toBe(60)
+            expect(h.previous).toBe(60)
+            expect(h.state).toBe('flat')
+        })
+
+        it('non somma lead di Meta e contatti GBP: sono spesso le stesse persone', () => {
+            const gbp: PlatformReport = {
+                platform: 'gbp', connected: true,
+                rows: [{ call_clicks: 100, direction_requests: 100, website_clicks: 100 }],
+                previousRows: [{ call_clicks: 10, direction_requests: 10, website_clicks: 10 }],
+            }
+            const h = computeClientHealth({ platforms: [p('facebook', { leads: 51 }, { leads: 51 }), gbp], days: 30 })
+            expect(h.current).toBe(51)
+            expect(h.source).toContain('Meta Ads')
+        })
+
+        it('quando è tutto a zero non accusa un problema di configurazione', () => {
+            const h = computeClientHealth({ platforms: [p('facebook', { leads: 0 }, { leads: 0 })], days: 30 })
+            expect(h.state).toBe('unknown')
+            expect(h.blocked).toContain('Meta Ads')
+            expect(h.blocked).toContain('lead')
+        })
+    })
 })
