@@ -837,32 +837,9 @@ export default function ClientDetailPage() {
           </div>
         </div>
 
-        {/* RIGHT: switcher + action */}
+        {/* RIGHT: azione. Il cambio cliente sta nell'intestazione (ClientSwitcher, con ricerca): qui c'era un secondo
+            selettore «Passa a:» che faceva la stessa cosa ricaricando la pagina. */}
         <div className="flex flex-col gap-3 items-start sm:items-end shrink-0">
-          {allClients.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Passa a:
-              </span>
-              <Select
-                value={client.id}
-                onValueChange={(v) => {
-                  window.location.href = `/clients/${v}`;
-                }}
-              >
-                <SelectTrigger className="h-8.5 text-xs font-bold w-[180px] bg-background/50 border-white/10 rounded-xl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[...allClients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-xs font-semibold">
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           <Button
             asChild
             size="sm"

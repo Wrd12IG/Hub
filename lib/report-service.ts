@@ -28,10 +28,10 @@ export const TTL_DEGRADED_MS = 2 * 60 * 1000;
 
 /**
  * Una voce di cache per combinazione di periodo e confronto: un report a 7 giorni e uno a 90 non sono lo stesso dato.
- * `report4`: le voci vecchie non hanno le serie giornaliere (`report3`: i contatti di GBP, `report2`: lead e costi di Meta).
+ * `report5`: le voci vecchie non hanno gli andamenti per piattaforma (`report4`: la serie giornaliera di Meta e Google Ads; `report3`: i contatti di GBP, `report2`: lead e costi di Meta).
  */
 export function reportCacheKey(datePreset: string, days: string, compare: CompareMode): string {
-    return `report4_${datePreset}_${days}_${compare}`.replace(/[^A-Za-z0-9_-]/g, '');
+    return `report5_${datePreset}_${days}_${compare}`.replace(/[^A-Za-z0-9_-]/g, '');
 }
 
 /** La vista predefinita della Panoramica (30 giorni, confronto col periodo precedente): è quella che il giro notturno prepara. */

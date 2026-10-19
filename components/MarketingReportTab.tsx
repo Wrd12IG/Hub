@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
 import { ReportAlertList } from '@/components/ReportAlertList'
 import { ReportProgress } from '@/components/ReportProgress'
+import { PlatformDailyChart } from '@/components/PlatformDailyChart'
+import { metricRowsFromSeries, type MetricRow } from '@/lib/report-series'
 import { PLATFORM_DEFS, COST_KEYS, computeAlerts, type PlatformKey } from '@/lib/report-metrics'
 import type { MarketingReportState } from '@/hooks/use-marketing-report'
 
@@ -120,6 +122,9 @@ export function MarketingReportTab({
             const meta = { ...PLATFORM_META[p.platform], ...PLATFORM_DEFS[p.platform] }
             const row = p.rows[0] || {}
             const prevRow = p.previousRows?.[0]
+            // Andamento giornaliero della scheda: le righe della piattaforma, oppure (Meta e Google Ads) la loro serie di spesa e risultato
+            const dailyRows: MetricRow[] =
+              p.daily ?? (p.series && (p.platform === 'facebook' || p.platform === 'google_ads') ? metricRowsFromSeries(p.platform, p.series) : [])
             // Titolo della scheda chiusa: il RISULTATO (lead, conversioni, contatti), non la spesa. Si prende la prima
             // metrica del suo elenco che ha un valore; se nessuna ce l'ha, la prima mostrata.
             const headline = p.connected && p.rows.length > 0
@@ -161,17 +166,20 @@ export function MarketingReportTab({
                   <div className="text-sm text-red-600 p-3 rounded-lg border border-red-200 bg-red-50">{p.error}</div>
                 )}
                 {p.connected && p.rows.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {meta.metrics.map(m => (
-                      <MetricoolCard
-                        key={m.key}
-                        title={m.label}
-                        value={(row[m.key] as number) ?? 0}
-                        variant={meta.variant}
-                        trend={trendFor(row[m.key], prevRow?.[m.key], COST_KEYS.has(m.key))}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {meta.metrics.map(m => (
+                        <MetricoolCard
+                          key={m.key}
+                          title={m.label}
+                          value={(row[m.key] as number) ?? 0}
+                          variant={meta.variant}
+                          trend={trendFor(row[m.key], prevRow?.[m.key], COST_KEYS.has(m.key))}
+                        />
+                      ))}
+                    </div>
+                    {meta.chart && <PlatformDailyChart rows={dailyRows} metrics={meta.chart} />}
+                  </>
                 ) : p.connected ? (
                   <div className="text-sm text-muted-foreground p-4 border rounded-lg border-dashed">
                     Nessun dato nel periodo selezionato. Può voler dire che l'account non ha avuto attività — prova ad allargare il "Periodo" — oppure che l'id inserito in Setup API non corrisponde a un account collegato: da qui i due casi non sono distinguibili.
