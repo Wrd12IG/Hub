@@ -15,11 +15,12 @@
 
 import { getData } from './windsor-client';
 import { withMetaDerived } from './meta-metrics';
+import { dailyFromRows, type DailyPoint } from './report-series';
 import { getGA4Totals } from './ga4-client';
 import { getSearchConsoleTotals } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
 import { getAwinTotals } from './awin-client';
-import { getGoogleAdsAccountTotals as getGoogleAdsAccountTotalsDirect } from './google-ads-client';
+import { getGoogleAdsAccountTotals as getGoogleAdsAccountTotalsDirect, getGoogleAdsDailySeries } from './google-ads-client';
 import { getGoogleAdsAccountTotalsViaComposio } from './google-ads-composio';
 import { isComposioConfigured } from './composio-client';
 
@@ -60,6 +61,8 @@ export interface PlatformReport {
     rows: Record<string, string | number | undefined>[];
     /** Same shape as `rows`, for the comparison window. Empty when not comparing. */
     previousRows?: Record<string, string | number | undefined>[];
+    /** Andamento giornaliero del periodo corrente (solo canali a pagamento: Meta e Google Ads). Opzionale: se non arriva, il resto del report c'è comunque. */
+    series?: DailyPoint[];
 }
 
 // ⚠️ Every field id below must exist in that connector's Windsor catalogue.
@@ -366,7 +369,7 @@ export async function getClientMarketingReport(
         // Meta: lead, costo per lead e percentuali si ricalcolano sui totali aggregati.
         const derive = platform === 'facebook' ? withMetaDerived : (r: Record<string, string | number | undefined>) => r;
         try {
-            const [rows, previousRows] = await withTimeout(platform, Promise.all([
+            const [rows, previousRows, dailyRows] = await withTimeout(platform, Promise.all([
                 getData({
                     connector, accountId, fields: allFields, fresh,
                     ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
@@ -377,11 +380,19 @@ export async function getClientMarketingReport(
                         dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
                     })
                     : Promise.resolve([]),
+                // Righe per giorno (spesa e lead) per il grafico di andamento. Facoltativa: un errore qui non fa fallire Meta.
+                platform === 'facebook'
+                    ? getData({
+                        connector, accountId, fresh, fields: ['date', 'spend', 'clicks', 'impressions', 'actions_lead', 'account_id'],
+                        ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
+                    }).catch((e) => { console.error('[reporting] serie giornaliera Meta non disponibile:', e.message); return [] as any[]; })
+                    : Promise.resolve([] as any[]),
             ]));
             return {
                 platform,
                 connected: true,
                 accountLabel: (rows[0]?.account_name as string) || undefined,
+                ...(dailyRows.length > 0 ? { series: dailyFromRows(dailyRows, { spend: 'spend', results: 'actions_lead', clicks: 'clicks', impressions: 'impressions' }) } : {}),
                 // One aggregated row — see aggregateRows for why raw rows can't
                 // be read positionally.
                 rows: rows.length > 0 ? [derive(aggregateRows(rows))] : [],
@@ -580,13 +591,18 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
             ? windows.current
             : { dateFrom: isoDaysAgo(presetToDays(datePreset)), dateTo: isoDaysAgo(0) };
         try {
-            const [cur, prev] = await withTimeout('Google Ads', Promise.all([
+            const [cur, prev, series] = await withTimeout('Google Ads', Promise.all([
                 getGoogleAdsAccountTotals(customerId, range.dateFrom, range.dateTo),
                 windows?.previous
                     ? getGoogleAdsAccountTotals(customerId, windows.previous.dateFrom, windows.previous.dateTo)
                     : Promise.resolve(null),
+                // Righe per giorno per il grafico: dall'API diretta, facoltativa (con Composio si salta)
+                process.env.GOOGLE_ADS_SOURCE === 'composio'
+                    ? Promise.resolve([])
+                    : getGoogleAdsDailySeries(customerId, range.dateFrom, range.dateTo)
+                        .catch((e) => { console.error('[reporting] serie giornaliera Google Ads non disponibile:', e.message); return []; }),
             ]));
-            return { platform: 'google_ads', connected: true, rows: [cur], previousRows: prev ? [prev] : [] };
+            return { platform: 'google_ads', connected: true, rows: [cur], previousRows: prev ? [prev] : [], ...(series.length > 0 ? { series } : {}) };
         } catch (err: any) {
             console.error(`[reporting] google_ads failed for ${customerId}:`, err.message);
             return { platform: 'google_ads', connected: false, error: err.message, rows: [], previousRows: [] };

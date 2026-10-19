@@ -37,10 +37,10 @@ const TTL_DEGRADED_MS = 2 * 60 * 1000;
  * Una voce di cache per combinazione di periodo e confronto: un report a 7
  * giorni e uno a 90 non sono lo stesso dato, e sovrascriverli a vicenda
  * mostrerebbe il periodo sbagliato.
- * `report3`: le voci vecchie non hanno i contatti di GBP (`report2`: lead e costi di Meta).
+ * `report4`: le voci vecchie non hanno le serie giornaliere (`report3`: i contatti di GBP (`report2`: lead e costi di Meta).
  */
 function cacheKey(datePreset: string, days: string, compare: CompareMode): string {
-  return `report3_${datePreset}_${days}_${compare}`.replace(/[^A-Za-z0-9_-]/g, '');
+  return `report4_${datePreset}_${days}_${compare}`.replace(/[^A-Za-z0-9_-]/g, '');
 }
 
 /**
