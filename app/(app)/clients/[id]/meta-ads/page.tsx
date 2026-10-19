@@ -164,13 +164,13 @@ export default function MetaAdsPage({ params: propsParams }: { params?: { id: st
       render: (row: Campaign) => euro(row.spend)
     },
     {
-      key: 'leads',
+      key: 'conversions',
       label: conversionLabel || 'Lead',
       sortable: true,
       render: (row: Campaign) => int(row.conversions)
     },
     {
-      key: 'costPerLead',
+      key: 'cpa',
       label: `Costo per ${unit}`,
       sortable: true,
       render: (row: Campaign) => row.cpa > 0 ? euro(row.cpa) : '—'
