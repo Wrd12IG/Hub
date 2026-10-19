@@ -26,6 +26,9 @@ import GlassSkinToggle from '@/components/glass-skin-toggle';
 
 import { TranslationProvider } from '@/hooks/useTranslation';
 
+/** Pagine che riempiono lo schermo da sole: uno spazio in fondo le farebbe scorrere senza motivo. */
+const FULL_HEIGHT_PAGES = ['/chat', '/focus'];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isLoadingLayout, pomodoroTask, setPomodoroTask, users } = useLayoutData();
   const router = useRouter();
@@ -76,10 +79,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* <SidebarNav /> */}
           <SidebarInset className="relative isolate">
             <Header />
-            {/* pb-28: la barra flottante in basso copriva l'ultima parte di ogni pagina */}
-            <main className="flex-1 overflow-auto p-4 pb-28 sm:px-6 sm:pt-6 sm:pb-28 w-full min-w-0">
+            <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6 w-full min-w-0">
               <PageTransition key={pathname}>
                 {children}
+                {/* Spazio sotto l'ultima riga, per la barra flottante. Sta DENTRO il contenitore della pagina: il padding di
+                    <main> non conta, perché PageTransition è alto il 100% e il contenuto più lungo ne esce (misurato: 0 px
+                    sotto il contenuto col padding, 111 px con questo spazio). Non nelle pagine a tutta altezza. */}
+                {!FULL_HEIGHT_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) && (
+                  <div aria-hidden="true" className="h-28 shrink-0" />
+                )}
               </PageTransition>
             </main>
             <CommandMenu />
