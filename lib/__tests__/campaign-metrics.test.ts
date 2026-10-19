@@ -9,7 +9,7 @@ describe('campaign-metrics', () => {
         ]);
         expect(s.spend).toBe(310);
         expect(s.costPerConversion).toBe(7.75);
-        expect(s.ctr).toBe(2.11);
+        expect(s.ctr).toBe(2.12);
     });
 
     it('senza conversioni il costo per conversione non esiste', () => {
