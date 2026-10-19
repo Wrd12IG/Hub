@@ -21,19 +21,33 @@ const PAPER_VARS = {
 } as React.CSSProperties
 
 const PRINT_CSS = `
-@page { size: A4; margin: 14mm; background: #FAF7F2; }
-@page :first { margin: 0; background: #141414; }
+/* Margine zero su TUTTE le pagine: i margini veri si fanno dentro (riga di testa e di coda della tabella che avvolge il
+   contenuto, che si ripetono a ogni pagina). Così non serve @page :first, che alcuni browser ignorano: la copertina
+   finiva con un margine, sforava di pochi pixel e produceva pagine vuote. */
+@page { size: A4; margin: 0; }
 .paper { font-family: var(--font-jakarta), system-ui, sans-serif; color: hsl(var(--foreground)); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .paper .cover { width: 210mm; height: 297mm; }
 .paper .flow { width: 182mm; margin: 0 auto; padding: 14mm 0; }
+.paper .flow-table { width: 100%; border-collapse: collapse; }
+.paper .flow-table thead td, .paper .flow-table tfoot td { height: 0; padding: 0; }
 .paper .keep { break-inside: avoid; page-break-inside: avoid; }
+/* Le tabelle possono continuare sulla pagina dopo (con l'intestazione ripetuta) ma una riga non si spezza e il titolo non resta solo in fondo */
+.paper tr { break-inside: avoid; page-break-inside: avoid; }
+.paper thead { display: table-header-group; }
+/* Mai una riga sola da una parte: le prime due e le ultime due stanno insieme */
+.paper tbody tr:first-child { break-after: avoid; page-break-after: avoid; }
+.paper tbody tr:last-child { break-before: avoid; page-break-before: avoid; }
+.paper .keep-next { break-after: avoid; page-break-after: avoid; }
 @media print {
-  html, body { background: #FAF7F2 !important; }
+  html, body { background: #FAF7F2 !important; margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; }
   .no-print { display: none !important; }
-  .paper { background: transparent !important; min-height: 0 !important; }
+  .paper { background: transparent !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
   .paper .sheet { box-shadow: none !important; margin: 0 !important; }
+  /* un filo meno di 297mm: l'arrotondamento non deve spingere nulla sulla pagina dopo */
+  .paper .cover { height: 296mm; overflow: hidden; break-after: page; page-break-after: always; }
+  .paper .flow-table { width: 210mm; }
+  .paper .flow-table thead td, .paper .flow-table tfoot td { height: 14mm; }
   .paper .flow { padding: 0; }
-  .paper .cover { break-after: page; page-break-after: always; }
 }
 `
 
@@ -90,7 +104,7 @@ export default function ReportPdfPage() {
   const toggle = (sid: string) => setHidden((h) => { const n = new Set(h); n.has(sid) ? n.delete(sid) : n.add(sid); return n })
 
   return (
-    <div className="paper min-h-screen bg-[#FAF7F2] pb-16" style={PAPER_VARS}>
+    <div className="paper min-h-screen bg-[#FAF7F2] pb-16 print:pb-0" style={PAPER_VARS}>
       <style>{PRINT_CSS}</style>
 
       {/* Comandi: non finiscono nel PDF */}
@@ -147,6 +161,7 @@ export default function ReportPdfPage() {
             <p className="mt-4 text-xs text-[#6e7681]">Preparato da W[r]Digital · {today}</p>
           </section>
 
+          <table className="flow-table"><thead><tr><td /></tr></thead><tfoot><tr><td /></tr></tfoot><tbody><tr><td>
           <div className="flow">
             {/* Sintesi */}
             <section className="space-y-5">
@@ -184,8 +199,8 @@ export default function ReportPdfPage() {
 
             {/* Una sezione per piattaforma */}
             {shown.map((s) => (
-              <section key={s.id} className="keep mt-8 space-y-3">
-                <div>
+              <section key={s.id} className="mt-8 space-y-3">
+                <div className="keep-next">
                   <h2 className="text-lg font-normal tracking-tight">{s.title}</h2>
                   <div className="mt-2 h-0.5 w-10 bg-[hsl(var(--primary))]" />
                 </div>
@@ -211,6 +226,7 @@ export default function ReportPdfPage() {
 
             <p className="mt-10 text-center text-[11px] text-[hsl(var(--muted-foreground))]">Dati delle piattaforme collegate · report preparato da W[r]Digital il {today}</p>
           </div>
+          </td></tr></tbody></table>
         </>
       )}
     </div>
