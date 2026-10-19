@@ -62,6 +62,7 @@ import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
 import { ReportTrendCard } from "@/components/ReportTrendCard";
 import { validateRange, rangeLabel } from "@/lib/date-range";
 import { PeriodPicker } from "@/components/PeriodPicker";
+import { MonthlyCommentEditor } from "@/components/MonthlyCommentEditor";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { stripCitations } from "@/lib/clean-text";
@@ -1041,6 +1042,7 @@ export default function ClientDetailPage() {
 
           {/* ANDAMENTO: spesa e risultato per giorno */}
           <ReportTrendCard report={marketingReport} days={effectiveDays} periodText={activeRange ? rangeLabel(activeRange.from, activeRange.to) : undefined} />
+          <MonthlyCommentEditor clientId={id as string} />
 
           {/* ==================================================== */}
           {/* PERFORMANCE PER ACCOUNT (dati delle piattaforme collegate)  */}

@@ -96,6 +96,12 @@ service cloud.firestore {
       allow read: if canReadClientScoped(clientId);
       allow write: if isStaff();
 
+      // Commento mensile mostrato nella pagina pubblica: la lettura anonima passa solo da
+      // app/api/share/client/[token]/report (Admin SDK), mai da qui.
+      match /comments/{month} {
+        allow read, write: if isStaff();
+      }
+
       match /integrations/{platform} {
         // Encrypted tokens (see lib/api-auth.ts) — server (Admin SDK) only.
         allow read, write: if false;
