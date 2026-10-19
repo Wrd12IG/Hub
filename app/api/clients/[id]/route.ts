@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { splitPrivateFields, savePrivateFields, readPrivateFields } from '@/lib/client-private';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource, saveClientToken } from '@/lib/api-auth';
 
 export async function GET(
@@ -57,9 +58,13 @@ export async function GET(
       });
     }
 
+    // Piano media e post-lead stanno in clients/{id}/private (solo staff): qui tornano nel documento.
+    const privateFields = await readPrivateFields(adminDb, id, doc.data() as Record<string, unknown>);
+
     return NextResponse.json({
       id: doc.id,
       ...doc.data(),
+      ...privateFields,
       // Social organico — solo flag di presenza e nome visibile, mai token cifrati
       hasYoutubeToken:    !!youtubeData?.accessToken,
       youtubeChannelName: youtubeData?.extra?.channelName ?? null,
@@ -98,20 +103,22 @@ export async function PUT(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    const updateData = {
-      ...body,
+    const { rest, privateFields } = splitPrivateFields(body);
+    const updateData: Record<string, unknown> = {
+      ...rest,
       updatedAt: new Date().toISOString()
     };
 
     // Remove id from update payload if it exists
     if (updateData.id) delete updateData.id;
 
-    await docRef.update(updateData);
+    await savePrivateFields(adminDb, id, privateFields, updateData);
 
     return NextResponse.json({
       id,
       ...doc.data(),
-      ...updateData
+      ...updateData,
+      ...privateFields
     });
   } catch (error) {
     console.error(`Error updating client ${params.id}:`, error);
@@ -197,14 +204,16 @@ export async function PATCH(
     }
 
     // 2. Aggiornamento dei restanti campi pubblici
-    const updateData = {
-      ...body,
+    const { rest, privateFields } = splitPrivateFields(body);
+    const updateData: Record<string, unknown> = {
+      ...rest,
       updatedAt: new Date().toISOString()
     };
 
     if (updateData.id) delete updateData.id;
 
-    await docRef.update(updateData);
+    // mediaPlan e postLead vanno in clients/{id}/private, non nel documento leggibile dal Cliente.
+    await savePrivateFields(adminDb, id, privateFields, updateData);
 
     return NextResponse.json({ success: true });
   } catch (error) {
