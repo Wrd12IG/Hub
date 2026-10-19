@@ -249,9 +249,12 @@ export function FloatingCommandDock() {
                                             {isActive && <span className="hidden md:inline text-xs font-semibold whitespace-nowrap pr-1">{item.label}</span>}
                                         </Link>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="text-xs font-medium">
-                                        {item.label}
-                                    </TooltipContent>
+                                    {/* La voce attiva ha già il nome scritto accanto all'icona: il suggerimento lo ripeterebbe */}
+                                    {!isActive && (
+                                        <TooltipContent side="top" className="text-xs font-medium">
+                                            {item.label}
+                                        </TooltipContent>
+                                    )}
                                 </Tooltip>
                             </React.Fragment>
                         );
