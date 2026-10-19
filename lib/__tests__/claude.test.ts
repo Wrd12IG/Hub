@@ -102,4 +102,10 @@ describe('claude: immagini e ricerca web', () => {
         expect(parseDataUrlImage('non è un data url')).toBeNull();
         expect(parseDataUrlImage('data:image/png;base64,' + 'A'.repeat(7_000_000))).toBeNull();
     });
+
+    it('toglie i marcatori di citazione della ricerca web dal testo', async () => {
+        const tagged = 'Una lacuna. ' + '<' + 'cite index="2-3">Le recensioni sono lente.</' + 'cite> Fine.';
+        capture({ ok: true, json: async () => ({ content: [{ type: 'text', text: tagged }] }) });
+        expect(await askClaude({ prompt: 'p', webSearch: { maxUses: 2 } })).toBe('Una lacuna. Le recensioni sono lente. Fine.');
+    });
 });

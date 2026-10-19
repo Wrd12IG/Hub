@@ -1,4 +1,5 @@
 import { parseJsonLoose } from './json-loose';
+import { stripCitations } from './clean-text';
 // Unico punto da cui il Hub parla con l'AI: Claude (API Anthropic). Tutto ciò che fa l'AI passa da qui.
 // Chiave: ANTHROPIC_API_KEY. Mai nel codice né nei log.
 
@@ -80,7 +81,7 @@ export async function askClaude({ prompt, system, maxTokens = 4096, timeoutMs = 
         }
         const json = await res.json();
         // Con la ricerca web la risposta ha più blocchi di testo (commenti, citazioni): si uniscono tutti
-        const text = (json?.content ?? []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n').trim();
+        const text = stripCitations((json?.content ?? []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n'));
         if (text) return text;
         errors.push(`${model}: risposta vuota`);
     }

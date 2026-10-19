@@ -61,6 +61,7 @@ import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
+import { stripCitations } from "@/lib/clean-text";
 import { CampaignsTable } from "@/components/CampaignsTable";
 import { CompetitorAdLibrary } from "@/components/CompetitorAdLibrary";
 import { ClientHealthBadge } from "@/components/ClientHealthBadge";
@@ -1734,7 +1735,7 @@ export default function ClientDetailPage() {
                                     di forza
                                   </div>
                                   <div className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                    {c.strength || "—"}
+                                    {c.strength ? stripCitations(String(c.strength)) : "—"}
                                   </div>
                                 </div>
                                 <div className="bg-white/[0.02] border border-white/8 p-3.5 rounded-xl space-y-1 border-l-2 border-l-rose-500/60">
@@ -1743,10 +1744,10 @@ export default function ClientDetailPage() {
                                     deboli
                                   </div>
                                   <div className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                    {c.weakness || (
+                                    {c.weakness ? stripCitations(String(c.weakness)) : (
                                       <span className="italic text-muted-foreground/60">
                                         {c.analysisNote
-                                          ? `Analizzato: ${c.analysisNote}`
+                                          ? `Analizzato: ${stripCitations(String(c.analysisNote))}`
                                           : "Non ancora analizzato: non vuol dire che non ce ne siano."}
                                       </span>
                                     )}
@@ -1778,7 +1779,7 @@ export default function ClientDetailPage() {
                                     Stile Creativo:
                                   </span>
                                   <span className="text-foreground font-semibold">
-                                    {c.adStyle || "Non ancora analizzato."}
+                                    {c.adStyle ? stripCitations(String(c.adStyle)) : "Non ancora analizzato."}
                                   </span>
                                 </div>
                                 {c.adAnalysis && (

@@ -2,6 +2,7 @@
 // e risponda prima di salvarlo. Un nome o un sito inventati dall'AI non arrivano mai nella scheda.
 import { domainOf } from '@/lib/competitor-merge';
 import { fetchPage } from '@/lib/safe-fetch';
+import { stripCitations, trimToSentence } from '@/lib/clean-text';
 
 export interface CompetitorCandidate { name: string; url: string; city?: string; kind?: string; why?: string; weak?: string }
 
@@ -32,7 +33,7 @@ export interface AdAnalysis { angles: string[]; hooks: string[]; ctas: string[];
 const PORTALS = ['autoscout24', 'subito.it', 'facebook.com', 'instagram.com', 'linkedin.com', 'paginegialle', 'google.', 'youtube.com',
     'wikipedia.org', 'tiktok.com', 'automoto.it', 'concessionarie.info', 'tiendeo', 'doveconviene', 'motori', 'comprauto', 'nextdoor', 'mobility.it'];
 
-const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+const str = (v: unknown) => (typeof v === 'string' ? stripCitations(v) : '');
 
 export function buildDiscoveryPrompt(input: { name: string; websiteUrl?: string; businessType?: string; territory?: string; product?: string }): string {
     return `Sei un analista di marketing per aziende italiane. Trova i concorrenti DIRETTI REALI di questo cliente.
@@ -208,5 +209,5 @@ export function normalizeAnalysis(raw: any): CompetitorAnalysis {
     const r = raw && typeof raw === 'object' ? raw : {};
     const sources = (Array.isArray(r.sources) ? r.sources : [])
         .map((x: unknown) => str(x)).filter((u: string) => /^https?:\/\//i.test(u)).slice(0, 6);
-    return { strength: str(r.strength).slice(0, 400), weakness: str(r.weakness).slice(0, 400), sources, note: str(r.note).slice(0, 300) };
+    return { strength: trimToSentence(str(r.strength), 600), weakness: trimToSentence(str(r.weakness), 600), sources, note: trimToSentence(str(r.note), 300) };
 }
