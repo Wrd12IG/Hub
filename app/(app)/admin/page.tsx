@@ -93,7 +93,7 @@ import {
 } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon, Users, Building2, Shield, Sliders, FolderTree, CheckSquare, Calendar, FileText, CalendarDays } from 'lucide-react';
+import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon, Users, Building2, Shield, Sliders, FolderTree, CheckSquare, Calendar, FileText, CalendarDays, Database } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -205,7 +205,7 @@ const AdminFormSkeleton = () => (
 
 
 function AdminPageContent() {
-    const { handleCreateUser, users, clients, activityTypes, allTasks: tasks, isLoadingLayout, refetchData, taskPrioritySettings: initialPrioritySettings, setTaskPrioritySettings, calendarActivityPresets: presets } = useLayoutData();
+    const { currentUser, handleCreateUser, users, clients, activityTypes, allTasks: tasks, isLoadingLayout, refetchData, taskPrioritySettings: initialPrioritySettings, setTaskPrioritySettings, calendarActivityPresets: presets } = useLayoutData();
     const [departments, setDepartments] = useState<Department[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
     const [briefServices, setBriefServices] = useState<BriefService[]>([]);
@@ -757,13 +757,21 @@ function AdminPageContent() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold font-headline">
-                    Pannello di Amministrazione
-                </h1>
-                <p className="text-muted-foreground">
-                    Gestisci utenti, clienti, reparti, team, attività e permessi.
-                </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">
+                        Pannello di Amministrazione
+                    </h1>
+                    <p className="text-muted-foreground">
+                        Gestisci utenti, clienti, reparti, team, attività e permessi.
+                    </p>
+                </div>
+                {/* Pagina di servizio per spostare i dati interni dei clienti nell'area solo-staff: solo amministratori */}
+                {currentUser?.role === 'Amministratore' && (
+                    <Button asChild variant="outline" size="sm" className="gap-1.5">
+                        <Link href="/admin/migrazione-dati"><Database className="h-4 w-4 text-sky-400" /> Migrazione dati</Link>
+                    </Button>
+                )}
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
