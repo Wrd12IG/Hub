@@ -61,6 +61,7 @@ import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
 import { MediaPlanTab } from "@/components/MediaPlanTab";
 import type { MediaPlan } from "@/lib/media-plan";
+import type { PostLeadData } from "@/lib/post-lead";
 import { SearchConsoleCard } from "@/components/SearchConsoleCard";
 import { ReportTrendCard } from "@/components/ReportTrendCard";
 import { validateRange, rangeLabel } from "@/lib/date-range";
@@ -107,6 +108,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 interface Client {
   mediaPlan?: MediaPlan | null;
+  postLead?: PostLeadData | null;
   id: string;
   name: string;
   websiteUrl: string;
@@ -2171,7 +2173,9 @@ export default function ClientDetailPage() {
         <MediaPlanTab
           clientId={id as string}
           initial={client.mediaPlan}
+          postLead={client.postLead}
           onSaved={(p) => setClient((c) => (c ? { ...c, mediaPlan: p } : c))}
+          onPostLeadSaved={(d) => setClient((c) => (c ? { ...c, postLead: d } : c))}
         />
       )}
 
