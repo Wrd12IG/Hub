@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed, denyUnlessStaff } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
-import { readCompetitorSocial, type SocialTarget } from '@/lib/competitor-social';
+import { readCompetitorSocial, type SocialTarget, type MetaAccess } from '@/lib/competitor-social';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -34,7 +34,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   if (targets.length === 0) return NextResponse.json({ results: [] });
 
-  const signature = targets.map((t) => [t.id, t.instagram, t.facebook, t.linkedin, t.youtube, t.tiktok].join('|')).sort().join(';');
+  // Per leggere Instagram servono il token di sistema e l'account Instagram collegato del cliente (lo stesso della Overview)
+  const clientDoc = await adminDb.collection('clients').doc(params.id).get();
+  const token = process.env.META_SYSTEM_USER_TOKEN || process.env.META_ACCESS_TOKEN;
+  const igId = (clientDoc.data() as any)?.windsorAccounts?.instagram;
+  const meta: MetaAccess | undefined = token ? { token, instagramUserId: igId ? String(igId) : undefined } : undefined;
+
+  // L'accesso a Meta entra nella firma: configurarlo invalida la cache che diceva «non leggibile»
+  const signature = `meta:${!!meta}:${!!meta?.instagramUserId}|` + targets.map((t) => [t.id, t.instagram, t.facebook, t.linkedin, t.youtube, t.tiktok].join('|')).sort().join(';');
   const cacheRef = adminDb.collection('clients').doc(params.id).collection('cache').doc('competitor_social');
 
   if (!refresh) {
@@ -45,7 +52,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 
   try {
-    const results = await readCompetitorSocial(targets);
+    const results = await readCompetitorSocial(targets, meta);
     const computedAt = new Date().toISOString();
     // Giro JSON: Firestore rifiuta undefined e il progetto non ha ignoreUndefinedProperties
     await cacheRef.set(JSON.parse(JSON.stringify({ signature, computedAt, results }))).catch((e) =>
