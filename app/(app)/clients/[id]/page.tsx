@@ -220,6 +220,7 @@ export default function ClientDetailPage() {
   const [uploadingVisionIndex, setUploadingVisionIndex] = useState<
     number | null
   >(null);
+  const [analyzingIndex, setAnalyzingIndex] = useState<number | null>(null);
 
   // Unified Meta + Google Ads campaign list for the "Campagne" tab (see
   // app/api/clients/[id]/campaigns/route.ts).
@@ -498,6 +499,26 @@ export default function ClientDetailPage() {
       img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Immagine non leggibile")); };
       img.src = url;
     });
+
+  // Punti di forza e deboli con ricerca web e fonti (30-50 secondi)
+  const handleAnalyzeCompetitor = async (index: number) => {
+    if (!client) return;
+    setAnalyzingIndex(index);
+    try {
+      const res = await fetch(
+        `${API_URL}/api/clients/${client.id}/intelligence/competitors/${index}/analyze`,
+        { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Errore ${res.status}`);
+      toast.success(data.competitor?.weakness ? "Analisi completata" : "Analisi completata: nessuna lacuna verificabile");
+      window.location.reload();
+    } catch (e: any) {
+      toast.error(e.message || "Analisi non riuscita");
+    } finally {
+      setAnalyzingIndex(null);
+    }
+  };
 
   const handleScreenshotUpload = async (index: number, file: File) => {
     if (!client || !file) return;
@@ -1674,9 +1695,28 @@ export default function ClientDetailPage() {
                                   <div className="text-xs text-muted-foreground leading-relaxed font-medium">
                                     {c.weakness || (
                                       <span className="italic text-muted-foreground/60">
-                                        Non ancora analizzato: non vuol dire che non ce ne siano. Rilancia «Trova competitor veri» oppure carica uno screenshot delle inserzioni.
+                                        {c.analysisNote
+                                          ? `Analizzato: ${c.analysisNote}`
+                                          : "Non ancora analizzato: non vuol dire che non ce ne siano."}
                                       </span>
                                     )}
+                                    {Array.isArray(c.weaknessSources) && c.weaknessSources.length > 0 && (
+                                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                                        {c.weaknessSources.map((u: string, k: number) => (
+                                          <a key={k} href={u} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground/70 underline hover:text-foreground">
+                                            fonte {k + 1}
+                                          </a>
+                                        ))}
+                                      </div>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAnalyzeCompetitor(i)}
+                                      disabled={analyzingIndex !== null}
+                                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 disabled:opacity-50 cursor-pointer border-none bg-transparent p-0"
+                                    >
+                                      {analyzingIndex === i ? "Ricerca sul web in corso (fino a 1 minuto)…" : c.analyzedAt ? "Rianalizza con ricerca web" : "Analizza con ricerca web"}
+                                    </button>
                                   </div>
                                 </div>
                               </div>

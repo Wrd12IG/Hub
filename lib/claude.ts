@@ -1,3 +1,4 @@
+import { parseJsonLoose } from './json-loose';
 // Unico punto da cui il Hub parla con l'AI: Claude (API Anthropic). Tutto ciò che fa l'AI passa da qui.
 // Chiave: ANTHROPIC_API_KEY. Mai nel codice né nei log.
 
@@ -92,10 +93,5 @@ export async function askClaudeJson<T = any>(options: AskClaudeOptions): Promise
         ...options,
         system: `${options.system ? options.system + '\n\n' : ''}Rispondi sempre e solo con un oggetto JSON valido, senza testo prima o dopo e senza recinti markdown.`,
     });
-    const cleaned = text.replace(/```json\s*|```/gi, '').trim();
-    try { return JSON.parse(cleaned); } catch { /* prova a ritagliare il primo oggetto */ }
-    const start = cleaned.indexOf('{');
-    const end = cleaned.lastIndexOf('}');
-    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
-    throw new Error('Risposta AI non leggibile');
+    return parseJsonLoose(text);
 }
