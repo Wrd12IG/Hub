@@ -39,7 +39,7 @@ export function PeriodPicker({
           if (e.target.value === 'custom') onCustom(from && to ? { from, to } : presetRange(daysBack))
           else onPreset(Number(e.target.value))
         }}
-        className="px-3 py-1.5 rounded-lg border border-white/10 bg-background/50 hover:border-white/20 text-sm font-medium outline-none cursor-pointer transition-colors text-foreground"
+        className="px-3 py-1.5 rounded-lg border border-border bg-background/50 hover:border-foreground/30 text-sm font-medium outline-none cursor-pointer transition-colors text-foreground"
       >
         <option value={7}>Ultimi 7 Giorni</option>
         <option value={30}>Ultimi 30 Giorni</option>

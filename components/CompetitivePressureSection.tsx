@@ -27,7 +27,7 @@ const share = (c: Campaign) =>
 const DIAGNOSI: Record<Campaign['diagnosi'], { testo: string; classe: string }> = {
   competitor: { testo: 'i competitor ti superano', classe: 'border-red-500/30 text-red-400' },
   budget: { testo: 'il budget finisce', classe: 'border-amber-500/30 text-amber-400' },
-  nessuna: { testo: 'quadro equilibrato', classe: 'border-white/15 text-muted-foreground' },
+  nessuna: { testo: 'quadro equilibrato', classe: 'border-border text-muted-foreground' },
 }
 
 export function CompetitivePressureSection({ clientId, daysBack, range }: { clientId: string; daysBack: number; range?: { from: string; to: string } | null }) {
@@ -57,7 +57,7 @@ export function CompetitivePressureSection({ clientId, daysBack, range }: { clie
 
   if (data.notConfigured || data.error) {
     return (
-      <div className="rounded-xl border border-dashed border-white/10 p-6 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
         {data.error ?? 'Dati non disponibili.'}
       </div>
     )
@@ -65,7 +65,7 @@ export function CompetitivePressureSection({ clientId, daysBack, range }: { clie
 
   if (data.campaigns.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-white/10 p-6 text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
         Nessuna campagna con impression nel periodo: senza erogazione non c&apos;è pressione competitiva da misurare.
       </div>
     )
@@ -76,7 +76,7 @@ export function CompetitivePressureSection({ clientId, daysBack, range }: { clie
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
           <p className="text-xs text-muted-foreground">Quota impression</p>
           <p className="text-2xl font-bold mt-0.5">{pct(data.impressionShare)}</p>
           {/* Quando Google non dà la quota esatta sulla maggior parte del
@@ -89,12 +89,12 @@ export function CompetitivePressureSection({ clientId, daysBack, range }: { clie
             </p>
           )}
         </div>
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5"><TrendingDown size={11} /> Persa per posizionamento</p>
           <p className="text-2xl font-bold mt-0.5">{pct(data.rankLost)}</p>
           <p className="text-xs text-muted-foreground/60 mt-1">I competitor ti battono su offerta e qualità</p>
         </div>
-        <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
           <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Wallet size={11} /> Persa per budget</p>
           <p className="text-2xl font-bold mt-0.5">{pct(data.budgetLost)}</p>
           <p className="text-xs text-muted-foreground/60 mt-1">Arrivi primo ma finisci i fondi</p>
@@ -123,7 +123,7 @@ export function CompetitivePressureSection({ clientId, daysBack, range }: { clie
         {data.campaigns.slice(0, 8).map((c) => {
           const cd = DIAGNOSI[c.diagnosi]
           return (
-            <div key={c.id} className="flex flex-wrap items-center gap-3 text-xs rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
+            <div key={c.id} className="flex flex-wrap items-center gap-3 text-xs rounded-lg border border-border bg-muted/40 px-3 py-2">
               <span className="flex-1 min-w-[180px] truncate font-medium">{c.name}</span>
               <span className="text-muted-foreground">quota <strong className="text-foreground">{share(c)}</strong></span>
               <span className="text-muted-foreground">rank {pct(c.rankLost)}</span>

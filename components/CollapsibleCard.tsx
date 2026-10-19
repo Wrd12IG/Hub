@@ -34,7 +34,7 @@ export function CollapsibleCard({
     }
 
     return (
-        <section className={cn('glass-card rounded-2xl border border-white/10 bg-white/[0.03] shadow-md', className)}>
+        <section className={cn('rounded-2xl border border-border bg-card shadow-sm', className)}>
             <div className="flex items-center gap-3 p-5 sm:p-6">
                 <button
                     type="button"
@@ -59,7 +59,7 @@ export function CollapsibleCard({
                     onClick={toggle}
                     aria-label={open ? 'Chiudi sezione' : 'Apri sezione'}
                     tabIndex={-1}
-                    className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition-colors cursor-pointer"
+                    className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
                 >
                     <ChevronDown className={cn('h-5 w-5 transition-transform duration-200', open && 'rotate-180')} />
                 </button>

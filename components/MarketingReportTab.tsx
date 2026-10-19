@@ -141,7 +141,7 @@ export function MarketingReportTab({
                 icon={meta.icon}
                 title={meta.label}
                 description={p.accountLabel}
-                className="bg-white/[0.02] shadow-none"
+                className="bg-muted/40 shadow-none"
                 summary={
                   !p.connected ? <span className="text-xs font-semibold text-red-500">Errore</span>
                   : headline ? (

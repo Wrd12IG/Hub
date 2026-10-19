@@ -45,7 +45,7 @@ export function ClientHealthDot({ row }: { row?: ClientHealthRow }) {
             <span
                 title="Andamento non ancora calcolato — apri il cliente per vederlo"
                 aria-label="Andamento non ancora calcolato"
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-dashed border-white/15"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-dashed border-border"
             >
                 <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
             </span>

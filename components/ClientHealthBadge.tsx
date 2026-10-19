@@ -49,7 +49,7 @@ const DOT: Record<HealthReason['tone'], string> = {
     good: 'bg-emerald-400',
     warn: 'bg-amber-400',
     bad: 'bg-red-400',
-    neutral: 'bg-white/30',
+    neutral: 'bg-muted-foreground/40',
 }
 
 /**
@@ -238,7 +238,7 @@ export function ClientHealthBadge({
     if (loading && !data) {
         return (
             <div
-                className="h-12 w-12 shrink-0 animate-pulse rounded-full border-2 border-dashed border-white/10"
+                className="h-12 w-12 shrink-0 animate-pulse rounded-full border-2 border-dashed border-border"
                 aria-label="Calcolo dell'andamento in corso"
             />
         )
@@ -268,8 +268,8 @@ export function ClientHealthBadge({
                 </button>
             </PopoverTrigger>
 
-            <PopoverContent align="start" className="w-[22rem] border-white/10 bg-card p-0">
-                <div className="flex items-start gap-3 border-b border-white/10 p-4">
+            <PopoverContent align="start" className="w-[22rem] border-border bg-card p-0">
+                <div className="flex items-start gap-3 border-b border-border p-4">
                     <HealthFace state={state} size={40} showChip={false} />
                     <div className="min-w-0">
                         <p className="text-sm font-black leading-tight text-foreground">{HEADLINE[state]}</p>
@@ -296,7 +296,7 @@ export function ClientHealthBadge({
                     </ul>
                 )}
 
-                <div className="flex items-center justify-between gap-2 border-t border-white/10 px-4 py-2.5">
+                <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-2.5">
                     <span className="text-xs text-muted-foreground">
                         {data.computedAt
                             ? `Calcolato il ${new Date(data.computedAt).toLocaleString('it-IT', {

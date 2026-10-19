@@ -182,7 +182,7 @@ function AccountChip({
   onRemove?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 group">
+    <div className="flex items-center justify-between gap-2 bg-muted/40 border border-border rounded-lg px-3 py-2 group">
       <div className="min-w-0">
         <p className="text-xs font-semibold text-foreground truncate">{name}</p>
         {sub && (
@@ -1436,10 +1436,10 @@ export default function PlatformConnections({
             Collega i tuoi strumenti di marketing per sincronizzare i dati in automatico.
           </p>
         </div>
-        <div className="flex items-center gap-2.5 bg-white/[0.04] border border-white/10 rounded-full px-4 py-2 shrink-0">
+        <div className="flex items-center gap-2.5 bg-muted/40 border border-border rounded-full px-4 py-2 shrink-0">
           <div className="flex gap-1">
             {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className={cn("w-2 h-2 rounded-full transition-all duration-300", i < configuredCount ? "bg-emerald-400" : "bg-white/10")} />
+              <div key={i} className={cn("w-2 h-2 rounded-full transition-all duration-300", i < configuredCount ? "bg-emerald-400" : "bg-muted")} />
             ))}
           </div>
           <span className="text-xs font-bold text-muted-foreground">{configuredCount}/12 configurate</span>
@@ -1466,7 +1466,7 @@ export default function PlatformConnections({
         <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.googleAdAccountId, "#4285F4")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted">
                 <GoogleIcon />
               </div>
               <span className="text-sm font-bold text-foreground">Google Ads</span>
@@ -1482,7 +1482,7 @@ export default function PlatformConnections({
         <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.ga4PropertyId, "#F9AB00")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-muted">
                 <GoogleIcon />
               </div>
               <div>

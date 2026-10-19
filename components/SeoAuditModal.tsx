@@ -75,8 +75,8 @@ export function SeoAuditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-background border border-white/10 rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-background/95 backdrop-blur border-b border-white/10 p-5 flex items-start justify-between gap-4">
+      <div className="bg-background border border-border rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-background/95 backdrop-blur border-b border-border p-5 flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-extrabold flex items-center gap-2">
               <Gauge className="h-5 w-5 text-primary" /> Audit SEO — {clientName}
@@ -113,7 +113,7 @@ export function SeoAuditModal({
 
           {audit && (
             <>
-              <div className="flex items-center justify-between gap-6 p-4 rounded-xl border border-white/10 bg-white/[0.02]">
+              <div className="flex items-center justify-between gap-6 p-4 rounded-xl border border-border bg-muted/40">
                 <div>
                   <div className="text-xs font-black uppercase tracking-wider text-muted-foreground">
                     Punteggio SEO
@@ -140,7 +140,7 @@ export function SeoAuditModal({
                     key={f.id}
                     className={cn(
                       'flex items-start justify-between gap-3 p-3 rounded-lg border text-xs',
-                      f.applicable ? 'border-white/10 bg-white/[0.02]' : 'border-white/5 bg-transparent opacity-50',
+                      f.applicable ? 'border-border bg-muted/40' : 'border-border bg-transparent opacity-50',
                     )}
                   >
                     <div>
@@ -163,7 +163,7 @@ export function SeoAuditModal({
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   {audit.vitals.map((v) => (
-                    <div key={v.id} className="p-3 rounded-lg border border-white/10 bg-white/[0.02]">
+                    <div key={v.id} className="p-3 rounded-lg border border-border bg-muted/40">
                       <div className="text-xs text-muted-foreground truncate">{v.label}</div>
                       <div
                         className={cn(
@@ -185,7 +185,7 @@ export function SeoAuditModal({
                   </h3>
                   <ul className="space-y-1.5">
                     {audit.issues.map((i, idx) => (
-                      <li key={idx} className="text-xs flex items-start gap-2 p-2.5 rounded-lg bg-white/[0.02] border border-white/5">
+                      <li key={idx} className="text-xs flex items-start gap-2 p-2.5 rounded-lg bg-muted/40 border border-border">
                         <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
                         <span>
                           <span className="font-semibold text-foreground">{i.title}</span>
@@ -209,7 +209,7 @@ export function SeoAuditModal({
                       { l: 'CTR', v: `${(audit.searchConsole.ctr * 100).toFixed(2)}%` },
                       { l: 'Posizione media', v: audit.searchConsole.position.toFixed(1) },
                     ].map((m) => (
-                      <div key={m.l} className="p-3 rounded-lg border border-white/10 bg-white/[0.02]">
+                      <div key={m.l} className="p-3 rounded-lg border border-border bg-muted/40">
                         <div className="text-xs text-muted-foreground">{m.l}</div>
                         <div className="text-sm font-black text-foreground mt-1">{m.v}</div>
                       </div>
