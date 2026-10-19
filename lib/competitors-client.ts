@@ -15,6 +15,8 @@
  * per quello che sono. Promettere numeri social da qui sarebbe inventarli.
  */
 
+import { decodeEntities } from './html-entities';
+
 export interface CompetitorSnapshot {
     url: string;
     fetchedAt: number;
@@ -88,9 +90,9 @@ function buildSnapshot(url: string, html: string, via: 'direct' | 'firecrawl'): 
         url,
         fetchedAt: Date.now(),
         via,
-        title: (/<title[^>]*>([^<]{0,200})/i.exec(html)?.[1] ?? '').trim(),
-        description: metaContent(html, 'description') || metaContent(html, 'og:description'),
-        offers: extractOffers(text),
+        title: decodeEntities((/<title[^>]*>([^<]{0,200})/i.exec(html)?.[1] ?? '').trim()),
+        description: decodeEntities(metaContent(html, 'description') || metaContent(html, 'og:description')),
+        offers: extractOffers(text).map(decodeEntities),
         fingerprint: fp,
         textLength: text.length,
     }));

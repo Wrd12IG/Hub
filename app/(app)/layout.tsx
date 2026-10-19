@@ -76,7 +76,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* <SidebarNav /> */}
           <SidebarInset className="relative isolate">
             <Header />
-            <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6 w-full min-w-0">
+            {/* pb-28: la barra flottante in basso copriva l'ultima parte di ogni pagina */}
+            <main className="flex-1 overflow-auto p-4 pb-28 sm:px-6 sm:pt-6 sm:pb-28 w-full min-w-0">
               <PageTransition key={pathname}>
                 {children}
               </PageTransition>
