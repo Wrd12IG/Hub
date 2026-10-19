@@ -46,8 +46,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [currentUser, isLoadingLayout, router, isMounted]);
 
+  useEffect(() => {
+    if (isMounted && !isLoadingLayout && currentUser?.role === 'Cliente' && currentUser.clientId && pathname !== `/clients/${currentUser.clientId}`) {
+      router.replace(`/clients/${currentUser.clientId}`);
+    }
+  }, [currentUser, isLoadingLayout, router, isMounted, pathname]);
 
-  if (!isMounted || isLoadingLayout || !currentUser) {
+
+  // Accesso «Cliente»: una sola pagina, i risultati del proprio cliente. Qualunque altro indirizzo riporta lì (e intanto
+  // non si mostra niente). Le API fanno comunque il loro controllo: questa è la parte di navigazione.
+  const clientHome = currentUser?.role === 'Cliente' && currentUser.clientId ? `/clients/${currentUser.clientId}` : null;
+  const redirectingClient = !!clientHome && pathname !== clientHome;
+
+  if (!isMounted || isLoadingLayout || !currentUser || redirectingClient) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
