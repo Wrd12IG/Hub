@@ -106,8 +106,7 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                     </a>
                   )}
                 </div>
-                {/* I social restano collegamenti: non se ne estraggono numeri,
-                    I social non si lasciano leggere da un server. */}
+                {/* Collegamenti ai profili; i numeri (dove Meta, YouTube e LinkedIn li danno) stanno sotto. */}
                 <div className="flex gap-2 shrink-0">
                   {([
                     ['instagram', 'Instagram', Instagram, 'hover:text-pink-400'],
@@ -132,6 +131,8 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                 if (!r) return null
                 const yt = r.youtube
                 const li = r.linkedin
+                const ig = r.instagram
+                const fb = r.facebook
                 return (
                   <div className="space-y-0.5 text-xs text-muted-foreground">
                     {yt && ('error' in yt
@@ -143,12 +144,23 @@ export function CompetitorsSection({ clientId }: { clientId: string }) {
                           {yt.lastUpload && <> · ultimo video il {dayIta(yt.lastUpload)}</>}
                           {yt.lastUpload && <> · {yt.uploadsCapped ? `almeno ${yt.uploadsLast30d}` : yt.uploadsLast30d} negli ultimi 30 giorni</>}
                         </p>)}
+                    {ig && ('error' in ig
+                      ? <p className="text-amber-600/80 dark:text-amber-500/80">Instagram: {ig.error}</p>
+                      : <p>
+                          <span className="font-semibold text-foreground">Instagram</span> · {nf.format(ig.followers)} follower · {nf.format(ig.posts)} post
+                          {ig.lastPost && <> · ultimo post il {dayIta(ig.lastPost)}</>}
+                          {ig.lastPost && <> · {ig.postsCapped ? `almeno ${ig.postsLast30d}` : ig.postsLast30d} negli ultimi 30 giorni</>}
+                          {ig.avgInteractions !== null && <> · {nf.format(ig.avgInteractions)} interazioni a post{ig.engagementPct !== null && <> ({ig.engagementPct.toLocaleString('it-IT')}% dei follower)</>}</>}
+                        </p>)}
+                    {fb && ('error' in fb
+                      ? <p className="text-amber-600/80 dark:text-amber-500/80">Facebook: {fb.error}</p>
+                      : <p><span className="font-semibold text-foreground">Facebook</span>{fb.followers !== null ? <> · {nf.format(fb.followers)} follower</> : ' · numero follower non disponibile'}</p>)}
                     {li && ('error' in li
                       ? <p className="text-amber-600/80 dark:text-amber-500/80">LinkedIn: {li.error}</p>
                       : <p><span className="font-semibold text-foreground">LinkedIn</span> · {nf.format(li.followers)} follower</p>)}
                     {r.unreadable.length > 0 && (
                       <p className="text-muted-foreground/60">
-                        {r.unreadable.map((k) => NAMES[k]).join(', ')}: nessun dato pubblico leggibile da qui (chiedono l&apos;accesso). Apri il profilo dall&apos;icona.
+                        {r.unreadable.map((k) => NAMES[k]).join(', ')}: {r.unreadable.length === 1 && r.unreadable[0] === 'tiktok' ? 'TikTok non offre dati pubblici dei profili altrui' : 'nessun dato leggibile da qui'}. Apri il profilo dall&apos;icona.
                       </p>
                     )}
                   </div>
