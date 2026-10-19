@@ -11,32 +11,36 @@ interface Row { key: string; clicks: number; impressions: number; ctr: number; p
 interface Data { siteUrl: string; totals: { clicks: number; impressions: number; ctr: number; position: number }; queries: Row[]; pages: Row[] }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+const pos = (v: number) => v.toLocaleString('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+// Il Hub imposta .tabular-nums con il font monospazio: per i numeri in tabella e nelle frasi basta l'allineamento delle cifre
+const NUM = '[font-variant-numeric:tabular-nums]'
 const intFmt = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' })
 
-function Table({ title, rows, render }: { title: string; rows: Row[]; render: (r: Row) => React.ReactNode }) {
+function Table({ title, firstCol, rows, render }: { title: string; firstCol: string; rows: Row[]; render: (r: Row) => React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <p className="mb-2 text-sm font-medium text-foreground">{title}</p>
+      <p className="mb-2 text-sm font-semibold text-foreground">{title}</p>
       {rows.length === 0 ? <p className="text-sm text-muted-foreground">Nessun dato nel periodo.</p> : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-border">
+          <table className="w-full min-w-[520px] table-fixed text-sm">
+            <colgroup><col /><col className="w-[84px]" /><col className="w-[104px]" /><col className="w-[80px]" /><col className="w-[64px]" /></colgroup>
             <thead>
-              <tr className="border-b border-border text-xs text-muted-foreground">
-                <th className="py-1.5 pr-3 text-left font-medium">{title.startsWith('Query') ? 'Query' : 'Pagina'}</th>
-                <th className="px-2 py-1.5 text-right font-medium">Click</th>
-                <th className="px-2 py-1.5 text-right font-medium">Impression</th>
-                <th className="px-2 py-1.5 text-right font-medium">CTR</th>
-                <th className="pl-2 py-1.5 text-right font-medium">Pos.</th>
+              <tr className="bg-muted/50 text-xs text-muted-foreground">
+                <th className="px-3 py-2 text-left font-medium">{firstCol}</th>
+                <th className="px-3 py-2 text-right font-medium">Click</th>
+                <th className="px-3 py-2 text-right font-medium">Impression</th>
+                <th className="px-3 py-2 text-right font-medium">CTR</th>
+                <th className="px-3 py-2 text-right font-medium">Pos.</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.key} className="border-b border-border/60 last:border-0">
-                  <td className="max-w-[260px] truncate py-1.5 pr-3 text-foreground" title={r.key}>{render(r)}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums">{intFmt.format(r.clicks)}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{intFmt.format(r.impressions)}</td>
-                  <td className="px-2 py-1.5 text-right tabular-nums text-muted-foreground">{ctrPct(r.ctr)}</td>
-                  <td className="pl-2 py-1.5 text-right tabular-nums text-muted-foreground">{r.position.toFixed(1)}</td>
+                <tr key={r.key} className="border-t border-border">
+                  <td className="truncate px-3 py-2 text-foreground" title={r.key}>{render(r)}</td>
+                  <td className={`px-3 py-2 text-right font-medium text-foreground ${NUM}`}>{intFmt.format(r.clicks)}</td>
+                  <td className={`px-3 py-2 text-right text-muted-foreground ${NUM}`}>{intFmt.format(r.impressions)}</td>
+                  <td className={`px-3 py-2 text-right text-muted-foreground ${NUM}`}>{ctrPct(r.ctr)}</td>
+                  <td className={`px-3 py-2 text-right text-muted-foreground ${NUM}`}>{pos(r.position)}</td>
                 </tr>
               ))}
             </tbody>
@@ -80,19 +84,24 @@ export function SearchConsoleCard({ clientId, days, range }: { clientId: string;
         icon={Search}
         title="Ricerca organica"
         description="Query che portano traffico e pagine più viste su Google, per il periodo selezionato."
-        summary={data ? <span className="text-sm font-semibold tabular-nums">{intFmt.format(data.totals.clicks)} click</span> : undefined}
+        summary={data ? <span className="text-sm font-semibold text-foreground">{intFmt.format(data.totals.clicks)} click</span> : undefined}
         actions={<Link href={`/clients/${clientId}/search-console`} className="text-xs font-medium text-primary hover:underline" onClickCapture={(e) => e.stopPropagation()}>Dettaglio completo</Link>}
       >
         {loading && !data && <Skeleton className="h-40 rounded-xl" />}
         {error && <p className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">Dati non disponibili: {error}</p>}
         {data && (
           <div className={`space-y-5 transition-opacity ${loading ? 'opacity-60' : ''}`}>
-            <p className="text-sm tabular-nums text-muted-foreground">
-              {intFmt.format(data.totals.clicks)} click · {intFmt.format(data.totals.impressions)} impression · CTR {ctrPct(data.totals.ctr)} · posizione media {data.totals.position.toFixed(1)}
-            </p>
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Table title="Query principali" rows={data.queries} render={(r) => r.key} />
-              <Table title="Pagine principali" rows={data.pages} render={(r) => pagePath(r.key)} />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {([['Click', intFmt.format(data.totals.clicks)], ['Impression', intFmt.format(data.totals.impressions)], ['CTR', ctrPct(data.totals.ctr)], ['Posizione media', pos(data.totals.position)]] as const).map(([l, v]) => (
+                <div key={l} className="rounded-xl border border-border bg-muted/40 px-4 py-3">
+                  <p className="text-xs font-medium text-muted-foreground">{l}</p>
+                  <p className={`mt-0.5 text-xl font-bold text-foreground ${NUM}`}>{v}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-6">
+              <Table title="Query principali" firstCol="Query" rows={data.queries} render={(r) => r.key} />
+              <Table title="Pagine principali" firstCol="Pagina" rows={data.pages} render={(r) => pagePath(r.key)} />
             </div>
           </div>
         )}
