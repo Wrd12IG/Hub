@@ -991,7 +991,6 @@ export default function ClientDetailPage() {
               onTo={setCustomTo}
             />
 
-            {!isClient && (
             <a
               href={`/report-pdf/${id}`}
               target="_blank"
@@ -1000,7 +999,6 @@ export default function ClientDetailPage() {
             >
               <FileText className="h-3.5 w-3.5" /> Report PDF
             </a>
-            )}
 
             <div className="flex items-center gap-3">
               <div className="text-sm font-bold text-muted-foreground">

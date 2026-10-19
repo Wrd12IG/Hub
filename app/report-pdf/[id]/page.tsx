@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { Loader2, Printer } from 'lucide-react'
 import { ReportTrendChart } from '@/components/ReportTrendChart'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
+import { useLayoutData } from '@/app/(app)/layout-context'
 import { useMarketingReport } from '@/hooks/use-marketing-report'
 import { buildPublicReport } from '@/lib/client-report-public'
 import { buildPdfSections, PDF_PERIODS, pdfRange, type PdfPeriod } from '@/lib/report-pdf'
@@ -71,6 +72,8 @@ const pctDelta = (cur: number, prev: number | null) => (prev && prev !== 0 ? Mat
 export default function ReportPdfPage() {
   const id = useParams().id as string
   const { authFetch } = useAuthFetch()
+  // L'utente «Cliente» scarica il suo report ma non ritocca il commento di W[r]Digital
+  const isClient = useLayoutData().currentUser?.role === 'Cliente'
   const [period, setPeriod] = useState<PdfPeriod>('prevMonth')
   const [clientName, setClientName] = useState('')
   const [note, setNote] = useState('')
@@ -132,9 +135,11 @@ export default function ReportPdfPage() {
               ))}
             </div>
           )}
+          {!isClient && (
           <label className="block text-xs font-medium text-[hsl(var(--muted-foreground))]">Commento per il cliente ({monthLabel(range.commentMonth)}): si può ritoccare qui, non viene salvato
             <textarea className="mt-1 block w-full rounded-lg border border-[hsl(var(--border))] bg-white px-3 py-2 text-sm text-[hsl(var(--foreground))]" rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Una nota di lettura dei risultati, in linguaggio semplice…" />
           </label>
+          )}
           <p className="text-[11px] text-[hsl(var(--muted-foreground))]">Nella finestra di stampa scegli «Salva come PDF» e attiva «Grafica di sfondo».</p>
         </div>
       </div>
