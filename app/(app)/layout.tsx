@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useLayoutData } from "@/app/(app)/layout-context";
+import { auth } from '@/lib/firebase';
 import { usePathname } from 'next/navigation';
 import { Header } from "@/components/header";
 import { SidebarNav } from "@/components/sidebar-nav";
@@ -41,7 +42,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isMounted && !isLoadingLayout && !currentUser) {
+    // `auth.currentUser` c'è già appena Firebase ha accettato la password, un attimo prima che il profilo sia caricato:
+    // senza questo controllo quell'attimo bastava a rimandare al login (toast «Login effettuato» e di nuovo l'accesso).
+    if (isMounted && !isLoadingLayout && !currentUser && !auth.currentUser) {
       router.replace('/login');
     }
   }, [currentUser, isLoadingLayout, router, isMounted]);

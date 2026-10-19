@@ -277,20 +277,27 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   useEffect(() => {
     const unsubscribe = onIdTokenChanged(auth, async (user) => {
       if (user) {
+        // Primo caricamento di questo utente (accesso, non rinnovo del token): il «sto caricando» va acceso SUBITO, prima
+        // di qualunque await. Prima si accendeva dopo getIdToken(): nel frattempo la pagina di login faceva già
+        // router.push('/dashboard'), il layout trovava «nessun utente e non sto caricando» e rimandava al login. Risultato:
+        // toast «Login effettuato» e di nuovo la schermata di accesso.
+        const isNewUser = loadedUidRef.current !== user.uid;
+        if (isNewUser) setIsLoadingLayout(true);
         const token = await user.getIdToken();
         localStorage.setItem('token', token);
         // Keep the httpOnly session cookie in sync so middleware.ts can actually
         // verify who's calling /admin* and /clients* at the edge (it previously
         // read a cookie that was never set by any part of the app).
-        fetch('/api/auth/session', {
+        const sessionSync = fetch('/api/auth/session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken: token }),
         }).catch((err) => console.error('[layout-context] Failed to sync session cookie:', err));
         // Rinnovo del token per lo stesso utente: niente loader (smonterebbe
         // tutta l'app e farebbe perdere lo stato dei form), niente riletture.
-        if (loadedUidRef.current === user.uid) return;
-        setIsLoadingLayout(true);
+        if (!isNewUser) return;
+        // All'accesso il cookie deve esserci prima di entrare in /clients o /admin, che il middleware controlla.
+        await sessionSync;
         try {
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
