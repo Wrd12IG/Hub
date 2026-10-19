@@ -67,6 +67,7 @@ import { ReportTrendCard } from "@/components/ReportTrendCard";
 import { validateRange, rangeLabel } from "@/lib/date-range";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { MonthlyCommentEditor } from "@/components/MonthlyCommentEditor";
+import { ClientCommentCard } from "@/components/ClientCommentCard";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
 import { stripCitations } from "@/lib/clean-text";
@@ -219,7 +220,10 @@ const statusColors: Record<
 
 export default function ClientDetailPage() {
   const { id } = useParams() as { id: string };
-  const { usersById } = useLayoutData();
+  const { usersById, currentUser } = useLayoutData();
+  // Chi accede con il ruolo «Cliente» vede solo Overview e Audit del proprio cliente: niente strumenti dello staff.
+  // Il layout riporta qui chi prova ad aprire altro; le API fanno comunque il loro controllo.
+  const isClient = currentUser?.role === "Cliente";
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -749,7 +753,7 @@ export default function ClientDetailPage() {
   const adsHealth = computeAdsHealth(allCampaigns);
   const adsHealthOverall = overallAdsHealth(adsHealth);
 
-  const tabs = [
+  const allTabs = [
     { id: "overview", label: "Overview & Audit", icon: LayoutDashboard, iconColor: "text-amber-500" },
     { id: "intelligence", label: "AI Intelligence", icon: Brain, iconColor: "text-purple-400" },
     {
@@ -762,6 +766,7 @@ export default function ClientDetailPage() {
     { id: "mediaplan", label: "Piano media", icon: PiggyBank, iconColor: "text-sky-400" },
     { id: "settings", label: "Setup API", icon: Settings, iconColor: "text-amber-400" },
   ];
+  const tabs = isClient ? allTabs.filter((t) => t.id === "overview") : allTabs;
 
   // Calcolo reale traffico social da GA4
   const socialChannels =
@@ -793,12 +798,14 @@ export default function ClientDetailPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between bg-muted/40 border border-border p-6 rounded-2xl shadow-sm">
         {/* LEFT: back + title */}
         <div className="space-y-3">
+          {!isClient && (
           <Link
             href="/clients"
             className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Tutti i clienti
           </Link>
+          )}
           <div className="space-y-1">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-black tracking-tight text-foreground font-headline">
@@ -822,7 +829,7 @@ export default function ClientDetailPage() {
                   {(client?.websiteUrl || "").replace(/^https?:\/\//, "")}
                 </a>
               )}
-              {client.socialManagerId && usersById[client.socialManagerId] && (
+              {!isClient && client.socialManagerId && usersById[client.socialManagerId] && (
                 <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 text-primary px-2.5 py-0.5 rounded-full text-xs font-semibold">
                   <Users className="h-3.5 w-3.5 text-primary" />
                   Social Manager: {usersById[client.socialManagerId].name}
@@ -851,6 +858,7 @@ export default function ClientDetailPage() {
         {/* RIGHT: azione. Il cambio cliente sta nell'intestazione (ClientSwitcher, con ricerca): qui c'era un secondo
             selettore «Passa a:» che faceva la stessa cosa ricaricando la pagina. */}
         <div className="flex flex-col gap-3 items-start sm:items-end shrink-0">
+          {!isClient && (
           <Button
             asChild
             size="sm"
@@ -860,6 +868,7 @@ export default function ClientDetailPage() {
               <Plus className="h-4 w-4 mr-1.5" /> Nuova Campagna
             </Link>
           </Button>
+          )}
         </div>
       </div>
 
@@ -875,6 +884,7 @@ export default function ClientDetailPage() {
           • "Maps & GBP" duplicava la scheda GBP che ora sta nella Overview,
             da cui si raggiunge il dettaglio per sede.
       ── */}
+      {!isClient && (
       <div className="relative z-20 flex flex-wrap items-center gap-2.5 bg-muted/40 border border-border p-4 rounded-2xl shadow-sm">
         {[
           {
@@ -935,8 +945,10 @@ export default function ClientDetailPage() {
           );
         })}
       </div>
+      )}
 
       {/* ── TAB BAR ── */}
+      {!isClient && (
       <div className="border-b border-border">
         <div className="flex gap-1 overflow-x-auto scrollbar-hidden">
           {tabs.map((tab) => {
@@ -960,6 +972,7 @@ export default function ClientDetailPage() {
           })}
         </div>
       </div>
+      )}
 
       {/* TAB: OVERVIEW */}
       {activeTab === "overview" && (
@@ -978,6 +991,7 @@ export default function ClientDetailPage() {
               onTo={setCustomTo}
             />
 
+            {!isClient && (
             <a
               href={`/report-pdf/${id}`}
               target="_blank"
@@ -986,6 +1000,7 @@ export default function ClientDetailPage() {
             >
               <FileText className="h-3.5 w-3.5" /> Report PDF
             </a>
+            )}
 
             <div className="flex items-center gap-3">
               <div className="text-sm font-bold text-muted-foreground">
@@ -1038,7 +1053,7 @@ export default function ClientDetailPage() {
 
           {/* ANDAMENTO: spesa e risultato per giorno */}
           <ReportTrendCard report={marketingReport} days={effectiveDays} periodText={activeRange ? rangeLabel(activeRange.from, activeRange.to) : undefined} />
-          <MonthlyCommentEditor clientId={id as string} />
+          {isClient ? <ClientCommentCard clientId={id as string} /> : <MonthlyCommentEditor clientId={id as string} />}
           {client?.windsorAccounts?.searchconsole && (
             <SearchConsoleCard clientId={id as string} days={effectiveDays} range={activeRange ?? null} />
           )}
@@ -1070,7 +1085,7 @@ export default function ClientDetailPage() {
               title="Performance dominio"
               description={client.websiteUrl?.replace("https://", "") || "Nessun dominio"}
               actions={
-                editingDomain ? (
+                isClient ? undefined : editingDomain ? (
                   <form
                     className="flex items-center gap-2"
                     onSubmit={(e) => {
@@ -1126,12 +1141,15 @@ export default function ClientDetailPage() {
                     Google Analytics Non Collegato
                   </div>
                   <div className="text-xs text-muted-foreground max-w-md mx-auto">
-                    Collega il Property ID di GA4 in "Setup API" per sbloccare
-                    l'intelligenza contestuale avanzata sul traffico.
+                    {isClient
+                      ? "I dati di traffico del sito non sono ancora disponibili: li collega il tuo referente W[r]Digital."
+                      : "Collega il Property ID di GA4 in \"Setup API\" per sbloccare l'intelligenza contestuale avanzata sul traffico."}
                   </div>
-                  <Button onClick={() => setActiveTab("settings")} size="sm">
-                    Configura Analytics
-                  </Button>
+                  {!isClient && (
+                    <Button onClick={() => setActiveTab("settings")} size="sm">
+                      Configura Analytics
+                    </Button>
+                  )}
                 </div>
               ) : ga4Data ? (
                 <div className="space-y-6">
@@ -1332,7 +1350,8 @@ export default function ClientDetailPage() {
               ) : null}
             </CollapsibleCard>
 
-            {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali */}
+            {/* CARD 2: Health Score Ads — calcolato sui dati campagne reali (solo staff) */}
+            {!isClient && (
             <CollapsibleCard
               icon={Activity}
               title="Health Score Ads"
@@ -1390,6 +1409,7 @@ export default function ClientDetailPage() {
                 </div>
               )}
             </CollapsibleCard>
+            )}
 
             {/* CARD 3: SEO Godmode Generator - Spans 2 cols on lg */}
             <CollapsibleCard
@@ -1409,6 +1429,9 @@ export default function ClientDetailPage() {
               }
             >
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pt-2">
+                  {isClient && typeof client.lastSeoScore !== "number" ? (
+                    <p className="text-sm text-muted-foreground">Il primo audit SEO non è ancora stato eseguito: lo prepara il tuo referente W[r]Digital.</p>
+                  ) : (
                   <Button
                     onClick={() => setSeoReportOpen(true)}
                     className="w-full sm:w-auto bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 text-white border-0 py-4.5 px-6 rounded-xl font-bold shadow-lg shadow-indigo-500/20 active:scale-98 transition-all flex items-center justify-center gap-2"
@@ -1416,6 +1439,7 @@ export default function ClientDetailPage() {
                     <Sparkles className="h-4 w-4" />
                     {typeof client.lastSeoScore === "number" ? "Apri audit SEO" : "Esegui audit SEO"}
                   </Button>
+                  )}
 
                   {seoReportsList.length > 0 && (
                     <div className="w-full sm:w-64 border border-border rounded-xl overflow-hidden bg-background/40 backdrop-blur-md">
@@ -1464,7 +1488,7 @@ export default function ClientDetailPage() {
 
             {/* CARD 4: Collegamenti dati. Prima mostrava «Token Meta mancante» guardando hasMetaToken, ma i dati Meta
                 arrivano da Windsor col solo ID account: l'avviso compariva anche con tutto funzionante. */}
-            {(() => {
+            {!isClient && (() => {
               const sources = [
                 { label: "Meta Ads", ok: !!client.metaAdAccountId },
                 { label: "Google Ads", ok: !!client.googleAdAccountId },
@@ -1509,6 +1533,8 @@ export default function ClientDetailPage() {
             })()}
           </div>
 
+          {!isClient && (
+            <>
           {/* Pressione competitiva: l'unico dato competitivo *numerico* che le
               API espongano. Segue il selettore "Periodo" perché è una metrica
               di periodo, a differenza del registro competitor qui sotto. */}
@@ -1531,6 +1557,8 @@ export default function ClientDetailPage() {
           >
             <CompetitorsSection clientId={id as string} />
           </CollapsibleCard>
+            </>
+          )}
         </div>
       )}
 
@@ -2096,6 +2124,7 @@ export default function ClientDetailPage() {
         onClose={() => setSeoReportOpen(false)}
         clientId={client.id}
         clientName={client.name}
+        readOnly={isClient}
         onSaved={(score) => setClient((prev) => (prev ? { ...prev, lastSeoScore: score } : prev))}
       />
 

@@ -1,16 +1,17 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { cleanCommentText, currentMonth, isValidMonth } from '@/lib/monthly-comment';
 
-// Commento mensile sui risultati del cliente, mostrato nella pagina pubblica. Solo staff.
+// Commento mensile sui risultati del cliente, mostrato nella pagina pubblica. Lo scrive solo lo staff.
 const docRef = (clientId: string, month: string) =>
   adminDb.collection('clients').doc(clientId).collection('comments').doc(month);
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
-  const denied = await denyUnlessStaff(auth.uid);
+  // Lettura anche per l'utente «Cliente» di questo cliente (vede il commento in sola lettura); la scrittura resta dello staff
+  const denied = await denyUnlessClientAllowed(auth.uid, params.id);
   if (denied) return denied;
 
   const month = new URL(request.url).searchParams.get('month') || currentMonth();

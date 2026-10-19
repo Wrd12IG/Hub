@@ -40,6 +40,23 @@ export async function GET(
     const klaviyoData = klaviyoSnap.exists ? klaviyoSnap.data() : null;
     const youtubePublicData = youtubePublicSnap.exists ? youtubePublicSnap.data() : null;
 
+    // L'utente «Cliente» riceve solo ciò che serve a Overview e Audit: niente budget, piano media, note interne, token
+    // pubblico, referenti o dati di lavoro. (Lo staff riceve il documento intero.)
+    if (!isStaffUser(user)) {
+      const d = doc.data() as any;
+      return NextResponse.json({
+        id: doc.id,
+        name: d.name,
+        websiteUrl: d.websiteUrl,
+        industry: d.industry,
+        ga4PropertyId: d.ga4PropertyId,
+        metaAdAccountId: d.metaAdAccountId,
+        googleAdAccountId: d.googleAdAccountId,
+        windsorAccounts: d.windsorAccounts,
+        lastSeoScore: d.lastSeoScore,
+      });
+    }
+
     return NextResponse.json({
       id: doc.id,
       ...doc.data(),

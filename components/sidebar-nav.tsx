@@ -114,11 +114,6 @@ const adminNavItems: NavItem[] = [
   { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-400' },
 ];
 
-const clientNavItems = [
-  { href: '/briefs', icon: BookOpen, label: 'Brief' },
-  { href: '/documents', icon: FileText, label: 'Documenti' },
-]
-
 
 const allTools: NavItem[] = [
 ];
@@ -186,8 +181,9 @@ export function SidebarNav() {
 
   const visibleNavItems = useMemo(() => {
     if (!currentUser) return [];
+    // L'accesso «Cliente» ha una sola pagina: i risultati del proprio cliente (Overview e Audit)
     if (currentUser.role === 'Cliente') {
-      return clientNavItems;
+      return currentUser.clientId ? [{ href: `/clients/${currentUser.clientId}`, icon: BarChart3, label: 'I miei risultati' }] : [];
     }
 
     const roleName = (currentUser.role || '').trim();

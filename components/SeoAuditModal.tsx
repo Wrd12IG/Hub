@@ -23,13 +23,15 @@ function scoreColor(score: number) {
 }
 
 export function SeoAuditModal({
-  isOpen, onClose, clientId, clientName, onSaved,
+  isOpen, onClose, clientId, clientName, onSaved, readOnly = false,
 }: {
   isOpen: boolean
   onClose: () => void
   clientId: string
   clientName: string
   onSaved?: (score: number) => void
+  /** Sola lettura dell'ultimo audit (accesso «Cliente»): niente pulsante per eseguirne uno nuovo. */
+  readOnly?: boolean
 }) {
   const [audit, setAudit] = useState<SeoAudit | null>(null)
   const [loading, setLoading] = useState(false)
@@ -220,6 +222,7 @@ export function SeoAuditModal({
             </>
           )}
 
+          {!readOnly && (
           <div className="pt-2 flex items-center gap-3">
             <Button onClick={runAudit} disabled={running} className="font-bold">
               {running ? (
@@ -236,6 +239,7 @@ export function SeoAuditModal({
               </span>
             )}
           </div>
+          )}
         </div>
       </div>
     </div>

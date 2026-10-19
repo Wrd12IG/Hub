@@ -69,11 +69,6 @@ const adminNavItems: DockNavItem[] = [
     { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500', group: 'admin' },
 ];
 
-const clientNavItems: DockNavItem[] = [
-    { href: '/briefs', icon: BookOpen, label: 'Brief' },
-    { href: '/documents', icon: FileText, label: 'Documenti e Media' },
-];
-
 // ── Quick Actions ──
 interface QuickAction {
     label: string;
@@ -141,7 +136,10 @@ export function FloatingCommandDock() {
     const visibleNavItems = useMemo(() => {
         if (!currentUser) return [];
 
-        if (currentUser.role === 'Cliente') return clientNavItems;
+        // L'accesso «Cliente» ha una sola pagina: i risultati del proprio cliente (Overview e Audit)
+        if (currentUser.role === 'Cliente') {
+            return currentUser.clientId ? [{ href: `/clients/${currentUser.clientId}`, icon: BarChart3, label: 'I miei risultati', color: 'text-amber-500' } as DockNavItem] : [];
+        }
 
         const roleName = (currentUser.role || '').trim();
         const normalizedRole = roleName.toLowerCase();
