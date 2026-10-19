@@ -1576,22 +1576,13 @@ export default function ClientDetailPage() {
           {/* ANDAMENTO: spesa e risultato per giorno */}
           <ReportTrendCard report={marketingReport} days={effectiveDays} periodText={activeRange ? rangeLabel(activeRange.from, activeRange.to) : undefined} />
           {isClient ? <ClientCommentCard clientId={id as string} /> : <MonthlyCommentEditor clientId={id as string} />}
-          {/* Per il Cliente prima i dati del sito e l'audit (Performance dominio, Audit SEO), poi ricerca organica e performance per account */}
-          {isClient ? (
-            <>
-              <h2 className="pt-2 text-xl font-extrabold tracking-tight text-foreground">Il tuo sito e l'audit</h2>
-              {bentoBlock}
-              <h2 className="pt-2 text-xl font-extrabold tracking-tight text-foreground">Ricerca e piattaforme</h2>
-              {searchBlock}
-              {perfBlock}
-            </>
-          ) : (
-            <>
-              {searchBlock}
-              {perfBlock}
-              {bentoBlock}
-            </>
-          )}
+          {/* Prima i dati del sito e l'audit (Performance dominio, Audit SEO), poi ricerca organica e performance per account.
+              Il Cliente ha in più i titoli dei tre blocchi. */}
+          {isClient && <h2 className="pt-2 text-xl font-extrabold tracking-tight text-foreground">Il tuo sito e l'audit</h2>}
+          {bentoBlock}
+          {isClient && <h2 className="pt-2 text-xl font-extrabold tracking-tight text-foreground">Ricerca e piattaforme</h2>}
+          {searchBlock}
+          {perfBlock}
 
           {!isClient && (
             <>
