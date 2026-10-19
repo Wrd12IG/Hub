@@ -1,3 +1,4 @@
+import { parseJsonLoose } from './json-loose';
 // Analisi AI del sito di un cliente: legge la home, la fa riassumere a Claude in uno schema fisso e il Hub
 // la mostra nella scheda "AI Intelligence" (target, competitor, interessi Meta). Funzioni pure dove possibile.
 
@@ -153,10 +154,5 @@ export function normalizeIntelligence(raw: any): SiteIntelligence {
 
 /** Estrae il JSON anche se il modello lo avvolge in ```json ... ``` o aggiunge testo intorno. */
 export function parseModelJson(text: string): any {
-    const cleaned = text.replace(/```json\s*|```/gi, '').trim();
-    try { return JSON.parse(cleaned); } catch { /* prova a ritagliare il primo oggetto */ }
-    const start = cleaned.indexOf('{');
-    const end = cleaned.lastIndexOf('}');
-    if (start >= 0 && end > start) return JSON.parse(cleaned.slice(start, end + 1));
-    throw new Error('Risposta AI non leggibile');
+    return parseJsonLoose(text);
 }

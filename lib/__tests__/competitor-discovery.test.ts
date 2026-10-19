@@ -89,3 +89,20 @@ describe('competitor-discovery', () => {
         expect(m.list[1].weakness).toBe('scritto da una persona');
     });
 });
+
+import { buildAnalysisPrompt, normalizeAnalysis } from '../competitor-discovery';
+
+describe('analisi di un competitor', () => {
+    it('il prompt chiede fonti e vieta di inventare', () => {
+        const p = buildAnalysisPrompt({ competitor: 'Rivauto', url: 'https://rivauto.it', client: 'City Motors' });
+        expect(p).toContain('Rivauto');
+        expect(p).toMatch(/non inventare/i);
+        expect(p).toContain('sources');
+    });
+
+    it('normalizeAnalysis tiene solo URL veri e taglia gli spazi', () => {
+        const a = normalizeAnalysis({ strength: ' Ampia gamma ', weakness: '', sources: ['https://a.it/x', 'non un url', 5, 'http://b.it'], note: ' nessuna evidenza ' });
+        expect(a).toEqual({ strength: 'Ampia gamma', weakness: '', sources: ['https://a.it/x', 'http://b.it'], note: 'nessuna evidenza' });
+        expect(normalizeAnalysis(null)).toEqual({ strength: '', weakness: '', sources: [], note: '' });
+    });
+});

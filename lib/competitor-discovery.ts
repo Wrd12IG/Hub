@@ -15,6 +15,10 @@ export interface SavedCompetitor {
     weakness?: string;
     adStyle?: string;
     adAnalysis?: AdAnalysis;
+    /** Fonti (URL) su cui poggia l'analisi di forza/debolezza e quando è stata fatta. */
+    weaknessSources?: string[];
+    analyzedAt?: number;
+    analysisNote?: string;
     verified?: boolean;
     verifiedAt?: number;
     siteTitle?: string;
@@ -175,4 +179,34 @@ export function normalizeAdAnalysis(raw: any): { summary: string; weakness: stri
         weakness: str(r.weakness).slice(0, 300),
         analysis: { angles: list(r.angles), hooks: list(r.hooks), ctas: list(r.ctas), offers: list(r.offers), analyzedAt: Date.now() },
     };
+}
+
+
+// ── Punti di forza e deboli di un competitor (ricerca web mirata) ──
+
+export interface CompetitorAnalysis { strength: string; weakness: string; sources: string[]; note: string }
+
+export function buildAnalysisPrompt(input: { competitor: string; url: string; city?: string; kind?: string; client: string; businessType?: string; territory?: string }): string {
+    return `Sei un analista di marketing per aziende italiane. Valuta questo concorrente del nostro cliente cercando sul web.
+
+Concorrente: ${input.competitor} (${input.url})${input.city ? `, ${input.city}` : ''}${input.kind ? ` — ${input.kind}` : ''}
+Nostro cliente: ${input.client}${input.businessType ? ` (${input.businessType})` : ''}
+Territorio: ${input.territory || 'non indicato'}
+
+Cerca: il suo sito, le recensioni su Google e sui portali di settore, la presenza social, le offerte pubblicate.
+Regole:
+- Scrivi SOLO ciò che trovi, e per ogni affermazione una fonte (URL) fra quelle consultate. Niente luoghi comuni validi per chiunque.
+- "weakness": le lacune concrete e verificabili (es. recensioni negative ricorrenti su un tema, sito lento o senza prezzi, nessuna offerta online, social fermi da mesi, orari o servizi limitati). Una o due frasi.
+- Se non trovi evidenze di lacune, lascia "weakness" vuoto e spiegalo in "note": non inventare.
+- "strength": ciò che fa bene, in una o due frasi.
+
+Rispondi SOLO con questo JSON, in italiano:
+{ "strength": "", "weakness": "", "sources": ["https://..."], "note": "" }`;
+}
+
+export function normalizeAnalysis(raw: any): CompetitorAnalysis {
+    const r = raw && typeof raw === 'object' ? raw : {};
+    const sources = (Array.isArray(r.sources) ? r.sources : [])
+        .map((x: unknown) => str(x)).filter((u: string) => /^https?:\/\//i.test(u)).slice(0, 6);
+    return { strength: str(r.strength).slice(0, 400), weakness: str(r.weakness).slice(0, 400), sources, note: str(r.note).slice(0, 300) };
 }
