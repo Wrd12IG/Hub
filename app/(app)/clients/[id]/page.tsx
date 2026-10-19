@@ -462,13 +462,14 @@ export default function ClientDetailPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Errore ${res.status}`);
       if (data.warning) toast.warning(data.warning);
-      else toast.success(`Trovati ${data.added} competitor verificati`, {
+      else toast.success(`Trovati ${data.added} nuovi competitor verificati`, {
         description: [
+          data.updated ? `${data.updated} schede completate con punti di forza e deboli` : "",
           data.removed ? `${data.removed} voci generiche senza sito tolte` : "",
           data.source === "claude" ? "Ricerca web non disponibile: controlla i nomi" : "",
         ].filter(Boolean).join(" · ") || undefined,
       });
-      if (data.added > 0 || data.removed > 0) window.location.reload();
+      if (data.added > 0 || data.removed > 0 || data.updated > 0) window.location.reload();
     } catch (e: any) {
       toast.error(e.message || "Ricerca competitor non riuscita");
     } finally {
@@ -1671,7 +1672,11 @@ export default function ClientDetailPage() {
                                     deboli
                                   </div>
                                   <div className="text-xs text-muted-foreground leading-relaxed font-medium">
-                                    {c.weakness || "—"}
+                                    {c.weakness || (
+                                      <span className="italic text-muted-foreground/60">
+                                        Non ancora analizzato: non vuol dire che non ce ne siano. Rilancia «Trova competitor veri» oppure carica uno screenshot delle inserzioni.
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
