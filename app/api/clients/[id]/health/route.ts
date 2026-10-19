@@ -44,7 +44,7 @@ function isoDaysAgo(days: number): string {
  * media dei quattro segnali.
  *
  * Il calcolo costa (due finestre di report su tutte le piattaforme collegate),
- * quindi il risultato vive in cache 6 ore su clients/{id}/cache/health.
+ * quindi il risultato vive in cache 6 ore su clients/{id}/cache/health2 (`health` è la vecchia, senza lead e contatti).
  * `?refresh=1` la scavalca.
  */
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (denied) return denied;
 
     const clientId = params.id;
-    const cacheRef = adminDb.collection('clients').doc(clientId).collection('cache').doc('health');
+    const cacheRef = adminDb.collection('clients').doc(clientId).collection('cache').doc('health2');
     const refresh = request.nextUrl.searchParams.get('refresh') === '1';
 
     if (!refresh) {
@@ -110,10 +110,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         //
         // Azzerare windsorAccounts e metaAdAccountId lascia in piedi
         // esattamente ga4, google_ads, klaviyo e awin.
+        //
+        // Meta (lead) e GBP (chiamate, indicazioni, click sul sito) restano: per chi non vende online sono l'esito.
+        // Instagram, LinkedIn e Search Console no. GBP ora è una chiamata sola per finestra, non più una per sede.
         const outcomeOnly = {
             ...client,
-            windsorAccounts: undefined,
-            metaAdAccountId: undefined,
+            windsorAccounts: client.windsorAccounts?.gbp?.length ? { gbp: client.windsorAccounts.gbp } : undefined,
             klaviyo,
         };
 

@@ -96,19 +96,24 @@ export interface PressureSummary {
 function sumField(
     platforms: PlatformReport[],
     platform: PlatformReport['platform'],
-    field: string,
+    fields: string | string[],
     which: 'current' | 'previous'
 ): number | null {
-    const p = platforms.find((x) => x.platform === platform && x.connected);
-    if (!p) return null;
-    const rows = which === 'current' ? p.rows : p.previousRows ?? [];
+    // Più voci per la stessa piattaforma (GBP: una per sede) si sommano: leggerne una sola darebbe una sede su quattro.
+    const list = platforms.filter((x) => x.platform === platform && x.connected);
+    const names = Array.isArray(fields) ? fields : [fields];
     let total = 0;
     let seen = false;
-    for (const row of rows ?? []) {
-        const v = row?.[field];
-        if (typeof v === 'number' && Number.isFinite(v)) {
-            total += v;
-            seen = true;
+    for (const p of list) {
+        const rows = which === 'current' ? p.rows : p.previousRows ?? [];
+        for (const row of rows ?? []) {
+            for (const field of names) {
+                const v = row?.[field];
+                if (typeof v === 'number' && Number.isFinite(v)) {
+                    total += v;
+                    seen = true;
+                }
+            }
         }
     }
     return seen ? total : null;
@@ -116,8 +121,11 @@ function sumField(
 
 interface Source {
     platform: PlatformReport['platform'];
-    field: string;
+    /** Un campo, oppure più campi della stessa piattaforma da sommare (contatti GBP: chiamate + indicazioni + click sito). */
+    field: string | string[];
     label: string;
+    /** Come chiamare l'esito nella UI quando non sono "conversioni" (un cliente senza vendite online ha lead, non acquisti). */
+    metricLabel?: string;
 }
 
 /** In ordine di ampiezza: la prima disponibile vince, le altre si ignorano. */
@@ -127,17 +135,32 @@ const REVENUE_SOURCES: Source[] = [
     { platform: 'klaviyo', field: 'conversion_value', label: 'Klaviyo — fatturato attribuito alle email' },
 ];
 
+/**
+ * Chi non vende online (una concessionaria, uno studio) non ha ricavi né acquisti da misurare: il suo esito sono i
+ * contatti. Per questo, dopo le transazioni, vengono i lead di Meta e poi le altre fonti.
+ * Come per i ricavi, si prende UNA sola fonte e non si sommano: i contatti di GBP e i lead di Meta possono essere
+ * la stessa persona.
+ */
 const CONVERSION_SOURCES: Source[] = [
     { platform: 'ga4', field: 'transactions', label: 'GA4 — transazioni' },
-    { platform: 'ga4', field: 'conversions', label: 'GA4 — eventi chiave' },
+    { platform: 'facebook', field: 'leads', label: 'Meta Ads — lead', metricLabel: 'lead' },
     { platform: 'google_ads', field: 'conversions', label: 'Google Ads — conversioni' },
+    { platform: 'ga4', field: 'conversions', label: 'GA4 — eventi chiave' },
+    {
+        platform: 'gbp',
+        field: ['call_clicks', 'direction_requests', 'website_clicks'],
+        label: 'Google Business Profile — chiamate, indicazioni e click sul sito',
+        metricLabel: 'contatti',
+    },
     { platform: 'klaviyo', field: 'conversions', label: 'Klaviyo — conversioni' },
     { platform: 'awin', field: 'transactions', label: 'Awin — transazioni' },
 ];
 
 /** Le piattaforme da cui può venire una metrica di esito, per nome leggibile. */
-const OUTCOME_PLATFORMS: Partial<Record<PlatformReport['platform'], string>> = {
+export const OUTCOME_PLATFORMS: Partial<Record<PlatformReport['platform'], string>> = {
     ga4: 'GA4',
+    facebook: 'Meta Ads',
+    gbp: 'Google Business Profile',
     google_ads: 'Google Ads',
     klaviyo: 'Klaviyo',
     awin: 'Awin',
@@ -198,7 +221,7 @@ export function computeClientHealth(input: {
     const conversions = pick(platforms, CONVERSION_SOURCES);
     const outcome = revenue ?? conversions;
     const metric: 'revenue' | 'conversions' | null = revenue ? 'revenue' : conversions ? 'conversions' : null;
-    const metricLabel = metric === 'revenue' ? 'fatturato' : metric === 'conversions' ? 'conversioni' : null;
+    const metricLabel = metric === 'revenue' ? 'fatturato' : metric === 'conversions' ? (conversions?.metricLabel ?? 'conversioni') : null;
 
     const base: Omit<ClientHealth, 'state' | 'deltaPct' | 'deltaAbs' | 'deltaKind' | 'blocked' | 'reasons'> = {
         metric,
@@ -233,11 +256,11 @@ export function computeClientHealth(input: {
             .map((p) => OUTCOME_PLATFORMS[p.platform] as string);
         if (connected.length > 0) {
             return unknown(
-                `${connected.join(', ')} ${connected.length > 1 ? 'sono collegati' : 'è collegato'} ma non ${connected.length > 1 ? 'hanno' : 'ha'} registrato ricavi né conversioni, né in questi ${days} giorni né nei ${days} precedenti.`
+                `${connected.join(', ')} ${connected.length > 1 ? 'sono collegati' : 'è collegato'} ma non ${connected.length > 1 ? 'hanno' : 'ha'} registrato ricavi, lead né conversioni, né in questi ${days} giorni né nei ${days} precedenti.`
             );
         }
         return unknown(
-            'Nessuna metrica di esito collegata. Serve almeno GA4, Google Ads, Klaviyo o Awin per sapere come sta andando questo cliente.'
+            'Nessuna metrica di esito collegata. Serve almeno uno fra GA4, Meta Ads, Google Ads, Google Business Profile, Klaviyo o Awin per sapere come sta andando questo cliente.'
         );
     }
     if (outcome.previous === null) {
@@ -277,7 +300,7 @@ export function computeClientHealth(input: {
                 );
             }
             return unknown(
-                `Solo ${nf.format(convPrev as number)} conversioni nei ${days} giorni precedenti: sotto ${MIN_BASE_CONVERSIONS} una variazione percentuale è rumore, non andamento.`
+                `Solo ${nf.format(convPrev as number)} ${conversions?.metricLabel ?? 'conversioni'} nei ${days} giorni precedenti: sotto ${MIN_BASE_CONVERSIONS} una variazione percentuale è rumore, non andamento.`
             );
         }
         deltaAbs = Math.round((current - previous) * 100) / 100;
