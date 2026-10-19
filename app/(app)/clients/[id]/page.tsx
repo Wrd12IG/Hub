@@ -59,7 +59,8 @@ import {
 import { useLayoutData } from "@/app/(app)/layout-context";
 import { MarketingReportTab } from "@/components/MarketingReportTab";
 import { ReportSummaryStrip } from "@/components/ReportSummaryStrip";
-import { BudgetGoalsCard } from "@/components/BudgetGoalsCard";
+import { MediaPlanTab } from "@/components/MediaPlanTab";
+import type { MediaPlan } from "@/lib/media-plan";
 import { SearchConsoleCard } from "@/components/SearchConsoleCard";
 import { ReportTrendCard } from "@/components/ReportTrendCard";
 import { validateRange, rangeLabel } from "@/lib/date-range";
@@ -94,7 +95,7 @@ import { Input } from "@/components/ui/input";
 import { MetricoolDatePicker } from "@/components/metricool/MetricoolDatePicker";
 import type { DateRange } from "react-day-picker";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, PiggyBank } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { mergeCompetitors } from "@/lib/competitor-merge";
@@ -105,8 +106,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 // Nessun dato placeholder — tutti i dati sono reali da Firebase / API collegate
 
 interface Client {
-  adBudgetMonthly?: number;
-  resultTargetMonthly?: number;
+  mediaPlan?: MediaPlan | null;
   id: string;
   name: string;
   websiteUrl: string;
@@ -225,6 +225,7 @@ export default function ClientDetailPage() {
     | "overview"
     | "intelligence"
     | "campaigns"
+    | "mediaplan"
     | "settings"
     | "heatmaps"
   >("overview");
@@ -755,6 +756,7 @@ export default function ClientDetailPage() {
       iconColor: "text-emerald-400",
     },
     { id: "heatmaps", label: "Heatmaps & Registrazioni", icon: Eye, iconColor: "text-rose-400" },
+    { id: "mediaplan", label: "Piano media", icon: PiggyBank, iconColor: "text-sky-400" },
     { id: "settings", label: "Setup API", icon: Settings, iconColor: "text-amber-400" },
   ];
 
@@ -1020,15 +1022,6 @@ export default function ClientDetailPage() {
             report={marketingReport}
             days={effectiveDays}
             compare={compareMode as "prev_period" | "prev_year" | "none"}
-          />
-
-          <BudgetGoalsCard
-            clientId={id as string}
-            report={marketingReport}
-            days={effectiveDays}
-            adBudget={client?.adBudgetMonthly || undefined}
-            target={client?.resultTargetMonthly || undefined}
-            onSaved={(v) => setClient((c) => (c ? { ...c, ...v } : c))}
           />
 
           {/* ANDAMENTO: spesa e risultato per giorno */}
@@ -2171,6 +2164,15 @@ export default function ClientDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB: PIANO MEDIA */}
+      {activeTab === "mediaplan" && (
+        <MediaPlanTab
+          clientId={id as string}
+          initial={client.mediaPlan}
+          onSaved={(p) => setClient((c) => (c ? { ...c, mediaPlan: p } : c))}
+        />
       )}
 
       {/* TAB: API SETTINGS */}
