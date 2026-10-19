@@ -203,8 +203,9 @@ export default function InstagramDashboard() {
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
               <Bar yAxisId="right" dataKey="contenuti" name="Contenuti" fill="#f59e0b" barSize={8} radius={[4, 4, 0, 0]} />
-              <Line yAxisId="left" type="monotone" dataKey="followers" name="Followers" stroke="#60a5fa" strokeWidth={2} dot={{r: 3, strokeWidth: 2}} activeDot={{r: 5}} />
-              <Line yAxisId="left" type="monotone" dataKey="seguiti" name="Seguiti" stroke="#34d399" strokeWidth={2} dot={{r: 3, strokeWidth: 2}} />
+              {/* Il totale dei follower non ha uno storico: le linee «Followers» e «Seguiti» non avevano dati e il grafico
+                  sembrava vuoto. Qui i nuovi follower per giorno, che sono dati veri. */}
+              <Line yAxisId="left" type="monotone" dataKey="nuoviFollower" name="Nuovi follower" stroke="#60a5fa" strokeWidth={2} dot={{r: 3, strokeWidth: 2}} activeDot={{r: 5}} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

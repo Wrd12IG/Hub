@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { aggregateHashtags, postsPerDay } from '@/lib/instagram-hashtags';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getData } from '@/lib/windsor-client';
@@ -83,6 +84,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         nuoviFollower: num(r.follower_count_1d),
       });
     }
+    // Contenuti pubblicati per giorno, dai contenuti stessi: erano un dato reale che i grafici si aspettavano ma non
+    // ricevevano mai (le barre «Contenuti» restavano vuote, e in un caso valevano 0 per costruzione).
+    const perDay = postsPerDay(media);
     const series = Array.from(byDate.values()).sort((x, y) => x.date.localeCompare(y.date));
 
     const sum = (k: string) => series.reduce((s, r) => s + num(r[k]), 0);
@@ -140,7 +144,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       // sommando i nuovi follower sarebbe sbagliato (sono lordi, non netti) e
       // una linea piatta sembrerebbe un dato. Resta il conteggio assoluto nel
       // riquadro e il saldo giornaliero nel grafico apposta.
-      crescitaChart: series.map((r) => ({ date: r.date, contenuti: 0 })),
+      crescitaChart: series.map((r) => ({ date: r.date, contenuti: perDay[r.date] ?? 0, nuoviFollower: r.nuoviFollower })),
       saldoFollower: series.map((r) => ({ date: r.date, value: r.nuoviFollower })),
 
       organicoSummary: {
@@ -158,7 +162,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         miPiacePerCommento: div(sum('miPiace'), sum('commenti')),
       },
       organicoChart: series.map((r) => ({
-        date: r.date, copertura: r.copertura, visualizzazioni: r.visualizzazioni,
+        date: r.date, contenuti: perDay[r.date] ?? 0, copertura: r.copertura, visualizzazioni: r.visualizzazioni,
         interazioni: r.interazioni,
         engagement: r.copertura > 0 ? round((r.interazioni / r.copertura) * 100) : 0,
       })),
@@ -168,7 +172,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         salvati: sum('salvati'), condivisi: sum('condivisi'), reels: reels.length,
       },
       interazioniOrganicheChart: series.map((r) => ({
-        date: r.date, miPiace: r.miPiace, commenti: r.commenti,
+        date: r.date, contenuti: perDay[r.date] ?? 0, miPiace: r.miPiace, commenti: r.commenti,
         salvati: r.salvati, condivisi: r.condivisi,
       })),
 
@@ -193,8 +197,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
       posts,
       reels,
-      // Windsor non espone gli hashtag: lista vuota, non inventata.
-      hashtags: [],
+      // Windsor non ha un campo hashtag, ma la didascalia di ogni contenuto li contiene: si estraggono da lì.
+      hashtags: aggregateHashtags(media),
       _meta: { source: 'windsor', days },
     });
   } catch (err: any) {
