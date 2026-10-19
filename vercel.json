@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/warm-reports",
       "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/cron/migrate-client-private",
+      "schedule": "40 3 * * *"
     }
   ]
 }
