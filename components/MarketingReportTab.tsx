@@ -6,6 +6,7 @@ import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linke
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
+import { ReportAlertList } from '@/components/ReportAlertList'
 import { PLATFORM_DEFS, COST_KEYS, computeAlerts, type PlatformKey } from '@/lib/report-metrics'
 import type { MarketingReportState } from '@/hooks/use-marketing-report'
 
@@ -82,30 +83,7 @@ export function MarketingReportTab({
       </div>
 
       {!loadError && platforms && compare !== 'none' && (
-        <div className="rounded-xl border p-4 space-y-2">
-          <h3 className="text-sm font-bold flex items-center gap-2">
-            <AlertCircle size={15} className="text-amber-500" />
-            Anomalie ({compare === 'prev_year' ? 'vs anno prec.' : 'vs periodo prec.'})
-          </h3>
-          {alerts.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
-              Nessuno scostamento oltre il 25% sulle metriche monitorate. Operatività regolare.
-            </p>
-          ) : (
-            <ul className="space-y-1">
-              {alerts.map((a, i) => (
-                <li key={i} className="text-xs flex items-center gap-2">
-                  <span className={a.good ? 'text-emerald-600 font-bold' : 'text-red-600 font-bold'}>
-                    {a.value > 0 ? '+' : ''}{a.value}%
-                  </span>
-                  <span className="text-muted-foreground">
-                    {a.platform} — {a.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <ReportAlertList alerts={alerts} compare={compare as 'prev_period' | 'prev_year'} />
       )}
 
       {loading && !platforms && (

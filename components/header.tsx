@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { segmentLabel } from '@/lib/breadcrumb';
 import { SidebarNav } from '@/components/sidebar-nav';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -84,7 +85,7 @@ export function Header() {
     const pathname = usePathname();
     const router = useRouter();
     const {
-        clientDetails,
+        clientsById,
         currentUser,
         handleLogout,
         notifications,
@@ -119,12 +120,11 @@ export function Header() {
         return () => window.removeEventListener('color-theme-change', handleThemeChange);
     }, []);
 
-    const getSegmentLabel = (segment: string, index: number) => {
-        if (segments[index - 1] === 'clients' && clientDetails && clientDetails.id === segment) {
-            return clientDetails.name;
-        }
-        return SEGMENT_LABELS[segment] || segment.replace(/-/g, ' ');
-    }
+    // Il segmento dopo /clients/ è l'ID del cliente: si mostra il suo nome. (Prima si cercava in `clientDetails`, che nessuna
+    // pagina imposta mai, quindi nell'intestazione compariva sempre l'ID, es. «ZJHHBZm8Gn1ZDXBzU0Ha».)
+    const isClientSegment = (index: number) => segments[index - 1] === 'clients';
+    const getSegmentLabel = (segment: string, index: number) =>
+        segmentLabel(segment, segments[index - 1], clientsById, SEGMENT_LABELS);
 
     const getSegmentPath = (segment: string, index: number) => {
         // If the segment is 'clients', link to the admin page with the clients tab selected
@@ -177,12 +177,12 @@ export function Header() {
                                 <BreadcrumbSeparator />
                                 <BreadcrumbItem>
                                     {index === segments.length - 1 ? (
-                                        <BreadcrumbPage className="capitalize">
+                                        <BreadcrumbPage className={isClientSegment(index) ? '' : 'capitalize'}>
                                             {getSegmentLabel(segment, index)}
                                         </BreadcrumbPage>
                                     ) : (
                                         <BreadcrumbLink asChild>
-                                            <Link href={getSegmentPath(segment, index)} className="capitalize">
+                                            <Link href={getSegmentPath(segment, index)} className={isClientSegment(index) ? '' : 'capitalize'}>
                                                 {getSegmentLabel(segment, index)}
                                             </Link>
                                         </BreadcrumbLink>
