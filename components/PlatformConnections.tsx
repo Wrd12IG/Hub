@@ -17,7 +17,9 @@ import {
   Mail,
   Handshake,
   Users,
+  Facebook,
 } from "lucide-react";
+import { AccountPicker, AccountAppender } from "@/components/AccountPicker";
 
 /* ─────────────────────────────────────────────────────────────────
    TYPES
@@ -61,6 +63,7 @@ export interface ClientConnections {
     instagram?: string;
     searchconsole?: string;
     linkedin_organic?: string;
+    facebook_page?: string;
     gbp?: string[];
   };
 }
@@ -516,6 +519,11 @@ function WindsorGbpModal({
     <ModalWrapper title="Google Business Profile — Sedi (Report)" onClose={onClose}>
       <div className="space-y-4">
         <div className="space-y-1.5">
+          <AccountAppender
+            connector="google_my_business"
+            taken={value.split(/[\n,]/).map((v) => v.trim()).filter(Boolean)}
+            onAdd={(id) => setValue((prev) => (prev.trim() ? `${prev.trim()}\n${id}` : id))}
+          />
           <label htmlFor="windsor-gbp" className="text-xs font-bold text-muted-foreground">
             ID account GBP — uno per riga (o separati da virgola)
           </label>
@@ -741,11 +749,13 @@ function KlaviyoModal({
 ───────────────────────────────────────────────────────────────── */
 
 function WindsorFieldModal({
-  clientId, title, fieldKey, currentValue, placeholder, hint, accentColor, onClose, onSaved,
+  clientId, title, fieldKey, connector, currentValue, placeholder, hint, accentColor, onClose, onSaved,
 }: {
   clientId: string;
   title: string;
-  fieldKey: 'instagram' | 'searchconsole' | 'linkedin_organic' | 'awinAdvertiserId';
+  fieldKey: 'instagram' | 'facebook_page' | 'searchconsole' | 'linkedin_organic' | 'awinAdvertiserId';
+  /** Se c'è, l'account si sceglie da un elenco (nome e ID) invece di scrivere l'ID. */
+  connector?: 'instagram' | 'facebook_organic' | 'linkedin_organic' | 'google_my_business';
   currentValue?: string | null;
   placeholder: string;
   hint: React.ReactNode;
@@ -786,9 +796,13 @@ function WindsorFieldModal({
     <ModalWrapper title={title} onClose={onClose}>
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <label htmlFor={`windsor-${fieldKey}`} className="text-xs font-bold text-muted-foreground">ID account</label>
-          <input id={`windsor-${fieldKey}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
-            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
+          <label htmlFor={`windsor-${fieldKey}`} className="text-xs font-bold text-muted-foreground">{connector ? 'Account' : 'ID account'}</label>
+          {connector ? (
+            <AccountPicker connector={connector} value={value} onChange={setValue} placeholder={placeholder} />
+          ) : (
+            <input id={`windsor-${fieldKey}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
+              className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
+          )}
           <p className="text-xs text-muted-foreground">{hint}</p>
         </div>
         <button onClick={save} disabled={saving || !value.trim()}
@@ -1347,7 +1361,7 @@ function LinkedinModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-facebook" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
 
 
 export default function PlatformConnections({
@@ -1596,6 +1610,23 @@ export default function PlatformConnections({
           </button>
         </div>
 
+        {/* ── FACEBOOK — PAGINA (per Report Marketing) ── */}
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.facebook_page, "#1877F2")}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#60a5fa")}>
+                <Facebook size={16} />
+              </div>
+              <span className="text-sm font-bold text-foreground">Facebook (pagina)</span>
+            </div>
+            {client.windsorAccounts?.facebook_page && <ConnectedBadge />}
+          </div>
+          <button type="button" onClick={() => setActiveModal("windsor-facebook")}
+            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
+            {client.windsorAccounts?.facebook_page ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega la pagina</>}
+          </button>
+        </div>
+
         {/* ── COMPETITOR TERRITORIALI ── */}
         <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(false, "#64748B")}>
           <div className="flex items-center justify-between">
@@ -1811,10 +1842,25 @@ export default function PlatformConnections({
           clientId={clientId}
           title="Instagram — Business Account ID"
           fieldKey="instagram"
+          connector="instagram"
           currentValue={client.windsorAccounts?.instagram}
           placeholder="es. 17841407927101615"
           hint="Lo trovi nel pannello dati dell'agenzia, alla voce Instagram."
           accentColor="#E1306C"
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { refreshClient(); setActiveModal(null); }}
+        />
+      )}
+      {activeModal === "windsor-facebook" && (
+        <WindsorFieldModal
+          clientId={clientId}
+          title="Facebook — Pagina"
+          fieldKey="facebook_page"
+          connector="facebook_organic"
+          currentValue={client.windsorAccounts?.facebook_page}
+          placeholder="es. 323377684482"
+          hint="La pagina Facebook del cliente (non l'account pubblicitario): dà follower, copertura e interazioni nel report."
+          accentColor="#1877F2"
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }}
         />
@@ -1845,6 +1891,7 @@ export default function PlatformConnections({
           clientId={clientId}
           title="LinkedIn — Organization ID (per Report Marketing)"
           fieldKey="linkedin_organic"
+          connector="linkedin_organic"
           currentValue={client.windsorAccounts?.linkedin_organic}
           placeholder="es. 53113725"
           hint="Numero dell'Organization ID LinkedIn collegato nel pannello dati dell'agenzia — non è legato alla connessione LinkedIn qui sopra."

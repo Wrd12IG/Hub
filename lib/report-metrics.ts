@@ -8,7 +8,7 @@ export type PlatformKey = PlatformReport['platform'];
 export interface MetricDef { key: string; label: string }
 
 /** Una metrica del grafico giornaliero di una scheda. `bar` per i conteggi del giorno, `line` per gli stati o i confronti. */
-export interface ChartMetric { key: string; label: string; kind: 'bar' | 'line'; unit?: 'euro' }
+export interface ChartMetric { key: string; label: string; kind: 'bar' | 'line'; unit?: 'euro'; /** Uno stato (follower): si legge il valore di oggi, non il totale del periodo. */ stock?: boolean }
 
 /** Metriche mostrate per piattaforma e quali usare come "titolo" della scheda chiusa (la prima con un valore). */
 export const PLATFORM_DEFS: Record<PlatformKey, { label: string; metrics: MetricDef[]; headline: string[]; chart?: ChartMetric[] }> = {
@@ -17,6 +17,18 @@ export const PLATFORM_DEFS: Record<PlatformKey, { label: string; metrics: Metric
         metrics: [{ key: 'spend', label: 'Spesa €' }, { key: 'leads', label: 'Lead' }, { key: 'cost_per_lead', label: 'Costo per lead €' }, { key: 'lead_rate_pct', label: 'Click → lead %' }, { key: 'clicks', label: 'Click' }, { key: 'ctr_pct', label: 'CTR %' }, { key: 'cpc_calc', label: 'CPC €' }, { key: 'cpm_calc', label: 'CPM €' }, { key: 'impressions', label: 'Impression' }, { key: 'reach', label: 'Reach' }],
         headline: ['leads', 'spend'],
         chart: [{ key: 'spend', label: 'Spesa', kind: 'bar', unit: 'euro' }, { key: 'leads', label: 'Lead', kind: 'line' }, { key: 'clicks', label: 'Click', kind: 'bar' }, { key: 'impressions', label: 'Impression', kind: 'bar' }],
+    },
+    facebook_page: {
+        label: 'Facebook (pagina)',
+        metrics: [{ key: 'page_fans', label: 'Follower' }, { key: 'page_impressions_unique', label: 'Copertura' }, { key: 'page_impressions', label: 'Impression' }, { key: 'page_post_engagements', label: 'Interazioni' }, { key: 'new_follows', label: 'Nuovi follower' }, { key: 'page_video_views', label: 'Visualizzazioni video' }],
+        headline: ['page_impressions_unique', 'page_fans'],
+        chart: [{ key: 'page_fans', label: 'Follower', kind: 'line', stock: true }, { key: 'page_impressions', label: 'Impression', kind: 'bar' }, { key: 'page_impressions_unique', label: 'Copertura', kind: 'bar' }, { key: 'page_post_engagements', label: 'Interazioni', kind: 'bar' }, { key: 'page_daily_follows', label: 'Nuovi follower', kind: 'bar' }, { key: 'page_video_views', label: 'Visualizzazioni video', kind: 'bar' }],
+    },
+    youtube: {
+        label: 'YouTube',
+        metrics: [{ key: 'subscribers', label: 'Iscritti' }, { key: 'views', label: 'Visualizzazioni totali' }, { key: 'videos', label: 'Video totali' }, { key: 'period_videos', label: 'Video del periodo' }, { key: 'period_views', label: 'Visualizzazioni dei video del periodo' }],
+        headline: ['period_views', 'subscribers'],
+        chart: [{ key: 'video_views', label: 'Visualizzazioni dei video, per giorno di uscita', kind: 'bar' }],
     },
     instagram: {
         label: 'Instagram',

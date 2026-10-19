@@ -21,6 +21,8 @@ import { getGA4Totals, getGA4Daily } from './ga4-client';
 import { getSearchConsoleTotals, getSearchConsoleDaily } from './search-console-client';
 import { getKlaviyoTotals, getKlaviyoFlowTotals, toKlaviyoTimeframe, presetToKlaviyoTimeframe } from './klaviyo-client';
 import { getAwinTotals } from './awin-client';
+import { resolvePublicChannel, getPublicVideos } from './youtube-public';
+import { youtubePeriodStats, youtubeDailyRows } from './youtube-report';
 import { getGoogleAdsAccountTotals as getGoogleAdsAccountTotalsDirect, getGoogleAdsDailySeries } from './google-ads-client';
 import { getGoogleAdsAccountTotalsViaComposio } from './google-ads-composio';
 import { isComposioConfigured } from './composio-client';
@@ -51,10 +53,12 @@ type ClientReportSource = Pick<Client, 'windsorAccounts'> & {
     klaviyo?: { apiKey: string; conversionMetricId?: string; cacheKey?: string };
     /** Id advertiser Awin del cliente; il token è di agenzia (AWIN_API_TOKEN). */
     awinAdvertiserId?: string;
+    /** Canale YouTube pubblico (solo ID canale): sta in `integrations`, lo risolve il servizio e lo passa qui. */
+    youtube?: { channelId: string };
 };
 
 export interface PlatformReport {
-    platform: 'facebook' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo' | 'awin';
+    platform: 'facebook' | 'facebook_page' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo' | 'awin' | 'youtube';
     /** Set for platforms that can have several accounts per client (GBP: one per sede). */
     accountLabel?: string;
     connected: boolean;
@@ -79,7 +83,7 @@ export interface PlatformReport {
 // nativi da Google col service account dell'agenzia, il terzo dall'API Klaviyo
 // con una chiave privata per cliente. Restano nel tipo PlatformReport (la UI li
 // mostra come gli altri) ma non hanno un connector qui.
-type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo' | 'awin' | 'google_ads'>;
+type WindsorPlatform = Exclude<PlatformReport['platform'], 'ga4' | 'searchconsole' | 'klaviyo' | 'awin' | 'google_ads' | 'youtube'>;
 
 /**
  * Colonne giornaliere per piattaforma Windsor: verificate il 19/10/2026 con letture vere (30 giorni di valori, non colonne
@@ -100,6 +104,17 @@ const DAILY_MAPS: Partial<Record<string, { fields: string[]; map: DailyFieldMap 
             page_views: { field: 'all_page_views' },
         },
     },
+    facebook_page: {
+        fields: ['page_fans', 'page_impressions', 'page_impressions_unique', 'page_post_engagements', 'page_daily_follows', 'page_video_views'],
+        map: {
+            page_fans: { field: 'page_fans', mode: 'last' },
+            page_impressions: { field: 'page_impressions' },
+            page_impressions_unique: { field: 'page_impressions_unique' },
+            page_post_engagements: { field: 'page_post_engagements' },
+            page_daily_follows: { field: 'page_daily_follows' },
+            page_video_views: { field: 'page_video_views' },
+        },
+    },
     gbp: {
         fields: ['impressions', 'website_clicks', 'call_clicks', 'direction_requests'],
         map: { impressions: { field: 'impressions' }, website_clicks: { field: 'website_clicks' }, call_clicks: { field: 'call_clicks' }, direction_requests: { field: 'direction_requests' } },
@@ -109,6 +124,11 @@ const DAILY_MAPS: Partial<Record<string, { fields: string[]; map: DailyFieldMap 
 const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-client').WindsorConnector; fields: string[] }> = {
     facebook: { connector: 'facebook', fields: ['spend', 'clicks', 'impressions', 'reach', 'ctr', 'cpc', 'cpm', 'frequency', 'actions_lead'] },
     instagram: { connector: 'instagram', fields: ['followers_count', 'reach', 'profile_views', 'likes'] },
+    // Pagina Facebook (non gli annunci): campi verificati il 19/10/2026 con letture vere sulla pagina di City Motors.
+    // `page_fans` è uno stato (i follower di oggi): la chiamata senza giorno restituisce l'ultimo valore; `page_impressions_unique`
+    // aggregata dà la copertura vera del periodo (la somma dei giorni la conterebbe più volte); `page_daily_follows` non si aggrega
+    // e i nuovi follower si ricavano dalla somma dei giorni.
+    facebook_page: { connector: 'facebook_organic', fields: ['page_fans', 'page_impressions', 'page_impressions_unique', 'page_post_engagements', 'page_video_views'] },
     linkedin_organic: {
         connector: 'linkedin_organic',
         fields: [
@@ -159,10 +179,20 @@ const NON_SUMMABLE = new Set([
     'ctr', 'cpc', 'cpm', 'frequency', 'position',
     'bounce_rate', 'engagement_rate', 'session_conversion_rate',
     'average_session_duration', 'screen_page_views_per_session',
-    'followers_count', 'organization_follower_count',
+    'followers_count', 'organization_follower_count', 'page_fans', 'page_follows',
     'review_count', 'review_total_count',
     'review_average_rating', 'review_average_rating_total',
 ]);
+
+/**
+ * Facebook (pagina): i «nuovi follower» non si possono aggregare su Windsor (colonna nulla senza il giorno), quindi sono la
+ * somma dei giorni del periodo. Per le altre piattaforme la riga resta com'è.
+ */
+function withPageExtras(platform: string, row: Record<string, string | number | undefined>, dailyRows: Record<string, unknown>[]) {
+    if (platform !== 'facebook_page') return row;
+    const follows = dailyRows.reduce((s, r) => s + (typeof r.page_daily_follows === 'number' ? r.page_daily_follows : 0), 0);
+    return follows > 0 ? { ...row, new_follows: follows } : row;
+}
 
 /** Contatti di una sede: chiamate + richieste di indicazioni + click sul sito. */
 export function withGbpContacts(row: Record<string, string | number | undefined>): Record<string, string | number | undefined> {
@@ -358,6 +388,7 @@ export async function getClientMarketingReport(
         facebook: client.metaAdAccountId,
         ga4: client.ga4PropertyId,
         instagram: client.windsorAccounts?.instagram,
+        facebook_page: client.windsorAccounts?.facebook_page,
         linkedin_organic: client.windsorAccounts?.linkedin_organic,
     };
 
@@ -384,7 +415,7 @@ export async function getClientMarketingReport(
     // Chi aggiunge una piattaforma nativa la aggiunga anche qui.
     if (platforms.length === 0 && gbpAccountIds.length === 0
         && !client.ga4PropertyId && !searchConsoleSite && !client.klaviyo
-        && !client.awinAdvertiserId && !client.googleAdAccountId) {
+        && !client.awinAdvertiserId && !client.googleAdAccountId && !client.youtube) {
         return [];
     }
 
@@ -432,7 +463,7 @@ export async function getClientMarketingReport(
                 ...(dailyRows.length > 0 ? { series: dailyFromRows(dailyRows, { spend: 'spend', results: 'actions_lead', clicks: 'clicks', impressions: 'impressions' }) } : {}),
                 // One aggregated row — see aggregateRows for why raw rows can't
                 // be read positionally.
-                rows: rows.length > 0 ? [derive(aggregateRows(rows))] : [],
+                rows: rows.length > 0 ? [withPageExtras(platform, derive(aggregateRows(rows)), otherDaily)] : [],
                 previousRows: previousRows.length > 0 ? [derive(aggregateRows(previousRows))] : [],
             };
         } catch (err: any) {
@@ -668,6 +699,38 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
         }
     };
 
+    // YouTube: dati pubblici del canale con la chiave API (solo ID canale, nessun accesso al canale). Il periodo precedente si
+    // confronta solo sui video usciti in quella finestra: i totali del canale non hanno storico.
+    const fetchYoutube = async (channelId: string): Promise<PlatformReport> => {
+        const range = windows
+            ? windows.current
+            : { dateFrom: isoDaysAgo(presetToDays(datePreset)), dateTo: isoDaysAgo(0) };
+        try {
+            const { channel, videos } = await withTimeout('YouTube', (async () => {
+                const ch = await resolvePublicChannel(channelId);
+                if (!ch) throw new Error('Canale YouTube non trovato: controlla l\'ID canale in Setup API.');
+                const vs = ch.uploadsPlaylistId ? await getPublicVideos(ch.uploadsPlaylistId, 50).catch(() => []) : [];
+                return { channel: ch, videos: vs };
+            })());
+            const cur = {
+                videos: channel.videos,
+                views: channel.views,
+                ...(channel.hiddenSubscribers ? {} : { subscribers: channel.subscribers }),
+                ...youtubePeriodStats(videos, { dateFrom: range.dateFrom, dateTo: range.dateTo }),
+            };
+            const prev = windows?.previous ? youtubePeriodStats(videos, windows.previous) : null;
+            const daily = youtubeDailyRows(videos, range);
+            return {
+                platform: 'youtube', connected: true, accountLabel: channel.title,
+                rows: [cur], previousRows: prev ? [prev] : [],
+                ...(daily.length > 0 ? { daily } : {}),
+            };
+        } catch (err: any) {
+            console.error(`[reporting] youtube failed for channel ${channelId}:`, String(err.message).replace(/key=[^&\s]+/gi, ''));
+            return { platform: 'youtube', connected: false, error: String(err.message).replace(/key=[^&\s]+/gi, '').slice(0, 160), rows: [], previousRows: [] };
+        }
+    };
+
     // Awin: API diretta con il token di agenzia, id advertiser per cliente.
     const fetchAwin = async (advertiserId: string): Promise<PlatformReport> => {
         const token = process.env.AWIN_API_TOKEN;
@@ -703,6 +766,7 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
         ...(searchConsoleSite ? [{ label: PLATFORM_DEFS.searchconsole.label, promise: fetchSearchConsole(searchConsoleSite) }] : []),
         ...(client.klaviyo ? [{ label: PLATFORM_DEFS.klaviyo.label, promise: fetchKlaviyo(client.klaviyo) }] : []),
         ...(client.awinAdvertiserId ? [{ label: PLATFORM_DEFS.awin.label, promise: fetchAwin(client.awinAdvertiserId) }] : []),
+        ...(client.youtube ? [{ label: PLATFORM_DEFS.youtube.label, promise: fetchYoutube(client.youtube.channelId) }] : []),
         ...(gbpAccountIds.length > 0 ? [{ label: PLATFORM_DEFS.gbp.label, promise: fetchGbpBatch(gbpAccountIds) }] : []),
     ];
     const total = jobs.length;

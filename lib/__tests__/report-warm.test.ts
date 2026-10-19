@@ -10,6 +10,7 @@ describe('report-warm', () => {
         expect(hasReportSources({ windsorAccounts: { gbp: [] } })).toBe(false);
         expect(hasReportSources({ metaAdAccountId: '123' })).toBe(true);
         expect(hasReportSources({ windsorAccounts: { gbp: ['a'] } })).toBe(true);
+        expect(hasReportSources({ windsorAccounts: { facebook_page: '323377684482' } })).toBe(true);
         expect(hasReportSources({ windsorAccounts: { searchconsole: 'https://x.it/' } })).toBe(true);
     });
 

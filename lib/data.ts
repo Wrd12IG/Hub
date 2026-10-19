@@ -57,6 +57,7 @@ export interface Client {
         instagram?: string;         // Instagram business account id
         searchconsole?: string;     // Verified site URL
         linkedin_organic?: string;  // LinkedIn organization id
+        facebook_page?: string;     // Facebook page id (connettore facebook_organic)
         gbp?: string[];             // One Windsor GBP account id per sede (multi-location)
     };
 }

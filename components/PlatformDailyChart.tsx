@@ -27,6 +27,9 @@ export function PlatformDailyChart({ rows, metrics, height = 220 }: { rows: Metr
   const fmt = (v: number) => (metric.unit === 'euro' ? formatEuro(v) : intFmt.format(v))
   const data = rows.map((r) => ({ date: r.date, value: typeof r[metric.key] === 'number' ? (r[metric.key] as number) : 0 }))
   const total = data.reduce((s, d) => s + d.value, 0)
+  // Uno stato (i follower di ogni giorno) non si somma: si mostra il valore di oggi e di quanto è cambiato nel periodo
+  const last = data[data.length - 1]?.value ?? 0
+  const change = last - (data[0]?.value ?? 0)
 
   return (
     <div className="space-y-2">
@@ -45,14 +48,21 @@ export function PlatformDailyChart({ rows, metrics, height = 220 }: { rows: Metr
             </button>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">Totale nel periodo: <strong className="text-foreground">{fmt(total)}</strong></p>
+        {metric.stock ? (
+          <p className="text-xs text-muted-foreground">
+            Oggi: <strong className="text-foreground">{fmt(last)}</strong>
+            {change !== 0 && <span className={change > 0 ? ' text-emerald-700 dark:text-emerald-400' : ' text-red-700 dark:text-red-400'}> ({change > 0 ? '+' : '−'}{fmt(Math.abs(change))} nel periodo)</span>}
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Totale nel periodo: <strong className="text-foreground">{fmt(total)}</strong></p>
+        )}
       </div>
       <div style={{ height }} className="w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
             <XAxis dataKey="date" tickFormatter={dayLabel} tick={axisTick} tickLine={false} axisLine={false} minTickGap={28} />
-            <YAxis tick={axisTick} tickLine={false} axisLine={false} allowDecimals={false} tickFormatter={(v) => (metric.unit === 'euro' ? `€${v}` : intFmt.format(v))} />
+            <YAxis domain={metric.stock ? ['dataMin', 'dataMax'] : [0, 'auto']} tick={axisTick} tickLine={false} axisLine={false} allowDecimals={false} tickFormatter={(v) => (metric.unit === 'euro' ? `€${v}` : intFmt.format(v))} />
             <RTooltip
               formatter={(v: number) => [fmt(v), metric.label]}
               labelFormatter={(l: string) => new Date(`${l}T00:00:00`).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'long' })}

@@ -4,7 +4,7 @@
 export function hasReportSources(client: any): boolean {
     const w = client?.windsorAccounts ?? {};
     return !!(client?.metaAdAccountId || client?.googleAdAccountId || client?.ga4PropertyId || client?.awinAdvertiserId
-        || w.instagram || w.searchconsole || w.linkedin_organic || (Array.isArray(w.gbp) && w.gbp.length > 0));
+        || w.instagram || w.facebook_page || w.searchconsole || w.linkedin_organic || (Array.isArray(w.gbp) && w.gbp.length > 0));
 }
 
 /** Da riscaldare se manca la copia, è vecchia oltre `maxAgeMs`, o era un report in errore (durata breve). */

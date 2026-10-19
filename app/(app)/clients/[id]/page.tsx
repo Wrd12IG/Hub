@@ -179,6 +179,7 @@ interface Client {
     instagram?: string;
     searchconsole?: string;
     linkedin_organic?: string;
+    facebook_page?: string;
     gbp?: string[];
   };
 }
@@ -1447,6 +1448,10 @@ export default function ClientDetailPage() {
                 { label: "Search Console", ok: !!client.windsorAccounts?.searchconsole },
                 { label: "Google Business Profile", ok: (client.windsorAccounts?.gbp?.length ?? 0) > 0 },
                 { label: "Instagram", ok: !!client.windsorAccounts?.instagram },
+                { label: "Facebook (pagina)", ok: !!client.windsorAccounts?.facebook_page },
+                { label: "LinkedIn", ok: !!client.windsorAccounts?.linkedin_organic },
+                { label: "YouTube", ok: !!(client.youtubePublicChannelId || client.hasYoutubeToken) },
+                { label: "TikTok", ok: !!client.hasTiktokToken },
               ];
               const missing = sources.filter((x) => !x.ok).length;
               return (
