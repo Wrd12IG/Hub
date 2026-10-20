@@ -291,12 +291,12 @@ function MetaModal({
       <div className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="meta-ad-account-id" className="text-xs font-bold text-muted-foreground">Ad Account ID</label>
-          <input id="meta-ad-account-id" value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="act_123456789"
+          <input autoComplete="off" id="meta-ad-account-id" value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="act_123456789"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-page-id" className="text-xs font-bold text-muted-foreground">Page ID (Facebook)</label>
-          <input id="meta-page-id" value={pageId} onChange={(e) => setPageId(e.target.value)} placeholder="es. 104345345345"
+          <input autoComplete="off" id="meta-page-id" value={pageId} onChange={(e) => setPageId(e.target.value)} placeholder="es. 104345345345"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
@@ -304,7 +304,7 @@ function MetaModal({
             System User Token
             {hasToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
-          <input id="meta-system-user-token" type="password" value={token} onChange={(e) => setToken(e.target.value)}
+          <input autoComplete="new-password" id="meta-system-user-token" type="password" value={token} onChange={(e) => setToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "EAAB... (System User Token)"}
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
@@ -333,10 +333,17 @@ function GA4Modal({
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
 
   async function save() {
+    // Il Property ID di GA4 è un numero. Il browser può compilare il campo con l'email salvata (c'è una password sotto):
+    // un valore così non raggiunge mai Google e ogni lettura del report dà errore, quindi si rifiuta qui.
+    const cleanGa4 = ga4Id.trim();
+    if (cleanGa4 && !/^\d{6,}$/.test(cleanGa4)) {
+      toast.error("Il Property ID di GA4 è un numero (es. 345678901), non un'email né il codice «G-…». Lo trovi in GA4 → Amministrazione → Impostazioni proprietà.");
+      return;
+    }
     setSaving(true);
     try {
       const authToken = localStorage.getItem("token");
-      const body: Record<string, string> = { ga4PropertyId: ga4Id };
+      const body: Record<string, string> = { ga4PropertyId: cleanGa4 };
       if (refreshToken) body.googleRefreshToken = refreshToken;
       const res = await fetch(`${API_URL}/api/clients/${clientId}`, {
         method: "PATCH",
@@ -355,7 +362,7 @@ function GA4Modal({
       <div className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="ga4-property-id" className="text-xs font-bold text-muted-foreground">GA4 Property ID</label>
-          <input id="ga4-property-id" value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="es. 345678901"
+          <input autoComplete="off" id="ga4-property-id" value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="es. 345678901"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
@@ -363,7 +370,7 @@ function GA4Modal({
             Google OAuth Refresh Token
             {hasGoogleToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
-          <input id="ga4-refresh-token" type="password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <input autoComplete="new-password" id="ga4-refresh-token" type="password" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder={hasGoogleToken ? "Lascia vuoto per mantenere" : "1//04ABCD..."}
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-yellow-500/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">Il token è condiviso tra Google Ads, GA4 e GBP.</p>
@@ -413,7 +420,7 @@ function GoogleAdsModal({
         )}
         <div className="space-y-1.5">
           <label htmlFor="google-ads-customer-id" className="text-xs font-bold text-muted-foreground">Customer ID</label>
-          <input id="google-ads-customer-id" value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="es. 123-456-7890"
+          <input autoComplete="off" id="google-ads-customer-id" value={customerId} onChange={(e) => setCustomerId(e.target.value)} placeholder="es. 123-456-7890"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">Trovalo su ads.google.com in alto a destra.</p>
         </div>
@@ -457,7 +464,7 @@ function ClarityModal({
       <div className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="clarity-project-id" className="text-xs font-bold text-muted-foreground">Project ID</label>
-          <input id="clarity-project-id" value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="es. 8abc123def"
+          <input autoComplete="off" id="clarity-project-id" value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="es. 8abc123def"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-violet-500/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             Trovalo su{" "}
@@ -637,23 +644,23 @@ function CompetitorsModal({ clientId, onClose, onSaved }: {
             {rows.map((r, i) => (
               <div key={r.id} className="space-y-2 rounded-lg border border-border/60 p-3">
                 <div className="grid grid-cols-2 gap-2">
-                  <input value={r.nome} onChange={(e) => set(i, "nome", e.target.value)}
+                  <input autoComplete="off" value={r.nome} onChange={(e) => set(i, "nome", e.target.value)}
                     placeholder={`Competitor ${i + 1}`} className={input} />
-                  <input value={r.sito} onChange={(e) => set(i, "sito", e.target.value)}
+                  <input autoComplete="off" value={r.sito} onChange={(e) => set(i, "sito", e.target.value)}
                     placeholder="sito.it" className={input} />
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <input value={r.instagram ?? ""} onChange={(e) => set(i, "instagram", e.target.value)}
+                  <input autoComplete="off" value={r.instagram ?? ""} onChange={(e) => set(i, "instagram", e.target.value)}
                     placeholder="Instagram" className={input} />
-                  <input value={r.facebook ?? ""} onChange={(e) => set(i, "facebook", e.target.value)}
+                  <input autoComplete="off" value={r.facebook ?? ""} onChange={(e) => set(i, "facebook", e.target.value)}
                     placeholder="Facebook" className={input} />
-                  <input value={r.linkedin ?? ""} onChange={(e) => set(i, "linkedin", e.target.value)}
+                  <input autoComplete="off" value={r.linkedin ?? ""} onChange={(e) => set(i, "linkedin", e.target.value)}
                     placeholder="LinkedIn" className={input} />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <input value={r.youtube ?? ""} onChange={(e) => set(i, "youtube", e.target.value)}
+                  <input autoComplete="off" value={r.youtube ?? ""} onChange={(e) => set(i, "youtube", e.target.value)}
                     placeholder="YouTube" className={input} />
-                  <input value={r.tiktok ?? ""} onChange={(e) => set(i, "tiktok", e.target.value)}
+                  <input autoComplete="off" value={r.tiktok ?? ""} onChange={(e) => set(i, "tiktok", e.target.value)}
                     placeholder="TikTok" className={input} />
                 </div>
               </div>
@@ -800,7 +807,7 @@ function WindsorFieldModal({
           {connector ? (
             <AccountPicker connector={connector} value={value} onChange={setValue} placeholder={placeholder} />
           ) : (
-            <input id={`windsor-${fieldKey}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
+            <input autoComplete="off" id={`windsor-${fieldKey}`} value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
               className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none transition-all placeholder:text-muted-foreground" />
           )}
           <p className="text-xs text-muted-foreground">{hint}</p>
@@ -1057,7 +1064,7 @@ function YoutubeModal({
             </div>
           )}
           <div className="flex gap-2">
-            <input id="youtube-public-channel" aria-label="ID canale YouTube" value={publicInput} onChange={(e) => setPublicInput(e.target.value)}
+            <input autoComplete="off" id="youtube-public-channel" aria-label="ID canale YouTube" value={publicInput} onChange={(e) => setPublicInput(e.target.value)}
               placeholder="UC... oppure @handle"
               className="flex-1 min-w-0 text-sm bg-background border border-border text-foreground px-3 py-2 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
             <button type="button" onClick={savePublicChannel} disabled={savingPublic || !publicInput.trim()}
@@ -1077,13 +1084,13 @@ function YoutubeModal({
         </div>
         <div className="space-y-1.5">
           <label htmlFor="youtube-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
-          <input id="youtube-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+          <input autoComplete="off" id="youtube-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "ya29.a0..."}
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="youtube-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato per rinnovo automatico)</label>
-          <input id="youtube-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <input autoComplete="off" id="youtube-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="1//0e..."
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-red-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
@@ -1197,13 +1204,13 @@ function TikTokModal({
         </div>
         <div className="space-y-1.5">
           <label htmlFor="tiktok-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
-          <input id="tiktok-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+          <input autoComplete="off" id="tiktok-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "act.xxx..."}
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="tiktok-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (consigliato)</label>
-          <input id="tiktok-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <input autoComplete="off" id="tiktok-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="rft.xxx..."
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-pink-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
@@ -1322,19 +1329,19 @@ function LinkedinModal({
         </div>
         <div className="space-y-1.5">
           <label htmlFor="linkedin-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
-          <input id="linkedin-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
+          <input autoComplete="off" id="linkedin-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
             placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "AQV..."}
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="linkedin-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (se disponibile)</label>
-          <input id="linkedin-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
+          <input autoComplete="off" id="linkedin-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
             placeholder="AQW..."
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <div className="space-y-1.5">
           <label htmlFor="linkedin-org-id" className="text-xs font-bold text-muted-foreground">Organization ID (numero della pagina)</label>
-          <input id="linkedin-org-id" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
+          <input autoComplete="off" id="linkedin-org-id" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
             placeholder="es. 12345678"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
           <p className="text-xs text-muted-foreground">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
