@@ -181,6 +181,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // Il Property ID di GA4 è solo un numero: un'email (autocompilata dal browser) o «G-…» non arriverebbe mai a Google
+    if (typeof body.ga4PropertyId === 'string' && body.ga4PropertyId.trim() !== '' && !/^\d{6,}$/.test(body.ga4PropertyId.trim())) {
+      return NextResponse.json({ error: 'Il Property ID di GA4 deve essere un numero (es. 345678901), non un\'email né il codice G-…' }, { status: 400 });
+    }
+
     // 1. Gestione sicura dei token
     if (body.metaAccessToken) {
       await saveClientToken(id, 'meta', {
