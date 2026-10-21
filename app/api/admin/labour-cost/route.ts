@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
-import { computeLabourCost, type LabourActivity, type LabourTask } from '@/lib/labour-cost';
+import { computeLabourCost, hourlyOverheadOf, type LabourActivity, type LabourTask } from '@/lib/labour-cost';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -29,11 +29,12 @@ export async function GET(request: NextRequest) {
   const months = Math.min(12, Math.max(1, parseInt(request.nextUrl.searchParams.get('months') || '3', 10) || 3));
 
   try {
-    const [usersSnap, clientsSnap, tasksSnap, actSnap] = await Promise.all([
+    const [usersSnap, clientsSnap, tasksSnap, actSnap, companyCostsSnap] = await Promise.all([
       adminDb.collection('users').get(),
       adminDb.collection('clients').get(),
       adminDb.collection('tasks').where('timeSpent', '>', 0).get(),
       adminDb.collection('calendarActivities').get(),
+      adminDb.collection('settings').doc('companyCosts').get(),
     ]);
 
     const usersById = Object.fromEntries(usersSnap.docs.map((d) => [d.id, { hourlyRate: d.get('hourlyRate') }]));
@@ -47,7 +48,12 @@ export async function GET(request: NextRequest) {
       startTime: iso(d.get('startTime')) ?? iso(d.get('start')), endTime: iso(d.get('endTime')) ?? iso(d.get('end')),
     }));
 
-    const report = computeLabourCost({ tasks, activities, usersById, clientNames, months });
+    // Costi aziendali (dirigenza, struttura, varie) ripartiti sui collaboratori e PM attivi: sovrapprezzo orario per il costo pieno
+    const hourlyOverhead = hourlyOverheadOf(
+      companyCostsSnap.exists ? (companyCostsSnap.data() as any) : null,
+      usersSnap.docs.map((d) => ({ role: d.get('role'), status: d.get('status') })),
+    );
+    const report = computeLabourCost({ tasks, activities, usersById, clientNames, months, hourlyOverhead });
     return NextResponse.json({ ...report, sources: { tasks: tasks.length, activities: activities.length, users: usersSnap.size } });
   } catch (err: any) {
     console.error('[admin/labour-cost]', err.message);
