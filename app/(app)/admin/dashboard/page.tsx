@@ -2635,7 +2635,9 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
                 )}
-                <div className="space-y-8">
+                {/* Senza il grafico dei costi a sinistra, le due schede restavano nella colonna stretta con due terzi di pagina vuoti:
+                    in quel caso occupano tutta la riga, affiancate. */}
+                <div className={isWidgetVisible('chart_monthly_costs') ? 'space-y-8' : 'grid grid-cols-1 items-start gap-8 lg:col-span-3 lg:grid-cols-2'}>
                     {isWidgetVisible('table_absences') && (
                         <Card className="glass-card">
                             <CardHeader>
