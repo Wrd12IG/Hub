@@ -92,3 +92,44 @@ describe('costo pieno (costi aziendali)', () => {
         expect(r.clients[0].monthlyCost).toBe(133.33);
     });
 });
+
+describe('ripartizione del lavoro interno', () => {
+    const base = {
+        now: NOW, usersById: users, clientNames: names,
+        tasks: [
+            { clientId: 'c1', timeSpent: 30 * H, assignedUserId: 'u1', dueDate: '2026-09-10' }, // 30h, 1200
+            { clientId: 'c2', timeSpent: 10 * H, assignedUserId: 'u1', dueDate: '2026-09-11' }, // 10h, 400
+            { timeSpent: 8 * H, assignedUserId: 'u1', dueDate: '2026-09-12' }, // interno: 8h, 320
+        ],
+        activities: [],
+    };
+    const month = (r: ReturnType<typeof computeLabourCost>, id: string) => r.clients.find((c) => c.clientId === id)!.byMonth['2026-09'];
+
+    it('proporzionale alle ore: 75% a c1 e 25% a c2, la riga «senza cliente» sparisce', () => {
+        const r = computeLabourCost({ ...base, allocate: 'proportional' });
+        expect(month(r, 'c1')).toMatchObject({ hours: 36, cost: 1440 }); // 1200 + 240
+        expect(month(r, 'c2')).toMatchObject({ hours: 12, cost: 480 }); // 400 + 80
+        expect(r.clients.find((c) => c.clientId === NO_CLIENT_ID)).toBeUndefined();
+    });
+    it('in parti uguali: metà a testa', () => {
+        const r = computeLabourCost({ ...base, allocate: 'equal' });
+        expect(month(r, 'c1').cost).toBe(1360); // 1200 + 160
+        expect(month(r, 'c2').cost).toBe(560); // 400 + 160
+    });
+    it('il totale non cambia: ripartire sposta i costi, non li crea', () => {
+        const none = computeLabourCost(base);
+        const prop = computeLabourCost({ ...base, allocate: 'proportional' });
+        expect(prop.total.monthlyCost).toBe(none.total.monthlyCost);
+        expect(prop.total.monthlyHours).toBe(none.total.monthlyHours);
+    });
+    it('un mese senza nessun cliente con ore: il lavoro interno resta nella sua riga', () => {
+        const r = computeLabourCost({ ...base, tasks: [{ timeSpent: 5 * H, assignedUserId: 'u1', dueDate: '2026-08-02' }], allocate: 'proportional' });
+        expect(r.clients).toHaveLength(1);
+        expect(r.clients[0].clientId).toBe(NO_CLIENT_ID);
+    });
+    it('il costo pieno si ripartisce insieme al diretto', () => {
+        const r = computeLabourCost({ ...base, hourlyOverhead: 10, allocate: 'proportional' });
+        // c1: diretto 1200 + 75% di 320 = 1440; pieno = 1200 + 30h×10 = 1500, più il 75% del pieno interno (320 + 8h×10 = 400) = 300 → 1800
+        expect(month(r, 'c1')).toMatchObject({ cost: 1440, fullCost: 1800 });
+    });
+});

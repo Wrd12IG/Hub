@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
-import { computeLabourCost, hourlyOverheadOf, type LabourActivity, type LabourTask } from '@/lib/labour-cost';
+import { computeLabourCost, hourlyOverheadOf, type AllocateMode, type LabourActivity, type LabourTask } from '@/lib/labour-cost';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
   const me = await getAppUser(auth.uid);
   if (me?.role !== 'Amministratore') return forbiddenResponse();
 
+  const allocateRaw = request.nextUrl.searchParams.get('allocate');
+  const allocate: AllocateMode = allocateRaw === 'proportional' || allocateRaw === 'equal' ? allocateRaw : 'none';
   const months = Math.min(12, Math.max(1, parseInt(request.nextUrl.searchParams.get('months') || '3', 10) || 3));
 
   try {
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
       companyCostsSnap.exists ? (companyCostsSnap.data() as any) : null,
       usersSnap.docs.map((d) => ({ role: d.get('role'), status: d.get('status') })),
     );
-    const report = computeLabourCost({ tasks, activities, usersById, clientNames, months, hourlyOverhead });
+    const report = computeLabourCost({ tasks, activities, usersById, clientNames, months, hourlyOverhead, allocate });
     return NextResponse.json({ ...report, sources: { tasks: tasks.length, activities: activities.length, users: usersSnap.size } });
   } catch (err: any) {
     console.error('[admin/labour-cost]', err.message);

@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { formatEuro } from '@/lib/format'
-import type { LabourReport } from '@/lib/labour-cost'
+import type { AllocateMode, LabourReport } from '@/lib/labour-cost'
 
 const hoursFmt = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: 'always' })
 const monthName = (m: string) => {
@@ -21,6 +21,7 @@ export default function CostiClientiPage() {
   const { authFetch } = useAuthFetch()
   const { currentUser } = useLayoutData()
   const [months, setMonths] = useState(3)
+  const [allocate, setAllocate] = useState<AllocateMode>('none')
   const [data, setData] = useState<(LabourReport & { sources: { tasks: number; activities: number; users: number } }) | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -28,12 +29,12 @@ export default function CostiClientiPage() {
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await authFetch(`/api/admin/labour-cost?months=${months}`)
+      const res = await authFetch(`/api/admin/labour-cost?months=${months}&allocate=${allocate}`)
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`)
       setData(j)
     } catch (e: any) { setError(e.message); setData(null) } finally { setLoading(false) }
-  }, [authFetch, months])
+  }, [authFetch, months, allocate])
 
   useEffect(() => { if (currentUser?.role === 'Amministratore') load() }, [load, currentUser?.role])
 
@@ -48,11 +49,20 @@ export default function CostiClientiPage() {
             Costo del lavoro interno: ore registrate su task e attività di calendario per il costo orario di chi le ha fatte (30 €/h se nel profilo manca). La stima mensile è la media dei mesi completi.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-4">
+        <label className="text-xs font-medium text-muted-foreground">Lavoro interno
+          <select className="ml-2 h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground" value={allocate} onChange={(e) => setAllocate(e.target.value as AllocateMode)}>
+            <option value="none">Riga a parte</option>
+            <option value="proportional">Ripartito in proporzione alle ore</option>
+            <option value="equal">Ripartito in parti uguali</option>
+          </select>
+        </label>
         <label className="text-xs font-medium text-muted-foreground">Mesi per la stima
           <select className="ml-2 h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground" value={months} onChange={(e) => setMonths(Number(e.target.value))}>
             {[1, 3, 6, 12].map((n) => <option key={n} value={n}>{n === 1 ? 'Ultimo mese' : `Ultimi ${n} mesi`}</option>)}
           </select>
         </label>
+        </div>
       </div>
 
       {loading && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Calcolo…</p>}
@@ -103,7 +113,14 @@ export default function CostiClientiPage() {
           <p><span className="font-medium text-foreground">Diretta</span> = ore × costo orario del profilo. {data.hourlyOverhead > 0
             ? <><span className="font-medium text-foreground">Piena</span> = diretta + sovrapprezzo dei costi aziendali ({formatEuro(data.hourlyOverhead)}/h: dirigenza, struttura e varie ÷ collaboratori e PM attivi ÷ 160 ore).</>
             : <>I costi aziendali non sono impostati (Admin → Costi Aziendali): il costo pieno non si può calcolare.</>}</p>
-          <p>La riga «Senza cliente» raccoglie le ore di task e attività non collegati a nessun cliente: sono nel totale. Non contano i task senza tempo registrato.</p>
+          <p>
+            {data.allocate === 'none'
+              ? <>La riga «Senza cliente» raccoglie le ore di task e attività non collegati a nessun cliente: sono nel totale. Scegli «Lavoro interno» in alto per ripartirle sui clienti.</>
+              : data.allocate === 'proportional'
+                ? <>Il lavoro interno è ripartito mese per mese sui clienti che in quel mese hanno lavoro, in proporzione alle loro ore. Un mese senza lavoro sui clienti lascia le ore interne nella riga «Senza cliente». Il totale non cambia.</>
+                : <>Il lavoro interno è ripartito mese per mese in parti uguali fra i clienti che in quel mese hanno lavoro. Un mese senza lavoro sui clienti lascia le ore interne nella riga «Senza cliente». Il totale non cambia.</>}
+            {' '}Non contano i task senza tempo registrato.
+          </p>
         </div>
       )}
       {data && <p className="text-xs text-muted-foreground">Fonti: {data.sources.tasks} task con tempo registrato, {data.sources.activities} attività di calendario, {data.sources.users} utenti. Un'attività con più clienti si divide in parti uguali.</p>}
