@@ -4,6 +4,7 @@ import { getClientMarketingReport, buildWindows } from '@/lib/reporting';
 import { buildPublicReport, parsePeriod, type PublicReportComment } from '@/lib/client-report-public';
 import { currentMonth, isValidMonth } from '@/lib/monthly-comment';
 import { readCachedReport, writeShareReport } from '@/lib/share-report-cache';
+import { findClientByPublicToken } from '@/lib/client-public-link';
 import type { Client } from '@/lib/data';
 
 // Come la route dello staff: Google Ads e Meta possono essere lenti alla prima lettura.
@@ -40,11 +41,10 @@ export async function GET(request: Request, { params }: { params: { token: strin
     // I token sono UUID: scartare subito ciò che non lo somiglia evita anche una lettura inutile.
     if (typeof token !== 'string' || token.length < 16 || token.length > 100) return notFound();
 
-    const snap = await adminDb.collection('clients').where('publicToken', '==', token).limit(1).get();
-    if (snap.empty) return notFound();
-    const doc = snap.docs[0];
-    const client = doc.data() as Client & { metaAdAccountId?: string; googleAdAccountId?: string };
-    const clientId = doc.id;
+    const found = await findClientByPublicToken(adminDb, token);
+    if (!found) return notFound();
+    const client = found.data as Client & { metaAdAccountId?: string; googleAdAccountId?: string };
+    const clientId = found.id;
 
     const days = parsePeriod(new URL(request.url).searchParams.get('days'));
 

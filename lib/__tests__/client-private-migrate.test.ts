@@ -8,8 +8,9 @@ function fakeDb(clients: Record<string, Record<string, any>>) {
         id,
         get: (f: string) => data[f],
         ref: {
+            firestore: { collection: (n: string) => ({ doc: (t: string) => ({ set: async (v: any) => { priv[`${n}/${t}`] = v; } }) }) },
             collection: () => ({
-                doc: (f: string) => ({ get: async () => ({ data: () => priv[`${id}/${f}`] }), set: async (v: any) => { priv[`${id}/${f}`] = JSON.parse(JSON.stringify(v)); } }),
+                doc: (f: string) => ({ get: async () => ({ data: () => priv[`${id}/${f}`] }), set: async (v: any, o?: { merge: boolean }) => { priv[`${id}/${f}`] = JSON.parse(JSON.stringify(o?.merge ? { ...priv[`${id}/${f}`], ...v } : v)); } }),
             }),
             update: async (patch: Record<string, any>) => { for (const k of Object.keys(patch)) delete data[k]; },
         },
@@ -45,6 +46,23 @@ describe('migrateClientPrivate', () => {
         const f = fakeDb({ c1: { name: 'X' } });
         const r = await migrateClientPrivate(f.db, { apply: true, deleteLegacy: true });
         expect(r.log[0]).toContain('Niente da migrare');
+    });
+});
+
+describe('campi scalari (budget, note, token)', () => {
+    it('copia nei gruppi, indicizza il token, rimuove solo dopo la verifica e poi è idempotente', async () => {
+        const f = fakeDb({ c1: { name: 'X', budget: 1200, notes: 'solo staff', publicToken: 'tok-1234567890abcdef', publicTokenCreatedAt: '2026-01-01' } });
+        const r = await migrateClientPrivate(f.db, { apply: true, deleteLegacy: true });
+        expect(r).toMatchObject({ copied: 2, deleted: 2, mismatched: 0 });
+        expect(f.priv['c1/internal']).toEqual({ budget: 1200, notes: 'solo staff' });
+        expect(f.priv['c1/publicLink']).toEqual({ publicToken: 'tok-1234567890abcdef', publicTokenCreatedAt: '2026-01-01' });
+        expect(f.priv['publicTokens/tok-1234567890abcdef']).toMatchObject({ clientId: 'c1' });
+        expect(f.clients.c1).toEqual({ name: 'X' });
+        const again = await migrateClientPrivate(f.db, { apply: true, deleteLegacy: true });
+        expect(again).toMatchObject({ copied: 0, deleted: 0 });
+    });
+    it('budget 0 è un valore da migrare, non assenza', () => {
+        expect(hasLegacyPrivateFields({ budget: 0 })).toBe(true);
     });
 });
 

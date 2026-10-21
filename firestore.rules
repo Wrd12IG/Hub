@@ -102,7 +102,7 @@ service cloud.firestore {
         allow read, write: if isStaff();
       }
 
-      // Dati interni (piano media, conteggi post-lead): il documento clients/{id} è leggibile dal cliente
+      // Dati interni (piano media, post-lead, budget, note, token pubblico): il documento clients/{id} è leggibile dal cliente
       // proprietario, questi no. La route /api/clients/[id] (Admin SDK) li unisce al documento per lo staff.
       match /private/{doc} {
         allow read, write: if isStaff();

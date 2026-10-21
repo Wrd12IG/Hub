@@ -1,5 +1,5 @@
 /**
- * Sposta mediaPlan e postLead da clients/{id} a clients/{id}/private/{campo} (solo staff, vedi firestore.rules).
+ * Sposta mediaPlan, postLead, budget, notes e publicToken da clients/{id} a clients/{id}/private/* (solo staff, vedi firestore.rules).
  * La logica sta in lib/client-private-migrate.ts (la usa anche la pagina admin «Migrazione dati»).
  *
  * Uso (serve un .env con FIREBASE_*, che su Vercel sono «sensibili» e non si scaricano: in quel caso usa la pagina admin):
