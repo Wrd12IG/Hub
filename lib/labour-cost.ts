@@ -12,6 +12,9 @@ export interface LabourActivity { clientIds?: string[]; clientId?: string; start
 export const NO_CLIENT_ID = '__senza_cliente';
 export const NO_CLIENT_NAME = 'Senza cliente (lavoro interno)';
 
+/** Come si ripartisce il lavoro interno (ore senza cliente) sui clienti: nessuna ripartizione, in proporzione alle ore di ciascuno nel mese, o in parti uguali fra i clienti che in quel mese hanno lavoro. */
+export type AllocateMode = 'none' | 'proportional' | 'equal';
+
 export interface MonthCost { hours: number; cost: number; /** Costo diretto + sovrapprezzo orario dei costi aziendali. */ fullCost: number }
 export interface ClientLabour {
     clientId: string;
@@ -31,6 +34,7 @@ export interface LabourReport {
     current: string;
     /** Sovrapprezzo orario dei costi aziendali usato per il costo pieno (0 = costi aziendali non impostati). */
     hourlyOverhead: number;
+    allocate: AllocateMode;
     clients: ClientLabour[];
     total: { monthlyCost: number; monthlyFullCost: number; monthlyHours: number; currentMonth: MonthCost };
 }
@@ -68,6 +72,7 @@ export function computeLabourCost(input: {
     months?: number;
     now?: Date;
     hourlyOverhead?: number;
+    allocate?: AllocateMode;
 }): LabourReport {
     const { months, current } = monthWindow(input.months ?? 3, input.now);
     const overhead = Math.max(0, input.hourlyOverhead ?? 0);
@@ -100,6 +105,28 @@ export function computeLabourCost(input: {
         for (const c of clients) add(c, month, hours / clients.length, cost / clients.length);
     }
 
+    // Ripartizione del lavoro interno, mese per mese: le ore senza cliente di un mese si distribuiscono sui clienti che
+    // in quello stesso mese hanno lavoro. Un mese in cui nessun cliente ha ore resta nella riga «senza cliente».
+    const mode = input.allocate ?? 'none';
+    const internal = acc.get(NO_CLIENT_ID);
+    if (mode !== 'none' && internal) {
+        for (const month of Array.from(wanted)) {
+            const pool = internal[month];
+            if (!pool) continue;
+            const receivers = Array.from(acc.entries()).filter(([id, byMonth]) => id !== NO_CLIENT_ID && (byMonth[month]?.hours ?? 0) > 0);
+            if (receivers.length === 0) continue;
+            const totalHours = receivers.reduce((t, [, byMonth]) => t + byMonth[month].hours, 0);
+            for (const [, byMonth] of receivers) {
+                const share = mode === 'equal' ? 1 / receivers.length : byMonth[month].hours / totalHours;
+                byMonth[month].hours += pool.hours * share;
+                byMonth[month].cost += pool.cost * share;
+                byMonth[month].fullCost += pool.fullCost * share;
+            }
+            delete internal[month];
+        }
+        if (Object.keys(internal).length === 0) acc.delete(NO_CLIENT_ID);
+    }
+
     const sum = (byMonth: Record<string, MonthCost>, f: keyof MonthCost, ms: string[]) => ms.reduce((s, m) => s + (byMonth[m]?.[f] ?? 0), 0);
     const clients: ClientLabour[] = Array.from(acc.entries()).map(([clientId, byMonth]) => {
         const cur = byMonth[current] ?? { hours: 0, cost: 0, fullCost: 0 };
@@ -118,7 +145,7 @@ export function computeLabourCost(input: {
     // I totali si sommano dai valori non arrotondati: sommare i valori già arrotondati per cliente sposta i centesimi
     const raw = (f: keyof MonthCost, ms: string[]) => Array.from(acc.values()).reduce((s, byMonth) => s + sum(byMonth, f, ms), 0);
     return {
-        months, current, hourlyOverhead: r2(overhead), clients,
+        months, current, hourlyOverhead: r2(overhead), allocate: mode, clients,
         total: {
             monthlyCost: r2(raw('cost', months) / months.length),
             monthlyFullCost: r2(raw('fullCost', months) / months.length),
