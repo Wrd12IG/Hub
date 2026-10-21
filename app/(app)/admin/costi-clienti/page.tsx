@@ -69,7 +69,8 @@ export default function CostiClientiPage() {
                   <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">Cliente</th>
                   {data.months.map((m) => <th key={m} className={th}>{monthName(m)}</th>)}
                   <th className={th}>{monthName(data.current)} (finora)</th>
-                  <th className={`${th} text-foreground`}>Stima mensile</th>
+                  <th className={`${th} text-foreground`}>Stima mensile diretta</th>
+                  {data.hourlyOverhead > 0 && <th className={`${th} text-foreground`}>Stima mensile piena</th>}
                   <th className={th}>Ore / mese</th>
                 </tr>
               </thead>
@@ -80,6 +81,7 @@ export default function CostiClientiPage() {
                     {data.months.map((m) => <td key={m} className={`${td} text-muted-foreground`}>{c.byMonth[m] ? formatEuro(c.byMonth[m].cost, 0) : '—'}</td>)}
                     <td className={`${td} text-muted-foreground`}>{c.currentMonth.cost > 0 ? formatEuro(c.currentMonth.cost, 0) : '—'}</td>
                     <td className={`${td} font-semibold text-foreground`}>{formatEuro(c.monthlyCost, 0)}</td>
+                    {data.hourlyOverhead > 0 && <td className={`${td} font-semibold text-foreground`}>{formatEuro(c.monthlyFullCost, 0)}</td>}
                     <td className={`${td} text-muted-foreground`}>{hoursFmt.format(c.monthlyHours)}</td>
                   </tr>
                 ))}
@@ -88,12 +90,21 @@ export default function CostiClientiPage() {
                   {data.months.map((m) => <td key={m} className={td}>{formatEuro(data.clients.reduce((s, c) => s + (c.byMonth[m]?.cost ?? 0), 0), 0)}</td>)}
                   <td className={td}>{formatEuro(data.total.currentMonth.cost, 0)}</td>
                   <td className={td}>{formatEuro(data.total.monthlyCost, 0)}</td>
+                  {data.hourlyOverhead > 0 && <td className={td}>{formatEuro(data.total.monthlyFullCost, 0)}</td>}
                   <td className={td}>{hoursFmt.format(data.total.monthlyHours)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         )
+      )}
+      {data && (
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p><span className="font-medium text-foreground">Diretta</span> = ore × costo orario del profilo. {data.hourlyOverhead > 0
+            ? <><span className="font-medium text-foreground">Piena</span> = diretta + sovrapprezzo dei costi aziendali ({formatEuro(data.hourlyOverhead)}/h: dirigenza, struttura e varie ÷ collaboratori e PM attivi ÷ 160 ore).</>
+            : <>I costi aziendali non sono impostati (Admin → Costi Aziendali): il costo pieno non si può calcolare.</>}</p>
+          <p>La riga «Senza cliente» raccoglie le ore di task e attività non collegati a nessun cliente: sono nel totale. Non contano i task senza tempo registrato.</p>
+        </div>
       )}
       {data && <p className="text-xs text-muted-foreground">Fonti: {data.sources.tasks} task con tempo registrato, {data.sources.activities} attività di calendario, {data.sources.users} utenti. Un'attività con più clienti si divide in parti uguali.</p>}
     </div>

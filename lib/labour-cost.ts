@@ -1,5 +1,6 @@
 // Costo del lavoro interno per cliente, mese per mese: ore registrate per il costo orario di chi le ha fatte.
 // Usa lo stesso modello della dashboard admin (lib/cost-model.ts), quindi la stessa ora vale la stessa cifra ovunque.
+// Due letture: costo diretto (ore × costo orario del profilo) e costo pieno (più il sovrapprezzo dei costi aziendali).
 // Funzione pura: nessun accesso a Firestore o a React.
 
 import { activityClientIds, activityCost, taskCost, type CostUser } from './cost-model';
@@ -7,13 +8,18 @@ import { activityClientIds, activityCost, taskCost, type CostUser } from './cost
 export interface LabourTask { clientId?: string; timeSpent?: number; assignedUserId?: string; dueDate?: string; updatedAt?: string }
 export interface LabourActivity { clientIds?: string[]; clientId?: string; startTime?: string; start?: string; endTime?: string; end?: string; userId?: string }
 
-export interface MonthCost { hours: number; cost: number }
+/** Le ore che non hanno un cliente (lavoro interno, riunioni…): una riga a parte, non si perdono nel totale. */
+export const NO_CLIENT_ID = '__senza_cliente';
+export const NO_CLIENT_NAME = 'Senza cliente (lavoro interno)';
+
+export interface MonthCost { hours: number; cost: number; /** Costo diretto + sovrapprezzo orario dei costi aziendali. */ fullCost: number }
 export interface ClientLabour {
     clientId: string;
     name: string;
     byMonth: Record<string, MonthCost>;
     /** Media dei mesi completi considerati (anche quelli a zero: un cliente fermo un mese costa meno in media). */
     monthlyCost: number;
+    monthlyFullCost: number;
     monthlyHours: number;
     /** Il mese in corso, fin qui. */
     currentMonth: MonthCost;
@@ -23,8 +29,10 @@ export interface LabourReport {
     /** I mesi completi su cui si calcola la stima, dal più vecchio. */
     months: string[];
     current: string;
+    /** Sovrapprezzo orario dei costi aziendali usato per il costo pieno (0 = costi aziendali non impostati). */
+    hourlyOverhead: number;
     clients: ClientLabour[];
-    total: { monthlyCost: number; monthlyHours: number; currentMonth: MonthCost };
+    total: { monthlyCost: number; monthlyFullCost: number; monthlyHours: number; currentMonth: MonthCost };
 }
 
 const monthOf = (iso?: string): string | null => (typeof iso === 'string' && /^\d{4}-\d{2}/.test(iso) ? iso.slice(0, 7) : null);
@@ -37,6 +45,21 @@ export function monthWindow(n: number, now = new Date()): { months: string[]; cu
     return { months, current: fmt(now) };
 }
 
+/**
+ * Il sovrapprezzo orario dei costi aziendali, come lo calcola il pannello «Costi Aziendali»: costi mensili totali
+ * (dirigenza + struttura + varie) ÷ collaboratori e PM attivi ÷ ore di lavoro al mese (160 di base).
+ */
+export function hourlyOverheadOf(
+    costs: { dirigenza?: number; struttura?: number; varie?: number } | null | undefined,
+    users: { role?: string; status?: string }[],
+    monthlyWorkHours = 160,
+): number {
+    if (!costs) return 0;
+    const total = (Number(costs.dirigenza) || 0) + (Number(costs.struttura) || 0) + (Number(costs.varie) || 0);
+    const staff = users.filter((u) => (u.role === 'Collaboratore' || u.role === 'Project Manager') && u.status !== 'Inattivo').length;
+    return staff > 0 && monthlyWorkHours > 0 ? total / staff / monthlyWorkHours : 0;
+}
+
 export function computeLabourCost(input: {
     tasks: LabourTask[];
     activities: LabourActivity[];
@@ -44,16 +67,18 @@ export function computeLabourCost(input: {
     clientNames: Record<string, string>;
     months?: number;
     now?: Date;
+    hourlyOverhead?: number;
 }): LabourReport {
     const { months, current } = monthWindow(input.months ?? 3, input.now);
+    const overhead = Math.max(0, input.hourlyOverhead ?? 0);
     const wanted = new Set([...months, current]);
     const acc = new Map<string, Record<string, MonthCost>>();
 
     const add = (clientId: string, month: string, hours: number, cost: number) => {
         if (!wanted.has(month) || hours <= 0) return;
         const m = acc.get(clientId) ?? {};
-        const cur = m[month] ?? { hours: 0, cost: 0 };
-        cur.hours += hours; cur.cost += cost;
+        const cur = m[month] ?? { hours: 0, cost: 0, fullCost: 0 };
+        cur.hours += hours; cur.cost += cost; cur.fullCost += cost + hours * overhead;
         m[month] = cur;
         acc.set(clientId, m);
     };
@@ -61,40 +86,44 @@ export function computeLabourCost(input: {
     // Stessa data del report: scadenza del task, altrimenti ultimo aggiornamento
     for (const t of input.tasks) {
         const month = monthOf(t.dueDate) ?? monthOf(t.updatedAt);
-        if (!month || !t.clientId) continue;
+        if (!month) continue;
         const { hours, cost } = taskCost(t, input.usersById);
-        add(t.clientId, month, hours, cost);
+        add(t.clientId || NO_CLIENT_ID, month, hours, cost);
     }
-    // Un'attività con più clienti si divide in parti uguali
+    // Un'attività con più clienti si divide in parti uguali; senza clienti va nella riga «senza cliente»
     for (const a of input.activities) {
         const month = monthOf(a.startTime ?? a.start);
-        const clients = activityClientIds(a);
-        if (!month || clients.length === 0) continue;
+        if (!month) continue;
+        const ids = activityClientIds(a);
+        const clients = ids.length > 0 ? ids : [NO_CLIENT_ID];
         const { hours, cost } = activityCost(a, input.usersById);
         for (const c of clients) add(c, month, hours / clients.length, cost / clients.length);
     }
 
+    const sum = (byMonth: Record<string, MonthCost>, f: keyof MonthCost, ms: string[]) => ms.reduce((s, m) => s + (byMonth[m]?.[f] ?? 0), 0);
     const clients: ClientLabour[] = Array.from(acc.entries()).map(([clientId, byMonth]) => {
-        const sum = (f: 'cost' | 'hours') => months.reduce((s, m) => s + (byMonth[m]?.[f] ?? 0), 0);
-        const cur = byMonth[current] ?? { hours: 0, cost: 0 };
+        const cur = byMonth[current] ?? { hours: 0, cost: 0, fullCost: 0 };
         return {
             clientId,
-            name: input.clientNames[clientId] ?? 'Cliente sconosciuto',
-            byMonth: Object.fromEntries(Object.entries(byMonth).map(([m, v]) => [m, { hours: r2(v.hours), cost: r2(v.cost) }])),
-            monthlyCost: r2(sum('cost') / months.length),
-            monthlyHours: r2(sum('hours') / months.length),
-            currentMonth: { hours: r2(cur.hours), cost: r2(cur.cost) },
+            name: clientId === NO_CLIENT_ID ? NO_CLIENT_NAME : (input.clientNames[clientId] ?? 'Cliente sconosciuto'),
+            byMonth: Object.fromEntries(Object.entries(byMonth).map(([m, v]) => [m, { hours: r2(v.hours), cost: r2(v.cost), fullCost: r2(v.fullCost) }])),
+            monthlyCost: r2(sum(byMonth, 'cost', months) / months.length),
+            monthlyFullCost: r2(sum(byMonth, 'fullCost', months) / months.length),
+            monthlyHours: r2(sum(byMonth, 'hours', months) / months.length),
+            currentMonth: { hours: r2(cur.hours), cost: r2(cur.cost), fullCost: r2(cur.fullCost) },
         };
-    }).sort((a, b) => b.monthlyCost - a.monthlyCost || b.currentMonth.cost - a.currentMonth.cost);
+    // I clienti per costo decrescente; la riga «senza cliente» sempre in fondo
+    }).sort((a, b) => (a.clientId === NO_CLIENT_ID ? 1 : 0) - (b.clientId === NO_CLIENT_ID ? 1 : 0) || b.monthlyFullCost - a.monthlyFullCost || b.currentMonth.fullCost - a.currentMonth.fullCost);
 
     // I totali si sommano dai valori non arrotondati: sommare i valori già arrotondati per cliente sposta i centesimi
-    const raw = (f: 'cost' | 'hours', ms: string[]) => Array.from(acc.values()).reduce((s, byMonth) => s + ms.reduce((t, m) => t + (byMonth[m]?.[f] ?? 0), 0), 0);
+    const raw = (f: keyof MonthCost, ms: string[]) => Array.from(acc.values()).reduce((s, byMonth) => s + sum(byMonth, f, ms), 0);
     return {
-        months, current, clients,
+        months, current, hourlyOverhead: r2(overhead), clients,
         total: {
             monthlyCost: r2(raw('cost', months) / months.length),
+            monthlyFullCost: r2(raw('fullCost', months) / months.length),
             monthlyHours: r2(raw('hours', months) / months.length),
-            currentMonth: { hours: r2(raw('hours', [current])), cost: r2(raw('cost', [current])) },
+            currentMonth: { hours: r2(raw('hours', [current])), cost: r2(raw('cost', [current])), fullCost: r2(raw('fullCost', [current])) },
         },
     };
 }
