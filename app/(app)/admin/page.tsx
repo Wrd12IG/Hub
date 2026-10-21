@@ -790,6 +790,11 @@ function AdminPageContent() {
                             <Database className="h-4 w-4 text-sky-400" /> Migrazione dati
                         </Link>
                     )}
+                    {currentUser?.role === 'Amministratore' && (
+                        <Link href="/admin/costi-clienti" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
+                            <Coins className="h-4 w-4 text-emerald-400" /> Costi per cliente
+                        </Link>
+                    )}
                 </TabsList>
 
                 <TabsContent value="users">
