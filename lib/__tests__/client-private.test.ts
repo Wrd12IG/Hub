@@ -11,4 +11,9 @@ describe('splitPrivateFields', () => {
     expect(splitPrivateFields({ mediaPlan: null }).privateFields).toEqual({ mediaPlan: null })
     expect(splitPrivateFields({ name: 'X' }).privateFields).toEqual({})
   })
+  it('separa anche budget, note e token pubblico', () => {
+    const { rest, privateFields } = splitPrivateFields({ name: 'X', budget: 500, notes: 'interno', publicToken: 't', publicTokenCreatedAt: 'd' })
+    expect(rest).toEqual({ name: 'X' })
+    expect(privateFields).toEqual({ budget: 500, notes: 'interno', publicToken: 't', publicTokenCreatedAt: 'd' })
+  })
 })

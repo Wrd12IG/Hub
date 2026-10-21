@@ -120,20 +120,50 @@ export async function getClients(): Promise<Client[]> {
     return fetchCollection<Client>('clients');
 }
 
+// budget e note interne non stanno nel documento cliente (leggibile dal Cliente): vedi lib/client-private.ts.
+const CLIENT_INTERNAL_KEYS = ['budget', 'notes'] as const;
+function splitClientInternal<T extends Record<string, any>>(data: T) {
+    const rest: Record<string, any> = { ...data };
+    const internal: Record<string, any> = {};
+    for (const k of CLIENT_INTERNAL_KEYS) if (k in rest) { internal[k] = rest[k]; delete rest[k]; }
+    return { rest, internal };
+}
+
+async function authedFetch(url: string, init: RequestInit): Promise<Response> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const headers = new Headers(init.headers || {});
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return fetch(url, { ...init, headers });
+}
+
+async function saveClientInternal(clientId: string, internal: Record<string, any>): Promise<void> {
+    if (Object.keys(internal).length === 0) return;
+    const res = await authedFetch(`/api/clients/${clientId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(internal),
+    });
+    if (!res.ok) throw new Error(`Salvataggio dati interni del cliente non riuscito (${res.status})`);
+}
+
 export async function addClient(data: Omit<Client, 'id'>): Promise<string> {
+    const { rest, internal } = splitClientInternal(data);
     const docRef = await addDoc(collection(db, 'clients'), {
-        ...cleanData(data),
+        ...cleanData(rest),
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
     });
+    await saveClientInternal(docRef.id, internal);
     return docRef.id;
 }
 
 export async function updateClient(clientId: string, data: Partial<Client>): Promise<void> {
+    const { rest, internal } = splitClientInternal(data);
     await updateDoc(doc(db, 'clients', clientId), {
-        ...cleanData(data),
+        ...cleanData(rest),
         updatedAt: Timestamp.now(),
     });
+    await saveClientInternal(clientId, internal);
 }
 
 export async function deleteClient(clientId: string): Promise<void> {
@@ -170,23 +200,16 @@ export async function updateProject(projectId: string, data: Partial<Project>): 
     });
 }
 
-// Client Public Link Actions
+// Client Public Link Actions: il token sta in clients/{id}/private (solo staff), si gestisce dalla route Admin SDK.
 export async function generateClientPublicLink(clientId: string) {
-    const token = crypto.randomUUID();
-    await updateDoc(doc(db, 'clients', clientId), {
-        publicToken: token,
-        publicTokenCreatedAt: Timestamp.now().toDate().toISOString(),
-        updatedAt: Timestamp.now(),
-    });
-    return token;
+    const res = await authedFetch(`/api/clients/${clientId}/public-link`, { method: 'POST' });
+    if (!res.ok) throw new Error(`Generazione del link pubblico non riuscita (${res.status})`);
+    return (await res.json()).token as string;
 }
 
 export async function revokeClientPublicLink(clientId: string) {
-    await updateDoc(doc(db, 'clients', clientId), {
-        publicToken: null, // o deleteField() in firestore puro, ma qui updateDoc merge. null va bene se handled
-        publicTokenCreatedAt: null,
-        updatedAt: Timestamp.now(),
-    });
+    const res = await authedFetch(`/api/clients/${clientId}/public-link`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Revoca del link pubblico non riuscita (${res.status})`);
 }
 
 export async function deleteProject(projectId: string): Promise<void> {

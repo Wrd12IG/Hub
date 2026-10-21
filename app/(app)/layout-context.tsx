@@ -103,7 +103,13 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
 
   // App-wide data state
   const [users, setUsers] = useState<User[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [clientsRaw, setClients] = useState<Client[]>([]);
+  // Budget e note interne non stanno più nel documento cliente (lo legge anche il Cliente): lo staff li riceve da una route Admin SDK.
+  const [clientInternal, setClientInternal] = useState<Record<string, { budget?: number; notes?: string }>>({});
+  const clients = useMemo(
+    () => clientsRaw.map(c => (clientInternal[c.id] ? { ...c, ...clientInternal[c.id] } : c)),
+    [clientsRaw, clientInternal],
+  );
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
@@ -151,6 +157,22 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     soundSettingsRef.current = soundSettings;
   }, [soundSettings]);
 
+
+  // Si rilegge a ogni variazione dell'elenco clienti: salvare budget/note aggiorna anche il documento cliente (updatedAt).
+  useEffect(() => {
+    if (!currentUser?.id || currentUser.role === 'Cliente') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/clients/private-summary', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (res.ok && !cancelled) setClientInternal(await res.json());
+      } catch (e) {
+        console.error('Error fetching client internal fields:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.id, currentUser?.role, clientsRaw]);
 
   const usersById = useMemo(() => Object.fromEntries(users.map(user => [user.id, user])) as Record<string, User>, [users]);
   const clientsById = useMemo(() => Object.fromEntries(clients.map(client => [client.id, client])) as Record<string, Client>, [clients]);

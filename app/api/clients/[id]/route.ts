@@ -67,7 +67,7 @@ export async function GET(
       });
     }
 
-    // Piano media e post-lead stanno in clients/{id}/private (solo staff): qui tornano nel documento.
+    // Piano media, post-lead, budget, note e token stanno in clients/{id}/private (solo staff): qui tornano nel documento.
     const privateFields = await readPrivateFields(adminDb, id, doc.data() as Record<string, unknown>);
 
     return NextResponse.json({
@@ -112,6 +112,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // Il token del link pubblico si cambia solo da /api/clients/[id]/public-link (tiene allineato l'indice).
+    delete body.publicToken; delete body.publicTokenCreatedAt;
     const { rest, privateFields } = splitPrivateFields(body);
     const updateData: Record<string, unknown> = {
       ...rest,
@@ -217,7 +219,8 @@ export async function PATCH(
       delete body.gbpRefreshToken;
     }
 
-    // 2. Aggiornamento dei restanti campi pubblici
+    // 2. Aggiornamento dei restanti campi pubblici (il token del link pubblico passa solo da /public-link)
+    delete body.publicToken; delete body.publicTokenCreatedAt;
     const { rest, privateFields } = splitPrivateFields(body);
     const updateData: Record<string, unknown> = {
       ...rest,
@@ -226,7 +229,7 @@ export async function PATCH(
 
     if (updateData.id) delete updateData.id;
 
-    // mediaPlan e postLead vanno in clients/{id}/private, non nel documento leggibile dal Cliente.
+    // mediaPlan, postLead, budget e note vanno in clients/{id}/private, non nel documento leggibile dal Cliente.
     await savePrivateFields(adminDb, id, privateFields, updateData);
 
     return NextResponse.json({ success: true });
