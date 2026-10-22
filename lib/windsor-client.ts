@@ -156,15 +156,20 @@ export async function executeAction(
     accountId: string,
     params: Record<string, unknown>
 ): Promise<unknown> {
-    const response = await fetch(`${BASE_URL}/${connector}/actions/${action}`, {
+    // Forma documentata (windsor.ai/api-documentation, "Execute an action"): POST /{connector}/actions con
+    // { account, action, params } e la chiave nella query. L'account è SEMPRE esplicito: Windsor non deve mai
+    // scegliere da solo a quale profilo pubblicare.
+    if (!accountId || !accountId.trim()) throw new Error(`Azione ${action} su ${connector}: account mancante`);
+    const response = await fetch(`${BASE_URL}/${connector}/actions?${new URLSearchParams({ api_key: getApiKey() }).toString()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: getApiKey(), account_id: accountId, ...params }),
+        body: JSON.stringify({ account: accountId, action, params }),
+        cache: 'no-store',
     });
     if (!response.ok) {
         const errorBody = await response.text().catch(() => '');
         console.error(`[windsor-client] action ${connector}/${action} failed:`, errorBody);
-        throw new Error(`Azione ${action} su ${connector} fallita (HTTP ${response.status})`);
+        throw new Error(`Azione ${action} su ${connector} fallita (HTTP ${response.status})${errorBody ? `: ${errorBody.slice(0, 200)}` : ''}`);
     }
     return response.json();
 }
