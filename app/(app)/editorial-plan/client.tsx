@@ -750,6 +750,31 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
         }
     };
 
+    const handleRequestApproval = async (content: EditorialContent) => {
+        try {
+            const res = await fetch(`/api/clients/${content.clientId}/editorial-approval`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contentIds: [content.id] }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Errore durante la richiesta.');
+            if (data.skipped?.length) {
+                toast.error(`Non inviato: ${data.skipped[0].reason}`);
+                return;
+            }
+            if (data.shareUrl) {
+                try { await navigator.clipboard.writeText(data.shareUrl); } catch { /* appunti non disponibili */ }
+                toast.success('In attesa del cliente. Link di approvazione copiato negli appunti.');
+            } else {
+                toast.warning('Segnato in attesa, ma il cliente non ha ancora un link pubblico: generalo dalla sua scheda.');
+            }
+            await fetchData();
+        } catch (error: any) {
+            toast.error(error.message || 'Errore durante la richiesta.');
+        }
+    };
+
     const handleFilterChange = (filterName: keyof typeof filters, value: string) => {
         setFilters(prev => ({ ...prev, [filterName]: value }));
     };
@@ -1347,6 +1372,11 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                     <TableCell className="font-medium hover:bg-muted/50 cursor-pointer" style={{ backgroundColor: `${client?.color}20` }} onClick={() => handleOpenFieldEditor(content.id, 'clientId', 'Cliente', content.clientId, 'select', [...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => ({ value: c.id, label: c.name })))}>{client?.name || 'N/D'}</TableCell>
                                                     <TableCell className="font-medium max-w-[200px] hover:bg-muted/50 cursor-pointer">
                                                         <div className="truncate" onClick={() => handleOpenFieldEditor(content.id, 'topic', 'Topic', content.topic)}>{content.topic}</div>
+                                                        {content.approval?.status === 'changes' && content.approval.comment && (
+                                                            <p className="mt-1 max-w-[260px] text-xs text-amber-600" title={content.approval.comment}>
+                                                                Cliente{content.approval.respondedBy ? ` (${content.approval.respondedBy})` : ''}: «{content.approval.comment}»
+                                                            </p>
+                                                        )}
                                                         {linkedTask && (
                                                             <Link href={`/tasks?taskId=${linkedTask.id}`} className="flex items-center gap-1 mt-1 text-xs text-muted-foreground hover:text-primary">
                                                                 <ClipboardList className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
@@ -1421,6 +1451,12 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 >
                                                                     <Send className="mr-2 h-4 w-4" /> 
                                                                     {isPublishing[content.id] ? 'Invio in corso...' : 'Invia a Zapier'}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    disabled={content.status === 'Pubblicato' || content.approval?.status === 'requested'}
+                                                                    onClick={() => handleRequestApproval(content)}
+                                                                >
+                                                                    <Send className="mr-2 h-4 w-4" /> Chiedi approvazione al cliente
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem onClick={() => handleOpenEditModal(content)}>
