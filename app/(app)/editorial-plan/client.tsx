@@ -893,19 +893,21 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
 
     // KPI Statistics
     const contentStats = useMemo(() => {
+        // Le cifre sono del cliente selezionato (o forzato dalla sua pagina), non di tutti i clienti insieme.
+        const scoped = filters.clientId === 'all' ? contents : contents.filter(c => c.clientId === filters.clientId);
         const now = new Date();
         const weekStart = startOfWeek(now, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
 
         // This week's content
-        const thisWeekContents = contents.filter(c => {
+        const thisWeekContents = scoped.filter(c => {
             if (!c.publicationDate) return false;
             const pubDate = new Date(c.publicationDate);
             return isWithinInterval(pubDate, { start: weekStart, end: weekEnd });
         });
 
         // Overdue content (past publication date, not published)
-        const overdueContents = contents.filter(c => {
+        const overdueContents = scoped.filter(c => {
             if (!c.publicationDate) return false;
             const pubDate = new Date(c.publicationDate);
             return isBefore(pubDate, now) && c.status !== 'Pubblicato' && c.status !== 'Completato';
@@ -913,35 +915,35 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
 
         // By platform
         const byPlatform = {
-            facebook: contents.filter(c => c.facebook).length,
-            instagram: contents.filter(c => c.instagram).length,
-            linkedin: contents.filter(c => c.linkedin).length,
-            tiktok: contents.filter(c => c.tiktok).length,
-            youtube: contents.filter(c => c.youtube).length,
-            gbp: contents.filter(c => c.gbp).length,
+            facebook: scoped.filter(c => c.facebook).length,
+            instagram: scoped.filter(c => c.instagram).length,
+            linkedin: scoped.filter(c => c.linkedin).length,
+            tiktok: scoped.filter(c => c.tiktok).length,
+            youtube: scoped.filter(c => c.youtube).length,
+            gbp: scoped.filter(c => c.gbp).length,
         };
 
         // By status
         const byStatus: Record<string, number> = {};
         editorialStatuses.forEach(s => {
-            byStatus[s.name] = contents.filter(c => c.status === s.name).length;
+            byStatus[s.name] = scoped.filter(c => c.status === s.name).length;
         });
 
         // By format
         const byFormat: Record<string, number> = {};
         editorialFormats.forEach(f => {
-            byFormat[f.name] = contents.filter(c => c.format === f.name).length;
+            byFormat[f.name] = scoped.filter(c => c.format === f.name).length;
         });
 
         // Upcoming (next 7 days)
-        const upcoming = contents.filter(c => {
+        const upcoming = scoped.filter(c => {
             if (!c.publicationDate) return false;
             const pubDate = new Date(c.publicationDate);
             return isAfter(pubDate, now) && isBefore(pubDate, addDays(now, 7));
         });
 
         return {
-            total: contents.length,
+            total: scoped.length,
             filtered: filteredContents.length,
             thisWeek: thisWeekContents.length,
             overdue: overdueContents.length,
@@ -950,7 +952,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
             byStatus,
             byFormat,
         };
-    }, [contents, filteredContents, editorialStatuses, editorialFormats]);
+    }, [contents, filteredContents, filters.clientId, editorialStatuses, editorialFormats]);
 
     // Export to CSV
     const exportToCSV = () => {
