@@ -34,10 +34,12 @@ export function suggestFormat(imageCount: number, hasVideo: boolean): string {
 
 export type Eligibility = { ok: true } | { ok: false; reason: string };
 
-/** Solo un task approvato, e non già collegato a un contenuto, può essere programmato. */
-export function canScheduleFromTask(task: Pick<Task, 'status' | 'editorialContentId'> | null | undefined): Eligibility {
+/**
+ * Un task si può inserire nel PED (come bozza) se non è già collegato a un contenuto. L'approvazione non è quella del
+ * task: la dà il cliente (o un amministratore) sul contenuto.
+ */
+export function canInsertInPed(task: Pick<Task, 'editorialContentId'> | null | undefined): Eligibility {
     if (!task) return { ok: false, reason: 'Nessun task' };
-    if (task.editorialContentId) return { ok: false, reason: 'Contenuto già programmato' };
-    if (task.status !== 'Approvato') return { ok: false, reason: 'Disponibile dopo l\'approvazione del task' };
+    if (task.editorialContentId) return { ok: false, reason: 'Questo task è già nel PED' };
     return { ok: true };
 }
