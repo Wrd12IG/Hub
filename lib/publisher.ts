@@ -49,10 +49,25 @@ export function scheduledInstant(publicationDate?: string): Date | null {
     return isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function isDue(content: Pick<EditorialContent, 'status' | 'publicationDate'>, now: Date): boolean {
-    if (content.status !== 'Approvato') return false;
+/**
+ * Oltre questo ritardo un contenuto approvato NON esce da solo: un post di mesi fa approvato per sbaglio (o rimasto
+ * indietro) non deve comparire oggi sul profilo di un cliente. Lo si ripianifica a mano.
+ */
+export const MAX_OVERDUE_MS = 3 * 24 * 60 * 60 * 1000;
+
+export type DueState = 'due' | 'not-yet' | 'too-late' | 'no-date' | 'not-approved';
+
+export function dueState(content: Pick<EditorialContent, 'status' | 'publicationDate'>, now: Date): DueState {
+    if (content.status !== 'Approvato') return 'not-approved';
     const at = scheduledInstant(content.publicationDate);
-    return !!at && at.getTime() <= now.getTime();
+    if (!at) return 'no-date';
+    const late = now.getTime() - at.getTime();
+    if (late < 0) return 'not-yet';
+    return late > MAX_OVERDUE_MS ? 'too-late' : 'due';
+}
+
+export function isDue(content: Pick<EditorialContent, 'status' | 'publicationDate'>, now: Date): boolean {
+    return dueState(content, now) === 'due';
 }
 
 /** I canali richiesti dal contenuto (le spunte della tabella). */

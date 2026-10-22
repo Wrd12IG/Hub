@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scheduledInstant, isDue, planChannel, extractPostRef, allAutomatedPublished } from '../publisher';
+import { dueState, scheduledInstant, isDue, planChannel, extractPostRef, allAutomatedPublished } from '../publisher';
 import type { EditorialContent } from '../data';
 
 const base = (o: Partial<EditorialContent> = {}): EditorialContent => ({
@@ -71,4 +71,11 @@ describe('extractPostRef / allAutomatedPublished', () => {
         expect(allAutomatedPublished({ publishResults: {} }, ['tiktok'])).toBe(false);
         expect(allAutomatedPublished({ publishResults: {} }, ['instagram'])).toBe(false);
     });
+});
+
+describe('arretrato', () => {
+    const now = new Date('2026-12-10T08:30:00.000Z');
+    it('scaduto da meno di 3 giorni esce', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-12-08' }, now)).toBe('due'));
+    it('scaduto da mesi non esce da solo', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-06-23' }, now)).toBe('too-late'));
+    it('futuro non ancora', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-12-20' }, now)).toBe('not-yet'));
 });
