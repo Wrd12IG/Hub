@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dueState, scheduledInstant, isDue, planChannel, extractPostRef, allAutomatedPublished } from '../publisher';
+import { requestedChannels, dueState, scheduledInstant, isDue, planChannel, extractPostRef, allAutomatedPublished } from '../publisher';
 import type { EditorialContent } from '../data';
 
 const base = (o: Partial<EditorialContent> = {}): EditorialContent => ({
@@ -91,5 +91,18 @@ describe('copertina del video', () => {
         const b = planChannel(base({ videoUrl: 'https://x/v.mp4', coverUrl: 'http://x/c.jpg' }), 'instagram', accounts) as any;
         expect(a.actions[0].params).not.toHaveProperty('cover_url');
         expect(b.actions[0].params).not.toHaveProperty('cover_url');
+    });
+});
+
+describe('menzioni, hashtag e storie Facebook', () => {
+    it('Instagram: la didascalia porta @menzioni e #hashtag', () => {
+        const r = planChannel(base({ copy: 'Ciao', tags: 'estate', mentions: 'toyota', imageUrls: ['https://x/a.jpg'] }), 'instagram', accounts) as any;
+        expect(r.actions[0].params.caption).toBe('Ciao\n\n@toyota\n#estate');
+    });
+    it('le storie Facebook non sono automatizzate', () => {
+        expect(planChannel(base({ fbStories: true, imageUrls: ['https://x/a.jpg'] }), 'fbStories', accounts)).toHaveProperty('error');
+    });
+    it('le storie Facebook risultano tra i canali richiesti ma non bloccano gli altri', () => {
+        expect(requestedChannels(base({ fbStories: true, instagram: true }))).toEqual(['instagram', 'fbStories']);
     });
 });

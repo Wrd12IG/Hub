@@ -33,9 +33,9 @@ describe('applyDecision', () => {
         expect(r.status).toBe('Approvato');
         expect(r.approval).toMatchObject({ status: 'approved', respondedBy: 'Mario', requestedBy: 'staff1' });
     });
-    it('modifiche → Da Modificare con commento', () => {
+    it('modifiche → torna in bozza con commento', () => {
         const r = applyDecision({ approval: req.approval }, { decision: 'changes', comment: 'Cambia la foto' }, now)!;
-        expect(r.status).toBe('Da Modificare');
+        expect(r.status).toBe('Bozza');
         expect(r.approval.comment).toBe('Cambia la foto');
     });
     it('senza richiesta in corso non si può rispondere (niente auto-approvazione)', () => {

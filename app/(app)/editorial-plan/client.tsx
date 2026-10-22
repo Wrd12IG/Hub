@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { FileUploader } from '@/components/file-uploader';
 import { extractVideoFrame } from '@/lib/video-frame';
+import { timeOfPublication, combineDateAndTime } from '@/lib/publication-time';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -93,6 +94,14 @@ const IGStoriesIcon = () => (
     </svg>
 );
 
+// Icona delle Storie Facebook: cerchio tratteggiato con la «f»
+const FBStoriesIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-full w-full">
+        <circle cx="12" cy="12" r="10" strokeDasharray="4 2" />
+        <path d="M13.5 8.5h1.5M13.5 8.5c-1 0-1.5.6-1.5 1.5v7M10 12h4" />
+    </svg>
+);
+
 // Custom Google Business Profile icon
 const GBPIcon = () => (
     <svg viewBox="0 0 24 24" fill="currentColor" className="h-full w-full">
@@ -100,14 +109,15 @@ const GBPIcon = () => (
     </svg>
 );
 
-const socialIcons: { [key: string]: { icon: React.ElementType, color: string } } = {
-    facebook: { icon: Facebook, color: 'text-[#1877F2]' },
-    linkedin: { icon: Linkedin, color: 'text-[#0A66C2]' },
-    instagram: { icon: Instagram, color: 'text-[#E4405F]' },
-    igStories: { icon: IGStoriesIcon, color: 'text-[#C13584]' },
-    tiktok: { icon: TikTokIcon, color: 'text-black dark:text-white' },
-    gbp: { icon: GBPIcon, color: 'text-[#4285F4]' },
-    youtube: { icon: Youtube, color: 'text-[#FF0000]' },
+const socialIcons: { [key: string]: { icon: React.ElementType, color: string, hex: string, label: string, manual?: boolean } } = {
+    facebook: { icon: Facebook, color: 'text-[#1877F2]', hex: '#1877F2', label: 'Facebook' },
+    instagram: { icon: Instagram, color: 'text-[#E4405F]', hex: '#E4405F', label: 'Instagram' },
+    igStories: { icon: IGStoriesIcon, color: 'text-[#C13584]', hex: '#C13584', label: 'Storie Instagram' },
+    fbStories: { icon: FBStoriesIcon, color: 'text-[#1877F2]', hex: '#1877F2', label: 'Storie Facebook', manual: true },
+    linkedin: { icon: Linkedin, color: 'text-[#0A66C2]', hex: '#0A66C2', label: 'LinkedIn' },
+    gbp: { icon: GBPIcon, color: 'text-[#4285F4]', hex: '#4285F4', label: 'Google Business Profile' },
+    tiktok: { icon: TikTokIcon, color: 'text-black dark:text-white', hex: '#111111', label: 'TikTok', manual: true },
+    youtube: { icon: Youtube, color: 'text-[#FF0000]', hex: '#FF0000', label: 'YouTube', manual: true },
 };
 
 const SocialIcon = ({ active, channel }: { active: boolean, channel: keyof typeof socialIcons }) => {
@@ -426,6 +436,7 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
                                                 <SocialIcon active={content.linkedin} channel="linkedin" />
                                                 <SocialIcon active={content.instagram} channel="instagram" />
                                                 <SocialIcon active={!!content.igStories} channel="igStories" />
+                                                <SocialIcon active={!!content.fbStories} channel="fbStories" />
                                                 <SocialIcon active={content.tiktok} channel="tiktok" />
                                                 <SocialIcon active={content.gbp} channel="gbp" />
                                                 <SocialIcon active={content.youtube} channel="youtube" />
@@ -472,10 +483,10 @@ const CALENDAR_STATUS_BORDER: Record<string, string> = {
     'Pubblicato': 'border-l-green-500',
     'Approvato': 'border-l-blue-500',
     'In Approvazione Cliente': 'border-l-purple-500',
-    'Da Modificare': 'border-l-amber-500',
+    'Bozza': 'border-l-slate-400',
 };
 
-const CHANNEL_KEYS = ['facebook', 'instagram', 'igStories', 'linkedin', 'tiktok', 'youtube', 'gbp'] as const;
+const CHANNEL_KEYS = ['facebook', 'instagram', 'igStories', 'fbStories', 'linkedin', 'tiktok', 'youtube', 'gbp'] as const;
 
 const CalendarView = ({ contents, clientsById, onEdit, onReschedule }: { contents: EditorialContent[], clientsById: Record<string, Client>, onEdit: (content: EditorialContent) => void, onReschedule: (content: EditorialContent, dateKey: string) => void }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -1402,6 +1413,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                         <TableHead>LI</TableHead>
                                         <TableHead>TT</TableHead>
                                         <TableHead>IGS</TableHead>
+                                        <TableHead>FBS</TableHead>
                                         <TableHead>GBP</TableHead>
                                         <TableHead>YT</TableHead>
                                         <TableHead>Copy Post</TableHead>
@@ -1414,7 +1426,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                     {isLoadingLayout || isLoadingData ? (
                                         [...Array(5)].map((_, i) => (
                                             <TableRow key={i}>
-                                                <TableCell colSpan={17}><Skeleton className="h-8 w-full" /></TableCell>
+                                                <TableCell colSpan={18}><Skeleton className="h-8 w-full" /></TableCell>
                                             </TableRow>
                                         ))
                                     ) : filteredContents.length > 0 ? (
@@ -1448,11 +1460,11 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                     <TableCell className="hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'format', 'Formato', content.format, 'select', editorialFormats.map(f => ({ value: f.name, label: f.name })))}>{content.format}</TableCell>
                                                     <TableCell className="max-w-[150px] truncate hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenFieldEditor(content.id, 'focus', 'Focus', content.focus)}>{content.focus}</TableCell>
 
-                                                    {(['facebook', 'instagram', 'linkedin', 'tiktok', 'igStories', 'gbp', 'youtube'] as const).map(channel => (
+                                                    {(['facebook', 'instagram', 'linkedin', 'tiktok', 'igStories', 'fbStories', 'gbp', 'youtube'] as const).map(channel => (
                                                         <TableCell key={channel} className="text-center">
                                                             <PublishStateDot state={content.publishResults?.[channel]} />
                                                             <Checkbox
-                                                                checked={content[channel]}
+                                                                checked={!!content[channel]}
                                                                 className="cursor-pointer"
                                                                 onCheckedChange={async (checked) => {
                                                                     // Optimistic update - update local state immediately
@@ -1725,6 +1737,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
         linkedin: editingContent?.linkedin || false,
         instagram: editingContent?.instagram || false,
         igStories: editingContent?.igStories || false,
+        fbStories: editingContent?.fbStories || false,
         tiktok: editingContent?.tiktok || false,
         gbp: editingContent?.gbp || false,
         youtube: editingContent?.youtube || false,
@@ -1736,6 +1749,8 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             : undefined
     );
 
+    const [publicationTime, setPublicationTime] = useState<string>(timeOfPublication(editingContent?.publicationDate));
+
     const formRef = React.useRef<HTMLFormElement>(null);
     const { refetchData } = useLayoutData();
 
@@ -1745,6 +1760,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             setCurrentImageUrls(editingContent.imageUrls || []);
             setCurrentVideoUrl(editingContent.videoUrl || '');
             setCurrentCoverUrl(editingContent.coverUrl || '');
+            setPublicationTime(timeOfPublication(editingContent.publicationDate));
             setPublicationDate(
                 editingContent.publicationDate && !isNaN(new Date(editingContent.publicationDate).getTime())
                     ? new Date(editingContent.publicationDate)
@@ -1758,6 +1774,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                 linkedin: editingContent.linkedin || false,
                 instagram: editingContent.instagram || false,
                 igStories: editingContent.igStories || false,
+                fbStories: editingContent.fbStories || false,
                 tiktok: editingContent.tiktok || false,
                 gbp: editingContent.gbp || false,
                 youtube: editingContent.youtube || false,
@@ -1768,6 +1785,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             setCurrentImageUrls([]);
             setCurrentVideoUrl('');
             setCurrentCoverUrl('');
+            setPublicationTime('');
             setPublicationDate(undefined);
             setTopic('');
             setFormatValue('');
@@ -1777,6 +1795,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                 linkedin: false,
                 instagram: false,
                 igStories: false,
+                fbStories: false,
                 tiktok: false,
                 gbp: false,
                 youtube: false,
@@ -1803,7 +1822,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
         });
 
         return {
-            publicationDate: publicationDate ? format(publicationDate, 'yyyy-MM-dd') : '',
+            publicationDate: publicationDate ? combineDateAndTime(publicationDate, publicationTime) : '',
             clientId: mainFormData.get('clientId') as string,
             topic: mainFormData.get('topic') as string,
             format: mainFormData.get('format') as string,
@@ -1814,6 +1833,9 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             linkedin: platforms.linkedin,
             instagram: platforms.instagram,
             igStories: platforms.igStories,
+            fbStories: platforms.fbStories,
+            mentions: (mainFormData.get('mentions') as string) || '',
+            storyLink: (platforms.igStories || platforms.fbStories) ? ((mainFormData.get('storyLink') as string) || '') : '',
             tiktok: platforms.tiktok,
             gbp: platforms.gbp,
             youtube: platforms.youtube,
@@ -1925,7 +1947,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                         <div className="flex items-center gap-2">
                             {/* Platform Toggles */}
                             <TooltipProvider>
-                                {Object.entries(socialIcons).map(([key, { icon: Icon, color }]) => {
+                                {Object.entries(socialIcons).map(([key, { icon: Icon, hex, label, manual }]) => {
                                     const isActive = platforms[key as keyof typeof platforms];
                                     return (
                                         <Tooltip key={key}>
@@ -1937,12 +1959,12 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                                         "w-7 h-7 rounded-full flex items-center justify-center transition-all",
                                                         isActive ? "text-white" : "text-muted-foreground bg-muted hover:bg-muted/80"
                                                     )}
-                                                    style={{ backgroundColor: isActive ? color : undefined }}
+                                                    style={{ backgroundColor: isActive ? hex : undefined }}
                                                 >
                                                     <Icon className="h-3.5 w-3.5" />
                                                 </button>
                                             </TooltipTrigger>
-                                            <TooltipContent>{key.charAt(0).toUpperCase() + key.slice(1)}</TooltipContent>
+                                            <TooltipContent>{label}{manual ? ' · da pubblicare a mano' : ''}</TooltipContent>
                                         </Tooltip>
                                     )
                                 })}
@@ -2148,9 +2170,22 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                     </div>
                                     
                                     <div className="space-y-1.5">
-                                        <Label className="text-xs text-muted-foreground">Tag</Label>
-                                        <Input id="tags" name="tags" defaultValue={editingContent?.tags} placeholder="#tag..." className="h-8 text-sm" />
+                                        <Label className="text-xs text-muted-foreground">#Hashtag</Label>
+                                        <Input id="tags" name="tags" defaultValue={editingContent?.tags} placeholder="#estate #offerta" className="h-8 text-sm" />
                                     </div>
+
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-muted-foreground">@Menzioni</Label>
+                                        <Input id="mentions" name="mentions" defaultValue={editingContent?.mentions} placeholder="@toyota_italia" className="h-8 text-sm" />
+                                    </div>
+
+                                    {(platforms.igStories || platforms.fbStories) && (
+                                        <div className="space-y-1.5 col-span-2">
+                                            <Label className="text-xs text-muted-foreground">Link della storia</Label>
+                                            <Input id="storyLink" name="storyLink" type="url" defaultValue={editingContent?.storyLink} placeholder="https://…" className="h-8 text-sm" />
+                                            <p className="text-[11px] text-muted-foreground">Il link resta salvato qui: l&apos;adesivo link sulla storia va aggiunto a mano, Windsor non lo pubblica.</p>
+                                        </div>
+                                    )}
                                     
                                     <div className="space-y-1.5">
                                         <Label className="text-xs text-muted-foreground">Stato</Label>
@@ -2176,6 +2211,15 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                 onChange={setPublicationDate}
                                 placeholder="Data pubbl."
                                 label=""
+                            />
+                            <Input
+                                type="time"
+                                value={publicationTime}
+                                onChange={e => setPublicationTime(e.target.value)}
+                                disabled={!publicationDate}
+                                title="Ora di pubblicazione (vuota: 09:00)"
+                                aria-label="Ora di pubblicazione"
+                                className="h-9 w-[7rem] text-sm"
                             />
                             <Button type="submit" size="sm" className="bg-[#2D2A3B] hover:bg-[#2D2A3B]/90 text-white" disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -2216,6 +2260,12 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">IG Stories</span>
                                 <LivePreview platform="INSTAGRAM" caption={copy} postType="STORY" mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
+                            </div>
+                        )}
+                        {platforms.fbStories && (
+                            <div className="flex flex-col items-center gap-2">
+                                <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">Storie Facebook · a mano</span>
+                                <LivePreview platform="FACEBOOK" caption={copy} postType="STORY" mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                         {platforms.tiktok && (
