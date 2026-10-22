@@ -450,7 +450,7 @@ export const EMAIL_TEMPLATE_PLACEHOLDERS = {
 
 // Editorial Plan Types
 /** I canali di pubblicazione di un contenuto: sono gli stessi booleani di EditorialContent. */
-export type PublishChannel = 'facebook' | 'instagram' | 'igStories' | 'linkedin' | 'tiktok' | 'youtube' | 'gbp';
+export type PublishChannel = 'facebook' | 'instagram' | 'igStories' | 'fbStories' | 'linkedin' | 'tiktok' | 'youtube' | 'gbp';
 
 /**
  * Esito di UN canale. Lo stato globale del contenuto non basta: Instagram può essere andato e LinkedIn no.
@@ -495,11 +495,18 @@ export interface EditorialContent {
     facebook: boolean;
     instagram: boolean;
     igStories?: boolean;
+    /** Storie Facebook: Windsor non le pubblica, restano da fare a mano come TikTok e YouTube. */
+    fbStories?: boolean;
     linkedin: boolean;
     tiktok: boolean;
     youtube: boolean;
     gbp: boolean;
+    /** Hashtag (#): scritti con o senza il simbolo, il Hub lo aggiunge. */
     tags?: string;
+    /** Menzioni (@): idem. */
+    mentions?: string;
+    /** Link delle storie. Windsor non pubblica l'adesivo link: va aggiunto a mano sulla storia. */
+    storyLink?: string;
     imageUrls?: string[];
     videoUrl?: string; // URL for video content
     /** Copertina del video (JPEG, https): Instagram la usa come immagine del Reel. */

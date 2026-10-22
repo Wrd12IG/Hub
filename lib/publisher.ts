@@ -11,10 +11,11 @@
  */
 import type { Client, EditorialContent, PublishChannel } from '@/lib/data';
 import type { WindsorConnector } from '@/lib/windsor-client';
+import { composePostText } from '@/lib/post-text';
 
 /** Canali che sappiamo pubblicare. TikTok e YouTube no: Windsor non li supporta, servono le API dirette. */
 export const AUTOMATED_CHANNELS: PublishChannel[] = ['facebook', 'instagram', 'igStories', 'linkedin', 'gbp'];
-export const UNSUPPORTED_CHANNELS: PublishChannel[] = ['tiktok', 'youtube'];
+export const UNSUPPORTED_CHANNELS: PublishChannel[] = ['tiktok', 'youtube', 'fbStories'];
 
 /** Un contenuto con la sola data (senza orario) esce a quest'ora, fuso Europe/Rome. */
 export const DEFAULT_PUBLISH_HOUR = 9;
@@ -87,12 +88,9 @@ const INSTAGRAM_CAPTION_MAX = 2200;
 const LINKEDIN_MAX = 3000;
 const GBP_MAX = 1500;
 
-/** Testo del post: copy + tag (i tag sono quelli del campo "Tags", già nella forma #parola). */
+/** Testo del post: didascalia, @menzioni e #hashtag (lib/post-text.ts), nei limiti del canale. */
 function postText(content: EditorialContent, max: number): string {
-    const base = (content.copy || '').trim();
-    const tags = (content.tags || '').trim();
-    const full = tags && !base.includes(tags) ? `${base}\n\n${tags}` : base;
-    return full.length > max ? full.slice(0, max - 1).trimEnd() + '…' : full;
+    return composePostText(content.copy, content.tags, content.mentions, max);
 }
 
 function isHttps(url: string | undefined): url is string {

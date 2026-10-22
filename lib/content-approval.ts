@@ -8,7 +8,8 @@
 import type { ContentApproval, EditorialContent } from './data';
 
 export const STATUS_PENDING = 'In Approvazione Cliente';
-export const STATUS_CHANGES = 'Da Modificare';
+/** Il cliente chiede modifiche: il contenuto torna in bozza (lo stato che il Piano Editoriale già usa), col suo commento. */
+export const STATUS_CHANGES = 'Bozza';
 export const STATUS_APPROVED = 'Approvato';
 export const COMMENT_MAX = 1000;
 export const NAME_MAX = 80;
@@ -75,7 +76,7 @@ export interface PublicContent {
 
 const CHANNEL_LABEL: Record<string, string> = {
     facebook: 'Facebook', instagram: 'Instagram', igStories: 'Storie Instagram', linkedin: 'LinkedIn',
-    tiktok: 'TikTok', youtube: 'YouTube', gbp: 'Google Business Profile',
+    fbStories: 'Storie Facebook', tiktok: 'TikTok', youtube: 'YouTube', gbp: 'Google Business Profile',
 };
 
 /**
