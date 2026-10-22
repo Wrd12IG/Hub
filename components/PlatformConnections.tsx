@@ -823,111 +823,6 @@ function WindsorFieldModal({
   );
 }
 
-function GbpAddModal({
-  clientId, existingLocations, onClose, onSaved,
-}: {
-  clientId: string; existingLocations: { id: string; name: string; address?: string }[]; onClose: () => void; onSaved: (locations: { id: string; name: string; address: string }[]) => void;
-}) {
-  const [step, setStep] = useState<"load" | "select">("load");
-  const [loading, setLoading] = useState(false);
-  const [apiLocations, setApiLocations] = useState<Array<{ name: string; title: string; address: string; isVerified: boolean }>>([]);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [saving, setSaving] = useState(false);
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
-
-  async function loadLocations() {
-    setLoading(true);
-    try {
-      const authToken = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/clients/${clientId}/gbp/locations`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err.error || "Impossibile caricare le sedi. Verifica l'autenticazione Google.");
-        return;
-      }
-      const data = await res.json();
-      setApiLocations(data.locations || []);
-      setStep("select");
-    } catch (e: any) { toast.error(e?.message || "Errore di rete"); }
-    finally { setLoading(false); }
-  }
-
-  async function addSelected() {
-    setSaving(true);
-    try {
-      const authToken = localStorage.getItem("token");
-      const newLocs = apiLocations
-        .filter((l) => selected.includes(l.name))
-        .map((l) => ({ id: l.name, name: l.title, address: l.address }));
-      const merged: { id: string; name: string; address: string }[] = [
-        ...existingLocations.map((e) => ({ ...e, address: e.address ?? "" })),
-        ...newLocs.filter((n) => !existingLocations.some((e) => e.id === n.id)),
-      ];
-
-      const res = await fetch(`${API_URL}/api/clients/${clientId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ gbpLocations: merged }),
-      });
-      if (!res.ok) throw new Error(await describeFailure(res));
-      toast.success(`${newLocs.length} sede/i aggiunta/e!`);
-      onSaved(merged);
-      onClose();
-    } catch (e: any) { toast.error(e?.message || "Impossibile salvare."); }
-    finally { setSaving(false); }
-  }
-
-  return (
-    <ModalWrapper title="Google Business Profile — Aggiungi Sede" onClose={onClose}>
-      {step === "load" ? (
-        <div className="space-y-4 text-center">
-          <p className="text-sm text-muted-foreground">
-            Carica le sedi GBP associate all&apos;account Google collegato.
-          </p>
-          <button onClick={loadLocations} disabled={loading}
-            className="w-full py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer">
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-            {loading ? "Caricamento..." : "Carica Sedi GBP"}
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">{apiLocations.length} sedi trovate. Seleziona quelle da aggiungere:</p>
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
-            {apiLocations.map((loc) => {
-              const alreadyAdded = existingLocations.some((e) => e.id === loc.name);
-              const isSelected = selected.includes(loc.name);
-              return (
-                <button key={loc.name} type="button" disabled={alreadyAdded}
-                  onClick={() => setSelected((prev) => isSelected ? prev.filter((s) => s !== loc.name) : [...prev, loc.name])}
-                  className={cn(
-                    "w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all cursor-pointer",
-                    alreadyAdded ? "border-emerald-500/20 bg-emerald-500/5 cursor-not-allowed opacity-60"
-                      : isSelected ? "border-emerald-500/40 bg-emerald-500/10"
-                      : "border-border bg-muted/40 hover:border-foreground/30"
-                  )}>
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-foreground">{loc.title}</span>
-                    {(alreadyAdded || isSelected) && <CheckCircle2 size={12} className="text-emerald-700 dark:text-emerald-400 shrink-0" />}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{loc.address} {loc.isVerified ? "" : ""}</span>
-                </button>
-              );
-            })}
-          </div>
-          <button onClick={addSelected} disabled={selected.length === 0 || saving}
-            className="w-full py-2.5 text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
-            {saving && <Loader2 size={14} className="animate-spin" />}
-            {selected.length > 0 ? `Aggiungi ${selected.length} sede/i` : "Seleziona sedi"}
-          </button>
-        </div>
-      )}
-    </ModalWrapper>
-  );
-}
-
 /* ─────────────────────────────────────────────────────────────────
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
@@ -1368,7 +1263,7 @@ function LinkedinModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "gbp-add" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-facebook" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-facebook" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
 
 
 export default function PlatformConnections({
@@ -1384,15 +1279,12 @@ export default function PlatformConnections({
   const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
 
-  const gbpLocations = client.gbpLocations ?? [];
-
   const hasGoogleToken = !!(client.hasGoogleToken || client.googleAdAccountId || client.ga4PropertyId);
 
   const configuredCount = [
     client.hasMetaToken || client.metaAdAccountId,
     client.ga4PropertyId,
     client.googleAdAccountId,
-    gbpLocations.length > 0,
     client.clarityProjectId,
     client.hasYoutubeToken || client.youtubePublicChannelId,
     client.hasTiktokToken,
@@ -1402,20 +1294,6 @@ export default function PlatformConnections({
     client.windsorAccounts?.linkedin_organic,
     (client.windsorAccounts?.gbp?.length ?? 0) > 0,
   ].filter(Boolean).length;
-
-  async function removeGbpLocation(locationId: string) {
-    const updated = gbpLocations.filter((l) => l.id !== locationId);
-    try {
-      const authToken = localStorage.getItem("token");
-      await fetch(`${API_URL}/api/clients/${clientId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ gbpLocations: updated }),
-      });
-      setClient((prev) => ({ ...prev, gbpLocations: updated }));
-      toast.success("Sede rimossa");
-    } catch { toast.error("Errore durante la rimozione"); }
-  }
 
   function refreshClient() {
     onClientUpdated?.();
@@ -1502,23 +1380,6 @@ export default function PlatformConnections({
           <button type="button" onClick={() => setActiveModal("ga4")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-yellow-500/20 text-yellow-400 bg-yellow-500/5 hover:bg-yellow-500/10 transition-all cursor-pointer">
             {client.ga4PropertyId ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Analytics</>}
-          </button>
-        </div>
-
-        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(gbpLocations.length > 0, "#34A853")}>
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
-                <GBPIcon />
-              </div>
-              <span className="text-sm font-bold text-foreground">GBP</span>
-            </div>
-            {gbpLocations.length > 0 && <ConnectedBadge />}
-          </div>
-          <button type="button" onClick={() => setActiveModal("gbp-add")}
-            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
-            <Plus size={11} />
-            {gbpLocations.length > 0 ? "Aggiungi un'altra sede" : "Collega Sede GBP"}
           </button>
         </div>
 
@@ -1733,12 +1594,12 @@ export default function PlatformConnections({
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
                 <MapPin size={16} />
               </div>
-              <span className="text-sm font-bold text-foreground">GBP Sedi (Report)</span>
+              <span className="text-sm font-bold text-foreground">Google Business Profile</span>
             </div>
             {(client.windsorAccounts?.gbp?.length ?? 0) > 0 && <ConnectedBadge />}
           </div>
           {(client.windsorAccounts?.gbp?.length ?? 0) > 0 && (
-            <AccountChip name={`${client.windsorAccounts!.gbp!.length} sede/i`} sub="Nel Report Marketing" />
+            <AccountChip name={`${client.windsorAccounts!.gbp!.length} sede/i`} sub="Report e pubblicazione" />
           )}
           <button type="button" onClick={() => setActiveModal("windsor-gbp")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
@@ -1763,11 +1624,6 @@ export default function PlatformConnections({
         <GA4Modal clientId={clientId} currentGa4={client.ga4PropertyId}
           hasGoogleToken={hasGoogleToken} onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }} />
-      )}
-      {activeModal === "gbp-add" && (
-        <GbpAddModal clientId={clientId} existingLocations={gbpLocations}
-          onClose={() => setActiveModal(null)}
-          onSaved={(locations) => setClient((prev) => ({ ...prev, gbpLocations: locations }))} />
       )}
       {activeModal === "clarity" && (
         <ClarityModal clientId={clientId} currentProjectId={client.clarityProjectId}
