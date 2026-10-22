@@ -53,3 +53,19 @@ describe('toPublicContent', () => {
         expect(p.channels).toEqual(['Facebook', 'Instagram']);
     });
 });
+
+import { bypassApproval, canBypassApproval } from '../content-approval';
+describe('bypass', () => {
+    it('solo admin o chi ha il permesso', () => {
+        expect(canBypassApproval({ role: 'Amministratore' })).toBe(true);
+        expect(canBypassApproval({ role: 'Collaboratore', canSkipClientApproval: true })).toBe(true);
+        expect(canBypassApproval({ role: 'Project Manager' })).toBe(false);
+        expect(canBypassApproval({ role: 'Cliente', canSkipClientApproval: true })).toBe(false); // un utente Cliente non salta mai l'approvazione, nemmeno col flag
+        expect(canBypassApproval(null)).toBe(false);
+    });
+    it('lascia traccia di chi ha approvato', () => {
+        const r = bypassApproval('Roberto', new Date('2026-10-22T10:00:00Z'), 'u1');
+        expect(r.status).toBe('Approvato');
+        expect(r.approval).toMatchObject({ status: 'approved', bypass: true, respondedBy: 'Roberto', requestedBy: 'u1' });
+    });
+});

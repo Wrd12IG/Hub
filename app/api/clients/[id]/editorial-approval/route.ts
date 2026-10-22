@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
-import { canRequestApproval, requestApproval } from '@/lib/content-approval';
+import { verifyAuth, unauthorizedResponse, forbiddenResponse, denyUnlessStaff, getAppUser } from '@/lib/api-auth';
+import { canRequestApproval, requestApproval, bypassApproval, canBypassApproval } from '@/lib/content-approval';
 import type { EditorialContent } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * POST /api/clients/[id]/editorial-approval  { contentIds: string[] }
+ * POST /api/clients/[id]/editorial-approval  { contentIds: string[], bypass?: boolean }
+ * Con bypass: approvazione interna senza cliente, solo per Amministratori o utenti con canSkipClientApproval.
  * Solo staff. Mette i contenuti "In Approvazione Cliente" e restituisce il link pubblico dove il cliente risponde
  * (shareUrl = null se il cliente non ha ancora un link: va generato dalla scheda cliente).
  */
@@ -21,6 +22,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const ids: string[] = Array.isArray(body?.contentIds) ? body.contentIds.filter((x: unknown) => typeof x === 'string').slice(0, 100) : [];
   if (ids.length === 0) return NextResponse.json({ error: 'Nessun contenuto indicato' }, { status: 400 });
 
+  const bypass = body?.bypass === true;
+  const appUser = bypass ? await getAppUser(user.uid) : null;
+  if (bypass && !canBypassApproval(appUser as any)) return forbiddenResponse();
+  const bypassName = bypass ? ((await adminDb.collection('users').doc(user.uid).get()).data()?.name as string | undefined) || 'Staff' : '';
+
   const now = new Date();
   const requested: string[] = [];
   const skipped: { id: string; reason: string }[] = [];
@@ -33,9 +39,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       if (!snap.exists) return { reason: 'non trovato' };
       const c = { id, ...(snap.data() as Omit<EditorialContent, 'id'>) } as EditorialContent;
       if (c.clientId !== params.id) return { reason: 'non appartiene a questo cliente' };
-      const can = canRequestApproval(c);
+      const can = canRequestApproval(bypass && c.approval?.status === 'requested' ? { ...c, approval: undefined } : c);
       if (!can.ok) return { reason: can.reason };
-      const next = requestApproval(user.uid, now);
+      // Con bypass si può chiudere anche una richiesta in attesa del cliente: è proprio il caso d'uso.
+      const next = bypass ? bypassApproval(bypassName, now, user.uid) : requestApproval(user.uid, now);
       tx.update(ref, JSON.parse(JSON.stringify({ ...next, updatedAt: now })));
       return null;
     });
