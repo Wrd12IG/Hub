@@ -42,6 +42,7 @@ import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { FileUploader } from '@/components/file-uploader';
+import { extractVideoFrame } from '@/lib/video-frame';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -2062,6 +2063,18 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                                             if (videoFiles.length > 0) {
                                                                 const attachments = await uploadFilesAndGetAttachments([videoFiles[0]], 'editorial-plan/videos', 'anonymous');
                                                                 setCurrentVideoUrl(attachments[0].url);
+                                                                // Copertina di partenza dal primo fotogramma, letto dal file sul tuo computer: si può sostituire.
+                                                                if (!currentCoverUrl) {
+                                                                    const frame = await extractVideoFrame(videoFiles[0]);
+                                                                    if (frame) {
+                                                                        const cover = new File([frame], 'copertina.jpg', { type: 'image/jpeg' });
+                                                                        const [coverAtt] = await uploadFilesAndGetAttachments([cover], 'editorial-plan/covers', 'anonymous');
+                                                                        if (coverAtt) {
+                                                                            setCurrentCoverUrl(coverAtt.url);
+                                                                            toast.success('Copertina creata dal primo fotogramma. Puoi sostituirla.');
+                                                                        }
+                                                                    }
+                                                                }
                                                             }
                                                         } catch (error) {
                                                             toast.error('Errore durante il caricamento');
