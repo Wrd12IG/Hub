@@ -26,7 +26,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
     ? isVideoUrl(firstMedia)
     : false
   const previewMedia = isVideoPost ? (coverUrl || firstMedia) : firstMedia
-  const showPlayOverlay = isVideoPost && (coverUrl || firstMedia)
+  const showPlayOverlay = isVideoPost && !!coverUrl
 
   if (platform === 'INSTAGRAM') {
     return (
@@ -49,7 +49,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
                 <div style={{ position: 'absolute', inset: 0 }}>
                   {(coverUrl || !firstIsVideo)
                     ? <img src={previewMedia} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    : <video src={firstMedia} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} autoPlay muted loop playsInline />
+                    : <video src={`${firstMedia}#t=0.1`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} controls preload="metadata" muted loop playsInline />
                   }
                 </div>
                 {showPlayOverlay && (
@@ -102,7 +102,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
           ? <div style={{ background: '#f0f0f0', aspectRatio: '1.91', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
               {(coverUrl || !firstIsVideo)
                 ? <img src={coverUrl || previewMedia} alt="" style={{ width: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }} />
-                : <video src={firstMedia} style={{ width: '100%', objectFit: 'cover' }} autoPlay muted loop playsInline />}
+                : <video src={`${firstMedia}#t=0.1`} style={{ width: '100%', objectFit: 'cover' }} controls preload="metadata" muted loop playsInline />}
               {showPlayOverlay && (
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.15)' }}>
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -142,7 +142,9 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
         </div>
         {caption && <div style={{ padding: '0 12px 10px', fontSize: '13px', color: '#000', lineHeight: 1.5 }}>{caption.slice(0, 200)}{caption.length > 200 ? '...' : ''}</div>}
         {hasMedia && <div style={{ background: '#f3f2ef', aspectRatio: '1.91', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-          <img src={firstMedia} alt="" style={{ width: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }} />
+          {firstIsVideo
+            ? <video src={`${firstMedia}#t=0.1`} style={{ width: '100%', objectFit: 'cover' }} controls preload="metadata" muted playsInline />
+            : <img src={firstMedia} alt="" style={{ width: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }} />}
         </div>}
         <div style={{ padding: '8px 12px', borderTop: '1px solid #e0e0e0', display: 'flex', gap: '16px' }}>
           {[
