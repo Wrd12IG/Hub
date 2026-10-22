@@ -372,6 +372,7 @@ export type NotificationType =
     | 'editorial_due_soon'
     | 'editorial_publish_today'
     | 'editorial_client_response'
+    | 'editorial_approval_requested'
     // Calendar
     | 'calendar_reminder'
     | 'calendar_event_assigned';

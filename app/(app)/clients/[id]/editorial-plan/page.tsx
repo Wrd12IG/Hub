@@ -3,8 +3,21 @@
 import React, { Suspense } from 'react'
 import { CalendarDays, Sparkles } from 'lucide-react'
 import { EditorialPlanPageContent } from '../../../editorial-plan/client'
+import { ClientPedView } from '@/components/client-ped-view'
+import { useLayoutData } from '@/app/(app)/layout-context'
 
+/**
+ * Chi è un cliente vede il suo PED in sola approvazione (ClientPedView). L'editor completo non viene nemmeno montato:
+ * niente caricamenti dei dati dello staff e nessun campo interno.
+ */
 export default function ClientEditorialPlanPage({ params }: { params: { id: string } }) {
+  const { currentUser, isLoadingLayout } = useLayoutData()
+  if (isLoadingLayout || !currentUser) return <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">Caricamento…</div>
+  if (currentUser.role === 'Cliente') return <ClientPedView clientId={params.id} />
+  return <StaffEditorialPlan params={params} />
+}
+
+function StaffEditorialPlan({ params }: { params: { id: string } }) {
   return (
     <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ 

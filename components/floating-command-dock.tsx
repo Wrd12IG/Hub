@@ -46,6 +46,8 @@ interface DockNavItem {
     group?: 'lavoro' | 'clienti' | 'team' | 'analisi' | 'admin';
     /** Altri percorsi che danno accesso alla stessa voce (es. il vecchio /assets per Documenti e Media). */
     altHrefs?: string[];
+    /** Attiva solo sull'indirizzo esatto: serve quando altre voci stanno sotto lo stesso percorso (accesso Cliente). */
+    exact?: boolean;
 }
 
 const allNavItems: DockNavItem[] = [
@@ -138,7 +140,13 @@ export function FloatingCommandDock() {
 
         // L'accesso «Cliente» ha una sola pagina: i risultati del proprio cliente (Overview e Audit)
         if (currentUser.role === 'Cliente') {
-            return currentUser.clientId ? [{ href: `/clients/${currentUser.clientId}`, icon: BarChart3, label: 'I miei risultati', color: 'text-amber-500' } as DockNavItem] : [];
+            if (!currentUser.clientId) return [];
+            const home = `/clients/${currentUser.clientId}`;
+            return [
+                { href: home, icon: BarChart3, label: 'I miei risultati', color: 'text-amber-500', exact: true },
+                { href: `${home}/editorial-plan`, icon: Calendar, label: 'Piano editoriale', color: 'text-pink-500' },
+                { href: `${home}/briefs`, icon: BookOpen, label: 'Brief', color: 'text-indigo-500' },
+            ] as DockNavItem[];
         }
 
         const roleName = (currentUser.role || '').trim();
@@ -222,10 +230,11 @@ export function FloatingCommandDock() {
                 <nav aria-label="Navigazione principale" className="flex items-center gap-0.5">
                     {visibleNavItems.map((item, index) => {
                         const Icon = item.icon;
-                        const isActive =
-                            pathname === item.href ||
-                            (item.href !== '/dashboard' && pathname.startsWith(item.href)) ||
-                            !!item.altHrefs?.some(h => pathname.startsWith(h));
+                        const isActive = item.exact
+                            ? pathname === item.href
+                            : pathname === item.href ||
+                              (item.href !== '/dashboard' && pathname.startsWith(item.href)) ||
+                              !!item.altHrefs?.some(h => pathname.startsWith(h));
                         const startsNewGroup = index > 0 && item.group !== visibleNavItems[index - 1].group;
 
                         return (

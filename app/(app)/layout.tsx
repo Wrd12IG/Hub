@@ -27,6 +27,12 @@ import GlassSkinToggle from '@/components/glass-skin-toggle';
 
 import { TranslationProvider } from '@/hooks/useTranslation';
 
+/** L'accesso «Cliente» ha tre pagine, tutte del proprio cliente: risultati, piano editoriale (PED) e brief. */
+function isClientAreaPath(pathname: string, clientId: string): boolean {
+  const home = `/clients/${clientId}`;
+  return pathname === home || ['/editorial-plan', '/briefs'].some((p) => pathname === `${home}${p}` || pathname.startsWith(`${home}${p}/`));
+}
+
 /** Pagine che riempiono lo schermo da sole: uno spazio in fondo le farebbe scorrere senza motivo. */
 const FULL_HEIGHT_PAGES = ['/chat', '/focus'];
 
@@ -50,7 +56,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [currentUser, isLoadingLayout, router, isMounted]);
 
   useEffect(() => {
-    if (isMounted && !isLoadingLayout && currentUser?.role === 'Cliente' && currentUser.clientId && pathname !== `/clients/${currentUser.clientId}`) {
+    if (isMounted && !isLoadingLayout && currentUser?.role === 'Cliente' && currentUser.clientId && !isClientAreaPath(pathname, currentUser.clientId)) {
       router.replace(`/clients/${currentUser.clientId}`);
     }
   }, [currentUser, isLoadingLayout, router, isMounted, pathname]);
