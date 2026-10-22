@@ -459,6 +459,8 @@ export interface ChannelPublishState {
     postUrl?: string;
     error?: string;
     attempts?: number;
+    /** Account Windsor già serviti (GBP multi-sede): un nuovo tentativo salta quelli, così non raddoppia i post. */
+    doneAccounts?: string[];
     lastAttemptAt?: string;
     publishedAt?: string;
 }
