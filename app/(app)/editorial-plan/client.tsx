@@ -787,6 +787,32 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
         }
     };
 
+    const handlePublishNow = async (content: EditorialContent) => {
+        const names = (['facebook', 'instagram', 'igStories', 'linkedin', 'gbp'] as const).filter(k => content[k]).map(k => k === 'igStories' ? 'Storia Instagram' : k === 'gbp' ? 'Google Business Profile' : k.charAt(0).toUpperCase() + k.slice(1));
+        const client = clientsById[content.clientId]?.name || 'il cliente';
+        if (!window.confirm(`Pubblicare adesso "${content.topic}" sui profili di ${client}?\n\nCanali: ${names.join(', ') || 'nessuno automatizzato'}.\nI post diventano subito pubblici.`)) return;
+        setIsPublishing(prev => ({ ...prev, [content.id]: true }));
+        try {
+            const res = await fetch(`/api/clients/${content.clientId}/editorial-publish-now`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contentId: content.id }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Errore durante la pubblicazione.');
+            const outcomes: { channel: string; result: string }[] = data.outcomes || [];
+            const ok = outcomes.filter(o => o.result === 'pubblicato').length;
+            const ko = outcomes.filter(o => o.result.startsWith('fallito') || o.result.startsWith('errore'));
+            if (ko.length === 0) toast.success(`Pubblicato su ${ok} ${ok === 1 ? 'canale' : 'canali'}.`);
+            else toast.error(`${ok} pubblicati, ${ko.length} falliti: ${ko.map(o => `${o.channel} (${o.result.slice(0, 120)})`).join(' · ')}`, { duration: 15000 });
+            await fetchData();
+        } catch (error: any) {
+            toast.error(error.message || 'Errore durante la pubblicazione.');
+        } finally {
+            setIsPublishing(prev => ({ ...prev, [content.id]: false }));
+        }
+    };
+
     const handleRequestApproval = async (content: EditorialContent, bypass = false) => {
         try {
             const res = await fetch(`/api/clients/${content.clientId}/editorial-approval`, {
@@ -1516,6 +1542,12 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 >
                                                                     <Send className="mr-2 h-4 w-4" /> 
                                                                     {isPublishing[content.id] ? 'Invio in corso...' : 'Invia a Zapier'}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    disabled={content.status !== 'Approvato' || isPublishing[content.id]}
+                                                                    onClick={() => handlePublishNow(content)}
+                                                                >
+                                                                    <Send className="mr-2 h-4 w-4" /> {isPublishing[content.id] ? 'Pubblicazione...' : 'Pubblica ora'}
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => setWorkplanContent(content)}>
                                                                     <ClipboardList className="mr-2 h-4 w-4" /> Genera task di lavorazione
