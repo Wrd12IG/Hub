@@ -38,6 +38,20 @@ function getApiKey(): string {
     return key;
 }
 
+/** Oggi come yyyy-MM-dd (UTC, come le date che il Hub manda a Windsor). */
+function todayIso(): string {
+    return new Date().toISOString().slice(0, 10);
+}
+
+/** Il giorno prima di una data yyyy-MM-dd, o null se la stringa non è una data. */
+export function previousDay(iso: string): string | null {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+    if (!m) return null;
+    const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+    d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+}
+
 /**
  * Read data from a Windsor connector.
  *
@@ -115,6 +129,16 @@ export async function getData({
 
     const json = await response.json();
     const rows: WindsorRow[] = json.data || [];
+
+    // Una finestra che finisce OGGI può tornare vuota per un account collegato da poco (il dato di oggi non c'è ancora),
+    // mentre la stessa fino a ieri dà i numeri veri: misurato il 22/10/2026 sulla pagina Facebook di WR Digital.
+    // Si riprova una volta con la fine spostata a ieri; la lettura "fresh" resta fresh.
+    if (rows.length === 0 && dateFrom && dateTo) {
+        const yesterday = previousDay(dateTo);
+        if (yesterday && dateTo >= todayIso() && yesterday >= dateFrom) {
+            return getData({ connector, accountId, accountIds, fields, dateFrom, dateTo: yesterday, fresh });
+        }
+    }
 
     // Belt-and-braces client-side filter: some connectors (e.g. facebook) accept
     // account_id server-side, others silently ignore an unrecognized filter param
