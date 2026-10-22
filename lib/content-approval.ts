@@ -74,7 +74,7 @@ export interface PublicContent {
     channels: string[];
 }
 
-const CHANNEL_LABEL: Record<string, string> = {
+export const CHANNEL_LABEL: Record<string, string> = {
     facebook: 'Facebook', instagram: 'Instagram', igStories: 'Storie Instagram', linkedin: 'LinkedIn',
     fbStories: 'Storie Facebook', tiktok: 'TikTok', youtube: 'YouTube', gbp: 'Google Business Profile',
 };

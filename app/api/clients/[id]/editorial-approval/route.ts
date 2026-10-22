@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, denyUnlessStaff, getAppUser } from '@/lib/api-auth';
+import { clientUserIds, notifyUsers } from '@/lib/server-notify';
 import { canRequestApproval, requestApproval, bypassApproval, canBypassApproval } from '@/lib/content-approval';
 import type { EditorialContent } from '@/lib/data';
 
@@ -47,6 +48,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return null;
     });
     if (result) skipped.push({ id, reason: result.reason }); else requested.push(id);
+  }
+
+  // Il cliente vede il PED col suo accesso: lo si avvisa che c'è qualcosa da approvare (non per il bypass interno).
+  if (!bypass && requested.length > 0) {
+    const first = await adminDb.collection('editorialContents').doc(requested[0]).get();
+    await notifyUsers(await clientUserIds(params.id), {
+      title: '📝 Contenuti da approvare',
+      text: requested.length === 1 ? `C'è un contenuto da approvare nel tuo piano editoriale: "${first.data()?.topic}"` : `Ci sono ${requested.length} contenuti da approvare nel tuo piano editoriale`,
+      type: 'editorial_approval_requested', category: 'editorial', priority: 'high',
+      link: `/clients/${params.id}/editorial-plan`,
+    });
   }
 
   const link = await adminDb.collection('clients').doc(params.id).collection('private').doc('publicLink').get();

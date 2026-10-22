@@ -213,6 +213,12 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, {
         priority: 'urgent'
     },
 
+    editorial_approval_requested: {
+        title: '📝 Contenuti da approvare',
+        getText: (d) => d.count === 1 ? `C'è un contenuto da approvare nel tuo piano editoriale: "${d.topic}"` : `Ci sono ${d.count} contenuti da approvare nel tuo piano editoriale`,
+        category: 'editorial',
+        priority: 'high'
+    },
     editorial_client_response: {
         title: '💬 Il cliente ha risposto',
         getText: (d) => d.approved
