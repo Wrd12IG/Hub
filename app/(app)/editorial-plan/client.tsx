@@ -22,7 +22,7 @@ import {
     CardDescription,
 } from '@/components/ui/card';
 import { getEditorialContents, addEditorialContent, updateEditorialContent, deleteEditorialContent, getEditorialFormats, getEditorialColumns, getEditorialStatuses, addTask, addProject, uploadFilesAndGetAttachments } from '@/lib/actions';
-import type { EditorialContent, Client, EditorialFormat, EditorialColumn, EditorialStatus, User, Task, Project, ActivityType } from '@/lib/data';
+import type { EditorialContent, ChannelPublishState, Client, EditorialFormat, EditorialColumn, EditorialStatus, User, Task, Project, ActivityType } from '@/lib/data';
 import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, Upload, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -238,6 +238,27 @@ const MediaGallery = ({ imageUrls, videoUrl, alt }: { imageUrls?: string[], vide
 };
 
 // Kanban Board View Component
+const PUBLISH_DOT: Record<string, { color: string; label: string }> = {
+    publishing: { color: 'bg-amber-400', label: 'In pubblicazione' },
+    published: { color: 'bg-green-500', label: 'Pubblicato' },
+    failed: { color: 'bg-red-500', label: 'Errore' },
+    unsupported: { color: 'bg-slate-400', label: 'Canale non ancora automatizzato' },
+};
+
+/** Puntino dell'esito di pubblicazione per canale; nessun puntino se non è mai stato tentato. */
+const PublishStateDot = ({ state }: { state?: ChannelPublishState }) => {
+    if (!state) return null;
+    const dot = PUBLISH_DOT[state.status];
+    const detail = state.status === 'failed' && state.error ? `: ${state.error}` : '';
+    return (
+        <span className="mb-1 flex justify-center" title={`${dot.label}${detail}`}>
+            {state.postUrl
+                ? <a href={state.postUrl} target="_blank" rel="noreferrer" className={`h-2 w-2 rounded-full ${dot.color}`} />
+                : <span className={`h-2 w-2 rounded-full ${dot.color}`} />}
+        </span>
+    );
+};
+
 const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishToZapier, isPublishing }: {
     contents: EditorialContent[],
     clientsById: Record<string, Client>,
@@ -1338,6 +1359,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
 
                                                     {(['facebook', 'instagram', 'linkedin', 'tiktok', 'igStories', 'gbp', 'youtube'] as const).map(channel => (
                                                         <TableCell key={channel} className="text-center">
+                                                            <PublishStateDot state={content.publishResults?.[channel]} />
                                                             <Checkbox
                                                                 checked={content[channel]}
                                                                 className="cursor-pointer"

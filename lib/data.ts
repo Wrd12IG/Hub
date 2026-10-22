@@ -446,6 +446,27 @@ export const EMAIL_TEMPLATE_PLACEHOLDERS = {
 };
 
 // Editorial Plan Types
+/** I canali di pubblicazione di un contenuto: sono gli stessi booleani di EditorialContent. */
+export type PublishChannel = 'facebook' | 'instagram' | 'igStories' | 'linkedin' | 'tiktok' | 'youtube' | 'gbp';
+
+/**
+ * Esito di UN canale. Lo stato globale del contenuto non basta: Instagram può essere andato e LinkedIn no.
+ * 'unsupported' = il canale è richiesto ma non ha ancora un modo di pubblicare (TikTok, YouTube).
+ */
+export interface ChannelPublishState {
+    status: 'publishing' | 'published' | 'failed' | 'unsupported';
+    postId?: string;
+    postUrl?: string;
+    error?: string;
+    attempts?: number;
+    /** Account Windsor già serviti (GBP multi-sede): un nuovo tentativo salta quelli, così non raddoppia i post. */
+    doneAccounts?: string[];
+    lastAttemptAt?: string;
+    publishedAt?: string;
+}
+
+export type PublishResults = Partial<Record<PublishChannel, ChannelPublishState>>;
+
 export interface EditorialContent {
     id: string;
     topic: string;
@@ -468,6 +489,8 @@ export interface EditorialContent {
     taskId?: string;
     projectId?: string;
     customFields?: Record<string, string>;
+    /** Esito per canale, scritto da chi pubblica (cron/Zapier). Assente = mai tentato. */
+    publishResults?: PublishResults;
     createdAt?: string;
     updatedAt?: string;
 }
