@@ -18,7 +18,7 @@ const BUDGET_MS = 230_000;
 /** Firestore rifiuta gli `undefined` (il progetto non ha ignoreUndefinedProperties): sempre il giro JSON in scrittura. */
 const clean = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
-type Outcome = { contentId: string; channel: PublishChannel; result: string };
+type Outcome = { contentId: string; topic?: string; clientId?: string; publicationDate?: string; channel: PublishChannel; result: string };
 
 /**
  * Pubblica i contenuti "Approvato" la cui data è arrivata, canale per canale, tramite le azioni di scrittura di Windsor.
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
         if (UNSUPPORTED_CHANNELS.includes(channel)) {
           if (prev?.status !== 'unsupported') {
-            outcomes.push({ contentId: content.id, channel, result: 'non automatizzato' });
+            outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, publicationDate: content.publicationDate, channel, result: 'non automatizzato' });
             if (!dryRun) await ref.update({ [`publishResults.${channel}`]: clean<ChannelPublishState>({ status: 'unsupported', error: 'Da pubblicare a mano: canale non ancora automatizzato' }) });
           }
           continue;
@@ -84,19 +84,19 @@ export async function GET(request: NextRequest) {
           const age = now.getTime() - new Date(prev.lastAttemptAt || 0).getTime();
           if (age > STALE_PUBLISHING_MS && !dryRun) {
             await ref.update({ [`publishResults.${channel}`]: clean<ChannelPublishState>({ ...prev, status: 'failed', attempts: MAX_ATTEMPTS, error: 'Risposta persa durante la pubblicazione: controlla sul profilo se il post è uscito, poi correggi a mano' }) });
-            outcomes.push({ contentId: content.id, channel, result: 'bloccato: risposta persa' });
+            outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, publicationDate: content.publicationDate, channel, result: 'bloccato: risposta persa' });
           }
           continue;
         }
         if (prev?.status === 'failed' && (prev.attempts || 0) >= MAX_ATTEMPTS) continue;
 
         if (!client) {
-          outcomes.push({ contentId: content.id, channel, result: 'cliente non trovato' });
+          outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, publicationDate: content.publicationDate, channel, result: 'cliente non trovato' });
           continue;
         }
         const plan = planChannel(content, channel, client);
         if ('error' in plan) {
-          outcomes.push({ contentId: content.id, channel, result: `errore: ${plan.error}` });
+          outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, publicationDate: content.publicationDate, channel, result: `errore: ${plan.error}` });
           // Un errore di configurazione non migliora ritentando: si segna una volta e si lascia al tentativo manuale.
           if (!dryRun && prev?.error !== plan.error) {
             await ref.update({ [`publishResults.${channel}`]: clean<ChannelPublishState>({ status: 'failed', error: plan.error, attempts: MAX_ATTEMPTS, lastAttemptAt: now.toISOString() }) });
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
           continue;
         }
         if (dryRun) {
-          outcomes.push({ contentId: content.id, channel, result: `uscirebbe: ${plan.actions.map((a) => `${a.connector}/${a.action}→${a.accountId}`).join(', ')}` });
+          outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, publicationDate: content.publicationDate, channel, result: `uscirebbe: ${plan.actions.map((a) => `${a.connector}/${a.action}→${a.accountId}`).join(', ')}` });
           continue;
         }
 
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
         const updated = clean(finalState);
         await ref.update({ [`publishResults.${channel}`]: updated });
         content.publishResults = { ...content.publishResults, [channel]: updated };
-        outcomes.push({ contentId: content.id, channel, result: failure ? `fallito: ${failure}` : 'pubblicato' });
+        outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, publicationDate: content.publicationDate, channel, result: failure ? `fallito: ${failure}` : 'pubblicato' });
       }
 
       if (!dryRun && allAutomatedPublished(content, channels)) {
