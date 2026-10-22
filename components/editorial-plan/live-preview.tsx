@@ -1,4 +1,5 @@
 import React from 'react';
+import { isVideoUrl } from '@/lib/media-url';
 import { Instagram, Facebook, Linkedin, Music, Youtube, Building2, ImageIcon, Play, Heart, MessageCircle, Send, Bookmark, ThumbsUp, Share2, Video } from 'lucide-react';
 
 type Platform = 'INSTAGRAM' | 'FACEBOOK' | 'LINKEDIN' | 'TIKTOK' | 'YOUTUBE' | 'GOOGLE_BUSINESS';
@@ -22,7 +23,7 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
   const firstMedia = mediaUrls.filter(Boolean)[0]
   const isVideoPost = postType === 'VIDEO' || postType === 'REEL'
   const firstIsVideo = firstMedia 
-    ? /\.(mp4|webm|mov)$/i.test(firstMedia)
+    ? isVideoUrl(firstMedia)
     : false
   const previewMedia = isVideoPost ? (coverUrl || firstMedia) : firstMedia
   const showPlayOverlay = isVideoPost && (coverUrl || firstMedia)

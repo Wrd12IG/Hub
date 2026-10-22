@@ -1802,7 +1802,8 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                 youtube: editingContent.youtube || false,
             });
         } else if (modalState === 'create') {
-            setSelectedClientId(undefined);
+            // Il cliente della pagina (o del filtro) resta: azzerarlo qui annullava la precompilazione.
+            setSelectedClientId(forcedClientId || defaultClientId);
             setCurrentImageUrls([]);
             setCurrentVideoUrl('');
             setPublicationDate(undefined);
@@ -1819,7 +1820,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                 youtube: false,
             });
         }
-    }, [modalState, editingContent]);
+    }, [modalState, editingContent, forcedClientId, defaultClientId]);
 
     const handlePlatformChange = (platform: keyof typeof platforms) => (checked: boolean) => {
         setPlatforms(prev => ({ ...prev, [platform]: checked }));
