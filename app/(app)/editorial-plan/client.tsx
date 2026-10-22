@@ -1981,7 +1981,9 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                             ))}
                             {currentVideoUrl && currentVideoUrl.trim() !== '' && (
                                 <div className="relative group w-16 h-16 rounded-md overflow-hidden border bg-muted flex items-center justify-center">
+                                    {/* Primo fotogramma del video caricato; la claquette resta sotto se il browser non lo legge */}
                                     <Clapperboard className="h-6 w-6 text-muted-foreground" />
+                                    <video src={`${currentVideoUrl}#t=0.1`} preload="metadata" muted playsInline className="absolute inset-0 h-full w-full object-cover" />
                                     <button type="button" onClick={() => setCurrentVideoUrl('')} className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <X className="h-3 w-3" />
                                     </button>
