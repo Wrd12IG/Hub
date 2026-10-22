@@ -25,8 +25,8 @@ export function LivePreview({ platform, caption, postType, mediaUrls, coverUrl, 
   const firstIsVideo = firstMedia 
     ? isVideoUrl(firstMedia)
     : false
-  const previewMedia = isVideoPost ? (coverUrl || firstMedia) : firstMedia
-  const showPlayOverlay = isVideoPost && !!coverUrl
+  const previewMedia = coverUrl || firstMedia
+  const showPlayOverlay = !!coverUrl
 
   if (platform === 'INSTAGRAM') {
     return (

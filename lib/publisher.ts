@@ -109,7 +109,11 @@ export function planChannel(content: EditorialContent, channel: PublishChannel, 
         case 'instagram': {
             if (!accounts.instagram) return { error: 'Account Instagram non collegato in Setup API' };
             const caption = postText(content, INSTAGRAM_CAPTION_MAX);
-            if (video) return { actions: [{ connector: 'instagram', action: 'create_video_post', accountId: accounts.instagram, params: { video_url: video, caption } }] };
+            if (video) {
+                // Lo schema di Windsor accetta cover_url oppure thumb_offset, mai tutti e due: senza copertina Instagram usa il primo fotogramma.
+                const cover = isHttps(content.coverUrl) ? content.coverUrl : undefined;
+                return { actions: [{ connector: 'instagram', action: 'create_video_post', accountId: accounts.instagram, params: { video_url: video, caption, ...(cover ? { cover_url: cover } : {}) } }] };
+            }
             if (images.length >= 2) return { actions: [{ connector: 'instagram', action: 'create_carousel_post', accountId: accounts.instagram, params: { image_urls: images.slice(0, 10), caption } }] };
             if (images.length === 1) return { actions: [{ connector: 'instagram', action: 'create_image_post', accountId: accounts.instagram, params: { image_url: images[0], caption } }] };
             return { error: 'Instagram richiede almeno un\'immagine o un video (URL https)' };

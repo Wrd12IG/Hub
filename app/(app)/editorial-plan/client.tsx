@@ -42,6 +42,7 @@ import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { FileUploader } from '@/components/file-uploader';
+import { extractVideoFrame } from '@/lib/video-frame';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -1712,6 +1713,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentImageUrls, setCurrentImageUrls] = useState<string[]>([]);
     const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
+    const [currentCoverUrl, setCurrentCoverUrl] = useState<string>('');
     const [isUploadingFiles, setIsUploadingFiles] = useState(false);
     
     // Controlled states for Live Preview
@@ -1742,6 +1744,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             setSelectedClientId(editingContent.clientId);
             setCurrentImageUrls(editingContent.imageUrls || []);
             setCurrentVideoUrl(editingContent.videoUrl || '');
+            setCurrentCoverUrl(editingContent.coverUrl || '');
             setPublicationDate(
                 editingContent.publicationDate && !isNaN(new Date(editingContent.publicationDate).getTime())
                     ? new Date(editingContent.publicationDate)
@@ -1764,6 +1767,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             setSelectedClientId(forcedClientId || defaultClientId);
             setCurrentImageUrls([]);
             setCurrentVideoUrl('');
+            setCurrentCoverUrl('');
             setPublicationDate(undefined);
             setTopic('');
             setFormatValue('');
@@ -1816,6 +1820,8 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
             customFields: customFields,
             imageUrls: currentImageUrls.filter(url => url.trim() !== ''),
             videoUrl: currentVideoUrl,
+            // La copertina vale solo con un video: tolto il video, non resta una copertina orfana.
+            coverUrl: currentVideoUrl ? currentCoverUrl : '',
             status: mainFormData.get('status') as string || initialStatusForCreate || 'Bozza',
         };
     };
@@ -1984,10 +1990,47 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                     {/* Primo fotogramma del video caricato; la claquette resta sotto se il browser non lo legge */}
                                     <Clapperboard className="h-6 w-6 text-muted-foreground" />
                                     <video src={`${currentVideoUrl}#t=0.1`} preload="metadata" muted playsInline className="absolute inset-0 h-full w-full object-cover" />
-                                    <button type="button" onClick={() => setCurrentVideoUrl('')} className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button type="button" onClick={() => { setCurrentVideoUrl(''); setCurrentCoverUrl(''); }} className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <X className="h-3 w-3" />
                                     </button>
                                 </div>
+                            )}
+                            {currentVideoUrl && currentVideoUrl.trim() !== '' && (
+                                currentCoverUrl ? (
+                                    <div className="relative group w-16 h-16 rounded-md overflow-hidden border bg-muted" title="Copertina del video">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={currentCoverUrl} alt="Copertina" className="h-full w-full object-cover" />
+                                        <span className="absolute bottom-0 inset-x-0 bg-black/55 text-[9px] text-white text-center">Copertina</span>
+                                        <button type="button" onClick={() => setCurrentCoverUrl('')} className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label className="w-16 h-16 rounded-md border border-dashed flex flex-col items-center justify-center gap-0.5 text-[10px] text-muted-foreground hover:text-primary hover:border-primary cursor-pointer text-center" title="Copertina del video (JPEG)">
+                                        {isUploadingFiles ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                                        Copertina
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg"
+                                            className="hidden"
+                                            disabled={isUploadingFiles}
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+                                                setIsUploadingFiles(true);
+                                                try {
+                                                    const attachments = await uploadFilesAndGetAttachments([file], 'editorial-plan/covers', 'anonymous');
+                                                    setCurrentCoverUrl(attachments[0].url);
+                                                } catch (error) {
+                                                    toast.error('Errore durante il caricamento della copertina');
+                                                } finally {
+                                                    setIsUploadingFiles(false);
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                )
                             )}
                         </div>
 
@@ -2020,6 +2063,18 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                                             if (videoFiles.length > 0) {
                                                                 const attachments = await uploadFilesAndGetAttachments([videoFiles[0]], 'editorial-plan/videos', 'anonymous');
                                                                 setCurrentVideoUrl(attachments[0].url);
+                                                                // Copertina di partenza dal primo fotogramma, letto dal file sul tuo computer: si può sostituire.
+                                                                if (!currentCoverUrl) {
+                                                                    const frame = await extractVideoFrame(videoFiles[0]);
+                                                                    if (frame) {
+                                                                        const cover = new File([frame], 'copertina.jpg', { type: 'image/jpeg' });
+                                                                        const [coverAtt] = await uploadFilesAndGetAttachments([cover], 'editorial-plan/covers', 'anonymous');
+                                                                        if (coverAtt) {
+                                                                            setCurrentCoverUrl(coverAtt.url);
+                                                                            toast.success('Copertina creata dal primo fotogramma. Puoi sostituirla.');
+                                                                        }
+                                                                    }
+                                                                }
                                                             }
                                                         } catch (error) {
                                                             toast.error('Errore durante il caricamento');
@@ -2142,43 +2197,43 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                         {platforms.facebook && (
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">Facebook</span>
-                                <LivePreview platform="FACEBOOK" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                                <LivePreview platform="FACEBOOK" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                         {platforms.instagram && (
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">Instagram</span>
-                                <LivePreview platform="INSTAGRAM" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                                <LivePreview platform="INSTAGRAM" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                         {platforms.linkedin && (
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">LinkedIn</span>
-                                <LivePreview platform="LINKEDIN" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                                <LivePreview platform="LINKEDIN" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                         {platforms.igStories && (
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">IG Stories</span>
-                                <LivePreview platform="INSTAGRAM" caption={copy} postType="STORY" mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                                <LivePreview platform="INSTAGRAM" caption={copy} postType="STORY" mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                         {platforms.tiktok && (
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">TikTok</span>
-                                <LivePreview platform="TIKTOK" caption={copy} postType="REEL" mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                                <LivePreview platform="TIKTOK" caption={copy} postType="REEL" mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                         {platforms.youtube && (
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">YouTube</span>
-                                <LivePreview platform="YOUTUBE" caption={copy} postType={postType === 'REEL' ? 'REEL' : 'VIDEO'} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                                <LivePreview platform="YOUTUBE" caption={copy} postType={postType === 'REEL' ? 'REEL' : 'VIDEO'} mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                         {platforms.gbp && (
                             <div className="flex flex-col items-center gap-2">
                                 <span className="text-xs font-semibold text-muted-foreground self-start uppercase tracking-wider">Google Business</span>
-                                <LivePreview platform="GOOGLE_BUSINESS" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} clientName={clientName} />
+                                <LivePreview platform="GOOGLE_BUSINESS" caption={copy} postType={postType} mediaUrls={[...currentImageUrls, currentVideoUrl]} coverUrl={currentVideoUrl && currentCoverUrl ? currentCoverUrl : undefined} clientName={clientName} />
                             </div>
                         )}
                     </div>

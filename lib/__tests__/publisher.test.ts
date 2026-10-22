@@ -79,3 +79,17 @@ describe('arretrato', () => {
     it('scaduto da mesi non esce da solo', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-06-23' }, now)).toBe('too-late'));
     it('futuro non ancora', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-12-20' }, now)).toBe('not-yet'));
 });
+
+describe('copertina del video', () => {
+    it('Instagram: la copertina https va come cover_url', () => {
+        const r = planChannel(base({ videoUrl: 'https://x/v.mp4', coverUrl: 'https://x/c.jpg' }), 'instagram', accounts) as any;
+        expect(r.actions[0].params).toMatchObject({ video_url: 'https://x/v.mp4', cover_url: 'https://x/c.jpg' });
+        expect(r.actions[0].params).not.toHaveProperty('thumb_offset');
+    });
+    it('senza copertina (o non https) il parametro non c\'è', () => {
+        const a = planChannel(base({ videoUrl: 'https://x/v.mp4' }), 'instagram', accounts) as any;
+        const b = planChannel(base({ videoUrl: 'https://x/v.mp4', coverUrl: 'http://x/c.jpg' }), 'instagram', accounts) as any;
+        expect(a.actions[0].params).not.toHaveProperty('cover_url');
+        expect(b.actions[0].params).not.toHaveProperty('cover_url');
+    });
+});

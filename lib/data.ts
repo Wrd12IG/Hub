@@ -502,6 +502,8 @@ export interface EditorialContent {
     tags?: string;
     imageUrls?: string[];
     videoUrl?: string; // URL for video content
+    /** Copertina del video (JPEG, https): Instagram la usa come immagine del Reel. */
+    coverUrl?: string;
     taskId?: string;
     projectId?: string;
     customFields?: Record<string, string>;
