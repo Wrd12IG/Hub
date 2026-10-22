@@ -466,8 +466,19 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
 
 
 // Calendar View Component
-const CalendarView = ({ contents, clientsById, onEdit }: { contents: EditorialContent[], clientsById: Record<string, Client>, onEdit: (content: EditorialContent) => void }) => {
+/** Colore del bordo sinistro della scheda nel calendario, dallo stato del contenuto. */
+const CALENDAR_STATUS_BORDER: Record<string, string> = {
+    'Pubblicato': 'border-l-green-500',
+    'Approvato': 'border-l-blue-500',
+    'In Approvazione Cliente': 'border-l-purple-500',
+    'Da Modificare': 'border-l-amber-500',
+};
+
+const CHANNEL_KEYS = ['facebook', 'instagram', 'igStories', 'linkedin', 'tiktok', 'youtube', 'gbp'] as const;
+
+const CalendarView = ({ contents, clientsById, onEdit, onReschedule }: { contents: EditorialContent[], clientsById: Record<string, Client>, onEdit: (content: EditorialContent) => void, onReschedule: (content: EditorialContent, dateKey: string) => void }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [dragOver, setDragOver] = useState<string | null>(null);
 
     const firstDay = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
     const lastDay = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -506,13 +517,31 @@ const CalendarView = ({ contents, clientsById, onEdit }: { contents: EditorialCo
                         const dateKey = format(day, 'yyyy-MM-dd');
                         const dayContents = contentsByDate[dateKey] || [];
                         return (
-                            <div key={day.toString()} className={cn("h-40 p-2 border-b border-r flex flex-col", !isSameMonth(day, currentMonth) && "bg-muted/30")}>
+                            <div
+                                key={day.toString()}
+                                className={cn("h-40 p-2 border-b border-r flex flex-col", !isSameMonth(day, currentMonth) && "bg-muted/30", dragOver === dateKey && "bg-primary/10")}
+                                onDragOver={(e) => { e.preventDefault(); setDragOver(dateKey); }}
+                                onDragLeave={() => setDragOver((d) => (d === dateKey ? null : d))}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    setDragOver(null);
+                                    const moved = contents.find((c) => c.id === e.dataTransfer.getData('text/plain'));
+                                    if (moved) onReschedule(moved, dateKey);
+                                }}
+                            >
                                 <time dateTime={format(day, 'yyyy-MM-dd')} className={cn("font-semibold", isToday(day) && "bg-primary text-primary-foreground rounded-full w-6 h-6 flex items-center justify-center")}>
                                     {format(day, 'd')}
                                 </time>
                                 <div className="flex-grow overflow-y-auto mt-1 space-y-1">
                                     {dayContents.map(content => (
-                                        <div key={content.id} onClick={() => onEdit(content)} className="p-1 rounded-md text-xs bg-card border cursor-pointer hover:bg-muted">
+                                        <div
+                                            key={content.id}
+                                            draggable={content.status !== 'Pubblicato'}
+                                            onDragStart={(e) => e.dataTransfer.setData('text/plain', content.id)}
+                                            onClick={() => onEdit(content)}
+                                            className={cn("p-1 rounded-md text-xs bg-card border border-l-4 cursor-pointer hover:bg-muted", CALENDAR_STATUS_BORDER[content.status] || 'border-l-slate-300')}
+                                            title={`${content.status}${content.approval?.status === 'changes' && content.approval.comment ? ` · Cliente: ${content.approval.comment}` : ''}`}
+                                        >
                                             {content.imageUrls?.[0] && content.imageUrls[0].trim() !== '' && (
                                                 <div className="aspect-video relative mb-1">
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -521,6 +550,12 @@ const CalendarView = ({ contents, clientsById, onEdit }: { contents: EditorialCo
                                             )}
                                             <p className="font-bold truncate">{content.topic}</p>
                                             <p className="text-xs truncate text-muted-foreground">{clientsById[content.clientId]?.name}</p>
+                                            <div className="mt-0.5 flex flex-wrap gap-0.5">
+                                                {CHANNEL_KEYS.filter((k) => content[k]).map((k) => {
+                                                    const st = content.publishResults?.[k]?.status;
+                                                    return <span key={k} className={cn("rounded px-1 text-[10px] uppercase", st === 'published' ? 'bg-green-100 text-green-800' : st === 'failed' ? 'bg-red-100 text-red-800' : 'bg-muted text-muted-foreground')}>{k === 'igStories' ? 'story' : k.slice(0, 2)}</span>;
+                                                })}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -772,6 +807,30 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
             await fetchData();
         } catch (error: any) {
             toast.error(error.message || 'Errore durante la richiesta.');
+        }
+    };
+
+    /** Sposta la data di pubblicazione al giorno indicato, tenendo l'orario se il contenuto ne ha uno. */
+    const handleReschedule = async (content: EditorialContent, dateKey: string) => {
+        const current = content.publicationDate || '';
+        if (current.slice(0, 10) === dateKey) return;
+        const next = /^\d{4}-\d{2}-\d{2}$/.test(current) || !current
+            ? dateKey
+            : (() => {
+                const old = new Date(current);
+                const [y, m, d] = dateKey.split('-').map(Number);
+                const moved = new Date(old);
+                moved.setFullYear(y, m - 1, d);
+                return moved.toISOString();
+            })();
+        const previous = content.publicationDate;
+        setContents(prev => prev.map(c => c.id === content.id ? { ...c, publicationDate: next } : c));
+        try {
+            await updateEditorialContent(content.id, { publicationDate: next });
+            toast.success(`Spostato al ${format(new Date(`${dateKey}T12:00:00`), 'd MMMM', { locale: it })}`);
+        } catch {
+            setContents(prev => prev.map(c => c.id === content.id ? { ...c, publicationDate: previous } : c));
+            toast.error('Errore nello spostamento');
         }
     };
 
@@ -1486,7 +1545,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
 
             {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishToZapier={handlePublishToZapier} isPublishing={isPublishing} />}
 
-            {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} />}
+            {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} onReschedule={handleReschedule} />}
 
             {view === 'gantt' && <GanttView contents={filteredContents} clients={clients} users={users} onEdit={handleOpenEditModal} />}
 
