@@ -513,6 +513,8 @@ export interface EditorialContent {
     /** Copertina del video (JPEG, https): Instagram la usa come immagine del Reel. */
     coverUrl?: string;
     taskId?: string;
+    /** Tutti i task collegati al contenuto (produzione di grafica, video, foto): taskId resta il primo, per i contenuti esistenti. */
+    taskIds?: string[];
     projectId?: string;
     customFields?: Record<string, string>;
     /** Esito per canale, scritto da chi pubblica (cron/Zapier). Assente = mai tentato. */

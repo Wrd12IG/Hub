@@ -43,6 +43,9 @@ import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { FileUploader } from '@/components/file-uploader';
 import { extractVideoFrame } from '@/lib/video-frame';
+import { ProductionTasksDialog } from '@/components/ProductionTasksDialog';
+import { ImportTaskMediaDialog } from '@/components/ImportTaskMediaDialog';
+import { channelsMissingMedia, linkedTaskIds } from '@/lib/content-production';
 import { timeOfPublication, combineDateAndTime } from '@/lib/publication-time';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -270,7 +273,7 @@ const PublishStateDot = ({ state }: { state?: ChannelPublishState }) => {
     );
 };
 
-const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishNow, isPublishing }: {
+const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishNow, onOpenProduction, onImportMedia, isPublishing }: {
     contents: EditorialContent[],
     clientsById: Record<string, Client>,
     statuses: EditorialStatus[],
@@ -282,6 +285,8 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
     projectsById: Record<string, Project>,
     editorialColumns: EditorialColumn[],
     onPublishNow: (content: EditorialContent) => void,
+    onOpenProduction: (content: EditorialContent) => void,
+    onImportMedia: (content: EditorialContent) => void,
     isPublishing: Record<string, boolean>,
 }) => {
     const contentsByStatus = useMemo(() => {
@@ -368,6 +373,12 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
                                                         >
                                                             <Send className="mr-2 h-4 w-4" /> 
                                                             {isPublishing[content.id] ? 'Pubblicazione...' : 'Pubblica ora'}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem disabled={content.status === 'Pubblicato'} onClick={() => onOpenProduction(content)}>
+                                                            <ClipboardList className="mr-2 h-4 w-4" /> Apri task di produzione
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem disabled={linkedTaskIds(content).length === 0} onClick={() => onImportMedia(content)}>
+                                                            <ImageIcon className="mr-2 h-4 w-4" /> Importa media dai task
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => onEdit(content)}>
@@ -710,7 +721,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     // UI State
     const [isFiltersOpen, setIsFiltersOpen] = useState(true);
 
-    const { clients, users, currentUser, permissions, allTasks, allProjects, activityTypes, clientsById, usersById, tasksById, projectsById, isLoadingLayout } = useLayoutData();
+    const { clients, users, currentUser, permissions, allTasks, allProjects, activityTypes, clientsById, usersById, tasksById, projectsById, isLoadingLayout, refetchData } = useLayoutData();
     const [contents, setContents] = useState<EditorialContent[]>([]);
     const [editorialFormats, setEditorialFormats] = useState<EditorialFormat[]>([]);
     const [editorialStatuses, setEditorialStatuses] = useState<EditorialStatus[]>([]);
@@ -731,6 +742,8 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     // State for nested modals
     const [nestedModal, setNestedModal] = useState<NestedModalState>(null);
     const [formDataForNested, setFormDataForNested] = useState<ContentFormData | null>(null);
+    const [productionContent, setProductionContent] = useState<EditorialContent | null>(null);
+    const [importContent, setImportContent] = useState<EditorialContent | null>(null);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -795,6 +808,9 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     };
 
     const handleRequestApproval = async (content: EditorialContent, bypass = false) => {
+        // Il cliente approva idea, testo E grafica finita: se manca il materiale per Instagram lo si dice prima di mandarlo.
+        const missing = channelsMissingMedia(content);
+        if (missing.length > 0 && !window.confirm(`Mancano immagini o video per: ${missing.join(', ')}.\n\nIl cliente approverebbe un contenuto senza la grafica. Mandarlo lo stesso?`)) return;
         try {
             const res = await fetch(`/api/clients/${content.clientId}/editorial-approval`, {
                 method: 'POST',
@@ -1524,6 +1540,12 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 >
                                                                     <Send className="mr-2 h-4 w-4" /> {isPublishing[content.id] ? 'Pubblicazione...' : 'Pubblica ora'}
                                                                 </DropdownMenuItem>
+                                                                <DropdownMenuItem disabled={content.status === 'Pubblicato'} onClick={() => setProductionContent(content)}>
+                                                                    <ClipboardList className="mr-2 h-4 w-4" /> Apri task di produzione
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem disabled={linkedTaskIds(content).length === 0} onClick={() => setImportContent(content)}>
+                                                                    <ImageIcon className="mr-2 h-4 w-4" /> Importa media dai task
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem
                                                                     disabled={content.status === 'Pubblicato' || content.approval?.status === 'requested'}
                                                                     onClick={() => handleRequestApproval(content)}
@@ -1564,11 +1586,13 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                 </Card>
             )}
 
-            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishNow={handlePublishNow} isPublishing={isPublishing} />}
+            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishNow={handlePublishNow} onOpenProduction={setProductionContent} onImportMedia={setImportContent} isPublishing={isPublishing} />}
 
             {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} onReschedule={handleReschedule} />}
 
             {view === 'gantt' && <GanttView contents={filteredContents} clients={clients} users={users} onEdit={handleOpenEditModal} />}
+            <ProductionTasksDialog content={productionContent} client={productionContent ? clientsById[productionContent.clientId] : undefined} users={users} currentUserId={currentUser?.id} onClose={() => setProductionContent(null)} onCreated={() => { fetchData(); refetchData('tasks'); }} />
+            <ImportTaskMediaDialog content={importContent} tasks={importContent ? linkedTaskIds(importContent).map(id => tasksById[id]).filter(Boolean) : []} onClose={() => setImportContent(null)} onImported={fetchData} />
 
             <Dialog open={!!modalState} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
                 <DialogContent className="max-w-6xl w-[96vw]">

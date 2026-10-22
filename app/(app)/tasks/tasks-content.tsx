@@ -2546,7 +2546,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                     }}
                                 >
                                     <Share2 className="h-4 w-4 mr-1.5 fill-slate-950" />
-                                    Programma su Piano
+                                    Inserisci nel PED
                                 </Button>
                             </div>
                         </div>
