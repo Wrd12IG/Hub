@@ -1614,6 +1614,8 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                         editorialFormats={editorialFormats}
                         editorialStatuses={editorialStatuses}
                         editorialColumns={editorialColumns}
+                        forcedClientId={forcedClientId}
+                        defaultClientId={filters.clientId !== 'all' ? filters.clientId : undefined}
                         onOpenNestedModal={handleOpenNestedModal}
                         onSuccess={fetchData}
                     />
@@ -1731,7 +1733,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
 }
 
 // Wrapper component to manage form state and pass it down
-function FormWrapper({ modalState, handleCloseModal, editingContent, initialStatusForCreate, clients, editorialFormats, editorialStatuses, editorialColumns, forcedClientId, onOpenNestedModal, onSuccess }: {
+function FormWrapper({ modalState, handleCloseModal, editingContent, initialStatusForCreate, clients, editorialFormats, editorialStatuses, editorialColumns, forcedClientId, defaultClientId, onOpenNestedModal, onSuccess }: {
     modalState: ModalState,
     handleCloseModal: () => void,
     editingContent: EditorialContent | null,
@@ -1741,11 +1743,14 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
     editorialStatuses: EditorialStatus[],
     editorialColumns: EditorialColumn[],
     forcedClientId?: string,
+    /** Cliente scelto nel filtro della pagina: precompila il campo, ma si può cambiare. */
+    defaultClientId?: string,
     onOpenNestedModal: (type: NestedModalState, formData: ContentFormData) => void;
     onSuccess?: () => void;
 }) {
 
-    const [selectedClientId, setSelectedClientId] = useState<string | undefined>(editingContent?.clientId || forcedClientId);
+    const [selectedClientId, setSelectedClientId] = useState<string | undefined>(editingContent?.clientId || forcedClientId || defaultClientId);
+    const [presetsOpen, setPresetsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [currentImageUrls, setCurrentImageUrls] = useState<string[]>([]);
     const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
@@ -1987,7 +1992,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                     </Button>
                                 </Link>
                             ) : (
-                                <Button type="button" variant="outline" size="sm" className="h-8 gap-1 border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800" onClick={() => toast.error("Seleziona prima un cliente nelle preimpostazioni globali per accedere all'editor.")}>
+                                <Button type="button" variant="outline" size="sm" className="h-8 gap-1 border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800" onClick={() => { setPresetsOpen(true); toast.error("Scegli prima il cliente qui sotto, in Preimpostazioni globali."); }}>
                                     <Wand2 className="h-3.5 w-3.5" />
                                     <span className="text-xs">Editor Stories</span>
                                 </Button>
@@ -2078,7 +2083,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
 
                     {/* Preimpostazioni Globali (Collapsible) */}
                     <div className="border-t bg-muted/5 p-3">
-                        <Collapsible>
+                        <Collapsible open={presetsOpen} onOpenChange={setPresetsOpen}>
                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="w-full justify-between p-2 h-auto text-sm font-semibold">
                                     <div className="flex items-center gap-2">
