@@ -1131,139 +1131,11 @@ function TikTokModal({
    MODAL: LINKEDIN
 ───────────────────────────────────────────────────────────────── */
 
-function LinkedinModal({
-  clientId, hasToken, orgName, onClose, onSaved,
-}: {
-  clientId: string; hasToken: boolean; orgName?: string | null;
-  onClose: () => void; onSaved: (name: string) => void;
-}) {
-  const [accessToken, setAccessToken] = useState("");
-  const [refreshToken, setRefreshToken] = useState("");
-  const [organizationId, setOrganizationId] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState<{ valid: boolean; orgLabel?: string } | null>(null);
-  const [disconnecting, setDisconnecting] = useState(false);
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
-
-  async function save() {
-    if (!accessToken.trim()) { toast.error("Inserisci l'access token LinkedIn"); return; }
-    setSaving(true);
-    try {
-      const authToken = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/api/clients/${clientId}/linkedin/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({
-          accessToken,
-          refreshToken: refreshToken || undefined,
-          organizationId: organizationId || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Errore");
-      toast.success(`LinkedIn connesso — ${data.userName}`);
-      onSaved(organizationId || data.userName || "");
-      onClose();
-    } catch (e: any) { toast.error(e.message); }
-    finally { setSaving(false); }
-  }
-
-  async function checkStatus() {
-    const authToken = localStorage.getItem("token");
-    const res = await fetch(`${API_URL}/api/clients/${clientId}/linkedin/token`, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    const data = await res.json();
-    setStatus({ valid: data.valid, orgLabel: data.organizationName || data.userName });
-  }
-
-  async function disconnect() {
-    setDisconnecting(true);
-    try {
-      const authToken = localStorage.getItem("token");
-      await fetch(`${API_URL}/api/clients/${clientId}/linkedin/token`, {
-        method: "DELETE", headers: { Authorization: `Bearer ${authToken}` },
-      });
-      toast.success("LinkedIn disconnesso");
-      onSaved("");
-      onClose();
-    } catch { toast.error("Errore durante la disconnessione"); }
-    finally { setDisconnecting(false); }
-  }
-
-  return (
-    <ModalWrapper title="LinkedIn — Connetti pagina aziendale" onClose={onClose}>
-      <div className="space-y-4">
-        {hasToken && (
-          <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-            <div className="flex items-center gap-2">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-700 dark:text-emerald-400 shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
-              <div>
-                <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Pagina connessa</p>
-                {orgName && <p className="text-xs text-muted-foreground mt-0.5">{orgName}</p>}
-              </div>
-            </div>
-            <button onClick={checkStatus} className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer">Verifica</button>
-          </div>
-        )}
-        {status && (
-          <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs font-semibold ${status.valid ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-700 dark:text-rose-400"}`}>
-            {status.valid
-              ? <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><polyline points="20 6 9 17 4 12" /></svg>Token valido &mdash; {status.orgLabel}</>
-              : <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>Token non valido o scaduto</>}
-          </div>
-        )}
-        <div className="p-3 rounded-xl bg-muted/40 border border-border space-y-1.5">
-          <p className="text-xs font-bold text-muted-foreground">Come ottenere il token:</p>
-          <ol className="text-xs text-muted-foreground space-y-0.5 list-decimal list-inside">
-            <li>linkedin.com/developers → crea app → prodotti: Marketing API</li>
-            <li>Scopes: r_organization_social, r_organization_admin</li>
-            <li>Autorizza il cliente via OAuth 2.0</li>
-            <li>Incolla access token + Organization ID della pagina</li>
-          </ol>
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="linkedin-access-token" className="text-xs font-bold text-muted-foreground">Access Token *</label>
-          <input autoComplete="off" id="linkedin-access-token" value={accessToken} onChange={(e) => setAccessToken(e.target.value)}
-            placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "AQV..."}
-            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="linkedin-refresh-token" className="text-xs font-bold text-muted-foreground">Refresh Token (se disponibile)</label>
-          <input autoComplete="off" id="linkedin-refresh-token" value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)}
-            placeholder="AQW..."
-            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
-        </div>
-        <div className="space-y-1.5">
-          <label htmlFor="linkedin-org-id" className="text-xs font-bold text-muted-foreground">Organization ID (numero della pagina)</label>
-          <input autoComplete="off" id="linkedin-org-id" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)}
-            placeholder="es. 12345678"
-            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-600/50 transition-all placeholder:text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">Trovalo nell'URL: linkedin.com/company/<strong>12345678</strong>/admin</p>
-        </div>
-        <div className="flex gap-2">
-          {hasToken && (
-            <button onClick={disconnect} disabled={disconnecting}
-              className="flex-none px-3 py-2.5 text-xs font-semibold border border-rose-500/20 text-rose-700 dark:text-rose-400 bg-rose-500/5 hover:bg-rose-500/10 rounded-lg transition-all disabled:opacity-50 cursor-pointer">
-              {disconnecting ? <Loader2 size={12} className="animate-spin" /> : "Disconnetti"}
-            </button>
-          )}
-          <button onClick={save} disabled={saving || !accessToken.trim()}
-            className="flex-1 py-2.5 text-sm font-bold bg-blue-700 hover:bg-blue-600 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer">
-            {saving && <Loader2 size={14} className="animate-spin" />}
-            {hasToken ? "Aggiorna token" : "Connetti LinkedIn"}
-          </button>
-        </div>
-      </div>
-    </ModalWrapper>
-  );
-}
-
 /* ─────────────────────────────────────────────────────────────────
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "clarity" | "youtube" | "tiktok" | "linkedin" | "windsor-instagram" | "windsor-facebook" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "clarity" | "youtube" | "tiktok" | "windsor-instagram" | "windsor-facebook" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
 
 
 export default function PlatformConnections({
@@ -1288,7 +1160,6 @@ export default function PlatformConnections({
     client.clarityProjectId,
     client.hasYoutubeToken || client.youtubePublicChannelId,
     client.hasTiktokToken,
-    client.hasLinkedinToken,
     client.windsorAccounts?.instagram,
     client.windsorAccounts?.searchconsole,
     client.windsorAccounts?.linkedin_organic,
@@ -1443,24 +1314,6 @@ export default function PlatformConnections({
           </button>
         </div>
 
-        {/* ── LINKEDIN ── */}
-        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasLinkedinToken, "#0A66C2")}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#60a5fa")}>
-                <LinkedinOrgIcon />
-              </div>
-              <span className="text-sm font-bold text-foreground">LinkedIn</span>
-            </div>
-            {client.hasLinkedinToken && <ConnectedBadge />}
-          </div>
-          {client.linkedinOrgName && <AccountChip name={client.linkedinOrgName} sub="Pagina aziendale" />}
-          <button type="button" onClick={() => setActiveModal("linkedin")}
-            className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-600/20 text-blue-400 bg-blue-600/5 hover:bg-blue-600/10 transition-all cursor-pointer">
-            {client.hasLinkedinToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega LinkedIn</>}
-          </button>
-        </div>
-
         {/* ── WINDSOR.AI — INSTAGRAM (per Report Marketing) ── */}
         <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.windsorAccounts?.instagram, "#E1306C")}>
           <div className="flex items-center justify-between">
@@ -1574,16 +1427,16 @@ export default function PlatformConnections({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={iconStyle("#4ade80")}>
-                <BarChart3 size={16} />
+                <LinkedinOrgIcon />
               </div>
-              <span className="text-sm font-bold text-foreground">LinkedIn (Report)</span>
+              <span className="text-sm font-bold text-foreground">LinkedIn</span>
             </div>
             {client.windsorAccounts?.linkedin_organic && <ConnectedBadge />}
           </div>
-          <p className="text-xs text-muted-foreground -mt-1">Solo per il Report Marketing — separato dalla connessione LinkedIn qui sopra.</p>
+          <p className="text-xs text-muted-foreground -mt-1">Pagina aziendale: report e pubblicazione programmata, tramite Windsor.</p>
           <button type="button" onClick={() => setActiveModal("windsor-linkedin")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-emerald-500/20 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500/10 transition-all cursor-pointer">
-            {client.windsorAccounts?.linkedin_organic ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega Org. ID</>}
+            {client.windsorAccounts?.linkedin_organic ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega pagina</>}
           </button>
         </div>
 
@@ -1655,18 +1508,6 @@ export default function PlatformConnections({
           onClose={() => setActiveModal(null)}
           onSaved={(name) => {
             setClient((prev) => ({ ...prev, hasTiktokToken: !!name, tiktokDisplayName: name || null }));
-            setActiveModal(null);
-          }}
-        />
-      )}
-      {activeModal === "linkedin" && (
-        <LinkedinModal
-          clientId={clientId}
-          hasToken={!!client.hasLinkedinToken}
-          orgName={client.linkedinOrgName}
-          onClose={() => setActiveModal(null)}
-          onSaved={(name) => {
-            setClient((prev) => ({ ...prev, hasLinkedinToken: !!name, linkedinOrgName: name || null }));
             setActiveModal(null);
           }}
         />
@@ -1752,12 +1593,12 @@ export default function PlatformConnections({
       {activeModal === "windsor-linkedin" && (
         <WindsorFieldModal
           clientId={clientId}
-          title="LinkedIn — Organization ID (per Report Marketing)"
+          title="LinkedIn — pagina aziendale"
           fieldKey="linkedin_organic"
           connector="linkedin_organic"
           currentValue={client.windsorAccounts?.linkedin_organic}
           placeholder="es. 53113725"
-          hint="Numero dell'Organization ID LinkedIn collegato nel pannello dati dell'agenzia — non è legato alla connessione LinkedIn qui sopra."
+          hint="La pagina aziendale deve essere collegata a Windsor. Serve per i report e per la pubblicazione programmata."
           accentColor="#34A853"
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }}
