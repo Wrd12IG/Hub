@@ -1571,7 +1571,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
             {view === 'gantt' && <GanttView contents={filteredContents} clients={clients} users={users} onEdit={handleOpenEditModal} />}
 
             <Dialog open={!!modalState} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent className="max-w-6xl w-[96vw]">
                     <DialogHeader>
                         <DialogTitle>{modalState === 'create' ? 'Nuovo Contenuto' : 'Modifica Contenuto'}</DialogTitle>
                         <DialogDescription>Compila i campi per pianificare il tuo contenuto.</DialogDescription>
@@ -1938,13 +1938,13 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
 
     return (
         <form ref={formRef} onSubmit={handleFormSubmit} className="pt-2 h-full flex flex-col">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-1 items-start max-h-[80vh] overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-6 flex-1 items-start max-h-[80vh] overflow-hidden">
                 
                 {/* SINISTRA: FORM DI INPUT */}
                 <div className="flex flex-col h-full bg-white rounded-xl border shadow-sm overflow-y-auto overflow-x-hidden">
                     {/* Header: Canali e Strumenti */}
-                    <div className="flex items-center justify-between p-3 border-b bg-muted/10">
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b bg-muted/10">
+                        <div className="flex flex-wrap items-center gap-2">
                             {/* Platform Toggles */}
                             <TooltipProvider>
                                 {Object.entries(socialIcons).map(([key, { icon: Icon, hex, label, manual }]) => {
@@ -2203,9 +2203,9 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-3 border-t bg-muted/10 flex items-center justify-between mt-auto">
+                    <div className="p-3 border-t bg-muted/10 flex flex-wrap items-center justify-between gap-2 mt-auto">
                         <Button type="button" variant="ghost" size="sm" onClick={() => handleCloseModal()}>Annulla</Button>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                             <DatePickerDialog
                                 value={publicationDate}
                                 onChange={setPublicationDate}
@@ -2221,7 +2221,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                 aria-label="Ora di pubblicazione"
                                 className="h-9 w-[7rem] text-sm"
                             />
-                            <Button type="submit" size="sm" className="bg-[#2D2A3B] hover:bg-[#2D2A3B]/90 text-white" disabled={isSubmitting}>
+                            <Button type="submit" size="sm" className="shrink-0 bg-[#2D2A3B] hover:bg-[#2D2A3B]/90 text-white" disabled={isSubmitting}>
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Programma
                             </Button>
