@@ -111,13 +111,15 @@ export async function runPublish(due: EditorialContent[], opts: RunOptions, star
       let postUrl = claimed.postUrl;
       let failure: string | null = null;
       for (const action of plan.actions) {
-        if (done.has(action.accountId)) continue;
+        // Più azioni sullo stesso account (più storie): si ricorda quali sono già uscite, per non rifarle in un nuovo tentativo
+      const doneKey = action.key ?? action.accountId;
+      if (done.has(doneKey)) continue;
         try {
           const res = await executeAction(action.connector, action.action, action.accountId, action.params);
           const refs = extractPostRef(res);
           postId = postId || refs.postId;
           postUrl = postUrl || refs.postUrl;
-          done.add(action.accountId);
+          done.add(doneKey);
         } catch (err: any) {
           failure = err?.message || 'Errore sconosciuto';
           break;

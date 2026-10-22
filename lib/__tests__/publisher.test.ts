@@ -106,3 +106,30 @@ describe('menzioni, hashtag e storie Facebook', () => {
         expect(requestedChannels(base({ fbStories: true, instagram: true }))).toEqual(['instagram', 'fbStories']);
     });
 });
+
+describe('storie con più slide', () => {
+    it('ogni immagine è una storia, in ordine, con chiavi diverse', () => {
+        const r = planChannel(base({ igStories: true, imageUrls: ['https://x/1.jpg', 'https://x/2.jpg', 'https://x/3.jpg'] }), 'igStories', accounts) as any;
+        expect(r.actions.map((a: any) => a.params.image_url)).toEqual(['https://x/1.jpg', 'https://x/2.jpg', 'https://x/3.jpg']);
+        expect(new Set(r.actions.map((a: any) => a.key)).size).toBe(3);
+        expect(r.actions.every((a: any) => a.action === 'create_story' && a.accountId === 'ig1')).toBe(true);
+    });
+    it('al massimo 10 storie', () => {
+        const urls = Array.from({ length: 14 }, (_, i) => `https://x/${i}.jpg`);
+        expect((planChannel(base({ imageUrls: urls }), 'igStories', accounts) as any).actions).toHaveLength(10);
+    });
+    it('una sola immagine: una sola storia, come prima', () => {
+        const r = planChannel(base({ imageUrls: ['https://x/a.jpg'] }), 'igStories', accounts) as any;
+        expect(r.actions).toHaveLength(1);
+        expect(r.actions[0].params).toEqual({ image_url: 'https://x/a.jpg' });
+    });
+    it('il video resta una sola storia', () => {
+        const r = planChannel(base({ videoUrl: 'https://x/v.mp4', imageUrls: ['https://x/a.jpg'] }), 'igStories', accounts) as any;
+        expect(r.actions).toHaveLength(1);
+        expect(r.actions[0].params).toEqual({ video_url: 'https://x/v.mp4' });
+    });
+    it('GBP: le sedi restano distinte dall\'account', () => {
+        const r = planChannel(base({ copy: 'ciao' }), 'gbp', accounts) as any;
+        expect(r.actions.map((a: any) => a.key ?? a.accountId)).toEqual(['g1', 'g2']);
+    });
+});
