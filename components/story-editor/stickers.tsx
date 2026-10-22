@@ -10,6 +10,7 @@ import React from 'react';
 import Konva from 'konva';
 import { Rect, Text } from 'react-konva';
 import type { StickerLayer } from '@/lib/story-editor/types';
+import { formatCountdownEnd } from '@/lib/story-editor/countdown';
 
 const FONT = 'Montserrat';
 
@@ -114,19 +115,18 @@ export function StickerShape({ layer: l }: { layer: StickerLayer }) {
                 </>
             );
         case 'countdown': {
-            const cells = [['00', 'GIORNI'], ['00', 'ORE'], ['00', 'MIN'], ['00', 'SEC']];
-            const cw = (width - 100) / 4;
+            const end = formatCountdownEnd(l.endAt);
+            const cw = (width - 90) / 2;
             return (
                 <>
                     <Rect width={width} height={height} cornerRadius={36} fill={WHITE} {...SHADOW} />
                     <Text x={30} y={16} width={width - 60} height={80} align="center" verticalAlign="middle" text={l.text.toUpperCase()} fontSize={40} fontFamily={FONT} fontStyle="bold" fill="#111827" />
-                    {cells.map(([n, label], i) => (
-                        <React.Fragment key={label}>
-                            <Rect x={30 + i * (cw + 13)} y={110} width={cw} height={140} cornerRadius={22} fill="#f3f4f6" />
-                            <Text x={30 + i * (cw + 13)} y={126} width={cw} align="center" text={n} fontSize={64} fontFamily={FONT} fontStyle="bold" fill="#e1306c" />
-                            <Text x={30 + i * (cw + 13)} y={206} width={cw} align="center" text={label} fontSize={22} fontFamily={FONT} fontStyle="bold" fill="#6b7280" />
-                        </React.Fragment>
-                    ))}
+                    <Rect x={30} y={110} width={cw} height={140} cornerRadius={22} fill="#f3f4f6" />
+                    <Text x={30} y={126} width={cw} align="center" text={end ? end.day : '-- ---'} fontSize={60} fontFamily={FONT} fontStyle="bold" fill="#e1306c" />
+                    <Text x={30} y={206} width={cw} align="center" text={end ? end.weekday : 'DATA'} fontSize={24} fontFamily={FONT} fontStyle="bold" fill="#6b7280" />
+                    <Rect x={60 + cw} y={110} width={cw} height={140} cornerRadius={22} fill="#f3f4f6" />
+                    <Text x={60 + cw} y={126} width={cw} align="center" text={end ? end.time : '--:--'} fontSize={60} fontFamily={FONT} fontStyle="bold" fill="#e1306c" />
+                    <Text x={60 + cw} y={206} width={cw} align="center" text="ORE" fontSize={24} fontFamily={FONT} fontStyle="bold" fill="#6b7280" />
                 </>
             );
         }

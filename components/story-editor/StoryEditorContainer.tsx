@@ -68,7 +68,7 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
         return out;
     }, [userId]);
 
-    const onSave = async ({ design: d, title, igStories, fbStories, onProgress }: SavePayload) => {
+    const onSave = async ({ design: d, title, igStories, fbStories, storyLink, onProgress }: SavePayload) => {
         // Se il contenuto era già inviato o approvato, cambiarne la grafica lo riporta in bozza: va riapprovato
         const wasSent = !!content && contentId && ['Approvato', 'In Approvazione Cliente'].includes(content.status);
         if (wasSent && !window.confirm('Questo contenuto era già inviato o approvato. Salvando torna in bozza e il cliente dovrà approvarlo di nuovo. Continuare?')) return;
@@ -85,14 +85,14 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
         onProgress('Salvo nel PED…');
         if (contentId) {
             await updateEditorialContent(contentId, {
-                topic: title, igStories, fbStories, imageUrls, storyData,
+                topic: title, igStories, fbStories, imageUrls, storyData, storyLink,
                 ...(wasSent ? { status: 'Bozza', approval: null as any } : {}),
             });
         } else {
             const id = await addEditorialContent({
                 topic: title, clientId, format: 'Storia', status: 'Bozza',
                 facebook: false, instagram: false, linkedin: false, tiktok: false, youtube: false, gbp: false,
-                igStories, fbStories, imageUrls, storyData, copy: '',
+                igStories, fbStories, imageUrls, storyData, storyLink, copy: '',
             });
             setContentId(id);
             router.replace(`/clients/${clientId}/stories/new?draftId=${id}`);
@@ -108,6 +108,7 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
             initialDesign={design}
             initialTitle={content?.topic || ''}
             initialChannels={{ igStories: content ? content.igStories !== false : true, fbStories: !!content?.fbStories }}
+            initialStoryLink={content?.storyLink || ''}
             palette={DEFAULT_PALETTE}
             onUploadFiles={onUploadFiles}
             onSave={onSave}

@@ -24,7 +24,7 @@ import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, Te
 import { PropertiesPanel } from './properties';
 import { cn } from '@/lib/utils';
 
-export interface SavePayload { design: StoryDesign; title: string; igStories: boolean; fbStories: boolean; onProgress: (message: string) => void }
+export interface SavePayload { design: StoryDesign; title: string; igStories: boolean; fbStories: boolean; storyLink: string; onProgress: (message: string) => void }
 
 interface Props {
     clientName: string;
@@ -32,6 +32,7 @@ interface Props {
     initialDesign?: StoryDesign | null;
     initialTitle?: string;
     initialChannels?: { igStories: boolean; fbStories: boolean };
+    initialStoryLink?: string;
     palette?: Palette;
     onUploadFiles: (files: File[]) => Promise<UploadedMedia[]>;
     /** «Salva nel PED»: se manca, il pulsante non c'è (prova da soli dell'editor). */
@@ -81,7 +82,7 @@ function InstagramOverlay({ name, slides, index, width, height }: { name: string
     );
 }
 
-export function StoryEditor({ clientName, backHref, initialDesign, initialTitle = '', initialChannels = { igStories: true, fbStories: false }, palette = DEFAULT_PALETTE, onUploadFiles, onSave }: Props) {
+export function StoryEditor({ clientName, backHref, initialDesign, initialTitle = '', initialChannels = { igStories: true, fbStories: false }, initialStoryLink = '', palette = DEFAULT_PALETTE, onUploadFiles, onSave }: Props) {
     const [state, dispatch] = useReducer(editorReducer, initialDesign || emptyDesign(), (d) => initialState(d));
     const [panel, setPanel] = useState<PanelKey | null>('templates');
     const [overlay, setOverlay] = useState(false);
@@ -91,6 +92,7 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
     const [uploaded, setUploaded] = useState<UploadedMedia[]>([]);
     const [title, setTitle] = useState(initialTitle);
     const [channels, setChannels] = useState(initialChannels);
+    const [storyLink, setStoryLink] = useState(initialStoryLink);
     const [saveOpen, setSaveOpen] = useState(false);
     const [busy, setBusy] = useState<string | null>(null);
     const [message, setMessage] = useState('');
@@ -185,7 +187,7 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
         if (!onSave) return;
         setBusy('Salvo…'); setMessage('');
         try {
-            await onSave({ design: state.design, title: title.trim() || `Storia del ${new Date().toLocaleDateString('it-IT')}`, igStories: channels.igStories, fbStories: channels.fbStories, onProgress: (m) => setBusy(m) });
+            await onSave({ design: state.design, title: title.trim() || `Storia del ${new Date().toLocaleDateString('it-IT')}`, igStories: channels.igStories, fbStories: channels.fbStories, storyLink: storyLink.trim(), onProgress: (m) => setBusy(m) });
             dispatch({ type: 'MARK_SAVED' });
             setSaveOpen(false);
             setMessage('Salvato nel PED come bozza.');
@@ -219,7 +221,7 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
                     {state.design.slides.length > 1 && <button type="button" onClick={downloadAll} className="rounded-md border border-slate-700 px-2 py-1.5 text-xs hover:bg-slate-800">Scarica tutte</button>}
                     {onSave && (
                         <div className="relative">
-                            <button type="button" onClick={() => setSaveOpen((o) => !o)} className="flex items-center gap-1.5 rounded-md bg-sky-500 px-3 py-1.5 text-sm font-semibold text-slate-950 hover:bg-sky-400">
+                            <button type="button" onClick={() => { if (!saveOpen && !storyLink) { const sticker = state.design.slides.flatMap((s) => s.layers).find((l) => l.type === 'sticker' && l.sticker === 'link'); const t = sticker && sticker.type === 'sticker' ? sticker.text.trim() : ''; if (t.includes('.')) setStoryLink(/^https?:\/\//i.test(t) ? t : `https://${t}`); } setSaveOpen((o) => !o); }} className="flex items-center gap-1.5 rounded-md bg-sky-500 px-3 py-1.5 text-sm font-semibold text-slate-950 hover:bg-sky-400">
                                 <Save className="h-4 w-4" /> Salva nel PED
                             </button>
                             {saveOpen && (
@@ -228,6 +230,12 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
                                     <p className="text-xs text-slate-400">Ogni slide diventa una storia. Poi la mandi al cliente per l&apos;approvazione, come gli altri contenuti.</p>
                                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={channels.igStories} onChange={(e) => setChannels((c) => ({ ...c, igStories: e.target.checked }))} className="accent-sky-500" /> Storie Instagram (pubblicazione automatica)</label>
                                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={channels.fbStories} onChange={(e) => setChannels((c) => ({ ...c, fbStories: e.target.checked }))} className="accent-sky-500" /> Storie Facebook (da pubblicare a mano)</label>
+                                    <label className="block space-y-1">
+                                        <span className="text-xs font-semibold text-slate-300">Link della storia</span>
+                                        <input type="url" value={storyLink} onChange={(e) => setStoryLink(e.target.value)} placeholder="https://…"
+                                            className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-sky-500" />
+                                        <span className="block text-[11px] text-slate-400">Resta salvato nel contenuto. Lo sticker Link vero lo aggiungi dall&apos;app di Instagram: l&apos;adesivo disegnato non è cliccabile.</span>
+                                    </label>
                                     <button type="button" onClick={save} disabled={!!busy} className="w-full rounded-md bg-sky-500 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-400 disabled:opacity-60">
                                         {busy || 'Salva'}
                                     </button>
