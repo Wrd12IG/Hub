@@ -6,7 +6,7 @@ import { EditorialPlanPageContent } from '../../../editorial-plan/client'
 
 export default function ClientEditorialPlanPage({ params }: { params: { id: string } }) {
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ 
         padding: '2.5rem 2.5rem 2rem', 
         maxWidth: '1400px', 

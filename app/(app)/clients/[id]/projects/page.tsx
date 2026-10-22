@@ -6,7 +6,7 @@ import { ProjectsPageContent } from '../../../projects/projects-content'
 
 export default function ClientProjectsPage({ params }: { params: { id: string } }) {
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '2rem 2rem 0', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <LayoutGrid size={32} color="#3b82f6" />
