@@ -1,0 +1,28 @@
+# DA COPIARE in .github/workflows/publish-scheduled.yml (il token usato da Claude non ha lo scope "workflow").
+# Pubblicazione programmata del Piano Editoriale.
+# Vercel Hobby limita i cron a una volta al giorno, quindi il battito ogni 10 minuti arriva da qui.
+# Serve nei secret del repo: HUB_URL (es. https://hub.wrdigital.it) e CRON_SECRET (lo stesso di Vercel).
+# La route non pubblica nulla finché EDITORIAL_AUTOPUBLISH non vale 1 su Vercel.
+name: publish-scheduled
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Solo simulazione (nessun post)'
+        type: boolean
+        default: true
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Chiama la cron di pubblicazione
+        env:
+          HUB_URL: ${{ secrets.HUB_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DRY: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '?dryRun=1' || '' }}
+        run: |
+          if [ -z "$HUB_URL" ] || [ -z "$CRON_SECRET" ]; then echo "Secret HUB_URL / CRON_SECRET mancanti"; exit 1; fi
+          curl --fail-with-body -sS -m 300 -H "Authorization: Bearer $CRON_SECRET" "$HUB_URL/api/cron/publish-scheduled$DRY"
