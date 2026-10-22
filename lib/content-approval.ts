@@ -51,6 +51,17 @@ export function applyDecision(
         : { status: STATUS_CHANGES, approval: { ...base, status: 'changes', comment: d.comment } };
 }
 
+/** Chi può saltare il cliente: gli Amministratori e chi ha il permesso esplicito sul proprio profilo. */
+export function canBypassApproval(user: { role?: string; canSkipClientApproval?: boolean } | null): boolean {
+    return !!user && user.role !== 'Cliente' && (user.role === 'Amministratore' || user.canSkipClientApproval === true);
+}
+
+/** Approvazione interna: lascia traccia di chi l'ha data, così non si confonde con una risposta del cliente. */
+export function bypassApproval(byName: string, now: Date, requestedBy?: string): { status: string; approval: ContentApproval } {
+    const iso = now.toISOString();
+    return { status: STATUS_APPROVED, approval: { status: 'approved', requestedAt: iso, requestedBy, respondedAt: iso, respondedBy: byName, bypass: true } };
+}
+
 export interface PublicContent {
     id: string;
     topic: string;

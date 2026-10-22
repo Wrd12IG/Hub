@@ -9,6 +9,34 @@ export const dynamic = 'force-dynamic';
 // Nessun login: l'unica credenziale è il token del link. Ogni esito negativo risponde allo stesso modo.
 const notFound = () => NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+/**
+ * Avvisa chi ha chiesto l'approvazione e i responsabili del cliente (notifica in-app). Un errore qui non deve far
+ * fallire la risposta del cliente, che è già stata salvata.
+ */
+async function notifyStaff(client: { id: string; data: Record<string, any> }, contentId: string, approved: boolean, now: Date) {
+  try {
+    const snap = await adminDb.collection('editorialContents').doc(contentId).get();
+    const c = snap.data() as EditorialContent | undefined;
+    if (!c) return;
+    const recipients = new Set<string>([...(c.approval?.requestedBy ? [c.approval.requestedBy] : []), ...((client.data.managedBy as string[]) || [])]);
+    await Promise.all(Array.from(recipients).map((userId) => adminDb.collection('users').doc(userId).collection('notifications').add({
+      userId,
+      title: '💬 Il cliente ha risposto',
+      text: approved ? `${client.data.name} ha approvato "${c.topic}"` : `${client.data.name} chiede modifiche a "${c.topic}"`,
+      type: 'editorial_client_response',
+      category: 'editorial',
+      priority: 'high',
+      isRead: false,
+      timestamp: now.toISOString(),
+      link: `/clients/${client.id}/editorial-plan`,
+      resourceId: contentId,
+      resourceType: 'editorial_content',
+    })));
+  } catch (error) {
+    console.error('[share approvals notify]', error);
+  }
+}
+
 /** I contenuti del cliente che attendono la sua risposta, con i soli campi che il cliente deve vedere. */
 export async function GET(_request: Request, { params }: { params: { token: string } }) {
   try {
@@ -49,6 +77,7 @@ export async function POST(request: Request, { params }: { params: { token: stri
     });
     if (outcome === 'notfound') return notFound();
     if (outcome === 'closed') return NextResponse.json({ error: 'Questo contenuto non è più in attesa di risposta' }, { status: 409 });
+    await notifyStaff(client, contentId, parsed.value.decision === 'approve', now);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[share approvals POST]', error);

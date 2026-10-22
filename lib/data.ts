@@ -21,6 +21,8 @@ export interface User {
     salary?: number;
     hourlyRate?: number; // Costo orario dell'utente per il calcolo dei costi cliente
     visibleDashboardWidgets?: string[]; // Widget della dashboard visibili per questo utente (configurato dall'admin)
+    /** Può approvare un post senza passare dal cliente (oltre agli Amministratori). Si imposta sul documento utente. */
+    canSkipClientApproval?: boolean;
 }
 
 export interface Client {
@@ -369,6 +371,7 @@ export type NotificationType =
     // Editorial
     | 'editorial_due_soon'
     | 'editorial_publish_today'
+    | 'editorial_client_response'
     // Calendar
     | 'calendar_reminder'
     | 'calendar_event_assigned';
@@ -476,6 +479,8 @@ export interface ContentApproval {
     /** Nome indicato dal cliente nel rispondere (il link non identifica una persona). */
     respondedBy?: string;
     comment?: string;
+    /** Approvato internamente senza passare dal cliente: chi l'ha fatto è in respondedBy. */
+    bypass?: boolean;
 }
 
 export interface EditorialContent {

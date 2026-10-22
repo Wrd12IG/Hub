@@ -787,12 +787,12 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
         }
     };
 
-    const handleRequestApproval = async (content: EditorialContent) => {
+    const handleRequestApproval = async (content: EditorialContent, bypass = false) => {
         try {
             const res = await fetch(`/api/clients/${content.clientId}/editorial-approval`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contentIds: [content.id] }),
+                body: JSON.stringify({ contentIds: [content.id], bypass }),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Errore durante la richiesta.');
@@ -800,7 +800,9 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                 toast.error(`Non inviato: ${data.skipped[0].reason}`);
                 return;
             }
-            if (data.shareUrl) {
+            if (bypass) {
+                toast.success('Approvato internamente: pronto per la pubblicazione.');
+            } else if (data.shareUrl) {
                 try { await navigator.clipboard.writeText(data.shareUrl); } catch { /* appunti non disponibili */ }
                 toast.success('In attesa del cliente. Link di approvazione copiato negli appunti.');
             } else {
@@ -1522,6 +1524,14 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 >
                                                                     <Send className="mr-2 h-4 w-4" /> Chiedi approvazione al cliente
                                                                 </DropdownMenuItem>
+                                                                {(currentUser?.role === 'Amministratore' || currentUser?.canSkipClientApproval) && (
+                                                                    <DropdownMenuItem
+                                                                        disabled={content.status === 'Pubblicato' || content.status === 'Approvato'}
+                                                                        onClick={() => handleRequestApproval(content, true)}
+                                                                    >
+                                                                        <Send className="mr-2 h-4 w-4" /> Approva senza cliente
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem onClick={() => handleOpenEditModal(content)}>
                                                                     <Edit className="mr-2 h-4 w-4" /> Modifica

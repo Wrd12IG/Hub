@@ -213,6 +213,15 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, {
         priority: 'urgent'
     },
 
+    editorial_client_response: {
+        title: '💬 Il cliente ha risposto',
+        getText: (d) => d.approved
+            ? `${d.clientName} ha approvato "${d.topic}"`
+            : `${d.clientName} chiede modifiche a "${d.topic}"`,
+        category: 'editorial',
+        priority: 'high'
+    },
+
     // Calendar
     calendar_reminder: {
         title: '📆 Promemoria evento',
