@@ -169,7 +169,7 @@ export async function executeAction(
     if (!response.ok) {
         const errorBody = await response.text().catch(() => '');
         console.error(`[windsor-client] action ${connector}/${action} failed:`, errorBody);
-        throw new Error(`Azione ${action} su ${connector} fallita (HTTP ${response.status})${errorBody ? `: ${errorBody.slice(0, 200)}` : ''}`);
+        throw new Error(`Azione ${action} su ${connector} fallita (HTTP ${response.status})${errorBody ? `: ${errorBody.slice(0, 700)}` : ''}`);
     }
     return response.json();
 }
