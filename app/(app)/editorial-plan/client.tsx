@@ -42,6 +42,7 @@ import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { FileUploader } from '@/components/file-uploader';
+import { ContentWorkplanDialog } from '@/components/ContentWorkplanDialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -719,6 +720,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     // State for nested modals
     const [nestedModal, setNestedModal] = useState<NestedModalState>(null);
     const [formDataForNested, setFormDataForNested] = useState<ContentFormData | null>(null);
+    const [workplanContent, setWorkplanContent] = useState<EditorialContent | null>(null);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -1511,6 +1513,9 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                     <Send className="mr-2 h-4 w-4" /> 
                                                                     {isPublishing[content.id] ? 'Invio in corso...' : 'Invia a Zapier'}
                                                                 </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => setWorkplanContent(content)}>
+                                                                    <ClipboardList className="mr-2 h-4 w-4" /> Genera task di lavorazione
+                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem
                                                                     disabled={content.status === 'Pubblicato' || content.approval?.status === 'requested'}
                                                                     onClick={() => handleRequestApproval(content)}
@@ -1548,6 +1553,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
             {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} onReschedule={handleReschedule} />}
 
             {view === 'gantt' && <GanttView contents={filteredContents} clients={clients} users={users} onEdit={handleOpenEditModal} />}
+            <ContentWorkplanDialog content={workplanContent} client={workplanContent ? clientsById[workplanContent.clientId] : undefined} users={users} currentUserId={currentUser?.id} onClose={() => setWorkplanContent(null)} onCreated={fetchData} />
 
             <Dialog open={!!modalState} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
                 <DialogContent className="max-w-4xl">
