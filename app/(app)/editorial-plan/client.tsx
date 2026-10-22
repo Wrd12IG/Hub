@@ -42,7 +42,6 @@ import { DatePickerDialog } from '@/components/ui/date-picker-dialog';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { FileUploader } from '@/components/file-uploader';
-import { ContentWorkplanDialog } from '@/components/ContentWorkplanDialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -260,7 +259,7 @@ const PublishStateDot = ({ state }: { state?: ChannelPublishState }) => {
     );
 };
 
-const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishToZapier, isPublishing }: {
+const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishNow, isPublishing }: {
     contents: EditorialContent[],
     clientsById: Record<string, Client>,
     statuses: EditorialStatus[],
@@ -271,7 +270,7 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
     tasksById: Record<string, Task>,
     projectsById: Record<string, Project>,
     editorialColumns: EditorialColumn[],
-    onPublishToZapier: (content: EditorialContent) => void,
+    onPublishNow: (content: EditorialContent) => void,
     isPublishing: Record<string, boolean>,
 }) => {
     const contentsByStatus = useMemo(() => {
@@ -354,10 +353,10 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
                                                     <DropdownMenuContent>
                                                         <DropdownMenuItem 
                                                             disabled={content.status !== 'Approvato' || isPublishing[content.id]}
-                                                            onClick={() => onPublishToZapier(content)}
+                                                            onClick={() => onPublishNow(content)}
                                                         >
                                                             <Send className="mr-2 h-4 w-4" /> 
-                                                            {isPublishing[content.id] ? 'Invio in corso...' : 'Invia a Zapier'}
+                                                            {isPublishing[content.id] ? 'Pubblicazione...' : 'Pubblica ora'}
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => onEdit(content)}>
@@ -720,7 +719,6 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     // State for nested modals
     const [nestedModal, setNestedModal] = useState<NestedModalState>(null);
     const [formDataForNested, setFormDataForNested] = useState<ContentFormData | null>(null);
-    const [workplanContent, setWorkplanContent] = useState<EditorialContent | null>(null);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -757,35 +755,6 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     useEffect(() => {
         fetchData();
     }, [fetchData]);
-
-    const handlePublishToZapier = async (content: EditorialContent) => {
-        if (content.status !== 'Approvato') {
-            toast.error('Il post deve essere nello stato "Approvato" per essere inviato a Zapier.');
-            return;
-        }
-
-        setIsPublishing(prev => ({ ...prev, [content.id]: true }));
-        try {
-            const res = await fetch('/api/publish-zapier', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contentId: content.id })
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || 'Errore durante la pubblicazione.');
-            }
-
-            toast.success('Contenuto inviato a Zapier con successo!');
-            await fetchData();
-        } catch (error: any) {
-            console.error('Publish error:', error);
-            toast.error(error.message || "Errore durante l'invio a Zapier.");
-        } finally {
-            setIsPublishing(prev => ({ ...prev, [content.id]: false }));
-        }
-    };
 
     const handlePublishNow = async (content: EditorialContent) => {
         const names = (['facebook', 'instagram', 'igStories', 'linkedin', 'gbp'] as const).filter(k => content[k]).map(k => k === 'igStories' ? 'Storia Instagram' : k === 'gbp' ? 'Google Business Profile' : k.charAt(0).toUpperCase() + k.slice(1));
@@ -1536,21 +1505,11 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent>
-                                                                <DropdownMenuItem 
-                                                                    disabled={content.status !== 'Approvato' || isPublishing[content.id]}
-                                                                    onClick={() => handlePublishToZapier(content)}
-                                                                >
-                                                                    <Send className="mr-2 h-4 w-4" /> 
-                                                                    {isPublishing[content.id] ? 'Invio in corso...' : 'Invia a Zapier'}
-                                                                </DropdownMenuItem>
                                                                 <DropdownMenuItem
                                                                     disabled={content.status !== 'Approvato' || isPublishing[content.id]}
                                                                     onClick={() => handlePublishNow(content)}
                                                                 >
                                                                     <Send className="mr-2 h-4 w-4" /> {isPublishing[content.id] ? 'Pubblicazione...' : 'Pubblica ora'}
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => setWorkplanContent(content)}>
-                                                                    <ClipboardList className="mr-2 h-4 w-4" /> Genera task di lavorazione
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem
                                                                     disabled={content.status === 'Pubblicato' || content.approval?.status === 'requested'}
@@ -1592,12 +1551,11 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                 </Card>
             )}
 
-            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishToZapier={handlePublishToZapier} isPublishing={isPublishing} />}
+            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishNow={handlePublishNow} isPublishing={isPublishing} />}
 
             {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} onReschedule={handleReschedule} />}
 
             {view === 'gantt' && <GanttView contents={filteredContents} clients={clients} users={users} onEdit={handleOpenEditModal} />}
-            <ContentWorkplanDialog content={workplanContent} client={workplanContent ? clientsById[workplanContent.clientId] : undefined} users={users} currentUserId={currentUser?.id} onClose={() => setWorkplanContent(null)} onCreated={fetchData} />
 
             <Dialog open={!!modalState} onOpenChange={(isOpen) => !isOpen && handleCloseModal()}>
                 <DialogContent className="max-w-4xl">
