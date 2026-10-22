@@ -8,7 +8,7 @@ import { ReactNode } from "react";
  * Durata 220ms — fluido e reattivo.
  * Rispetta prefers-reduced-motion tramite il hook useReducedMotion.
  */
-export function PageTransition({ children }: { children: ReactNode }) {
+export function PageTransition({ children, fullHeight = false }: { children: ReactNode; fullHeight?: boolean }) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
@@ -20,7 +20,10 @@ export function PageTransition({ children }: { children: ReactNode }) {
         duration: shouldReduceMotion ? 0.12 : 0.22, 
         ease: [0.22, 1, 0.36, 1] 
       }}
-      style={{ height: "100%", width: "100%" }}
+      // Altezza MINIMA, non fissa: con `height: 100%` il contenuto più lungo usciva dal contenitore e lo spazio lasciato
+      // sotto per la barra flottante (layout) si appoggiava al bordo del contenitore, non alla fine vera della pagina:
+      // l'ultima riga restava sotto la barra. Solo le pagine a tutta altezza (chat, focus) tengono l'altezza fissa.
+      style={fullHeight ? { height: "100%", width: "100%" } : { minHeight: "100%", width: "100%" }}
     >
       {children}
     </motion.div>

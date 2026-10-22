@@ -40,6 +40,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isLoadingLayout, pomodoroTask, setPomodoroTask, users } = useLayoutData();
   const router = useRouter();
   const pathname = usePathname();
+  const isFullHeightPage = FULL_HEIGHT_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const [isMounted, setIsMounted] = useState(false);
   const [bukowskiMode, toggleBukowskiMode] = useKonamiCodeToggle();
 
@@ -100,12 +101,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarInset className="relative isolate">
             <Header />
             <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6 w-full min-w-0">
-              <PageTransition key={pathname}>
+              <PageTransition key={pathname} fullHeight={isFullHeightPage}>
                 {children}
                 {/* Spazio sotto l'ultima riga, per la barra flottante. Sta DENTRO il contenitore della pagina: il padding di
                     <main> non conta, perché PageTransition è alto il 100% e il contenuto più lungo ne esce (misurato: 0 px
                     sotto il contenuto col padding, 111 px con questo spazio). Non nelle pagine a tutta altezza. */}
-                {!FULL_HEIGHT_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`)) && (
+                {!isFullHeightPage && (
                   <div aria-hidden="true" className="h-28 shrink-0" />
                 )}
               </PageTransition>
