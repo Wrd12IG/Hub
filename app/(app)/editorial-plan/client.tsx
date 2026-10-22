@@ -1050,10 +1050,6 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     };
 
     const handleOpenEditModal = (content: EditorialContent) => {
-        if (content.format === 'Storia' && content.status === 'Bozza') {
-            router.push(`/clients/${content.clientId}/stories/new?draftId=${content.id}`);
-            return;
-        }
         setEditingContent(content);
         setModalState('edit');
     };
@@ -1546,6 +1542,11 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 <DropdownMenuItem disabled={linkedTaskIds(content).length === 0} onClick={() => setImportContent(content)}>
                                                                     <ImageIcon className="mr-2 h-4 w-4" /> Importa media dai task
                                                                 </DropdownMenuItem>
+                                                                {content.storyData && (
+                                                                    <DropdownMenuItem onClick={() => router.push(`/clients/${content.clientId}/stories/new?draftId=${content.id}`)}>
+                                                                        <Wand2 className="mr-2 h-4 w-4" /> Apri nell'editor storie
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 <DropdownMenuItem
                                                                     disabled={content.status === 'Pubblicato' || content.approval?.status === 'requested'}
                                                                     onClick={() => handleRequestApproval(content)}
@@ -1996,10 +1997,10 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                         </div>
                         <div className="flex items-center gap-2">
                             {selectedClientId ? (
-                                <Link href={`/clients/${selectedClientId}/stories/new`}>
+                                <Link href={`/clients/${selectedClientId}/stories/new${editingContent?.storyData ? `?draftId=${editingContent.id}` : ''}`}>
                                     <Button type="button" variant="outline" size="sm" className="h-8 gap-1 border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100 hover:text-pink-800">
                                         <Wand2 className="h-3.5 w-3.5" />
-                                        <span className="text-xs">Editor Stories</span>
+                                        <span className="text-xs">{editingContent?.storyData ? 'Apri nell\'editor storie' : 'Editor Stories'}</span>
                                     </Button>
                                 </Link>
                             ) : (

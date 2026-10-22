@@ -81,6 +81,8 @@ export interface PlannedAction {
     action: string;
     accountId: string;
     params: Record<string, unknown>;
+    /** Identifica l'azione dentro il canale (più azioni sullo stesso account, per esempio più storie): serve a non rifarla. */
+    key?: string;
 }
 export type PlanResult = { actions: PlannedAction[] } | { error: string };
 
@@ -118,8 +120,11 @@ export function planChannel(content: EditorialContent, channel: PublishChannel, 
         }
         case 'igStories': {
             if (!accounts.instagram) return { error: 'Account Instagram non collegato in Setup API' };
-            if (video) return { actions: [{ connector: 'instagram', action: 'create_story', accountId: accounts.instagram, params: { video_url: video } }] };
-            if (images.length >= 1) return { actions: [{ connector: 'instagram', action: 'create_story', accountId: accounts.instagram, params: { image_url: images[0] } }] };
+            if (video) return { actions: [{ connector: 'instagram', action: 'create_story', accountId: accounts.instagram, key: `${accounts.instagram}#video`, params: { video_url: video } }] };
+            // Ogni immagine è una storia (le slide dell'editor), pubblicate in ordine. Instagram non le raggruppa.
+            if (images.length >= 1) {
+                return { actions: images.slice(0, 10).map((url, i) => ({ connector: 'instagram' as const, action: 'create_story', accountId: accounts.instagram!, key: `${accounts.instagram}#${i}`, params: { image_url: url } })) };
+            }
             return { error: 'La storia richiede un\'immagine o un video (URL https)' };
         }
         case 'facebook': {

@@ -508,6 +508,8 @@ export interface EditorialContent {
     mentions?: string;
     /** Link delle storie. Windsor non pubblica l'adesivo link: va aggiunto a mano sulla storia. */
     storyLink?: string;
+    /** Progetto dell'editor delle storie (testo JSON: lib/story-editor/serialize.ts), per riaprirlo e modificarlo. */
+    storyData?: string;
     imageUrls?: string[];
     videoUrl?: string; // URL for video content
     /** Copertina del video (JPEG, https): Instagram la usa come immagine del Reel. */
