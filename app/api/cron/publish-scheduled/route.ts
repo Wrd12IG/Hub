@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
         if (prev?.status === 'failed' && (prev.attempts || 0) >= MAX_ATTEMPTS) continue;
 
         if (!client) {
-          outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, clientName: client?.name, publicationDate: content.publicationDate, channel, result: 'cliente non trovato' });
+          outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, publicationDate: content.publicationDate, channel, result: 'cliente non trovato' });
           continue;
         }
         const plan = planChannel(content, channel, client);
