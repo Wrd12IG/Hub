@@ -467,6 +467,17 @@ export interface ChannelPublishState {
 
 export type PublishResults = Partial<Record<PublishChannel, ChannelPublishState>>;
 
+/** Richiesta di approvazione al cliente tramite il link pubblico. Lo stato del contenuto segue (vedi lib/content-approval.ts). */
+export interface ContentApproval {
+    status: 'requested' | 'approved' | 'changes';
+    requestedAt: string;
+    requestedBy?: string;
+    respondedAt?: string;
+    /** Nome indicato dal cliente nel rispondere (il link non identifica una persona). */
+    respondedBy?: string;
+    comment?: string;
+}
+
 export interface EditorialContent {
     id: string;
     topic: string;
@@ -491,6 +502,7 @@ export interface EditorialContent {
     customFields?: Record<string, string>;
     /** Esito per canale, scritto da chi pubblica (cron/Zapier). Assente = mai tentato. */
     publishResults?: PublishResults;
+    approval?: ContentApproval;
     createdAt?: string;
     updatedAt?: string;
 }

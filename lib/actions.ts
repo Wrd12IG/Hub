@@ -726,6 +726,13 @@ export async function getEditorialStatuses(): Promise<EditorialStatus[]> {
             color: 'bg-green-100 text-green-800'
         });
     }
+    // Stati scritti dal flusso di approvazione cliente (lib/content-approval.ts): devono esistere anche se nessuno li ha creati.
+    for (const [id, name, color] of [
+        ['virtual-in-approvazione-cliente', 'In Approvazione Cliente', 'bg-purple-100 text-purple-800'],
+        ['virtual-da-modificare', 'Da Modificare', 'bg-amber-100 text-amber-800'],
+    ] as const) {
+        if (!statuses.some(s => s.name === name)) statuses.push({ id, name, color });
+    }
     return statuses;
 }
 
