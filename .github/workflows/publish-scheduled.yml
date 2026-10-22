@@ -1,4 +1,3 @@
-# DA COPIARE in .github/workflows/publish-scheduled.yml (il token usato da Claude non ha lo scope "workflow").
 # Pubblicazione programmata del Piano Editoriale.
 # Vercel Hobby limita i cron a una volta al giorno, quindi il battito ogni 10 minuti arriva da qui.
 # Serve nei secret del repo: HUB_URL (es. https://hub.wrdigital.it) e CRON_SECRET (lo stesso di Vercel).
