@@ -3,7 +3,7 @@ import { denyUnlessCron } from '@/lib/cron-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { executeAction } from '@/lib/windsor-client';
 import {
-  isDue, requestedChannels, planChannel, extractPostRef, allAutomatedPublished,
+  isDue, dueState, requestedChannels, planChannel, extractPostRef, allAutomatedPublished,
   MAX_ATTEMPTS, STALE_PUBLISHING_MS, UNSUPPORTED_CHANNELS,
 } from '@/lib/publisher';
 import type { ChannelPublishState, EditorialContent, PublishChannel } from '@/lib/data';
@@ -48,8 +48,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const snap = await adminDb.collection('editorialContents').where('status', '==', 'Approvato').get();
-    const due = snap.docs
-      .map((d) => ({ id: d.id, ...(d.data() as Omit<EditorialContent, 'id'>) }) as EditorialContent)
+    const approved = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<EditorialContent, 'id'>) }) as EditorialContent);
+    // Arretrato: approvati con data scaduta da troppo. Si elencano (così si vedono) ma non si pubblicano.
+    const skippedLate = approved.filter((c) => dueState(c, now) === 'too-late').map((c) => ({ contentId: c.id, topic: c.topic, clientId: c.clientId, publicationDate: c.publicationDate }));
+    const due = approved
       .filter((c) => isDue(c, now))
       .sort((a, b) => String(a.publicationDate).localeCompare(String(b.publicationDate)));
 
@@ -151,7 +153,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, dryRun, due: due.length, outcomes, elapsedMs: Date.now() - started });
+    return NextResponse.json({ ok: true, dryRun, due: due.length, skippedTooLate: skippedLate, outcomes, elapsedMs: Date.now() - started });
   } catch (error: any) {
     console.error('[cron/publish-scheduled]', error);
     return NextResponse.json({ ok: false, error: error?.message || 'Errore', outcomes }, { status: 500 });
