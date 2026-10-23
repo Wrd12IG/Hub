@@ -5,16 +5,18 @@
  *
  * I pannelli della barra a sinistra: modelli, testo, sticker, emoji, forme, sfondo, media.
  */
-import React, { useMemo, useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Loader2, Search, Upload } from 'lucide-react';
 import { STORY_TEMPLATES, type Palette } from '@/lib/story-editor/templates';
 import { STICKER_DEFAULTS, makeEmoji, makeShape, makeSticker, makeText } from '@/lib/story-editor/factory';
 import type { Background, Layer, Slide, StickerKind } from '@/lib/story-editor/types';
+import { viaProxy } from '@/lib/story-editor/proxy';
+import type { ClientMediaItem, StockItem } from '@/lib/story-editor/stock';
 import { SlideStage } from './SlideStage';
 import { EMOJI_GROUPS } from './emoji-list';
 import { ColorField, Field, Range, inputCls } from './ui';
 
-export type PanelKey = 'templates' | 'text' | 'stickers' | 'emoji' | 'shapes' | 'background' | 'media';
+export type PanelKey = 'templates' | 'text' | 'stickers' | 'emoji' | 'shapes' | 'background' | 'media' | 'gif' | 'photos';
 
 export interface UploadedMedia { url: string; filename: string; width: number; height: number; kind: 'image' | 'video'; temporary?: boolean }
 
@@ -31,8 +33,8 @@ export function TemplatesPanel({ palette, onApply, fontsVersion = 0 }: { palette
             <p className="mb-3 text-xs text-slate-400">Sostituiscono il contenuto della slide aperta. Si adattano ai colori del cliente.</p>
             <div className="grid grid-cols-2 gap-3">
                 {built.map((t) => (
-                    <button key={t.id} type="button" onClick={() => onApply(t.slide)} className="group text-left">
-                        <div className="overflow-hidden rounded-lg border border-slate-700 group-hover:border-sky-500">
+                    <button key={t.id} type="button" onClick={() => onApply(t.slide)} className="group/card text-left">
+                        <div className="overflow-hidden rounded-lg border border-slate-700 group-hover/card:border-sky-500">
                             <SlideStage slide={t.slide} scale={0.125} fontsVersion={fontsVersion} />
                         </div>
                         <span className="mt-1 block text-xs text-slate-300">{t.name}</span>
@@ -169,9 +171,13 @@ export function BackgroundPanel({ background, onChange, onUploadFiles, palette }
     );
 }
 
-export function MediaPanel({ uploaded, onUploadFiles, onAddImage, onUseAsBackground }: {
+export function MediaPanel({ uploaded, onUploadFiles, onAddImage, onUseAsBackground, clientMedia, onAddClientImage, onClientImageAsBackground }: {
     uploaded: UploadedMedia[]; onUploadFiles: (files: File[]) => Promise<UploadedMedia[]>;
     onAddImage: (m: UploadedMedia) => void; onUseAsBackground: (m: UploadedMedia) => void;
+    /** I media che il cliente ha già (null = non disponibile in questa schermata). */
+    clientMedia?: { items: ClientMediaItem[]; loading: boolean; error: string } | null;
+    onAddClientImage?: (m: ClientMediaItem) => void;
+    onClientImageAsBackground?: (m: ClientMediaItem) => void;
 }) {
     const fileRef = useRef<HTMLInputElement>(null);
     const [busy, setBusy] = useState(false);
@@ -202,6 +208,87 @@ export function MediaPanel({ uploaded, onUploadFiles, onAddImage, onUseAsBackgro
                     </div>
                 ))}
             </div>
+            {clientMedia && (
+                <div className="space-y-2 border-t border-slate-800 pt-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Del cliente</div>
+                    {clientMedia.loading && <p className="flex items-center gap-2 text-xs text-slate-400"><Loader2 className="h-3.5 w-3.5 animate-spin" />Carico…</p>}
+                    {clientMedia.error && <p className="text-xs text-red-300">{clientMedia.error}</p>}
+                    {!clientMedia.loading && !clientMedia.error && clientMedia.items.filter((i) => i.kind === 'image').length === 0 && <p className="text-xs text-slate-400">Nessuna immagine ancora: compaiono qui i file della galleria e quelli dei contenuti del PED.</p>}
+                    <div className="grid grid-cols-3 gap-1.5">
+                        {clientMedia.items.filter((i) => i.kind === 'image').map((m) => (
+                            <div key={m.url} className="group/card relative overflow-hidden rounded-md border border-slate-700">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={viaProxy(m.url)} alt={m.name} loading="lazy" className="h-20 w-full object-cover" />
+                                <div className="absolute inset-0 flex flex-col justify-end gap-0.5 bg-black/55 p-0.5 opacity-0 transition-opacity group-hover/card:opacity-100">
+                                    <button type="button" onClick={() => onAddClientImage?.(m)} className="rounded bg-slate-900/90 py-0.5 text-[10px] text-white hover:bg-sky-600">Aggiungi</button>
+                                    <button type="button" onClick={() => onClientImageAsBackground?.(m)} className="rounded bg-slate-900/90 py-0.5 text-[10px] text-white hover:bg-sky-600">Sfondo</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+interface StockState { items: StockItem[]; cursor: number | null; status: 'loading' | 'ready' | 'error' | 'unconfigured'; error: string }
+
+/** GIF (Giphy) o foto d'archivio (Pexels): ricerca, risultati, «carica altri». Le chiavi stanno sul server. */
+export function StockPanel({ kind, onAdd, onBackground }: { kind: 'gif' | 'photo'; onAdd: (i: StockItem) => void; onBackground?: (i: StockItem) => void }) {
+    const gif = kind === 'gif';
+    const [input, setInput] = useState('');
+    const [query, setQuery] = useState('');
+    const [st, setSt] = useState<StockState>({ items: [], cursor: null, status: 'loading', error: '' });
+
+    const load = useCallback(async (q: string, cursor: number, append: boolean) => {
+        setSt((p) => ({ ...p, status: 'loading', error: '', items: append ? p.items : [] }));
+        try {
+            const res = await fetch(`${gif ? '/api/stories/giphy' : '/api/stories/pexels'}?q=${encodeURIComponent(q)}&${gif ? 'offset' : 'page'}=${cursor}`);
+            const d = await res.json().catch(() => ({}));
+            if (d.configured === false) { setSt({ items: [], cursor: null, status: 'unconfigured', error: '' }); return; }
+            if (!res.ok) throw new Error(d.error || 'Servizio non disponibile.');
+            setSt((p) => ({ items: append ? [...p.items, ...d.items] : d.items, cursor: (gif ? d.nextOffset : d.nextPage) ?? null, status: 'ready', error: '' }));
+        } catch (e: any) {
+            setSt((p) => ({ ...p, status: 'error', error: e?.message || 'Servizio non disponibile.' }));
+        }
+    }, [gif]);
+
+    useEffect(() => { setInput(''); setQuery(''); load('', gif ? 0 : 1, false); }, [gif, load]);
+
+    return (
+        <div className="space-y-3">
+            <Title>{gif ? 'GIF' : 'Foto d\'archivio'}</Title>
+            <form className="flex gap-1.5" onSubmit={(e) => { e.preventDefault(); setQuery(input.trim()); load(input.trim(), gif ? 0 : 1, false); }}>
+                <input className={inputCls} value={input} onChange={(e) => setInput(e.target.value)} placeholder={gif ? 'Cerca una GIF…' : 'Cerca una foto…'} aria-label="Cerca" />
+                <button type="submit" className="rounded-md border border-slate-700 bg-slate-900 px-2 hover:bg-slate-800" aria-label="Cerca"><Search className="h-4 w-4" /></button>
+            </form>
+            {gif && <p className="text-[11px] text-slate-400">Nella storia le GIF restano ferme (è un&apos;immagine): si animano solo nel video.</p>}
+            {st.status === 'unconfigured' && (
+                <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-200">
+                    Servizio non ancora attivo: manca la chiave <b>{gif ? 'GIPHY_API_KEY' : 'PEXELS_API_KEY'}</b> tra le variabili di Vercel.
+                </p>
+            )}
+            {st.status === 'error' && <p className="text-xs text-red-300">{st.error}</p>}
+            {st.status === 'ready' && st.items.length === 0 && <p className="text-xs text-slate-400">Nessun risultato{query ? ` per «${query}»` : ''}.</p>}
+            <div className="grid grid-cols-2 gap-2">
+                {st.items.map((i) => (
+                    <div key={i.id} className="group/card relative overflow-hidden rounded-lg border border-slate-700 bg-slate-900">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={viaProxy(i.preview)} alt={i.title} loading="lazy" className={gif ? 'h-24 w-full object-cover' : 'h-40 w-full object-cover'} />
+                        <div className="absolute inset-0 flex flex-col justify-end gap-1 bg-black/50 p-1 opacity-0 transition-opacity group-hover/card:opacity-100 focus-within:opacity-100">
+                            <button type="button" onClick={() => onAdd(i)} className="rounded bg-slate-900/90 py-1 text-[11px] text-white hover:bg-sky-600">Aggiungi</button>
+                            {!gif && onBackground && <button type="button" onClick={() => onBackground(i)} className="rounded bg-slate-900/90 py-1 text-[11px] text-white hover:bg-sky-600">Usa come sfondo</button>}
+                        </div>
+                        {i.credit && <div className="truncate px-1 py-0.5 text-[10px] text-slate-400" title={`Foto di ${i.credit} su Pexels`}>{i.credit}</div>}
+                    </div>
+                ))}
+            </div>
+            {st.status === 'loading' && <p className="flex items-center gap-2 text-xs text-slate-400"><Loader2 className="h-3.5 w-3.5 animate-spin" />Carico…</p>}
+            {st.status === 'ready' && st.cursor !== null && (
+                <button type="button" onClick={() => load(query, st.cursor as number, true)} className="w-full rounded-md border border-slate-700 bg-slate-900 py-2 text-sm hover:bg-slate-800">Carica altri</button>
+            )}
+            <p className="text-[10px] text-slate-500">{gif ? 'Powered by GIPHY' : 'Foto fornite da Pexels'}</p>
         </div>
     );
 }

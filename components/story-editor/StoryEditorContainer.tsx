@@ -103,6 +103,7 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
 
     return (
         <StoryEditor
+            clientId={clientId}
             clientName={clientName}
             backHref={`/clients/${clientId}/editorial-plan`}
             initialDesign={design}
