@@ -16,7 +16,7 @@ import { SlideStage } from './SlideStage';
 import { EMOJI_GROUPS } from './emoji-list';
 import { ColorField, Field, Range, inputCls } from './ui';
 
-export type PanelKey = 'templates' | 'text' | 'stickers' | 'emoji' | 'shapes' | 'background' | 'media' | 'gif' | 'photos';
+export type PanelKey = 'templates' | 'text' | 'stickers' | 'emoji' | 'shapes' | 'background' | 'media' | 'gif' | 'photos' | 'ai';
 
 export interface UploadedMedia { url: string; filename: string; width: number; height: number; kind: 'image' | 'video'; temporary?: boolean }
 

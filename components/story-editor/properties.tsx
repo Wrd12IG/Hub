@@ -28,6 +28,8 @@ interface Props {
     onDuplicate: (id: string) => void;
     onDelete: (id: string) => void;
     onMove: (id: string, d: 'up' | 'down' | 'top' | 'bottom') => void;
+    /** Toglie lo sfondo a un'immagine (Magnific, consuma crediti). Se manca, il pulsante non c'è. */
+    onRemoveBackground?: (layer: Layer) => void;
 }
 
 function TextControls({ l, set }: { l: TextLayer; set: (p: Partial<TextLayer>, key?: string) => void }) {
@@ -59,7 +61,7 @@ function TextControls({ l, set }: { l: TextLayer; set: (p: Partial<TextLayer>, k
     );
 }
 
-export function PropertiesPanel({ slide, layer, onSelect, onUpdate, onDuplicate, onDelete, onMove }: Props) {
+export function PropertiesPanel({ slide, layer, onSelect, onUpdate, onDuplicate, onDelete, onMove, onRemoveBackground }: Props) {
     const set = (patch: Partial<Layer>, key?: string) => layer && onUpdate(layer.id, patch, key);
     const reversed = [...slide.layers].reverse();
 
@@ -107,7 +109,16 @@ export function PropertiesPanel({ slide, layer, onSelect, onUpdate, onDuplicate,
                         </div>
                     )}
                     {layer.type === 'image' && (
-                        <Range label="Angoli arrotondati" value={layer.cornerRadius} min={0} max={300} onChange={(v) => set({ cornerRadius: v }, `cr:${layer.id}`)} />
+                        <div className="space-y-3">
+                            <Range label="Angoli arrotondati" value={layer.cornerRadius} min={0} max={300} onChange={(v) => set({ cornerRadius: v }, `cr:${layer.id}`)} />
+                            {onRemoveBackground && (
+                                <div>
+                                    <button type="button" onClick={() => onRemoveBackground(layer)} disabled={!/^https:\/\//i.test(layer.url)}
+                                        className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-2 text-sm hover:border-sky-500 disabled:opacity-40">Rimuovi sfondo (AI)</button>
+                                    <p className="mt-1 text-[11px] text-slate-400">Consuma crediti Magnific. Serve un&apos;immagine già caricata.</p>
+                                </div>
+                            )}
+                        </div>
                     )}
                     {layer.type === 'shape' && (
                         <div className="space-y-3">
