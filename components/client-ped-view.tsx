@@ -1,5 +1,6 @@
 'use client';
 
+import { authFetch } from '@/lib/client-api-auth';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CalendarDays, CheckCircle2, ExternalLink, Loader2, MessageSquareWarning } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -47,7 +48,7 @@ export function ClientPedView({ clientId }: { clientId: string }) {
     const [message, setMessage] = useState('');
 
     const load = useCallback(async () => {
-        const res = await fetch(`/api/clients/${clientId}/ped`);
+        const res = await authFetch(`/api/clients/${clientId}/ped`);
         if (!res.ok) throw new Error('Non riusciamo a caricare i contenuti. Riprova più tardi.');
         const d = await res.json();
         setItems(d.items);
@@ -70,8 +71,8 @@ export function ClientPedView({ clientId }: { clientId: string }) {
         setBusy(id);
         setMessage('');
         try {
-            const res = await fetch(`/api/clients/${clientId}/ped/${id}`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+            const res = await authFetch(`/api/clients/${clientId}/ped/${id}`, {
+                method: 'POST',
                 body: JSON.stringify({ decision, comment: decision === 'changes' ? comment : undefined }),
             });
             const d = await res.json().catch(() => ({}));

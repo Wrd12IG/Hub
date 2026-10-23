@@ -2,6 +2,7 @@
 
 'use client';
 
+import { authFetch } from '@/lib/client-api-auth';
 import React, { useEffect, useState, useCallback, useMemo, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -787,9 +788,8 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
         if (!window.confirm(`Pubblicare adesso "${content.topic}" sui profili di ${client}?\n\nCanali: ${names.join(', ') || 'nessuno automatizzato'}.\nI post diventano subito pubblici.`)) return;
         setIsPublishing(prev => ({ ...prev, [content.id]: true }));
         try {
-            const res = await fetch(`/api/clients/${content.clientId}/editorial-publish-now`, {
+            const res = await authFetch(`/api/clients/${content.clientId}/editorial-publish-now`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contentId: content.id }),
             });
             const data = await res.json().catch(() => ({}));
@@ -812,9 +812,8 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
         const missing = channelsMissingMedia(content);
         if (missing.length > 0 && !window.confirm(`Mancano immagini o video per: ${missing.join(', ')}.\n\nIl cliente approverebbe un contenuto senza la grafica. Mandarlo lo stesso?`)) return;
         try {
-            const res = await fetch(`/api/clients/${content.clientId}/editorial-approval`, {
+            const res = await authFetch(`/api/clients/${content.clientId}/editorial-approval`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contentIds: [content.id], bypass }),
             });
             const data = await res.json().catch(() => ({}));

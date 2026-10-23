@@ -1,5 +1,6 @@
 'use client';
 
+import { authFetch } from '@/lib/client-api-auth';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader2, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +27,7 @@ export function ClientBriefsView({ clientId }: { clientId: string }) {
     const [message, setMessage] = useState('');
 
     const load = useCallback(async () => {
-        const res = await fetch(`/api/clients/${clientId}/briefs`);
+        const res = await authFetch(`/api/clients/${clientId}/briefs`);
         if (!res.ok) throw new Error('Non riusciamo a caricare le richieste. Riprova più tardi.');
         setItems((await res.json()).items);
     }, [clientId]);
@@ -38,8 +39,8 @@ export function ClientBriefsView({ clientId }: { clientId: string }) {
         setSending(true);
         setMessage('');
         try {
-            const res = await fetch(`/api/clients/${clientId}/briefs`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
+            const res = await authFetch(`/api/clients/${clientId}/briefs`, {
+                method: 'POST',
                 body: JSON.stringify({ title, request, deadline: deadline || undefined, references: references || undefined }),
             });
             const d = await res.json().catch(() => ({}));
