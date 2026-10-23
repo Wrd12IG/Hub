@@ -33,7 +33,7 @@ export default function CreativeLabPage() {
 
   const [kind, setKind] = useState<CreativeKind>('caption')
   const [channel, setChannel] = useState<CreativeChannel>('instagram')
-  const [goal, setGoal] = useState<CreativeGoal>('saves')
+  const [goal, setGoal] = useState<CreativeGoal>('leads')
   const [topic, setTopic] = useState('')
   const [facts, setFacts] = useState('')
   const [source, setSource] = useState('')

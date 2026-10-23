@@ -55,7 +55,7 @@ function clientBlock(c: ClientContext): string {
 
 // ─── Formule per canale ──────────────────────────────────────────────────────
 
-const HOOKS_VIDEO = `COSA SCRIVI: l'apertura dei primi 1-3 secondi di un video verticale (Reel / TikTok / Short), in tre livelli che partono insieme:
+const HOOKS_VIDEO = `COSA SCRIVI: l'apertura dei primi 1-3 secondi di un video verticale (Reel Instagram o Facebook / TikTok / Short). Per i Reel di Facebook valgono le stesse regole: il pubblico è spesso più adulto e guarda anche senza audio, quindi il testo a schermo deve reggere da solo, in tre livelli che partono insieme:
 - spoken: la frase detta in camera (parlata, da leggere ad alta voce; usa «..» per una pausa);
 - onScreen: il testo a schermo, 3-7 parole, che promette anche senza audio. DEVE dire una cosa DIVERSA dal parlato (molti guardano muti);
 - visual: cosa si vede nel primo fotogramma (il risultato, la tensione o l'interruzione: mai logo, saluto o zoom lento);
@@ -72,7 +72,7 @@ FORMULE (scegli in base all'obiettivo; indica il codice e il nome in "formula" e
  T7 Promessa a elenco (salvataggi): payoff numerato con contatori a schermo.
  T8 Storia dal punto più alto (visione completa): si parte dal momento clou di una storia vera.
  T9 Tutorial a freddo (salvataggi): parti dal passo uno con il risultato in anteprima.
-Scelta per obiettivo: visione completa → T1, T2, T8; salvataggi → T3, T7, T9; commenti → T4, T6; condivisioni → T5.
+Scelta per obiettivo: visione completa → T1, T2, T8; salvataggi → T3, T7, T9; commenti → T4, T6; condivisioni → T5; contatti, prenotazioni, clic → T1, T3, T9 (con "cta" diretta); notorietà → T2, T5, T8.
 Varia le formule fra le proposte. Restituisci 3 proposte.`;
 
 const CAPTION_IG = `COSA SCRIVI: la didascalia di un post Instagram (immagine singola o Reel).
@@ -83,14 +83,14 @@ FORMULE:
  IG2 Verità controcorrente (condivisioni): consiglio comune che è sbagliato, poi cosa funziona, detto piano; solo tesi che si possono difendere.
  IG3 Apertura riconoscibile (commenti): una riga che butta il lettore in un momento specifico che conosce.
  IG4 Mini-storia con costo (commenti, follower): racconto in prima persona con la parte brutta, e una riga che dà il senso. Deve essere vero e dai dati.
-Scelta: salvataggi → IG1; condivisioni → IG2; commenti → IG3, IG4; follower → IG4.
+Scelta: salvataggi → IG1; condivisioni → IG2; commenti → IG3, IG4; follower → IG4; contatti, prenotazioni, clic → IG1 (offerta con dato) o IG3 (problema riconoscibile) con invito diretto; notorietà → IG2, IG4.
 Restituisci 2 varianti con formule diverse.`;
 
 const CAPTION_FB = `COSA SCRIVI: un post per Pagina Facebook. Il post breve funziona meglio: punta a stare sotto gli 80 caratteri, con la prima riga che regge tutto (Facebook taglia con «Altro»). Un'idea sola, a capo come battute. 0-2 hashtag, 0-2 emoji (nessuna su temi seri). Se serve un link, scrivi sopra una riga di contesto (il link nudo penalizza).
 Mai «siamo lieti/entusiasti di annunciare…» né simili.
 FORMULE:
  FB1 Opinione in una riga (condivisioni) · FB2 Numero piccolo che ribalta (condivisioni, solo con dato) · FB3 Domanda alla Pagina (commenti): facile e divertente · FB4 Questo o quello (commenti): scelta binaria amichevole · FB5 Battuta riconoscibile (condivisioni) · FB6 Dietro le quinte (condivisioni): un momento umano vero · FB7 Consiglio utile (condivisioni): UN consiglio che si gira a un amico · FB8 Storia con svolta (condivisioni): solo se la storia merita spazio e viene dai dati.
-Scelta: condivisioni → FB1, FB2, FB5, FB7; commenti → FB3, FB4; salvataggi o follower → FB7 o FB8.
+Scelta: condivisioni → FB1, FB2, FB5, FB7; commenti → FB3, FB4; salvataggi o follower → FB7 o FB8; contatti, prenotazioni, clic → FB2 o FB7 con invito diretto (l'invito può superare gli 80 caratteri); notorietà → FB6, FB8.
 Restituisci 2 varianti con formule diverse; nella variante lunga (FB8) il limite degli 80 caratteri non vale.`;
 
 const CAPTION_LI = `COSA SCRIVI: un post LinkedIn per la pagina aziendale o per una persona del cliente.
@@ -110,9 +110,14 @@ FORMULE:
  IG6 Prima/dopo (salvataggi, follower): slide 1 mostra il «dopo», le altre i passi.
  IG7 Sfata il mito (condivisioni): credenza → perché è falsa → cosa funziona.
  IG8 Metodo da copiare (salvataggi): un metodo con un nome e i passi.
-Scelta: salvataggi → IG5, IG8; condivisioni → IG7; follower → IG6.
+Scelta: salvataggi → IG5, IG8; condivisioni → IG7; follower → IG6; contatti, prenotazioni, clic → IG5 o IG7 con ultima slide che porta all'azione; notorietà → IG6, IG7.
 Didascalia: ripete l'aggancio per il «altro», breve; 3-5 hashtag come per i post.
 Restituisci 2 proposte con formule diverse. Nel campo "slides": [{"role": "Aggancio | Valore | Punto | Riassunto", "text": "…"}]; "hook" è il testo della slide 1.`;
+
+const CAROUSEL_FB = `COSA SCRIVI: un post Facebook con più immagini (carosello di foto/grafiche), slide per slide (3-10; mai riempire), più il testo del post.
+Facebook mostra le immagini in griglia: la PRIMA decide se si apre il post, quindi porta la promessa o il dato più forte, con testo grande e una sola idea. Una idea per immagine, leggibile da telefono. L'ultima porta all'azione. Il testo del post è breve (la prima riga regge tutto, sotto l'«Altro»), 0-2 hashtag, 0-2 emoji, mai «siamo lieti di annunciare».
+FORMULE: FC1 Elenco numerato (salvataggi, condivisioni) · FC2 Prima/dopo (condivisioni) · FC3 Mito sfatato (commenti) · FC4 Dietro le quinte (condivisioni): una sequenza vera dalla vita del cliente.
+Restituisci 2 proposte con formule diverse; "slides": [{"role","text"}]; "hook" è il testo della prima immagine.`;
 
 const CAROUSEL_LI = `COSA SCRIVI: un carosello (documento a slide) LinkedIn, 6-10 slide, più il testo del post.
 Slide 1 = affermazione o numero + promessa; una idea per slide, leggibile da telefono; ultima slide = riassunto + un invito. Testo del post: aggancio entro i primi 140-210 caratteri, riga 1 affermazione o numero (mai domanda), max 3 hashtag.
@@ -124,15 +129,28 @@ Nel campo "mapping" spiega in 1-2 righe cosa è diventato cosa e perché. Se il 
 Restituisci 1 proposta; se è un carosello usa "slides": [{"role","text"}] e metti la didascalia in "caption"; se è una didascalia lascia "slides" vuoto.
 Formule: usa i codici IG1-IG8 per Instagram, FB1-FB8 per Facebook, LI1-LI6 per LinkedIn, TC1-TC3 per TikTok; indica quella usata.`;
 
+/** Come cambia il lavoro in base all'obiettivo. Gli obiettivi di business hanno la precedenza sulle metriche di coinvolgimento. */
+const GOAL_GUIDE: Record<CreativeGoal, string> = {
+    leads: `OBIETTIVO DI BUSINESS: ottenere contatti e richieste (preventivo, informazioni, iscrizione). Il contenuto parte da un bisogno o da un'offerta concreta del cliente e porta a UN solo passo chiaro (chiama / scrivici su WhatsApp / compila il modulo / richiedi il preventivo). Scegli formule centrate su offerta o problema riconoscibile, non su curiosità fine a se stessa. Se nei dati forniti non ci sono un numero di telefono, un link o un indirizzo per il contatto, NON inventarli: scrivi l'invito in modo generico («scrivici in privato», «chiamaci») e metti in "missingData" il contatto da inserire.`,
+    bookings: `OBIETTIVO DI BUSINESS: far prenotare o venire in sede (test drive, visita, appuntamento, evento). Metti in primo piano COSA, QUANDO e DOVE (solo se nei dati), e chiudi con UN solo passo di prenotazione («prenota il tuo test drive», «passa a trovarci sabato»). Urgenza solo se vera (data reale di fine, posti reali nei dati). Se mancano giorno, orario, indirizzo o canale di prenotazione, non inventarli: elencali in "missingData".`,
+    traffic: `OBIETTIVO DI BUSINESS: portare clic al sito o alla pagina. Promessa chiara di cosa si trova dopo il clic e UN solo invito a cliccare. Instagram: i link nella didascalia non si cliccano, quindi indirizza a «link in bio» o alla storia con il link; Facebook: il link può stare nel post con una riga di contesto sopra; LinkedIn: il link va nel primo commento, non nel testo. Se manca l'indirizzo, non inventarlo: "missingData".`,
+    awareness: `OBIETTIVO: farsi conoscere (portata). Contenuto che si capisce da solo anche a chi non conosce il cliente: chi è, cosa fa di diverso, perché dovrebbe importare. Nessun invito commerciale pesante; al massimo seguire la pagina.`,
+    saves: 'OBIETTIVO: salvataggi. Contenuto di riferimento da riguardare (liste, metodi, numeri).',
+    shares: 'OBIETTIVO: condivisioni. Contenuto che si manda a una persona precisa («mandalo a chi…»).',
+    comments: 'OBIETTIVO: commenti. Una domanda o una tesi a cui è facile rispondere, senza inviti artificiali.',
+    follows: 'OBIETTIVO: nuovi follower. Dimostra valore e dai un motivo per seguire la pagina.',
+    completion: 'OBIETTIVO: far guardare il video fino in fondo. Risultato o tensione al primo fotogramma e chiusura che invita a riguardare.',
+};
+
 function playbookFor(kind: CreativeKind, channel: CreativeChannel): string {
     if (kind === 'hooks') return HOOKS_VIDEO;
     if (kind === 'repurpose') return REPURPOSE;
-    if (kind === 'carousel') return channel === 'linkedin' ? CAROUSEL_LI : CAROUSEL_IG;
+    if (kind === 'carousel') return channel === 'linkedin' ? CAROUSEL_LI : channel === 'facebook' ? CAROUSEL_FB : CAROUSEL_IG;
     return { instagram: CAPTION_IG, facebook: CAPTION_FB, linkedin: CAPTION_LI, tiktok: CAPTION_TT, youtube: CAPTION_TT }[channel];
 }
 
 const SCHEMA: Record<CreativeKind, string> = {
-    hooks: `{"items":[{"formula":"T1","formulaName":"…","spoken":"…","onScreen":"…","visual":"…","loopClose":"…","missingData":["…"]}]}`,
+    hooks: `{"items":[{"formula":"T1","formulaName":"…","spoken":"…","onScreen":"…","visual":"…","loopClose":"…","cta":"… oppure vuoto","missingData":["…"]}]}`,
     caption: `{"items":[{"formula":"IG1","formulaName":"…","hook":"prima riga (quella che regge da sola)","caption":"testo completo, compresa la prima riga, SENZA gli hashtag","hashtags":["#…"],"missingData":["…"]}]}`,
     carousel: `{"items":[{"formula":"IG5","formulaName":"…","hook":"testo della slide 1","slides":[{"role":"Aggancio","text":"…"}],"caption":"didascalia, SENZA gli hashtag","hashtags":["#…"],"missingData":["…"]}]}`,
     repurpose: `{"items":[{"formula":"IG1","formulaName":"…","hook":"prima riga","caption":"testo completo SENZA gli hashtag","slides":[],"hashtags":["#…"],"mapping":"…","missingData":["…"]}]}`,
@@ -144,6 +162,7 @@ export function buildCreativePrompt(req: CreativeRequest, client: ClientContext)
     const lines = [
         `CANALE: ${CHANNEL_LABEL[req.channel]}`,
         `OBIETTIVO PRINCIPALE: ${GOAL_LABEL[goal]}`,
+        GOAL_GUIDE[goal],
         '',
         'CLIENTE',
         clientBlock(client),
