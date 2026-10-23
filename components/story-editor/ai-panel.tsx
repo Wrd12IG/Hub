@@ -8,7 +8,8 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, Sparkles } from 'lucide-react';
-import { viaProxy } from '@/lib/story-editor/proxy';
+import { ProxiedImg } from './ProxiedImg';
+import { authFetch } from '@/lib/client-api-auth';
 import { Field, inputCls } from './ui';
 
 const IDEAS = ['Auto sportiva su una strada di montagna al tramonto', 'Showroom moderno luminoso con auto nuove', 'Sfondo astratto con sfumature viola e arancio', 'Famiglia che parte per le vacanze in auto'];
@@ -33,7 +34,7 @@ export function AiPanel({ onAdd, onBackground }: Props) {
     const generate = async () => {
         setPhase('working'); setMessage('Sto creando l\'immagine… può richiedere fino a un minuto.'); setImages([]);
         try {
-            const start = await fetch('/api/stories/magnific/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt, resolution: quality }) });
+            const start = await authFetch('/api/stories/magnific/generate', { method: 'POST', body: JSON.stringify({ prompt, resolution: quality }) });
             const d = await start.json().catch(() => ({}));
             if (d.configured === false) { setPhase('unconfigured'); return; }
             if (!start.ok || !d.taskId) throw new Error(d.error || 'Non riesco ad avviare la generazione.');
@@ -42,7 +43,7 @@ export function AiPanel({ onAdd, onBackground }: Props) {
             const began = Date.now();
             while (alive.current && Date.now() - began < MAX_WAIT_MS) {
                 await new Promise((r) => setTimeout(r, POLL_MS));
-                const res = await fetch(`/api/stories/magnific/generate?taskId=${encodeURIComponent(d.taskId)}`);
+                const res = await authFetch(`/api/stories/magnific/generate?taskId=${encodeURIComponent(d.taskId)}`);
                 const s = await res.json().catch(() => ({}));
                 if (!res.ok) throw new Error(s.error || 'Non riesco a leggere lo stato.');
                 if (s.status === 'FAILED') throw new Error(s.error || 'Generazione non riuscita.');
@@ -83,7 +84,7 @@ export function AiPanel({ onAdd, onBackground }: Props) {
                 {images.map((u) => (
                     <div key={u} className="group/card relative overflow-hidden rounded-lg border border-slate-700">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={viaProxy(u)} alt="Immagine creata" className="h-44 w-full object-cover" />
+                        <ProxiedImg url={u} alt="Immagine creata" className="h-44 w-full object-cover" />
                         <div className="absolute inset-0 flex flex-col justify-end gap-1 bg-black/50 p-1 opacity-0 transition-opacity group-hover/card:opacity-100 focus-within:opacity-100">
                             <button type="button" onClick={() => onAdd(u)} className="rounded bg-slate-900/90 py-1 text-[11px] text-white hover:bg-sky-600">Aggiungi</button>
                             <button type="button" onClick={() => onBackground(u)} className="rounded bg-slate-900/90 py-1 text-[11px] text-white hover:bg-sky-600">Usa come sfondo</button>

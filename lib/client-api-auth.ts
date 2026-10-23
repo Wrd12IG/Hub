@@ -23,3 +23,11 @@ export async function getAuthHeaders(extraHeaders: Record<string, string> = {}):
 
     return headers;
 }
+
+/** fetch verso le route del Hub con il token di accesso (le route staff rispondono 401 senza). */
+export async function authFetch(input: string, init: RequestInit = {}): Promise<Response> {
+    const auth = await getAuthHeaders();
+    const headers: Record<string, string> = { ...auth, ...(init.headers as Record<string, string> | undefined) };
+    if (!init.body) delete headers['Content-Type'];
+    return fetch(input, { ...init, headers });
+}
