@@ -20,6 +20,8 @@ export interface ClientPedItem {
     mentions: string;
     storyLink: string;
     imageUrls: string[];
+    /** Storie finali nell'ordine delle slide (video per le slide animate): è ciò che il cliente approva. Vuoto = si usano imageUrls. */
+    storyMedia: { url: string; kind: 'image' | 'video' }[];
     videoUrl: string | null;
     coverUrl: string | null;
     channels: string[];
@@ -57,6 +59,7 @@ export function toClientPedItem(c: EditorialContent): ClientPedItem {
         mentions: c.mentions || '',
         storyLink: c.storyLink || '',
         imageUrls: (c.imageUrls || []).map(https).filter((u): u is string => !!u),
+        storyMedia: (c.storyMedia || []).filter((m) => m && https(m.url) && (m.kind === 'image' || m.kind === 'video')).map((m) => ({ url: m.url, kind: m.kind })),
         videoUrl: https(c.videoUrl),
         coverUrl: https(c.coverUrl),
         channels,

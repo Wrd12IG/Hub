@@ -14,6 +14,7 @@ import { STORY_H, STORY_W, type Background, type Layer, type Slide, type TextLay
 import { computeSnap } from '@/lib/story-editor/snap';
 import { cachedImage, loadImage } from './image-cache';
 import { StickerShape, stickerSize } from './stickers';
+import { cachedPoster, loadPoster } from './video-poster';
 
 export interface SlideStageHandle { toJpeg: (quality?: number) => string }
 
@@ -44,6 +45,20 @@ function useStoryImage(url: string): HTMLImageElement | null {
     return img;
 }
 
+/** Primo fotogramma del video di sfondo (null finché non è pronto o se il browser non lo legge). */
+function useVideoPoster(url: string, t: number): HTMLCanvasElement | null {
+    const [poster, setPoster] = useState<HTMLCanvasElement | null>(() => (url ? cachedPoster(url, t) : null));
+    useEffect(() => {
+        let alive = true;
+        if (!url) { setPoster(null); return; }
+        const hit = cachedPoster(url, t);
+        if (hit) { setPoster(hit); return; }
+        loadPoster(url, t).then((c) => { if (alive) setPoster(c); });
+        return () => { alive = false; };
+    }, [url, t]);
+    return poster;
+}
+
 function gradientPoints(angle: number) {
     // angolo CSS-like: 0 = dal basso verso l'alto, 90 = da sinistra a destra
     const rad = ((angle - 90) * Math.PI) / 180;
@@ -57,6 +72,7 @@ function BackgroundShape({ bg }: { bg: Background }) {
     const img = useStoryImage(url);
     const imgRef = useRef<Konva.Image>(null);
     const blur = bg.type === 'image' ? bg.blur : 0;
+    const poster = useVideoPoster(bg.type === 'video' ? bg.url : '', bg.type === 'video' ? bg.trimStart : 0);
 
     useEffect(() => {
         const node = imgRef.current;
@@ -85,8 +101,19 @@ function BackgroundShape({ bg }: { bg: Background }) {
             </>
         );
     }
-    // video: nell'immagine fissa si vede uno sfondo scuro (il fotogramma sta nella versione video)
-    return <Rect width={STORY_W} height={STORY_H} fill="#000" listening={false} />;
+    // video: nell'editor e nel JPEG di riserva si vede il primo fotogramma; il movimento sta nell'MP4 esportato
+    let vp = { x: 0, y: 0, width: STORY_W, height: STORY_H };
+    if (poster) {
+        const k = Math.max(STORY_W / poster.width, STORY_H / poster.height);
+        const w = poster.width * k, h = poster.height * k;
+        vp = { x: (STORY_W - w) / 2, y: (STORY_H - h) / 2, width: w, height: h };
+    }
+    return (
+        <>
+            <Rect width={STORY_W} height={STORY_H} fill="#000" listening={false} />
+            {poster && <KImage image={poster} {...vp} listening={false} />}
+        </>
+    );
 }
 
 const fontStyle = (l: { bold: boolean; italic: boolean }) => `${l.italic ? 'italic ' : ''}${l.bold ? 'bold' : 'normal'}`.trim();

@@ -120,6 +120,11 @@ export function planChannel(content: EditorialContent, channel: PublishChannel, 
         }
         case 'igStories': {
             if (!accounts.instagram) return { error: 'Account Instagram non collegato in Setup API' };
+            // Storie dell'editor: l'elenco finale nell'ordine delle slide, video per quelle animate e immagine per le altre
+            const media = (content.storyMedia || []).filter((m) => m && isHttps(m.url) && (m.kind === 'image' || m.kind === 'video')).slice(0, 10);
+            if (media.length >= 1) {
+                return { actions: media.map((m, i) => ({ connector: 'instagram' as const, action: 'create_story', accountId: accounts.instagram!, key: `${accounts.instagram}#${i}`, params: m.kind === 'video' ? { video_url: m.url } : { image_url: m.url } })) };
+            }
             if (video) return { actions: [{ connector: 'instagram', action: 'create_story', accountId: accounts.instagram, key: `${accounts.instagram}#video`, params: { video_url: video } }] };
             // Ogni immagine è una storia (le slide dell'editor), pubblicate in ordine. Instagram non le raggruppa.
             if (images.length >= 1) {

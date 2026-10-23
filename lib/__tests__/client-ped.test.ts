@@ -18,8 +18,13 @@ describe('isVisibleToClient', () => {
 describe('toClientPedItem', () => {
     it('espone solo i campi previsti', () => {
         const item = toClientPedItem(c({ taskId: 't', projectId: 'p', customFields: { a: 'b' }, publishResults: { instagram: { status: 'failed', error: 'segreto interno' } } }));
-        expect(Object.keys(item).sort()).toEqual(['approval', 'awaitingClient', 'channels', 'copy', 'coverUrl', 'format', 'hashtags', 'id', 'imageUrls', 'mentions', 'publicationDate', 'published', 'status', 'storyLink', 'topic', 'videoUrl']);
+        expect(Object.keys(item).sort()).toEqual(['approval', 'awaitingClient', 'channels', 'copy', 'coverUrl', 'format', 'hashtags', 'id', 'imageUrls', 'mentions', 'publicationDate', 'published', 'status', 'storyLink', 'storyMedia', 'topic', 'videoUrl']);
         expect(JSON.stringify(item)).not.toContain('segreto interno');
+    });
+    it('storyMedia: solo https e solo i tipi noti, nell\'ordine', () => {
+        const out = toClientPedItem(c({ storyMedia: [{ url: 'https://x/1.jpg', kind: 'image' }, { url: 'http://x/2.mp4', kind: 'video' }, { url: 'https://x/3.mp4', kind: 'video' }, { url: 'https://x/4', kind: 'gif' } as any] })).storyMedia;
+        expect(out).toEqual([{ url: 'https://x/1.jpg', kind: 'image' }, { url: 'https://x/3.mp4', kind: 'video' }]);
+        expect(toClientPedItem(c({})).storyMedia).toEqual([]);
     });
     it('solo media https', () => expect(toClientPedItem(c({ imageUrls: ['https://x/a.jpg', 'http://x/b.jpg'], videoUrl: 'http://x/v.mp4' })).imageUrls).toEqual(['https://x/a.jpg']));
     it('da approvare', () => expect(toClientPedItem(c({ status: 'In Approvazione Cliente', approval: { status: 'requested', requestedAt: 'x' } })).awaitingClient).toBe(true));
