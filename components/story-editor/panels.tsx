@@ -10,7 +10,8 @@ import { Loader2, Search, Upload } from 'lucide-react';
 import { STORY_TEMPLATES, type Palette } from '@/lib/story-editor/templates';
 import { STICKER_DEFAULTS, makeEmoji, makeShape, makeSticker, makeText } from '@/lib/story-editor/factory';
 import type { Background, Layer, Slide, StickerKind } from '@/lib/story-editor/types';
-import { viaProxy } from '@/lib/story-editor/proxy';
+import { ProxiedImg } from './ProxiedImg';
+import { authFetch } from '@/lib/client-api-auth';
 import type { ClientMediaItem, StockItem } from '@/lib/story-editor/stock';
 import { SlideStage } from './SlideStage';
 import { EMOJI_GROUPS } from './emoji-list';
@@ -218,7 +219,7 @@ export function MediaPanel({ uploaded, onUploadFiles, onAddImage, onUseAsBackgro
                         {clientMedia.items.filter((i) => i.kind === 'image').map((m) => (
                             <div key={m.url} className="group/card relative overflow-hidden rounded-md border border-slate-700">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={viaProxy(m.url)} alt={m.name} loading="lazy" className="h-20 w-full object-cover" />
+                                <ProxiedImg url={m.url} alt={m.name} className="h-20 w-full object-cover" />
                                 <div className="absolute inset-0 flex flex-col justify-end gap-0.5 bg-black/55 p-0.5 opacity-0 transition-opacity group-hover/card:opacity-100">
                                     <button type="button" onClick={() => onAddClientImage?.(m)} className="rounded bg-slate-900/90 py-0.5 text-[10px] text-white hover:bg-sky-600">Aggiungi</button>
                                     <button type="button" onClick={() => onClientImageAsBackground?.(m)} className="rounded bg-slate-900/90 py-0.5 text-[10px] text-white hover:bg-sky-600">Sfondo</button>
@@ -244,7 +245,7 @@ export function StockPanel({ kind, onAdd, onBackground }: { kind: 'gif' | 'photo
     const load = useCallback(async (q: string, cursor: number, append: boolean) => {
         setSt((p) => ({ ...p, status: 'loading', error: '', items: append ? p.items : [] }));
         try {
-            const res = await fetch(`${gif ? '/api/stories/giphy' : '/api/stories/pexels'}?q=${encodeURIComponent(q)}&${gif ? 'offset' : 'page'}=${cursor}`);
+            const res = await authFetch(`${gif ? '/api/stories/giphy' : '/api/stories/pexels'}?q=${encodeURIComponent(q)}&${gif ? 'offset' : 'page'}=${cursor}`);
             const d = await res.json().catch(() => ({}));
             if (d.configured === false) { setSt({ items: [], cursor: null, status: 'unconfigured', error: '' }); return; }
             if (!res.ok) throw new Error(d.error || 'Servizio non disponibile.');
@@ -275,7 +276,7 @@ export function StockPanel({ kind, onAdd, onBackground }: { kind: 'gif' | 'photo
                 {st.items.map((i) => (
                     <div key={i.id} className="group/card relative overflow-hidden rounded-lg border border-slate-700 bg-slate-900">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={viaProxy(i.preview)} alt={i.title} loading="lazy" className={gif ? 'h-24 w-full object-cover' : 'h-40 w-full object-cover'} />
+                        <ProxiedImg url={i.preview} alt={i.title} className={gif ? 'h-24 w-full object-cover' : 'h-40 w-full object-cover'} />
                         <div className="absolute inset-0 flex flex-col justify-end gap-1 bg-black/50 p-1 opacity-0 transition-opacity group-hover/card:opacity-100 focus-within:opacity-100">
                             <button type="button" onClick={() => onAdd(i)} className="rounded bg-slate-900/90 py-1 text-[11px] text-white hover:bg-sky-600">Aggiungi</button>
                             {!gif && onBackground && <button type="button" onClick={() => onBackground(i)} className="rounded bg-slate-900/90 py-1 text-[11px] text-white hover:bg-sky-600">Usa come sfondo</button>}

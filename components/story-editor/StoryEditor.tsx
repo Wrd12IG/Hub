@@ -26,6 +26,7 @@ import { renderSlideToJpeg, renderSlidesToJpeg } from './export';
 import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, StockPanel, TemplatesPanel, TextPanel, type PanelKey, type UploadedMedia } from './panels';
 import { PropertiesPanel } from './properties';
 import { cn } from '@/lib/utils';
+import { authFetch } from '@/lib/client-api-auth';
 
 export interface SavePayload { design: StoryDesign; title: string; igStories: boolean; fbStories: boolean; storyLink: string; onProgress: (message: string) => void }
 
@@ -145,7 +146,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
         if (panel !== 'media' || !clientId || clientMediaLoaded.current) return;
         clientMediaLoaded.current = true;
         setClientMedia({ items: [], loading: true, error: '' });
-        fetch(`/api/stories/client-media?clientId=${encodeURIComponent(clientId)}`)
+        authFetch(`/api/stories/client-media?clientId=${encodeURIComponent(clientId)}`)
             .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Non riesco a leggere i media del cliente.'); return d.items as ClientMediaItem[]; })
             .then((items) => setClientMedia({ items, loading: false, error: '' }))
             .catch((e) => { clientMediaLoaded.current = false; setClientMedia({ items: [], loading: false, error: e.message }); });
@@ -204,7 +205,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
         if (layer.type !== 'image') return;
         setBusy('Tolgo lo sfondo…'); setMessage('');
         try {
-            const res = await fetch('/api/stories/magnific/remove-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: layer.url }) });
+            const res = await authFetch('/api/stories/magnific/remove-bg', { method: 'POST', body: JSON.stringify({ imageUrl: layer.url }) });
             const d = await res.json().catch(() => ({}));
             if (d.configured === false) throw new Error('Servizio non ancora attivo: manca la chiave MAGNIFIC_API_KEY su Vercel.');
             if (!res.ok || !d.url) throw new Error(d.error || 'Non sono riuscito a togliere lo sfondo.');

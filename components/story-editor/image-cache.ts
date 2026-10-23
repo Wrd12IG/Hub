@@ -3,6 +3,7 @@
  * resta «pulita» e si può esportare. Per l'esportazione si precaricano tutte e poi si disegna senza attese.
  */
 import { viaProxy } from '@/lib/story-editor/proxy';
+import { proxiedBlobUrl } from './proxied-blob';
 
 const cache = new Map<string, HTMLImageElement>();
 const pending = new Map<string, Promise<HTMLImageElement | null>>();
@@ -17,13 +18,14 @@ export function loadImage(url: string): Promise<HTMLImageElement | null> {
     if (hit) return Promise.resolve(hit);
     const inFlight = pending.get(src);
     if (inFlight) return inFlight;
-    const p = new Promise<HTMLImageElement | null>((resolve) => {
+    const p = proxiedBlobUrl(url).then((href) => new Promise<HTMLImageElement | null>((resolve) => {
+        if (!href) { pending.delete(src); resolve(null); return; }
         const img = new window.Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => { cache.set(src, img); pending.delete(src); resolve(img); };
         img.onerror = () => { pending.delete(src); resolve(null); };
-        img.src = src;
-    });
+        img.src = href;
+    }));
     pending.set(src, p);
     return p;
 }
