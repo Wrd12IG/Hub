@@ -10,7 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-    ChevronLeft, Copy, Download, ImageIcon, LayoutTemplate, Loader2, Palette as PaletteIcon, Plus, Redo2, Save, Shapes, Smile, Sticker, Trash2, Type, Undo2, ZoomIn, ZoomOut,
+    Camera, ChevronLeft, Clapperboard, Copy, Download, ImageIcon, LayoutTemplate, Loader2, Palette as PaletteIcon, Plus, Redo2, Save, Shapes, Smile, Sticker, Trash2, Type, Undo2, ZoomIn, ZoomOut,
 } from 'lucide-react';
 import type Konva from 'konva';
 import { editorReducer, initialState } from '@/lib/story-editor/reducer';
@@ -19,8 +19,10 @@ import { fontsStylesheetUrl, STORY_FONTS } from '@/lib/story-editor/fonts';
 import { DEFAULT_PALETTE, type Palette } from '@/lib/story-editor/templates';
 import { SAFE_BOTTOM, SAFE_TOP, STORY_H, STORY_W, type Layer, type StoryDesign } from '@/lib/story-editor/types';
 import { SlideStage } from './SlideStage';
+import { loadImage } from './image-cache';
+import type { ClientMediaItem, StockItem } from '@/lib/story-editor/stock';
 import { renderSlideToJpeg, renderSlidesToJpeg } from './export';
-import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, TemplatesPanel, TextPanel, type PanelKey, type UploadedMedia } from './panels';
+import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, StockPanel, TemplatesPanel, TextPanel, type PanelKey, type UploadedMedia } from './panels';
 import { PropertiesPanel } from './properties';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +36,8 @@ interface Props {
     initialChannels?: { igStories: boolean; fbStories: boolean };
     initialStoryLink?: string;
     palette?: Palette;
+    /** Il cliente di cui si legge la galleria nel pannello Media; senza, la sezione non c'è. */
+    clientId?: string;
     onUploadFiles: (files: File[]) => Promise<UploadedMedia[]>;
     /** «Salva nel PED»: se manca, il pulsante non c'è (prova da soli dell'editor). */
     onSave?: (p: SavePayload) => Promise<void>;
@@ -47,6 +51,8 @@ const RAIL: { key: PanelKey; label: string; icon: React.ElementType }[] = [
     { key: 'shapes', label: 'Forme', icon: Shapes },
     { key: 'background', label: 'Sfondo', icon: PaletteIcon },
     { key: 'media', label: 'Media', icon: ImageIcon },
+    { key: 'gif', label: 'GIF', icon: Clapperboard },
+    { key: 'photos', label: 'Foto', icon: Camera },
 ];
 
 function download(blob: Blob, name: string) {
@@ -82,7 +88,7 @@ function InstagramOverlay({ name, slides, index, width, height }: { name: string
     );
 }
 
-export function StoryEditor({ clientName, backHref, initialDesign, initialTitle = '', initialChannels = { igStories: true, fbStories: false }, initialStoryLink = '', palette = DEFAULT_PALETTE, onUploadFiles, onSave }: Props) {
+export function StoryEditor({ clientId, clientName, backHref, initialDesign, initialTitle = '', initialChannels = { igStories: true, fbStories: false }, initialStoryLink = '', palette = DEFAULT_PALETTE, onUploadFiles, onSave }: Props) {
     const [state, dispatch] = useReducer(editorReducer, initialDesign || emptyDesign(), (d) => initialState(d));
     const [panel, setPanel] = useState<PanelKey | null>('templates');
     const [overlay, setOverlay] = useState(false);
@@ -90,6 +96,8 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
     const [zoom, setZoom] = useState(1);
     const [fontsVersion, setFontsVersion] = useState(0);
     const [uploaded, setUploaded] = useState<UploadedMedia[]>([]);
+    const [clientMedia, setClientMedia] = useState<{ items: ClientMediaItem[]; loading: boolean; error: string } | null>(clientId ? { items: [], loading: false, error: '' } : null);
+    const clientMediaLoaded = useRef(false);
     const [title, setTitle] = useState(initialTitle);
     const [channels, setChannels] = useState(initialChannels);
     const [storyLink, setStoryLink] = useState(initialStoryLink);
@@ -130,6 +138,17 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
     }, []);
     const scale = fit * zoom;
 
+    // La galleria del cliente si legge la prima volta che si apre il pannello Media
+    useEffect(() => {
+        if (panel !== 'media' || !clientId || clientMediaLoaded.current) return;
+        clientMediaLoaded.current = true;
+        setClientMedia({ items: [], loading: true, error: '' });
+        fetch(`/api/stories/client-media?clientId=${encodeURIComponent(clientId)}`)
+            .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || 'Non riesco a leggere i media del cliente.'); return d.items as ClientMediaItem[]; })
+            .then((items) => setClientMedia({ items, loading: false, error: '' }))
+            .catch((e) => { clientMediaLoaded.current = false; setClientMedia({ items: [], loading: false, error: e.message }); });
+    }, [panel, clientId]);
+
     const add = useCallback((l: Layer) => dispatch({ type: 'ADD_LAYER', layer: l }), []);
     const update = useCallback((id: string, patch: Partial<Layer>, key?: string) => dispatch({ type: 'UPDATE_LAYER', layerId: id, patch, key }), []);
 
@@ -169,6 +188,17 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
     };
 
     const addImage = (m: UploadedMedia) => add(makeImage(m.url, m.width || 1080, m.height || 1080, { source: 'upload' }));
+    const addStock = (i: StockItem, source: 'gif' | 'stock') => {
+        // Le GIF entrano a 720 px di larghezza (non a tutta tela); le foto si adattano alla storia
+        const w = source === 'gif' ? 720 : i.width, h = source === 'gif' ? Math.round((720 * i.height) / i.width) : i.height;
+        add(makeImage(i.url, w, h, { source }));
+    };
+    const stockBackground = (i: StockItem) => dispatch({ type: 'SET_BACKGROUND', background: { type: 'image', url: i.url, fit: 'cover', blur: 0, dim: 0 } });
+    const addClientImage = async (m: ClientMediaItem) => {
+        const img = await loadImage(m.url); // serve la misura vera dell'immagine
+        add(makeImage(m.url, img?.naturalWidth || 1080, img?.naturalHeight || 1080, { source: 'upload' }));
+    };
+    const clientImageBackground = (m: ClientMediaItem) => dispatch({ type: 'SET_BACKGROUND', background: { type: 'image', url: m.url, fit: 'cover', blur: 0, dim: 0 } });
     const useBackground = (m: UploadedMedia) => dispatch({ type: 'SET_BACKGROUND', background: { type: 'image', url: m.url, fit: 'cover', blur: 0, dim: 0 } });
 
     const downloadCurrent = async () => {
@@ -270,7 +300,9 @@ export function StoryEditor({ clientName, backHref, initialDesign, initialTitle 
                         {panel === 'emoji' && <EmojiPanel onAdd={add} />}
                         {panel === 'shapes' && <ShapesPanel palette={palette} onAdd={add} />}
                         {panel === 'background' && <BackgroundPanel background={slide.background} palette={palette} onUploadFiles={upload} onChange={(b, key) => dispatch({ type: 'SET_BACKGROUND', background: b, key })} />}
-                        {panel === 'media' && <MediaPanel uploaded={uploaded} onUploadFiles={upload} onAddImage={addImage} onUseAsBackground={useBackground} />}
+                        {panel === 'media' && <MediaPanel uploaded={uploaded} onUploadFiles={upload} onAddImage={addImage} onUseAsBackground={useBackground} clientMedia={clientMedia} onAddClientImage={addClientImage} onClientImageAsBackground={clientImageBackground} />}
+                        {panel === 'gif' && <StockPanel kind="gif" onAdd={(i) => addStock(i, 'gif')} />}
+                        {panel === 'photos' && <StockPanel kind="photo" onAdd={(i) => addStock(i, 'stock')} onBackground={stockBackground} />}
                     </aside>
                 )}
 
