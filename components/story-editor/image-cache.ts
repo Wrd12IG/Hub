@@ -3,7 +3,7 @@
  * resta «pulita» e si può esportare. Per l'esportazione si precaricano tutte e poi si disegna senza attese.
  */
 import { viaProxy } from '@/lib/story-editor/proxy';
-import { proxiedBlobUrl } from './ProxiedImg';
+import { proxiedBlobUrl } from './proxied-blob';
 
 const cache = new Map<string, HTMLImageElement>();
 const pending = new Map<string, Promise<HTMLImageElement | null>>();
