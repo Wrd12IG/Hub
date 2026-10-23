@@ -23,6 +23,7 @@ export function pedCopy(kind: CreativeKind, item: CreativeItem): string {
             item.onScreen && `A SCHERMO: ${item.onScreen}`,
             item.visual && `PRIMO FOTOGRAMMA: ${item.visual}`,
             item.loopClose && `CHIUSURA: ${item.loopClose}`,
+            item.cta && `INVITO FINALE: ${item.cta}`,
         ].filter(Boolean).join('\n\n');
     }
     const slides = item.slides.length > 0 ? item.slides.map((s, i) => `Slide ${i + 1}${s.role ? ` (${s.role})` : ''}: ${s.text}`).join('\n') : '';

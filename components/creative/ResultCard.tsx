@@ -70,6 +70,7 @@ export function ResultCard({ item, kind, channel, topic, clientId, onSaved, open
           <Block label="Testo a schermo"><p className="font-semibold">{item.onScreen}</p></Block>
           <Block label="Primo fotogramma"><p className="text-muted-foreground">{item.visual}</p></Block>
           <Block label="Chiusura per farlo riguardare"><p className="text-muted-foreground">{item.loopClose}</p></Block>
+          {item.cta && <Block label="Invito finale"><p className="font-semibold">{item.cta}</p></Block>}
         </div>
       ) : (
         <div className="space-y-3">

@@ -5,7 +5,7 @@
  * hashtag, emoji, inviti artificiali all'interazione, frasi «da AI» e, soprattutto, numeri che non erano nei dati
  * forniti (un numero inventato in un post pubblicato è una smentita, non un dettaglio).
  */
-import type { CreativeChannel, CreativeItem, CreativeRequest } from './spec';
+import { BUSINESS_GOALS, type CreativeChannel, type CreativeItem, type CreativeRequest } from './spec';
 
 const s = (v: unknown, max = 4000) => (typeof v === 'string' ? v.replace(/\r/g, '').trim().slice(0, max) : '');
 const list = (v: unknown, maxItems: number, maxLen: number) =>
@@ -39,6 +39,7 @@ export function normalizeItem(raw: unknown): CreativeItem | null {
         onScreen: s(r.onScreen, 200),
         visual: s(r.visual, 400),
         loopClose: s(r.loopClose, 400),
+        cta: s(r.cta, 300),
         mapping: s(r.mapping, 500),
         missingData: list(r.missingData, 5, 200),
         warnings: [],
@@ -63,6 +64,7 @@ const AI_TELLS: [RegExp, string][] = [
     [/immergiti|sfrutta\s+al\s+massimo|porta\s+(il|la)\s+tu[oa]\s+\w+\s+(a|al)/i, 'verbo da brochure («immergiti», «sfrutta al massimo»)'],
     [/\b(vero|sinceramente|onestamente),?\s+(parliamoci\s+chiaro|ti\s+dico)|parliamoci\s+chiaro/i, 'sincerità annunciata («parliamoci chiaro»): serve un fatto datato'],
 ];
+const ACTION = /\b(chiam\w+|scriv\w+|prenot\w+|richied\w+|contatt\w+|compil\w+|vieni|veni\w+|passa|passate|whatsapp|messaggio|dm|link|clicca|visita|preventiv\w+|test\s*drive|telefon\w+|iscriv\w+|registr\w+|ordina|acquist\w+)\b/i;
 const EMOJI = /[\uD83C-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g;
 
 /** Numeri (≥ 11 o con decimali/separatori) che compaiono nel testo generato ma non in quello fornito dall'utente. */
@@ -80,10 +82,10 @@ export function inventedNumbers(generated: string, provided: string): string[] {
 }
 
 function allText(i: CreativeItem): string {
-    return [i.hook, i.caption, i.spoken, i.onScreen, i.visual, i.loopClose, ...i.slides.map((x) => x.text)].filter(Boolean).join('\n');
+    return [i.hook, i.caption, i.spoken, i.onScreen, i.visual, i.loopClose, i.cta, ...i.slides.map((x) => x.text)].filter(Boolean).join('\n');
 }
 
-export function auditItem(item: CreativeItem, req: Pick<CreativeRequest, 'channel' | 'kind' | 'topic' | 'facts' | 'source'>): string[] {
+export function auditItem(item: CreativeItem, req: Pick<CreativeRequest, 'channel' | 'kind' | 'topic' | 'facts' | 'source'> & { goal?: CreativeRequest['goal'] }): string[] {
     const w: string[] = [];
     const text = allText(item);
     const provided = `${req.topic}\n${req.facts}\n${req.source}`;
@@ -110,6 +112,10 @@ export function auditItem(item: CreativeItem, req: Pick<CreativeRequest, 'channe
     const fake = inventedNumbers(text, provided);
     if (fake.length > 0) w.push(`Numeri non presenti nei dati forniti: ${fake.join(', ')}. Verificali o toglili: un dato inventato, pubblicato, è una smentita.`);
 
+    if (req.goal && BUSINESS_GOALS.includes(req.goal)) {
+        const ctaText = req.kind === 'hooks' ? item.cta : [item.caption, ...item.slides.slice(-1).map((x) => x.text)].join('\n');
+        if (!ACTION.test(ctaText)) w.push('Obiettivo di business ma manca un invito diretto (chiama, scrivi, prenota, richiedi…): senza un passo chiaro il contenuto non porta contatti.');
+    }
     if (req.kind === 'carousel' && (item.slides.length < 4 || item.slides.length > 10)) w.push(`Il carosello ha ${item.slides.length} slide: servono da 4 a 10.`);
     if (req.kind === 'hooks' && item.spoken && item.onScreen && item.spoken.toLowerCase().includes(item.onScreen.toLowerCase())) w.push('Il testo a schermo ripete la frase parlata: devono dire cose diverse (molti guardano senza audio).');
     return w;

@@ -152,3 +152,72 @@ describe('to-ped', () => {
         expect(pedTitle('caption', mk({ hook: 'a'.repeat(120) }), 'x').length).toBeLessThanOrEqual(80);
     });
 });
+
+describe('obiettivi di business', () => {
+    it('contatti, prenotazioni, clic e notorietà sono ammessi per ogni tipo di lavoro', () => {
+        for (const kind of ['hooks', 'caption', 'carousel', 'repurpose'] as const) {
+            for (const goal of ['leads', 'bookings', 'traffic', 'awareness'] as const) {
+                const channel = kind === 'hooks' ? 'tiktok' : 'instagram';
+                const r = parseCreativeRequest({ kind, channel, goal, topic: 'Test drive Yaris Cross sabato', source: 'x'.repeat(60) });
+                expect(r.ok, `${kind}/${goal}`).toBe(true);
+            }
+        }
+    });
+    const ctx = { name: 'City Motors', recentTopics: [] };
+    it('il prompt per i contatti chiede un solo passo e vieta di inventare telefono e link', () => {
+        const { prompt } = buildCreativePrompt({ ...base, goal: 'leads' } as any, ctx);
+        expect(prompt).toContain('contatti e richieste');
+        expect(prompt).toContain('NON inventarli');
+        const b = buildCreativePrompt({ ...base, goal: 'bookings' } as any, ctx).prompt;
+        expect(b).toContain('COSA, QUANDO e DOVE');
+    });
+    it('traffico: spiega dove va il link per canale (Instagram non cliccabile, LinkedIn nel commento)', () => {
+        const { prompt } = buildCreativePrompt({ ...base, goal: 'traffic' } as any, ctx);
+        expect(prompt).toContain('link in bio');
+        expect(prompt).toContain('primo commento');
+    });
+    const mk = (o: Record<string, unknown>) => normalizeItem({ formula: 'IG1', formulaName: 'x', ...o })!;
+    it('senza invito diretto, un contenuto di business riceve un avviso', () => {
+        const w = auditItem(mk({ caption: 'Una bella auto, bella davvero.' }), { ...base, goal: 'leads' } as any);
+        expect(w.some((x) => x.includes('manca un invito diretto'))).toBe(true);
+    });
+    it('con un invito diretto l\'avviso non c\'è', () => {
+        const w = auditItem(mk({ caption: 'Prenota il tuo test drive: scrivici su WhatsApp.' }), { ...base, goal: 'bookings' } as any);
+        expect(w.some((x) => x.includes('manca un invito diretto'))).toBe(false);
+    });
+    it('per un obiettivo di coinvolgimento non chiede l\'invito', () => {
+        const w = auditItem(mk({ caption: 'Una bella auto.' }), { ...base, goal: 'saves' } as any);
+        expect(w.some((x) => x.includes('manca un invito diretto'))).toBe(false);
+    });
+    it('video: l\'invito è il campo "cta" e finisce nel PED', () => {
+        const vid = mk({ spoken: 'Guarda', onScreen: 'Test drive', visual: 'auto', cta: 'Scrivici su WhatsApp per prenotare.' });
+        expect(auditItem(vid, { ...base, kind: 'hooks', channel: 'tiktok', goal: 'bookings' } as any).some((x) => x.includes('manca un invito'))).toBe(false);
+        expect(pedCopy('hooks', vid)).toContain('INVITO FINALE: Scrivici su WhatsApp');
+        const noCta = mk({ spoken: 'Guarda', onScreen: 'Test drive', visual: 'auto' });
+        expect(auditItem(noCta, { ...base, kind: 'hooks', channel: 'tiktok', goal: 'leads' } as any).some((x) => x.includes('manca un invito'))).toBe(true);
+    });
+});
+
+describe('Facebook anche per video e caroselli', () => {
+    const ctx = { name: 'City Motors', recentTopics: [] };
+    it('Facebook è ammesso per hook video e caroselli', () => {
+        expect(parseCreativeRequest({ ...base, kind: 'hooks', channel: 'facebook', goal: 'leads' }).ok).toBe(true);
+        expect(parseCreativeRequest({ ...base, kind: 'carousel', channel: 'facebook', goal: 'leads' }).ok).toBe(true);
+    });
+    it('il carosello Facebook usa il suo metodo (griglia, prima immagine, 0-2 hashtag)', () => {
+        const { system } = buildCreativePrompt({ ...base, kind: 'carousel', channel: 'facebook', goal: 'saves' } as any, ctx);
+        expect(system).toContain('post Facebook con più immagini');
+        expect(system).toContain('0-2 hashtag');
+    });
+    it('il video su Facebook parla di Reel di Facebook', () => {
+        const { system } = buildCreativePrompt({ ...base, kind: 'hooks', channel: 'facebook', goal: 'leads' } as any, ctx);
+        expect(system).toContain('Reel Instagram o Facebook');
+    });
+    it('la bozza nel PED di un carosello Facebook va sul canale Facebook', () => {
+        const it = normalizeItem({ caption: 'x', slides: [{ role: 'a', text: 'b' }, { role: 'c', text: 'd' }, { role: 'e', text: 'f' }] })!;
+        const d = buildPedDraft({ clientId: 'c', kind: 'carousel', channel: 'facebook', item: it, topic: 't', publicationDate: '2026-11-01' });
+        expect(d.facebook).toBe(true);
+        expect(d.instagram).toBe(false);
+        expect(d.format).toBe('Carosello');
+    });
+});

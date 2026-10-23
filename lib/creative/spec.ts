@@ -7,7 +7,7 @@
 
 export type CreativeKind = 'hooks' | 'caption' | 'carousel' | 'repurpose';
 export type CreativeChannel = 'instagram' | 'facebook' | 'linkedin' | 'tiktok' | 'youtube';
-export type CreativeGoal = 'saves' | 'shares' | 'comments' | 'follows' | 'completion';
+export type CreativeGoal = 'leads' | 'bookings' | 'traffic' | 'awareness' | 'saves' | 'shares' | 'comments' | 'follows' | 'completion';
 
 export const KIND_LABEL: Record<CreativeKind, string> = {
     hooks: 'Hook e script video',
@@ -25,6 +25,10 @@ export const CHANNEL_LABEL: Record<CreativeChannel, string> = {
 };
 
 export const GOAL_LABEL: Record<CreativeGoal, string> = {
+    leads: 'Contatti e richieste',
+    bookings: 'Prenotazioni e visite in sede',
+    traffic: 'Clic al sito',
+    awareness: 'Notorietà',
     saves: 'Salvataggi',
     shares: 'Condivisioni',
     comments: 'Commenti',
@@ -34,18 +38,18 @@ export const GOAL_LABEL: Record<CreativeGoal, string> = {
 
 /** Canali ammessi per ogni tipo di lavoro. */
 export const KIND_CHANNELS: Record<CreativeKind, CreativeChannel[]> = {
-    hooks: ['instagram', 'tiktok', 'youtube'],
+    hooks: ['instagram', 'facebook', 'tiktok', 'youtube'],
     caption: ['instagram', 'facebook', 'linkedin', 'tiktok'],
-    carousel: ['instagram', 'linkedin'],
+    carousel: ['instagram', 'facebook', 'linkedin'],
     repurpose: ['instagram', 'facebook', 'linkedin', 'tiktok'],
 };
 
 /** Obiettivi ammessi per ogni tipo di lavoro. */
 export const KIND_GOALS: Record<CreativeKind, CreativeGoal[]> = {
-    hooks: ['completion', 'saves', 'comments', 'shares'],
-    caption: ['saves', 'shares', 'comments', 'follows'],
-    carousel: ['saves', 'shares', 'follows'],
-    repurpose: ['saves', 'shares', 'comments', 'follows'],
+    hooks: ['leads', 'bookings', 'traffic', 'awareness', 'completion', 'saves', 'comments', 'shares'],
+    caption: ['leads', 'bookings', 'traffic', 'awareness', 'saves', 'shares', 'comments', 'follows'],
+    carousel: ['leads', 'bookings', 'traffic', 'awareness', 'saves', 'shares', 'follows'],
+    repurpose: ['leads', 'bookings', 'traffic', 'awareness', 'saves', 'shares', 'comments', 'follows'],
 };
 
 export const LIMITS = { topic: 300, facts: 1500, source: 6000 } as const;
@@ -65,6 +69,9 @@ export interface CreativeRequest {
 export type ParseResult = { ok: true; value: CreativeRequest } | { ok: false; error: string };
 
 const str = (v: unknown) => (typeof v === 'string' ? v.replace(/\r/g, '').trim() : '');
+
+/** Obiettivi che puntano a un'azione di business (non a metriche di coinvolgimento). */
+export const BUSINESS_GOALS: CreativeGoal[] = ['leads', 'bookings', 'traffic'];
 
 export function parseCreativeRequest(body: unknown): ParseResult {
     const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
@@ -103,6 +110,8 @@ export interface CreativeItem {
     onScreen: string;
     visual: string;
     loopClose: string;
+    /** Invito finale del video (solo hook video con obiettivo di business). */
+    cta: string;
     /** Solo «riutilizza»: cosa è diventato cosa. */
     mapping: string;
     /** Dati che renderebbero il contenuto più forte e che non sono stati forniti. */
