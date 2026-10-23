@@ -10,7 +10,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-    Camera, ChevronLeft, Clapperboard, Copy, Download, ImageIcon, LayoutTemplate, Loader2, Palette as PaletteIcon, Plus, Redo2, Save, Shapes, Smile, Sticker, Trash2, Type, Undo2, ZoomIn, ZoomOut,
+    Camera, ChevronLeft, Clapperboard, Copy, Download, ImageIcon, LayoutTemplate, Loader2, Sparkles, Palette as PaletteIcon, Plus, Redo2, Save, Shapes, Smile, Sticker, Trash2, Type, Undo2, ZoomIn, ZoomOut,
 } from 'lucide-react';
 import type Konva from 'konva';
 import { editorReducer, initialState } from '@/lib/story-editor/reducer';
@@ -20,6 +20,7 @@ import { DEFAULT_PALETTE, type Palette } from '@/lib/story-editor/templates';
 import { SAFE_BOTTOM, SAFE_TOP, STORY_H, STORY_W, type Layer, type StoryDesign } from '@/lib/story-editor/types';
 import { SlideStage } from './SlideStage';
 import { loadImage } from './image-cache';
+import { AiPanel } from './ai-panel';
 import type { ClientMediaItem, StockItem } from '@/lib/story-editor/stock';
 import { renderSlideToJpeg, renderSlidesToJpeg } from './export';
 import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, StockPanel, TemplatesPanel, TextPanel, type PanelKey, type UploadedMedia } from './panels';
@@ -53,6 +54,7 @@ const RAIL: { key: PanelKey; label: string; icon: React.ElementType }[] = [
     { key: 'media', label: 'Media', icon: ImageIcon },
     { key: 'gif', label: 'GIF', icon: Clapperboard },
     { key: 'photos', label: 'Foto', icon: Camera },
+    { key: 'ai', label: 'AI', icon: Sparkles },
 ];
 
 function download(blob: Blob, name: string) {
@@ -193,6 +195,26 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
         const w = source === 'gif' ? 720 : i.width, h = source === 'gif' ? Math.round((720 * i.height) / i.width) : i.height;
         add(makeImage(i.url, w, h, { source }));
     };
+    const addAiImage = async (url: string) => {
+        const img = await loadImage(url);
+        add(makeImage(url, img?.naturalWidth || 1080, img?.naturalHeight || 1920, { source: 'stock' }));
+    };
+    const aiBackground = (url: string) => dispatch({ type: 'SET_BACKGROUND', background: { type: 'image', url, fit: 'cover', blur: 0, dim: 0 } });
+    const removeBg = async (layer: Layer) => {
+        if (layer.type !== 'image') return;
+        setBusy('Tolgo lo sfondo…'); setMessage('');
+        try {
+            const res = await fetch('/api/stories/magnific/remove-bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: layer.url }) });
+            const d = await res.json().catch(() => ({}));
+            if (d.configured === false) throw new Error('Servizio non ancora attivo: manca la chiave MAGNIFIC_API_KEY su Vercel.');
+            if (!res.ok || !d.url) throw new Error(d.error || 'Non sono riuscito a togliere lo sfondo.');
+            await loadImage(d.url); // pronta in cache prima di sostituirla
+            update(layer.id, { url: d.url } as Partial<Layer>);
+            setMessage('Sfondo tolto.');
+        } catch (e: any) {
+            setMessage(e?.message || 'Non sono riuscito a togliere lo sfondo.');
+        } finally { setBusy(null); }
+    };
     const stockBackground = (i: StockItem) => dispatch({ type: 'SET_BACKGROUND', background: { type: 'image', url: i.url, fit: 'cover', blur: 0, dim: 0 } });
     const addClientImage = async (m: ClientMediaItem) => {
         const img = await loadImage(m.url); // serve la misura vera dell'immagine
@@ -302,6 +324,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
                         {panel === 'background' && <BackgroundPanel background={slide.background} palette={palette} onUploadFiles={upload} onChange={(b, key) => dispatch({ type: 'SET_BACKGROUND', background: b, key })} />}
                         {panel === 'media' && <MediaPanel uploaded={uploaded} onUploadFiles={upload} onAddImage={addImage} onUseAsBackground={useBackground} clientMedia={clientMedia} onAddClientImage={addClientImage} onClientImageAsBackground={clientImageBackground} />}
                         {panel === 'gif' && <StockPanel kind="gif" onAdd={(i) => addStock(i, 'gif')} />}
+                        {panel === 'ai' && <AiPanel onAdd={addAiImage} onBackground={aiBackground} />}
                         {panel === 'photos' && <StockPanel kind="photo" onAdd={(i) => addStock(i, 'stock')} onBackground={stockBackground} />}
                     </aside>
                 )}
@@ -325,7 +348,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
                 <aside className="w-[290px] shrink-0 overflow-y-auto border-l border-slate-800 bg-[#0f1520] p-4" aria-label="Proprietà">
                     <PropertiesPanel slide={slide} layer={layer} onSelect={(id) => dispatch({ type: 'SELECT_LAYER', layerId: id })} onUpdate={update}
                         onDuplicate={(id) => dispatch({ type: 'DUPLICATE_LAYER', layerId: id, newId: uid('d') })} onDelete={(id) => dispatch({ type: 'REMOVE_LAYER', layerId: id })}
-                        onMove={(id, d) => dispatch({ type: 'MOVE_LAYER', layerId: id, direction: d })} />
+                        onMove={(id, d) => dispatch({ type: 'MOVE_LAYER', layerId: id, direction: d })} onRemoveBackground={removeBg} />
                 </aside>
             </div>
 
