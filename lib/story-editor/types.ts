@@ -82,6 +82,8 @@ export interface StickerLayer extends LayerBase {
     text: string;
     /** Opzioni (sondaggio, quiz). */
     options: string[];
+    /** Conto alla rovescia: data e ora di fine come «2026-10-25T18:00». Lo sticker scrive la data (l'immagine non può scorrere). */
+    endAt?: string;
 }
 
 export type Layer = TextLayer | EmojiLayer | ImageLayer | ShapeLayer | StickerLayer;

@@ -93,12 +93,17 @@ export function PropertiesPanel({ slide, layer, onSelect, onUpdate, onDuplicate,
                             <Field label={layer.sticker === 'link' ? 'Indirizzo o testo' : layer.sticker === 'hashtag' ? 'Hashtag (senza #)' : layer.sticker === 'mention' ? 'Account (senza @)' : 'Testo'}>
                                 <input className={inputCls} value={layer.text} onChange={(e) => set({ text: e.target.value }, `stk:${layer.id}`)} />
                             </Field>
+                            {layer.sticker === 'countdown' && (
+                                <Field label="Data e ora di fine">
+                                    <input type="datetime-local" className={inputCls} value={layer.endAt || ''} onChange={(e) => set({ endAt: e.target.value } as Partial<Layer>, `end:${layer.id}`)} />
+                                </Field>
+                            )}
                             {(layer.sticker === 'poll' || layer.sticker === 'quiz') && layer.options.map((o, i) => (
                                 <Field key={i} label={`Opzione ${i + 1}`}>
                                     <input className={inputCls} value={o} onChange={(e) => set({ options: layer.options.map((x, j) => (j === i ? e.target.value : x)) } as Partial<Layer>, `opt:${layer.id}:${i}`)} />
                                 </Field>
                             ))}
-                            <p className="text-[11px] text-amber-300">Disegnato nella storia, non cliccabile: aggiungi lo sticker vero dall&apos;app prima di pubblicare.</p>
+                            <p className="text-[11px] text-amber-300">{layer.sticker === 'countdown' ? 'La storia è un\'immagine ferma: qui si scrive la data. Il conto alla rovescia che scorre si aggiunge dall\'app di Instagram, con la stessa data.' : 'Disegnato nella storia, non cliccabile: aggiungi lo sticker vero dall\'app prima di pubblicare.'}</p>
                         </div>
                     )}
                     {layer.type === 'image' && (
