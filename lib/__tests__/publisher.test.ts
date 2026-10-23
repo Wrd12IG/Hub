@@ -133,3 +133,34 @@ describe('storie con più slide', () => {
         expect(r.actions.map((a: any) => a.key ?? a.accountId)).toEqual(['g1', 'g2']);
     });
 });
+
+describe('storie miste: video per le slide animate, immagini per le altre', () => {
+    const media = [
+        { url: 'https://x/1.jpg', kind: 'image' as const },
+        { url: 'https://x/2.mp4', kind: 'video' as const },
+        { url: 'https://x/3.jpg', kind: 'image' as const },
+    ];
+    it('pubblica in ordine, con video_url per i video e image_url per le immagini, e chiavi diverse', () => {
+        const r = planChannel(base({ igStories: true, storyMedia: media, imageUrls: ['https://x/p1.jpg', 'https://x/p2.jpg', 'https://x/p3.jpg'] }), 'igStories', accounts) as any;
+        expect(r.actions.map((a: any) => a.params)).toEqual([{ image_url: 'https://x/1.jpg' }, { video_url: 'https://x/2.mp4' }, { image_url: 'https://x/3.jpg' }]);
+        expect(new Set(r.actions.map((a: any) => a.key)).size).toBe(3);
+        expect(r.actions.every((a: any) => a.action === 'create_story' && a.accountId === 'ig1')).toBe(true);
+    });
+    it('storyMedia ha la precedenza su imageUrls; vuoto = si usano le immagini come prima', () => {
+        const withMedia = planChannel(base({ storyMedia: media, imageUrls: ['https://x/p1.jpg'] }), 'igStories', accounts) as any;
+        expect(withMedia.actions).toHaveLength(3);
+        const empty = planChannel(base({ storyMedia: [], imageUrls: ['https://x/p1.jpg'] }), 'igStories', accounts) as any;
+        expect(empty.actions.map((a: any) => a.params)).toEqual([{ image_url: 'https://x/p1.jpg' }]);
+    });
+    it('scarta indirizzi non https e tipi sconosciuti, al massimo 10', () => {
+        const dirty: any[] = [{ url: 'http://x/a.mp4', kind: 'video' }, { url: 'https://x/b.mp4', kind: 'gif' }, null, { url: 'https://x/ok.mp4', kind: 'video' }];
+        const r = planChannel(base({ storyMedia: dirty }), 'igStories', accounts) as any;
+        expect(r.actions.map((a: any) => a.params)).toEqual([{ video_url: 'https://x/ok.mp4' }]);
+        const many = Array.from({ length: 14 }, (_, i) => ({ url: `https://x/${i}.mp4`, kind: 'video' as const }));
+        expect((planChannel(base({ storyMedia: many }), 'igStories', accounts) as any).actions).toHaveLength(10);
+    });
+    it('Instagram post e Facebook non cambiano', () => {
+        const ig = planChannel(base({ storyMedia: media, imageUrls: ['https://x/a.jpg'], copy: 'x' }), 'instagram', accounts) as any;
+        expect(ig.actions[0].action).toBe('create_image_post');
+    });
+});

@@ -139,12 +139,17 @@ export function ClientPedView({ clientId }: { clientId: string }) {
                         </Badge>
                     </div>
 
-                    {(c.imageUrls.length > 0 || c.videoUrl) && (
+                    {(c.imageUrls.length > 0 || c.videoUrl || c.storyMedia.length > 0) && (
                         <div className="flex gap-2 overflow-x-auto">
-                            {c.imageUrls.map((u) => (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img key={u} src={u} alt="" className="h-48 rounded-lg object-cover" />
-                            ))}
+                            {c.storyMedia.length > 0
+                                ? c.storyMedia.map((m) => m.kind === 'video'
+                                    ? <video key={m.url} src={`${m.url}#t=0.1`} controls muted preload="metadata" playsInline className="h-72 rounded-lg bg-black" />
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    : <img key={m.url} src={m.url} alt="" className="h-72 rounded-lg object-cover" />)
+                                : c.imageUrls.map((u) => (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img key={u} src={u} alt="" className="h-48 rounded-lg object-cover" />
+                                ))}
                             {c.videoUrl && <video src={`${c.videoUrl}#t=0.1`} poster={c.coverUrl || undefined} controls preload="metadata" playsInline className="max-h-72 rounded-lg" />}
                         </div>
                     )}

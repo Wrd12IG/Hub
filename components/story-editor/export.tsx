@@ -13,6 +13,14 @@ import type Konva from 'konva';
 import type { Slide } from '@/lib/story-editor/types';
 import { SlideStage } from './SlideStage';
 import { preloadImages } from './image-cache';
+import { loadPoster } from './video-poster';
+
+/** Aspetta che la tela si sia disegnata. In una scheda in secondo piano requestAnimationFrame non scatta mai: per questo c'è un limite di tempo. */
+export function nextPaint(): Promise<void> {
+    const raf = new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+    const timeout = new Promise<void>((r) => setTimeout(r, 150));
+    return Promise.race([raf, timeout]);
+}
 
 export function slideImageUrls(slide: Slide): string[] {
     return [
@@ -42,6 +50,7 @@ const dataUrlToBlob = (dataUrl: string): Blob => {
 
 export async function renderSlideToJpeg(slide: Slide, quality = 0.92): Promise<Blob> {
     await preloadImages(slideImageUrls(slide));
+    if (slide.background.type === 'video') await loadPoster(slide.background.url, slide.background.trimStart);
     await ensureFonts(slideFonts(slide));
 
     const host = document.createElement('div');
@@ -52,7 +61,7 @@ export async function renderSlideToJpeg(slide: Slide, quality = 0.92): Promise<B
     try {
         flushSync(() => root.render(<SlideStage slide={slide} scale={1} stageRef={ref} />));
         // Due giri di disegno: le immagini sono già in cache, ma il testo si misura al primo disegno
-        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        await nextPaint();
         if (!ref.current) throw new Error('La tela non è pronta');
         return dataUrlToBlob(ref.current.toDataURL({ mimeType: 'image/jpeg', quality, pixelRatio: 1 }));
     } finally {

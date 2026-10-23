@@ -6,7 +6,7 @@
  * I pannelli della barra a sinistra: modelli, testo, sticker, emoji, forme, sfondo, media.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Search, Upload } from 'lucide-react';
+import { Film, Loader2, Search, Upload } from 'lucide-react';
 import { STORY_TEMPLATES, type Palette } from '@/lib/story-editor/templates';
 import { STICKER_DEFAULTS, makeEmoji, makeShape, makeSticker, makeText } from '@/lib/story-editor/factory';
 import type { Background, Layer, Slide, StickerKind } from '@/lib/story-editor/types';
@@ -19,7 +19,12 @@ import { ColorField, Field, Range, inputCls } from './ui';
 
 export type PanelKey = 'templates' | 'text' | 'stickers' | 'emoji' | 'shapes' | 'background' | 'media' | 'gif' | 'photos' | 'ai';
 
-export interface UploadedMedia { url: string; filename: string; width: number; height: number; kind: 'image' | 'video'; temporary?: boolean }
+export interface UploadedMedia { url: string; filename: string; width: number; height: number; kind: 'image' | 'video'; /** Durata in secondi (solo video). */ duration?: number; temporary?: boolean }
+
+/** Una storia dura al massimo 60 secondi: un video più lungo parte già tagliato. */
+export const MAX_STORY_VIDEO_SECONDS = 60;
+
+export const videoBackground = (url: string, duration = 0): Background => ({ type: 'video', url, trimStart: 0, trimEnd: duration > MAX_STORY_VIDEO_SECONDS ? MAX_STORY_VIDEO_SECONDS : 0 });
 
 const Title = ({ children }: { children: React.ReactNode }) => <h3 className="mb-3 text-sm font-bold text-slate-100">{children}</h3>;
 const Btn = ({ children, onClick, className = '' }: { children: React.ReactNode; onClick: () => void; className?: string }) => (
@@ -121,7 +126,9 @@ export function BackgroundPanel({ background, onChange, onUploadFiles, palette }
     background: Background; onChange: (b: Background, key?: string) => void; onUploadFiles: (files: File[]) => Promise<UploadedMedia[]>; palette: Palette;
 }) {
     const fileRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLInputElement>(null);
     const [busy, setBusy] = useState(false);
+    const [videoError, setVideoError] = useState('');
     const color = background.type === 'color' ? background.color : '';
     return (
         <div className="space-y-4">
@@ -156,6 +163,36 @@ export function BackgroundPanel({ background, onChange, onUploadFiles, palette }
                     try { const [m] = await onUploadFiles(files); if (m) onChange({ type: 'image', url: m.url, fit: 'cover', blur: 0, dim: 0 }); } finally { setBusy(false); }
                 }} />
             </div>
+            <div>
+                <button type="button" disabled={busy} onClick={() => videoRef.current?.click()}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-600 px-3 py-3 text-sm text-slate-200 hover:border-sky-500">
+                    <Film className="h-4 w-4" /> {busy ? 'Caricamento…' : 'Usa un video come sfondo'}
+                </button>
+                <input ref={videoRef} type="file" accept="video/*" className="hidden" onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    e.target.value = '';
+                    if (!files.length) return;
+                    setBusy(true); setVideoError('');
+                    try {
+                        const m = (await onUploadFiles(files)).find((x) => x.kind === 'video');
+                        if (m) onChange(videoBackground(m.url, m.duration));
+                        else setVideoError('Il file scelto non è un video che il browser sa leggere.');
+                    } catch (err: any) { setVideoError(err?.message || 'Non sono riuscito a caricare il video.'); } finally { setBusy(false); }
+                }} />
+                {videoError && <p className="mt-1 text-xs text-red-300">{videoError}</p>}
+            </div>
+            {background.type === 'video' && (
+                <div className="space-y-3 rounded-lg border border-slate-700 bg-slate-900/60 p-3">
+                    <p className="text-[11px] text-slate-300">Nell&apos;editor vedi il primo fotogramma; la storia esce come <b>video MP4</b> (da 3 a 60 secondi), con testo, GIF e sticker sopra.</p>
+                    <Field label="Parte dal secondo">
+                        <input type="number" min={0} step={0.1} className={inputCls} value={background.trimStart} onChange={(e) => onChange({ ...background, trimStart: Math.max(0, Number(e.target.value) || 0) }, 'bg-trim')} />
+                    </Field>
+                    <Field label="Finisce al secondo (0 = fino alla fine)">
+                        <input type="number" min={0} step={0.1} className={inputCls} value={background.trimEnd} onChange={(e) => onChange({ ...background, trimEnd: Math.max(0, Number(e.target.value) || 0) }, 'bg-trim')} />
+                    </Field>
+                    <button type="button" onClick={() => onChange({ type: 'color', color: '#111827' })} className="text-xs text-red-300 underline hover:text-red-200">Togli il video</button>
+                </div>
+            )}
             {background.type === 'image' && (
                 <div className="space-y-3">
                     <Field label="Adattamento">
@@ -187,23 +224,27 @@ export function MediaPanel({ uploaded, onUploadFiles, onAddImage, onUseAsBackgro
             <Title>Media</Title>
             <button type="button" disabled={busy} onClick={() => fileRef.current?.click()}
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-slate-600 px-3 py-4 text-sm text-slate-200 hover:border-sky-500">
-                <Upload className="h-4 w-4" /> {busy ? 'Caricamento…' : 'Carica immagini'}
+                <Upload className="h-4 w-4" /> {busy ? 'Caricamento…' : 'Carica immagini o video'}
             </button>
-            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={async (e) => {
+            <input ref={fileRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={async (e) => {
                 const files = Array.from(e.target.files || []);
                 e.target.value = '';
                 if (!files.length) return;
                 setBusy(true);
                 try { await onUploadFiles(files); } finally { setBusy(false); }
             }} />
-            {uploaded.length === 0 && <p className="text-xs text-slate-400">Le immagini che carichi compaiono qui, pronte da aggiungere o da usare come sfondo.</p>}
+            {uploaded.length === 0 && <p className="text-xs text-slate-400">Le immagini e i video che carichi compaiono qui: le immagini si aggiungono o si usano come sfondo, i video solo come sfondo.</p>}
             <div className="grid grid-cols-2 gap-2">
                 {uploaded.map((m) => (
                     <div key={m.url} className="overflow-hidden rounded-lg border border-slate-700">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={m.url} alt={m.filename} className="h-28 w-full object-cover" />
+                        {m.kind === 'video' ? (
+                            <video src={`${m.url}#t=0.1`} muted playsInline preload="metadata" className="h-28 w-full bg-black object-cover" />
+                        ) : (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={m.url} alt={m.filename} className="h-28 w-full object-cover" />
+                        )}
                         <div className="flex gap-1 p-1">
-                            <button type="button" onClick={() => onAddImage(m)} className="flex-1 rounded bg-slate-800 px-1 py-1 text-[11px] text-slate-100 hover:bg-slate-700">Aggiungi</button>
+                            {m.kind !== 'video' && <button type="button" onClick={() => onAddImage(m)} className="flex-1 rounded bg-slate-800 px-1 py-1 text-[11px] text-slate-100 hover:bg-slate-700">Aggiungi</button>}
                             <button type="button" onClick={() => onUseAsBackground(m)} className="flex-1 rounded bg-slate-800 px-1 py-1 text-[11px] text-slate-100 hover:bg-slate-700">Sfondo</button>
                         </div>
                     </div>
@@ -214,14 +255,18 @@ export function MediaPanel({ uploaded, onUploadFiles, onAddImage, onUseAsBackgro
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Del cliente</div>
                     {clientMedia.loading && <p className="flex items-center gap-2 text-xs text-slate-400"><Loader2 className="h-3.5 w-3.5 animate-spin" />Carico…</p>}
                     {clientMedia.error && <p className="text-xs text-red-300">{clientMedia.error}</p>}
-                    {!clientMedia.loading && !clientMedia.error && clientMedia.items.filter((i) => i.kind === 'image').length === 0 && <p className="text-xs text-slate-400">Nessuna immagine ancora: compaiono qui i file della galleria e quelli dei contenuti del PED.</p>}
+                    {!clientMedia.loading && !clientMedia.error && clientMedia.items.length === 0 && <p className="text-xs text-slate-400">Nessun file ancora: compaiono qui i file della galleria e quelli dei contenuti del PED.</p>}
                     <div className="grid grid-cols-3 gap-1.5">
-                        {clientMedia.items.filter((i) => i.kind === 'image').map((m) => (
+                        {clientMedia.items.map((m) => (
                             <div key={m.url} className="group/card relative overflow-hidden rounded-md border border-slate-700">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <ProxiedImg url={m.url} alt={m.name} className="h-20 w-full object-cover" />
+                                {m.kind === 'video' ? (
+                                    <video src={`${m.url}#t=0.1`} muted playsInline preload="metadata" className="h-20 w-full bg-black object-cover" />
+                                ) : (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <ProxiedImg url={m.url} alt={m.name} className="h-20 w-full object-cover" />
+                                )}
                                 <div className="absolute inset-0 flex flex-col justify-end gap-0.5 bg-black/55 p-0.5 opacity-0 transition-opacity group-hover/card:opacity-100">
-                                    <button type="button" onClick={() => onAddClientImage?.(m)} className="rounded bg-slate-900/90 py-0.5 text-[10px] text-white hover:bg-sky-600">Aggiungi</button>
+                                    {m.kind !== 'video' && <button type="button" onClick={() => onAddClientImage?.(m)} className="rounded bg-slate-900/90 py-0.5 text-[10px] text-white hover:bg-sky-600">Aggiungi</button>}
                                     <button type="button" onClick={() => onClientImageAsBackground?.(m)} className="rounded bg-slate-900/90 py-0.5 text-[10px] text-white hover:bg-sky-600">Sfondo</button>
                                 </div>
                             </div>
@@ -264,7 +309,7 @@ export function StockPanel({ kind, onAdd, onBackground }: { kind: 'gif' | 'photo
                 <input className={inputCls} value={input} onChange={(e) => setInput(e.target.value)} placeholder={gif ? 'Cerca una GIF…' : 'Cerca una foto…'} aria-label="Cerca" />
                 <button type="submit" className="rounded-md border border-slate-700 bg-slate-900 px-2 hover:bg-slate-800" aria-label="Cerca"><Search className="h-4 w-4" /></button>
             </form>
-            {gif && <p className="text-[11px] text-slate-400">Nella storia le GIF restano ferme (è un&apos;immagine): si animano solo nel video.</p>}
+            {gif && <p className="text-[11px] text-slate-400">Una slide con una GIF esce come <b>video MP4</b> quando salvi, e la GIF si muove. Nell&apos;editor vedi solo il primo fotogramma.</p>}
             {st.status === 'unconfigured' && (
                 <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-200">
                     Servizio non ancora attivo: manca la chiave <b>{gif ? 'GIPHY_API_KEY' : 'PEXELS_API_KEY'}</b> tra le variabili di Vercel.

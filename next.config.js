@@ -137,6 +137,8 @@ const nextConfig = {
                             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                             "font-src 'self' https://fonts.gstatic.com",
                             "img-src 'self' data: blob: https://firebasestorage.googleapis.com https://*.googleusercontent.com https://images.unsplash.com https://loremflickr.com https://picsum.photos https://via.placeholder.com https://ui-avatars.com",
+                            // Video dell'editor storie: file appena scelti (blob:) e video su Firebase Storage
+                            "media-src 'self' blob: https://firebasestorage.googleapis.com",
                             "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://api.openai.com https://api.anthropic.com https://generativelanguage.googleapis.com",
                             "frame-src 'none'",
                             "object-src 'none'",

@@ -22,8 +22,10 @@ import { SlideStage } from './SlideStage';
 import { loadImage } from './image-cache';
 import { AiPanel } from './ai-panel';
 import type { ClientMediaItem, StockItem } from '@/lib/story-editor/stock';
-import { renderSlideToJpeg, renderSlidesToJpeg } from './export';
-import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, StockPanel, TemplatesPanel, TextPanel, type PanelKey, type UploadedMedia } from './panels';
+import { renderSlideToJpeg } from './export';
+import { renderSlideToMp4, videoExportSupported } from './export-video';
+import { isVideoSlide } from '@/lib/story-editor/animation';
+import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, StockPanel, TemplatesPanel, TextPanel, videoBackground, type PanelKey, type UploadedMedia } from './panels';
 import { PropertiesPanel } from './properties';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/client-api-auth';
@@ -221,19 +223,35 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
         const img = await loadImage(m.url); // serve la misura vera dell'immagine
         add(makeImage(m.url, img?.naturalWidth || 1080, img?.naturalHeight || 1080, { source: 'upload' }));
     };
-    const clientImageBackground = (m: ClientMediaItem) => dispatch({ type: 'SET_BACKGROUND', background: { type: 'image', url: m.url, fit: 'cover', blur: 0, dim: 0 } });
-    const useBackground = (m: UploadedMedia) => dispatch({ type: 'SET_BACKGROUND', background: { type: 'image', url: m.url, fit: 'cover', blur: 0, dim: 0 } });
+    const clientImageBackground = (m: ClientMediaItem) => dispatch({ type: 'SET_BACKGROUND', background: m.kind === 'video' ? videoBackground(m.url) : { type: 'image', url: m.url, fit: 'cover', blur: 0, dim: 0 } });
+    const useBackground = (m: UploadedMedia) => dispatch({ type: 'SET_BACKGROUND', background: m.kind === 'video' ? videoBackground(m.url, m.duration) : { type: 'image', url: m.url, fit: 'cover', blur: 0, dim: 0 } });
 
+    /** La slide come file: MP4 se ha GIF o video di sfondo (e il browser sa farlo), altrimenti JPEG. */
+    const slideFile = async (sl: typeof slide, label: string): Promise<{ blob: Blob; ext: 'mp4' | 'jpg' }> => {
+        if (isVideoSlide(sl) && videoExportSupported()) {
+            const r = await renderSlideToMp4(sl, { onProgress: (d, t, phase) => setBusy(t > 1 ? `${label}: ${phase} ${Math.round((d / t) * 100)}%` : `${label}: ${phase}…`) });
+            if (r.notes.length) setMessage(r.notes.join(' '));
+            return { blob: r.blob, ext: 'mp4' };
+        }
+        if (isVideoSlide(sl)) setMessage('Questo browser non sa esportare video: scarico l\'immagine ferma.');
+        return { blob: await renderSlideToJpeg(sl), ext: 'jpg' };
+    };
     const downloadCurrent = async () => {
-        setBusy('Preparo l\'immagine…');
-        try { download(await renderSlideToJpeg(slide), `storia-${slideIndex + 1}.jpg`); } finally { setBusy(null); }
+        setBusy('Preparo il file…'); setMessage('');
+        try { const f = await slideFile(slide, `Slide ${slideIndex + 1}`); download(f.blob, `storia-${slideIndex + 1}.${f.ext}`); }
+        catch (e: any) { setMessage(e?.message || 'Non sono riuscito a preparare il file.'); }
+        finally { setBusy(null); }
     };
     const downloadAll = async () => {
-        setBusy('Preparo le immagini…');
+        setBusy('Preparo i file…'); setMessage('');
         try {
-            const blobs = await renderSlidesToJpeg(state.design.slides, (d, t) => setBusy(`Preparo le immagini ${d}/${t}…`));
-            blobs.forEach((b, i) => setTimeout(() => download(b, `storia-${i + 1}.jpg`), i * 300));
-        } finally { setBusy(null); }
+            const slides = state.design.slides;
+            for (let i = 0; i < slides.length; i++) {
+                const f = await slideFile(slides[i], `Slide ${i + 1}/${slides.length}`);
+                setTimeout(() => download(f.blob, `storia-${i + 1}.${f.ext}`), i * 300);
+            }
+        } catch (e: any) { setMessage(e?.message || 'Non sono riuscito a preparare i file.'); }
+        finally { setBusy(null); }
     };
 
     const save = async () => {
@@ -270,7 +288,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
                     <TopBtn title="Riduci" onClick={() => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)))}><ZoomOut className="h-4 w-4" /></TopBtn>
                     <span className="w-10 text-center text-xs text-slate-400">{Math.round(zoom * 100)}%</span>
                     <TopBtn title="Ingrandisci" onClick={() => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)))}><ZoomIn className="h-4 w-4" /></TopBtn>
-                    <TopBtn title="Scarica questa slide (JPG)" onClick={downloadCurrent}><Download className="h-4 w-4" /></TopBtn>
+                    <TopBtn title="Scarica questa slide (MP4 se ha GIF o video, altrimenti JPG)" onClick={downloadCurrent}><Download className="h-4 w-4" /></TopBtn>
                     {state.design.slides.length > 1 && <button type="button" onClick={downloadAll} className="rounded-md border border-slate-700 px-2 py-1.5 text-xs hover:bg-slate-800">Scarica tutte</button>}
                     {onSave && (
                         <div className="relative">
@@ -358,8 +376,9 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
                 {slideThumbs.map((s, i) => (
                     <div key={s.id} className="shrink-0">
                         <button type="button" aria-label={`Slide ${i + 1}`} aria-current={s.id === state.slideId} onClick={() => dispatch({ type: 'SELECT_SLIDE', slideId: s.id })}
-                            className={cn('block overflow-hidden rounded-md border-2', s.id === state.slideId ? 'border-sky-500' : 'border-slate-700 hover:border-slate-500')}>
+                            className={cn('relative block overflow-hidden rounded-md border-2', s.id === state.slideId ? 'border-sky-500' : 'border-slate-700 hover:border-slate-500')}>
                             <SlideStage slide={s} scale={0.07} fontsVersion={fontsVersion} />
+                            {isVideoSlide(s) && <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded bg-black/70 px-1 py-px text-[9px] font-bold text-white" title="Questa slide esce come video MP4"><Clapperboard className="h-2.5 w-2.5" />VIDEO</span>}
                         </button>
                         <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
                             <span>{i + 1}</span>

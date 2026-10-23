@@ -510,6 +510,11 @@ export interface EditorialContent {
     storyLink?: string;
     /** Progetto dell'editor delle storie (testo JSON: lib/story-editor/serialize.ts), per riaprirlo e modificarlo. */
     storyData?: string;
+    /**
+     * Le storie finali, nell'ordine delle slide: un video MP4 per le slide con GIF o video di sfondo, un JPEG per le altre.
+     * Se c'è, la pubblicazione delle storie usa questo elenco al posto di imageUrls (che resta come anteprima).
+     */
+    storyMedia?: { url: string; kind: 'image' | 'video' }[];
     imageUrls?: string[];
     videoUrl?: string; // URL for video content
     /** Copertina del video (JPEG, https): Instagram la usa come immagine del Reel. */
