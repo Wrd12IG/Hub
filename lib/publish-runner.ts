@@ -14,6 +14,7 @@
  */
 import { adminDb } from '@/lib/firebase-admin';
 import { executeAction } from '@/lib/windsor-client';
+import { executeWithRetry } from '@/lib/publish-retry';
 import {
   requestedChannels, planChannel, extractPostRef, allAutomatedPublished,
   MAX_ATTEMPTS, STALE_PUBLISHING_MS, UNSUPPORTED_CHANNELS,
@@ -115,7 +116,12 @@ export async function runPublish(due: EditorialContent[], opts: RunOptions, star
       const doneKey = action.key ?? action.accountId;
       if (done.has(doneKey)) continue;
         try {
-          const res = await executeAction(action.connector, action.action, action.accountId, action.params);
+          // «Media ID is not available» = Instagram non ha ancora elaborato il file: riprova dopo qualche secondo (solo nei primi 80 s
+          // del giro, per non sforare il limite della funzione)
+          const res = await executeWithRetry(() => executeAction(action.connector, action.action, action.accountId, action.params), {
+            canRetry: () => Date.now() - started < 80_000,
+            onRetry: (n, msg) => console.warn(`[publish] ${content.id} ${channel}: file non ancora pronto, nuovo tentativo ${n} (${msg.slice(0, 120)})`),
+          });
           const refs = extractPostRef(res);
           postId = postId || refs.postId;
           postUrl = postUrl || refs.postUrl;
