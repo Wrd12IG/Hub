@@ -58,6 +58,7 @@ import Image from 'next/image';
 import { useTranslation } from '@/hooks/useTranslation';
 import ClientSwitcher from '@/components/ClientSwitcher';
 import { CommandPalette } from '@/components/command-palette';
+import { TelegramButton } from '@/components/telegram-button';
 
 // Le briciole di pane devono parlare italiano come i titoli delle pagine
 const SEGMENT_LABELS: Record<string, string> = {
@@ -206,6 +207,9 @@ export function Header() {
                 </Button>
 
                 <ThemeSelector />
+
+                {/* Telegram (solo staff: l'area Cliente non lo mostra) */}
+                {currentUser && currentUser.role !== 'Cliente' && <TelegramButton />}
 
                 {/* Notifications */}
                 <NotificationCenter
