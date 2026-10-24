@@ -25,12 +25,13 @@ import type { ClientMediaItem, StockItem } from '@/lib/story-editor/stock';
 import { renderSlideToJpeg } from './export';
 import { renderSlideToMp4, videoExportSupported } from './export-video';
 import { isVideoSlide } from '@/lib/story-editor/animation';
+import { describeSchedule, publicationValue, splitPublicationValue, type AfterSave } from '@/lib/story-editor/schedule';
 import { BackgroundPanel, EmojiPanel, MediaPanel, ShapesPanel, StickersPanel, StockPanel, TemplatesPanel, TextPanel, videoBackground, type PanelKey, type UploadedMedia } from './panels';
 import { PropertiesPanel } from './properties';
 import { cn } from '@/lib/utils';
 import { authFetch } from '@/lib/client-api-auth';
 
-export interface SavePayload { design: StoryDesign; title: string; igStories: boolean; fbStories: boolean; storyLink: string; onProgress: (message: string) => void }
+export interface SavePayload { design: StoryDesign; title: string; igStories: boolean; fbStories: boolean; storyLink: string; /** Data (e ora) di pubblicazione, '' se non c'è. */ publicationDate: string; /** Cosa fare dopo il salvataggio. */ afterSave: AfterSave; onProgress: (message: string) => void }
 
 interface Props {
     clientName: string;
@@ -39,6 +40,10 @@ interface Props {
     initialTitle?: string;
     initialChannels?: { igStories: boolean; fbStories: boolean };
     initialStoryLink?: string;
+    /** Data di pubblicazione già salvata nel contenuto (ISO o yyyy-MM-dd). */
+    initialPublicationDate?: string;
+    /** Chi può approvare senza il cliente (amministratori o con permesso). */
+    canApprove?: boolean;
     palette?: Palette;
     /** Il cliente di cui si legge la galleria nel pannello Media; senza, la sezione non c'è. */
     clientId?: string;
@@ -93,7 +98,7 @@ function InstagramOverlay({ name, slides, index, width, height }: { name: string
     );
 }
 
-export function StoryEditor({ clientId, clientName, backHref, initialDesign, initialTitle = '', initialChannels = { igStories: true, fbStories: false }, initialStoryLink = '', palette = DEFAULT_PALETTE, onUploadFiles, onSave }: Props) {
+export function StoryEditor({ clientId, clientName, backHref, initialDesign, initialTitle = '', initialChannels = { igStories: true, fbStories: false }, initialStoryLink = '', initialPublicationDate = '', canApprove = false, palette = DEFAULT_PALETTE, onUploadFiles, onSave }: Props) {
     const [state, dispatch] = useReducer(editorReducer, initialDesign || emptyDesign(), (d) => initialState(d));
     const [panel, setPanel] = useState<PanelKey | null>('templates');
     const [overlay, setOverlay] = useState(false);
@@ -107,6 +112,10 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
     const [channels, setChannels] = useState(initialChannels);
     const [storyLink, setStoryLink] = useState(initialStoryLink);
     const [saveOpen, setSaveOpen] = useState(false);
+    const initialWhen = useMemo(() => splitPublicationValue(initialPublicationDate), []); // eslint-disable-line react-hooks/exhaustive-deps
+    const [pubDay, setPubDay] = useState(initialWhen.day);
+    const [pubTime, setPubTime] = useState(initialWhen.time);
+    const [afterSave, setAfterSave] = useState<AfterSave>('draft');
     const [busy, setBusy] = useState<string | null>(null);
     const [message, setMessage] = useState('');
     const stageHost = useRef<HTMLDivElement>(null);
@@ -258,7 +267,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
         if (!onSave) return;
         setBusy('Salvo…'); setMessage('');
         try {
-            await onSave({ design: state.design, title: title.trim() || `Storia del ${new Date().toLocaleDateString('it-IT')}`, igStories: channels.igStories, fbStories: channels.fbStories, storyLink: storyLink.trim(), onProgress: (m) => setBusy(m) });
+            await onSave({ design: state.design, title: title.trim() || `Storia del ${new Date().toLocaleDateString('it-IT')}`, igStories: channels.igStories, fbStories: channels.fbStories, storyLink: storyLink.trim(), publicationDate: publicationValue(pubDay, pubTime), afterSave, onProgress: (m) => setBusy(m) });
             dispatch({ type: 'MARK_SAVED' });
             setSaveOpen(false);
             setMessage('Salvato nel PED come bozza.');
@@ -297,10 +306,27 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
                             </button>
                             {saveOpen && (
                                 <div className="absolute right-0 z-30 mt-2 w-80 space-y-3 rounded-lg border border-slate-700 bg-[#0f1520] p-4 shadow-xl">
-                                    <p className="text-sm font-semibold">Salva come bozza nel PED</p>
-                                    <p className="text-xs text-slate-400">Ogni slide diventa una storia. Poi la mandi al cliente per l&apos;approvazione, come gli altri contenuti.</p>
+                                    <p className="text-sm font-semibold">Salva nel PED</p>
+                                    <p className="text-xs text-slate-400">Ogni slide diventa una storia. Il Hub pubblica in automatico solo le storie <b>approvate</b> e con una <b>data</b>.</p>
                                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={channels.igStories} onChange={(e) => setChannels((c) => ({ ...c, igStories: e.target.checked }))} className="accent-sky-500" /> Storie Instagram (pubblicazione automatica)</label>
                                     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={channels.fbStories} onChange={(e) => setChannels((c) => ({ ...c, fbStories: e.target.checked }))} className="accent-sky-500" /> Storie Facebook (da pubblicare a mano)</label>
+                                    <div className="grid grid-cols-[1fr_6.5rem] gap-2">
+                                        <label className="block space-y-1">
+                                            <span className="text-xs font-semibold text-slate-300">Data di pubblicazione</span>
+                                            <input type="date" value={pubDay} onChange={(e) => setPubDay(e.target.value)} className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-sky-500" />
+                                        </label>
+                                        <label className="block space-y-1">
+                                            <span className="text-xs font-semibold text-slate-300">Ora</span>
+                                            <input type="time" value={pubTime} disabled={!pubDay} onChange={(e) => setPubTime(e.target.value)} title="Vuota: 09:00" className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-sky-500 disabled:opacity-40" />
+                                        </label>
+                                    </div>
+                                    <fieldset className="space-y-1.5">
+                                        <legend className="text-xs font-semibold text-slate-300">Dopo il salvataggio</legend>
+                                        {([['draft', 'Solo bozza'], ['request', 'Chiedi l\'approvazione al cliente'], ...(canApprove ? [['approve', 'Approva subito e programma (senza cliente)']] : [])] as [AfterSave, string][]).map(([v, label]) => (
+                                            <label key={v} className="flex items-center gap-2 text-sm"><input type="radio" name="afterSave" checked={afterSave === v} onChange={() => setAfterSave(v)} className="accent-sky-500" /> {label}</label>
+                                        ))}
+                                    </fieldset>
+                                    {(() => { const hint = describeSchedule({ publicationDate: publicationValue(pubDay, pubTime), afterSave }); return <p className={cn('rounded-md border px-2 py-1.5 text-xs', hint.tone === 'ok' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200' : 'border-amber-500/40 bg-amber-500/10 text-amber-200')}>{hint.text}</p>; })()}
                                     <label className="block space-y-1">
                                         <span className="text-xs font-semibold text-slate-300">Link della storia</span>
                                         <input type="url" value={storyLink} onChange={(e) => setStoryLink(e.target.value)} placeholder="https://…"
@@ -308,7 +334,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
                                         <span className="block text-[11px] text-slate-400">Resta salvato nel contenuto. Lo sticker Link vero lo aggiungi dall&apos;app di Instagram: l&apos;adesivo disegnato non è cliccabile.</span>
                                     </label>
                                     <button type="button" onClick={save} disabled={!!busy} className="w-full rounded-md bg-sky-500 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-400 disabled:opacity-60">
-                                        {busy || 'Salva'}
+                                        {busy || (afterSave === 'approve' ? 'Salva, approva e programma' : afterSave === 'request' ? 'Salva e chiedi approvazione' : 'Salva bozza')}
                                     </button>
                                 </div>
                             )}
