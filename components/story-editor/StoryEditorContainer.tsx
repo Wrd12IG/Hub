@@ -19,6 +19,9 @@ import type { EditorialContent } from '@/lib/data';
 import { StoryEditor, type SavePayload } from './StoryEditor';
 import { toast } from 'sonner';
 import { buildStoryFiles } from './save-pipeline';
+import { runAfterSave } from './after-save';
+import { authFetch } from '@/lib/client-api-auth';
+import { canBypassApproval } from '@/lib/content-approval';
 import { rememberLocalFile } from './local-media';
 import type { UploadedMedia } from './panels';
 
@@ -93,7 +96,7 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
         return out;
     }, [userId]);
 
-    const onSave = async ({ design: d, title, igStories, fbStories, storyLink, onProgress }: SavePayload) => {
+    const onSave = async ({ design: d, title, igStories, fbStories, storyLink, publicationDate, afterSave, onProgress }: SavePayload) => {
         // Se il contenuto era già inviato o approvato, cambiarne la grafica lo riporta in bozza: va riapprovato
         const wasSent = !!content && contentId && ['Approvato', 'In Approvazione Cliente'].includes(content.status);
         if (wasSent && !window.confirm('Questo contenuto era già inviato o approvato. Salvando torna in bozza e il cliente dovrà approvarlo di nuovo. Continuare?')) return;
@@ -106,21 +109,31 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
         const storyData = serializeDesign(d);
 
         onProgress('Salvo nel PED…');
+        let savedId = contentId;
         if (contentId) {
             await updateEditorialContent(contentId, {
-                topic: title, igStories, fbStories, imageUrls, storyMedia, storyData, storyLink,
+                topic: title, igStories, fbStories, imageUrls, storyMedia, storyData, storyLink, publicationDate,
                 ...(wasSent ? { status: 'Bozza', approval: null as any } : {}),
             });
         } else {
             const id = await addEditorialContent({
                 topic: title, clientId, format: 'Storia', status: 'Bozza',
                 facebook: false, instagram: false, linkedin: false, tiktok: false, youtube: false, gbp: false,
-                igStories, fbStories, imageUrls, storyMedia, storyData, storyLink, copy: '',
+                igStories, fbStories, imageUrls, storyMedia, storyData, storyLink, publicationDate, copy: '',
             });
+            savedId = id;
             setContentId(id);
             router.replace(`/clients/${clientId}/stories/new?draftId=${id}`);
         }
         warnings.forEach((w) => toast.warning(w, { duration: 12000 }));
+        if (savedId && afterSave !== 'draft') {
+            onProgress(afterSave === 'approve' ? 'Approvo…' : 'Mando al cliente…');
+            const r = await runAfterSave({ clientId, contentId: savedId, mode: afterSave, post: (url, init) => authFetch(url, init) });
+            if (r) {
+                if (r.shareUrl) { try { await navigator.clipboard.writeText(r.shareUrl); } catch { /* appunti non disponibili */ } }
+                (r.level === 'success' ? toast.success : r.level === 'warning' ? toast.warning : toast.error)(r.message, { duration: 12000 });
+            }
+        }
         const nVideo = Object.keys(videoBySlide).length;
         if (nVideo > 0) toast.success(`Salvato: ${nVideo} ${nVideo === 1 ? 'slide esce' : 'slide escono'} come video MP4.`);
     };
@@ -136,6 +149,8 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
             initialTitle={content?.topic || ''}
             initialChannels={{ igStories: content ? content.igStories !== false : true, fbStories: !!content?.fbStories }}
             initialStoryLink={content?.storyLink || ''}
+            initialPublicationDate={content?.publicationDate || ''}
+            canApprove={canBypassApproval(currentUser as any)}
             palette={DEFAULT_PALETTE}
             onUploadFiles={onUploadFiles}
             onSave={onSave}
