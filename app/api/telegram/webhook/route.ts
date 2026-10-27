@@ -27,7 +27,13 @@ export async function POST(request: NextRequest) {
     if (cmd.kind === 'start' && cmd.code) {
       const snap = await adminDb.collection('users').where('telegramLink.code', '==', cmd.code).limit(1).get();
       const doc = snap.docs[0];
-      if (!doc || !linkIsValid(doc.data().telegramLink, cmd.code, Date.now())) {
+      const cfgRef = adminDb.collection('config').doc('telegram');
+      const cfg = (await cfgRef.get()).data();
+      if (!doc && linkIsValid(cfg?.companyLink, cmd.code, Date.now())) {
+        // Il codice è quello del «telefono aziendale»: la chat diventa il destinatario degli avvisi comuni
+        await cfgRef.update({ companyChatId: String(chatId), companyLinkedAt: new Date().toISOString(), companyLink: FieldValue.delete() });
+        await sendMessage(chatId, '✅ <b>Telefono aziendale collegato.</b> Qui arriveranno gli avvisi del Hub, per esempio le storie con sticker da completare a mano. Per scollegare scrivi /scollega.');
+      } else if (!doc || !linkIsValid(doc.data().telegramLink, cmd.code, Date.now())) {
         await sendMessage(chatId, 'Questo link è scaduto o non valido. Torna nel Hub e premi di nuovo <b>Collega Telegram</b>.');
       } else {
         await doc.ref.update({ telegramChatId: String(chatId), telegramLinkedAt: new Date().toISOString(), telegramLink: FieldValue.delete() });
@@ -38,7 +44,10 @@ export async function POST(request: NextRequest) {
     } else if (cmd.kind === 'stop') {
       const snap = await adminDb.collection('users').where('telegramChatId', '==', String(chatId)).get();
       await Promise.all(snap.docs.map((d) => d.ref.update({ telegramChatId: FieldValue.delete() })));
-      await sendMessage(chatId, snap.empty ? 'Questa chat non era collegata al Hub.' : 'Scollegato. Non riceverai più avvisi qui.');
+      const cfgRef = adminDb.collection('config').doc('telegram');
+      const wasCompany = (await cfgRef.get()).data()?.companyChatId === String(chatId);
+      if (wasCompany) await cfgRef.update({ companyChatId: FieldValue.delete() });
+      await sendMessage(chatId, snap.empty && !wasCompany ? 'Questa chat non era collegata al Hub.' : 'Scollegato. Non riceverai più avvisi qui.');
     }
   } catch (e) {
     console.error('[telegram webhook]', (e as Error)?.message);
