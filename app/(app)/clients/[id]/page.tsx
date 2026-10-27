@@ -37,6 +37,7 @@ import {
   MapPin,
   Calendar,
   Sparkles,
+  CalendarRange,
   Heart,
   MousePointerClick,
   ExternalLink,
@@ -1435,6 +1436,12 @@ export default function ClientDetailPage() {
             icon: Sparkles,
             label: "Creative Lab",
             dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
+          },
+          {
+            href: `/clients/${id}/ped-plan`,
+            icon: CalendarRange,
+            label: "Piano PED",
+            dot: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]",
           },
           {
             // Pagina globale: il cliente viaggia nell'URL, così si apre già

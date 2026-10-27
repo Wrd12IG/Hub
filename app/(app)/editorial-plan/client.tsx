@@ -45,6 +45,8 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { FileUploader } from '@/components/file-uploader';
 import { extractVideoFrame } from '@/lib/video-frame';
 import { ProductionTasksDialog } from '@/components/ProductionTasksDialog';
+import { ProposalDialog } from '@/components/ped-plan/ProposalDialog';
+import { parseProposal } from '@/lib/ped-plan/to-ped';
 import { ImportTaskMediaDialog } from '@/components/ImportTaskMediaDialog';
 import { channelsMissingMedia, linkedTaskIds } from '@/lib/content-production';
 import { timeOfPublication, combineDateAndTime } from '@/lib/publication-time';
@@ -274,7 +276,7 @@ const PublishStateDot = ({ state }: { state?: ChannelPublishState }) => {
     );
 };
 
-const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishNow, onOpenProduction, onImportMedia, isPublishing }: {
+const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishNow, onOpenProduction, onViewProposal, onImportMedia, isPublishing }: {
     contents: EditorialContent[],
     clientsById: Record<string, Client>,
     statuses: EditorialStatus[],
@@ -287,6 +289,7 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
     editorialColumns: EditorialColumn[],
     onPublishNow: (content: EditorialContent) => void,
     onOpenProduction: (content: EditorialContent) => void,
+    onViewProposal: (content: EditorialContent) => void,
     onImportMedia: (content: EditorialContent) => void,
     isPublishing: Record<string, boolean>,
 }) => {
@@ -375,6 +378,11 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
                                                             <Send className="mr-2 h-4 w-4" /> 
                                                             {isPublishing[content.id] ? 'Pubblicazione...' : 'Pubblica ora'}
                                                         </DropdownMenuItem>
+                                                        {parseProposal(content.proposal) && (
+                                                            <DropdownMenuItem onClick={() => onViewProposal(content)}>
+                                                                <FileText className="mr-2 h-4 w-4" /> Vedi proposta (copione, slide)
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         <DropdownMenuItem disabled={content.status === 'Pubblicato'} onClick={() => onOpenProduction(content)}>
                                                             <ClipboardList className="mr-2 h-4 w-4" /> Apri task di produzione
                                                         </DropdownMenuItem>
@@ -744,6 +752,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     const [nestedModal, setNestedModal] = useState<NestedModalState>(null);
     const [formDataForNested, setFormDataForNested] = useState<ContentFormData | null>(null);
     const [productionContent, setProductionContent] = useState<EditorialContent | null>(null);
+    const [proposalContent, setProposalContent] = useState<EditorialContent | null>(null);
     const [importContent, setImportContent] = useState<EditorialContent | null>(null);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1535,6 +1544,11 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 >
                                                                     <Send className="mr-2 h-4 w-4" /> {isPublishing[content.id] ? 'Pubblicazione...' : 'Pubblica ora'}
                                                                 </DropdownMenuItem>
+                                                                {parseProposal(content.proposal) && (
+                                                                    <DropdownMenuItem onClick={() => setProposalContent(content)}>
+                                                                        <FileText className="mr-2 h-4 w-4" /> Vedi proposta (copione, slide)
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 <DropdownMenuItem disabled={content.status === 'Pubblicato'} onClick={() => setProductionContent(content)}>
                                                                     <ClipboardList className="mr-2 h-4 w-4" /> Apri task di produzione
                                                                 </DropdownMenuItem>
@@ -1586,11 +1600,12 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                 </Card>
             )}
 
-            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishNow={handlePublishNow} onOpenProduction={setProductionContent} onImportMedia={setImportContent} isPublishing={isPublishing} />}
+            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishNow={handlePublishNow} onOpenProduction={setProductionContent} onViewProposal={setProposalContent} onImportMedia={setImportContent} isPublishing={isPublishing} />}
 
             {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} onReschedule={handleReschedule} />}
 
             {view === 'gantt' && <GanttView contents={filteredContents} clients={clients} users={users} onEdit={handleOpenEditModal} />}
+            <ProposalDialog content={proposalContent} onClose={() => setProposalContent(null)} />
             <ProductionTasksDialog content={productionContent} client={productionContent ? clientsById[productionContent.clientId] : undefined} users={users} currentUserId={currentUser?.id} onClose={() => setProductionContent(null)} onCreated={() => { fetchData(); refetchData('tasks'); }} />
             <ImportTaskMediaDialog content={importContent} tasks={importContent ? linkedTaskIds(importContent).map(id => tasksById[id]).filter(Boolean) : []} onClose={() => setImportContent(null)} onImported={fetchData} />
 

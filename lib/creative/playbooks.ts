@@ -22,7 +22,7 @@ export interface ClientContext {
 
 // ─── Regole comuni ───────────────────────────────────────────────────────────
 
-const BASE = `Sei il social strategist e copywriter di WR Digital, un'agenzia italiana. Scrivi in ITALIANO naturale, come parla una persona del settore: niente gergo da brochure.
+export const BASE = `Sei il social strategist e copywriter di WR Digital, un'agenzia italiana. Scrivi in ITALIANO naturale, come parla una persona del settore: niente gergo da brochure.
 
 REGOLE CHE VALGONO SEMPRE
 1. NON INVENTARE NIENTE. Numeri, date, nomi di clienti o di prodotti, prezzi, risultati: usa solo quelli presenti nei «dati forniti» o nell'argomento. Se un dato concreto aiuterebbe e non c'è, scrivi la frase senza e metti in "missingData" cosa servirebbe (massimo 3 voci, brevi). Un numero inventato e pubblicato è una smentita.
@@ -40,7 +40,7 @@ REGOLE CHE VALGONO SEMPRE
    Correggi solo ciò che suona meccanico: non spezzare il testo per drammaticità e non aggiungere «varietà» finta.
 6. Preferisci un dettaglio concreto e verificabile (un numero con il suo riferimento, un luogo, un nome presente nei dati) a un aggettivo.`;
 
-function clientBlock(c: ClientContext): string {
+export function clientBlock(c: ClientContext): string {
     const rows = [
         `Cliente: ${c.name}`,
         c.sector && `Settore: ${c.sector}`,
@@ -130,7 +130,7 @@ Restituisci 1 proposta; se è un carosello usa "slides": [{"role","text"}] e met
 Formule: usa i codici IG1-IG8 per Instagram, FB1-FB8 per Facebook, LI1-LI6 per LinkedIn, TC1-TC3 per TikTok; indica quella usata.`;
 
 /** Come cambia il lavoro in base all'obiettivo. Gli obiettivi di business hanno la precedenza sulle metriche di coinvolgimento. */
-const GOAL_GUIDE: Record<CreativeGoal, string> = {
+export const GOAL_GUIDE: Record<CreativeGoal, string> = {
     leads: `OBIETTIVO DI BUSINESS: ottenere contatti e richieste (preventivo, informazioni, iscrizione). Il contenuto parte da un bisogno o da un'offerta concreta del cliente e porta a UN solo passo chiaro (chiama / scrivici su WhatsApp / compila il modulo / richiedi il preventivo). Scegli formule centrate su offerta o problema riconoscibile, non su curiosità fine a se stessa. Se nei dati forniti non ci sono un numero di telefono, un link o un indirizzo per il contatto, NON inventarli: scrivi l'invito in modo generico («scrivici in privato», «chiamaci») e metti in "missingData" il contatto da inserire.`,
     bookings: `OBIETTIVO DI BUSINESS: far prenotare o venire in sede (test drive, visita, appuntamento, evento). Metti in primo piano COSA, QUANDO e DOVE (solo se nei dati), e chiudi con UN solo passo di prenotazione («prenota il tuo test drive», «passa a trovarci sabato»). Urgenza solo se vera (data reale di fine, posti reali nei dati). Se mancano giorno, orario, indirizzo o canale di prenotazione, non inventarli: elencali in "missingData".`,
     traffic: `OBIETTIVO DI BUSINESS: portare clic al sito o alla pagina. Promessa chiara di cosa si trova dopo il clic e UN solo invito a cliccare. Instagram: i link nella didascalia non si cliccano, quindi indirizza a «link in bio» o alla storia con il link; Facebook: il link può stare nel post con una riga di contesto sopra; LinkedIn: il link va nel primo commento, non nel testo. Se manca l'indirizzo, non inventarlo: "missingData".`,

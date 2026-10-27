@@ -515,6 +515,11 @@ export interface EditorialContent {
      * Se c'è, la pubblicazione delle storie usa questo elenco al posto di imageUrls (che resta come anteprima).
      */
     storyMedia?: { url: string; kind: 'image' | 'video' }[];
+    /**
+     * La proposta completa del Piano PED (testo JSON: lib/ped-plan/spec.ts, PlanPost): copione, scheda per scheda i testi a schermo,
+     * slide del carosello, fotogrammi delle storie, testo alternativo e avvisi. NON è il testo che esce sul profilo (quello è `copy`).
+     */
+    proposal?: string;
     imageUrls?: string[];
     videoUrl?: string; // URL for video content
     /** Copertina del video (JPEG, https): Instagram la usa come immagine del Reel. */
