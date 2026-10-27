@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
-import { adminDb } from '@/lib/firebase-admin';
+import { loadClientContext } from '@/lib/creative/context';
 import { askClaudeJson, isClaudeConfigured } from '@/lib/claude';
 import { parseCreativeRequest } from '@/lib/creative/spec';
-import { buildCreativePrompt, type ClientContext } from '@/lib/creative/playbooks';
+import { buildCreativePrompt } from '@/lib/creative/playbooks';
 import { finalizeItems } from '@/lib/creative/result';
 
 export const dynamic = 'force-dynamic';
@@ -29,40 +29,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({ error: 'Generatore non attivo: manca ANTHROPIC_API_KEY su Vercel.' }, { status: 503 });
   }
 
-  const clientSnap = await adminDb.collection('clients').doc(params.id).get();
-  if (!clientSnap.exists) return NextResponse.json({ error: 'Cliente non trovato.' }, { status: 404 });
-  const c = clientSnap.data() as Record<string, any>;
-  const profile = (c.socialProfile || {}) as Record<string, string>;
-
-  let recentTopics: string[] = [];
-  try {
-    const peds = await adminDb.collection('editorialContents').where('clientId', '==', params.id).limit(40).get();
-    recentTopics = peds.docs
-      .map((d) => ({ topic: String(d.data().topic || ''), date: String(d.data().publicationDate || '') }))
-      .filter((x) => x.topic)
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 10)
-      .map((x) => x.topic.slice(0, 80));
-  } catch (e) {
-    console.warn('[creative] PED non letto:', (e as Error)?.message);
-  }
-
-  const ctx: ClientContext = {
-    name: String(c.name || 'Cliente'),
-    sector: profile.sector,
-    toneOfVoice: profile.toneOfVoice,
-    targetAudience: profile.targetAudience,
-    thingsToAvoid: profile.thingsToAvoid,
-    aiInfo: profile.aiInfo,
-    recentTopics,
-  };
+  const loaded = await loadClientContext(params.id);
+  if (!loaded) return NextResponse.json({ error: 'Cliente non trovato.' }, { status: 404 });
+  const { ctx, usedProfile } = loaded;
 
   const { system, prompt } = buildCreativePrompt(parsed.value, ctx);
   try {
     const out = await askClaudeJson<{ items?: unknown }>({ prompt, system, maxTokens: 4000, timeoutMs: 55_000 });
     const items = finalizeItems(out?.items, parsed.value);
     if (items.length === 0) return NextResponse.json({ error: 'L\'AI non ha restituito contenuti utilizzabili: riprova.' }, { status: 502 });
-    return NextResponse.json({ items, usedProfile: !!(profile.toneOfVoice || profile.sector || profile.targetAudience) });
+    return NextResponse.json({ items, usedProfile });
   } catch (e) {
     console.error('[creative generate]', (e as Error)?.message);
     return NextResponse.json({ error: 'Generazione non riuscita: riprova tra poco.' }, { status: 502 });
