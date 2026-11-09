@@ -58,7 +58,7 @@ type ClientReportSource = Pick<Client, 'windsorAccounts'> & {
 };
 
 export interface PlatformReport {
-    platform: 'facebook' | 'facebook_page' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'gbp' | 'klaviyo' | 'awin' | 'youtube';
+    platform: 'facebook' | 'facebook_page' | 'instagram' | 'google_ads' | 'ga4' | 'searchconsole' | 'linkedin_organic' | 'tiktok' | 'gbp' | 'klaviyo' | 'awin' | 'youtube';
     /** Set for platforms that can have several accounts per client (GBP: one per sede). */
     accountLabel?: string;
     connected: boolean;
@@ -104,6 +104,18 @@ const DAILY_MAPS: Partial<Record<string, { fields: string[]; map: DailyFieldMap 
             page_views: { field: 'all_page_views' },
         },
     },
+    // TikTok (misurato il 09/11/2026): total_followers_count torna 0 sull'ultimo giorno completo (dato non pronto) → skipZero,
+    // altrimenti la linea dei follower crolla a 0. Il resto è giornaliero e si somma.
+    tiktok: {
+        fields: ['total_followers_count', 'profile_views', 'likes', 'comments', 'shares'],
+        map: {
+            followers: { field: 'total_followers_count', mode: 'last', skipZero: true },
+            profile_views: { field: 'profile_views' },
+            likes: { field: 'likes' },
+            comments: { field: 'comments' },
+            shares: { field: 'shares' },
+        },
+    },
     facebook_page: {
         fields: ['page_fans', 'page_impressions', 'page_impressions_unique', 'page_post_engagements', 'page_daily_follows', 'page_video_views'],
         map: {
@@ -138,6 +150,7 @@ const PLATFORM_FIELDS: Record<WindsorPlatform, { connector: import('./windsor-cl
             'organization_follower_count',
         ],
     },
+    tiktok: { connector: 'tiktok_organic', fields: ['profile_views', 'likes', 'comments', 'shares'] },
     // Verificati con get_fields e contro i dati reali delle sedi appena GBP è
     // stato collegato: i quattro id di performance c'erano già giusti. Le due
     // voci sulle recensioni sono nuove — GBP le espone su una riga a parte,
@@ -179,7 +192,7 @@ const NON_SUMMABLE = new Set([
     'ctr', 'cpc', 'cpm', 'frequency', 'position',
     'bounce_rate', 'engagement_rate', 'session_conversion_rate',
     'average_session_duration', 'screen_page_views_per_session',
-    'followers_count', 'organization_follower_count', 'page_fans', 'page_follows',
+    'followers_count', 'organization_follower_count', 'page_fans', 'page_follows', 'followers',
     'review_count', 'review_total_count',
     'review_average_rating', 'review_average_rating_total',
 ]);
@@ -189,6 +202,14 @@ const NON_SUMMABLE = new Set([
  * somma dei giorni del periodo. Per le altre piattaforme la riga resta com'è.
  */
 function withPageExtras(platform: string, row: Record<string, string | number | undefined>, dailyRows: Record<string, unknown>[]) {
+    if (platform === 'tiktok') {
+        // Follower di oggi = ultimo totale giornaliero valido (i giorni a 0 sono dato non ancora pronto)
+        const last = dailyRows
+            .filter((r) => typeof r.total_followers_count === 'number' && (r.total_followers_count as number) > 0)
+            .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+            .pop();
+        return last ? { ...row, followers: last.total_followers_count as number } : row;
+    }
     if (platform !== 'facebook_page') return row;
     const follows = dailyRows.reduce((s, r) => s + (typeof r.page_daily_follows === 'number' ? r.page_daily_follows : 0), 0);
     return follows > 0 ? { ...row, new_follows: follows } : row;
@@ -390,6 +411,7 @@ export async function getClientMarketingReport(
         instagram: client.windsorAccounts?.instagram,
         facebook_page: client.windsorAccounts?.facebook_page,
         linkedin_organic: client.windsorAccounts?.linkedin_organic,
+        tiktok: client.windsorAccounts?.tiktok,
     };
 
     const platforms = (Object.keys(PLATFORM_FIELDS) as WindsorPlatform[])

@@ -54,6 +54,12 @@ export const PLATFORM_DEFS: Record<PlatformKey, { label: string; metrics: Metric
         headline: ['clicks'],
         chart: [{ key: 'clicks', label: 'Click organici', kind: 'bar' }, { key: 'impressions', label: 'Impression', kind: 'line' }],
     },
+    tiktok: {
+        label: 'TikTok',
+        metrics: [{ key: 'followers', label: 'Follower' }, { key: 'profile_views', label: 'Visite profilo' }, { key: 'likes', label: 'Like' }, { key: 'comments', label: 'Commenti' }, { key: 'shares', label: 'Condivisioni' }],
+        headline: ['profile_views', 'followers'],
+        chart: [{ key: 'followers', label: 'Follower', kind: 'line', stock: true }, { key: 'profile_views', label: 'Visite profilo', kind: 'bar' }, { key: 'likes', label: 'Mi piace', kind: 'bar' }, { key: 'comments', label: 'Commenti', kind: 'bar' }, { key: 'shares', label: 'Condivisioni', kind: 'bar' }],
+    },
     linkedin_organic: {
         label: 'LinkedIn',
         metrics: [{ key: 'organization_follower_count', label: 'Follower' }, { key: 'account_analytics_impression_count', label: 'Impression' }, { key: 'account_analytics_click_count', label: 'Click' }, { key: 'account_analytics_like_count', label: 'Like' }],
