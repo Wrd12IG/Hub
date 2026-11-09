@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { getFacebookPageData } from '@/lib/meta-client';
+import { getFacebookWindsorDashboard } from '@/lib/facebook-windsor';
+import { adminDb } from '@/lib/firebase-admin';
+
+export const maxDuration = 60;
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +21,18 @@ export async function GET(
   const endDate = endParam ? new Date(endParam) : new Date();
   const startDate = startParam ? new Date(startParam) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const diffDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+  // Prima Windsor (pagina scelta in Setup API, nessun token per cliente); l'API Meta diretta resta come ripiego.
+  const snap = await adminDb.collection('clients').doc(params.id).get();
+  const windsorPageId = snap.exists ? (snap.data() as any)?.windsorAccounts?.facebook_page : null;
+  if (windsorPageId) {
+    try {
+      return NextResponse.json(await getFacebookWindsorDashboard(windsorPageId, startDate.toISOString(), endDate.toISOString()));
+    } catch (err: any) {
+      console.error(`[facebook] Windsor fallito per ${params.id}:`, err.message);
+      return NextResponse.json({ error: err.message || 'Facebook non disponibile al momento' }, { status: 503 });
+    }
+  }
 
   let realData: any = null;
   
