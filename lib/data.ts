@@ -61,6 +61,7 @@ export interface Client {
         linkedin_organic?: string;  // LinkedIn organization id
         facebook_page?: string;     // Facebook page id (connettore facebook_organic)
         gbp?: string[];             // One Windsor GBP account id per sede (multi-location)
+        tiktok?: string;            // Account id Windsor (connettore tiktok_organic)
     };
 }
 

@@ -195,6 +195,7 @@ interface Client {
     linkedin_organic?: string;
     facebook_page?: string;
     gbp?: string[];
+    tiktok?: string;
   };
 }
 
@@ -1278,7 +1279,7 @@ export default function ClientDetailPage() {
                 { label: "Facebook (pagina)", ok: !!client.windsorAccounts?.facebook_page },
                 { label: "LinkedIn", ok: !!client.windsorAccounts?.linkedin_organic },
                 { label: "YouTube", ok: !!(client.youtubePublicChannelId || client.hasYoutubeToken) },
-                { label: "TikTok", ok: !!client.hasTiktokToken },
+                { label: "TikTok", ok: !!(client.hasTiktokToken || client.windsorAccounts?.tiktok) },
               ];
               const missing = sources.filter((x) => !x.ok).length;
               return (

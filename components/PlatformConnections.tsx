@@ -65,6 +65,7 @@ export interface ClientConnections {
     linkedin_organic?: string;
     facebook_page?: string;
     gbp?: string[];
+    tiktok?: string;
   };
 }
 
@@ -760,9 +761,9 @@ function WindsorFieldModal({
 }: {
   clientId: string;
   title: string;
-  fieldKey: 'instagram' | 'facebook_page' | 'searchconsole' | 'linkedin_organic' | 'awinAdvertiserId';
+  fieldKey: 'instagram' | 'facebook_page' | 'searchconsole' | 'linkedin_organic' | 'tiktok' | 'awinAdvertiserId';
   /** Se c'è, l'account si sceglie da un elenco (nome e ID) invece di scrivere l'ID. */
-  connector?: 'instagram' | 'facebook_organic' | 'linkedin_organic' | 'google_my_business';
+  connector?: 'instagram' | 'facebook_organic' | 'linkedin_organic' | 'google_my_business' | 'tiktok_organic';
   currentValue?: string | null;
   placeholder: string;
   hint: React.ReactNode;
@@ -1135,7 +1136,7 @@ function TikTokModal({
    MAIN: PlatformConnections
 ───────────────────────────────────────────────────────────────── */
 
-type ActiveModal = "meta" | "google-ads" | "ga4" | "clarity" | "youtube" | "tiktok" | "windsor-instagram" | "windsor-facebook" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
+type ActiveModal = "meta" | "google-ads" | "ga4" | "clarity" | "youtube" | "tiktok" | "windsor-instagram" | "windsor-facebook" | "windsor-searchconsole" | "windsor-linkedin" | "windsor-tiktok" | "windsor-gbp" | "klaviyo" | "awin" | "competitors" | null;
 
 
 export default function PlatformConnections({
@@ -1159,7 +1160,7 @@ export default function PlatformConnections({
     client.googleAdAccountId,
     client.clarityProjectId,
     client.hasYoutubeToken || client.youtubePublicChannelId,
-    client.hasTiktokToken,
+    client.hasTiktokToken || client.windsorAccounts?.tiktok,
     client.windsorAccounts?.instagram,
     client.windsorAccounts?.searchconsole,
     client.windsorAccounts?.linkedin_organic,
@@ -1297,7 +1298,7 @@ export default function PlatformConnections({
         </div>
 
         {/* ── TIKTOK ── */}
-        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!client.hasTiktokToken, "#fe2c55")}>
+        <div className="rounded-2xl border p-5 flex flex-col gap-3 transition-all duration-200" style={cardStyle(!!(client.hasTiktokToken || client.windsorAccounts?.tiktok), "#fe2c55")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)", color: "#f0f0f0" }}>
@@ -1305,12 +1306,17 @@ export default function PlatformConnections({
               </div>
               <span className="text-sm font-bold text-foreground">TikTok</span>
             </div>
-            {client.hasTiktokToken && <ConnectedBadge />}
+            {(client.hasTiktokToken || client.windsorAccounts?.tiktok) && <ConnectedBadge />}
           </div>
-          {client.tiktokDisplayName && <AccountChip name={`@${client.tiktokDisplayName}`} sub="Account connesso" />}
-          <button type="button" onClick={() => setActiveModal("tiktok")}
+          <p className="text-xs text-muted-foreground -mt-1">Report video e follower, tramite Windsor. Solo lettura: la pubblicazione non è supportata.</p>
+          {client.tiktokDisplayName && !client.windsorAccounts?.tiktok && <AccountChip name={`@${client.tiktokDisplayName}`} sub="Account connesso (token)" />}
+          <button type="button" onClick={() => setActiveModal("windsor-tiktok")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-pink-500/20 text-pink-400 bg-pink-500/5 hover:bg-pink-500/10 transition-all cursor-pointer">
-            {client.hasTiktokToken ? <><ExternalLink size={11} /> Modifica / Verifica</> : <><Link2 size={11} /> Collega TikTok</>}
+            {client.windsorAccounts?.tiktok ? <><ExternalLink size={11} /> Modifica</> : <><Link2 size={11} /> Collega account</>}
+          </button>
+          <button type="button" onClick={() => setActiveModal("tiktok")}
+            className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2 cursor-pointer self-center">
+            {client.hasTiktokToken ? "Token API collegato · modifica" : "Avanzato: usa un token API"}
           </button>
         </div>
 
@@ -1586,6 +1592,20 @@ export default function PlatformConnections({
         <WindsorGbpModal
           clientId={clientId}
           currentValues={client.windsorAccounts?.gbp}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { refreshClient(); setActiveModal(null); }}
+        />
+      )}
+      {activeModal === "windsor-tiktok" && (
+        <WindsorFieldModal
+          clientId={clientId}
+          title="TikTok — account"
+          fieldKey="tiktok"
+          connector="tiktok_organic"
+          currentValue={client.windsorAccounts?.tiktok}
+          placeholder="Scegli l'account TikTok"
+          hint="L'account TikTok deve essere collegato a Windsor. Serve per i report su video e follower; non per pubblicare."
+          accentColor="#fe2c55"
           onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }}
         />
