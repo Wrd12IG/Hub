@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { getTikTokDashboardData } from '@/lib/tiktok-client';
+import { getTikTokWindsorDashboard } from '@/lib/tiktok-windsor';
+import { adminDb } from '@/lib/firebase-admin';
+
+export const maxDuration = 60;
 
 export async function GET(
   request: NextRequest,
@@ -11,6 +15,18 @@ export async function GET(
   const denied = await denyUnlessClientAllowed(user.uid, params.id);
   if (denied) return denied;
   const { id } = params;
+
+  // Prima Windsor (account scelto in Setup API, nessun token per cliente); il token diretto resta come ripiego.
+  const snap = await adminDb.collection('clients').doc(id).get();
+  const windsorAccountId = snap.exists ? (snap.data() as any)?.windsorAccounts?.tiktok : null;
+  if (windsorAccountId) {
+    try {
+      return NextResponse.json(await getTikTokWindsorDashboard(windsorAccountId));
+    } catch (err: any) {
+      console.error(`[tiktok/route] Windsor fallito per ${id}:`, err.message);
+      return NextResponse.json({ error: err.message || 'TikTok non disponibile al momento' }, { status: 503 });
+    }
+  }
 
   // ─── Real Data ─────────────────────────────────────────────────────────────
   let rawData: any = null;

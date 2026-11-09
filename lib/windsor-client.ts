@@ -22,6 +22,7 @@ export type WindsorConnector =
     | 'searchconsole'
     | 'linkedin_organic'
     | 'google_my_business' // not yet connected on the account
+    | 'tiktok_organic'     // TikTok organico (solo lettura: Windsor non pubblica video)
     | 'tiktok';            // Ads only — no organic publishing support on Windsor
 
 export interface WindsorRow {

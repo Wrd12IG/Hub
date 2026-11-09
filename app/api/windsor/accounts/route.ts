@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /**
- * GET /api/windsor/accounts?connector=instagram|facebook_organic|linkedin_organic|google_my_business
+ * GET /api/windsor/accounts?connector=instagram|facebook_organic|linkedin_organic|google_my_business|tiktok_organic
  * Elenco {id, name} degli account disponibili, per sceglierli da una lista in Setup API. Solo staff.
  */
 export async function GET(request: NextRequest) {

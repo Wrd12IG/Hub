@@ -11,9 +11,9 @@
 
 import { getData } from './windsor-client';
 
-export type AccountConnector = 'instagram' | 'facebook_organic' | 'linkedin_organic' | 'google_my_business';
+export type AccountConnector = 'instagram' | 'facebook_organic' | 'linkedin_organic' | 'google_my_business' | 'tiktok_organic';
 
-export const ACCOUNT_CONNECTORS: AccountConnector[] = ['instagram', 'facebook_organic', 'linkedin_organic', 'google_my_business'];
+export const ACCOUNT_CONNECTORS: AccountConnector[] = ['instagram', 'facebook_organic', 'linkedin_organic', 'google_my_business', 'tiktok_organic'];
 
 /** Un campo che il collegamento restituisce davvero: senza almeno una metrica Windsor non risponde con le righe degli account. */
 const PROBE_FIELD: Record<AccountConnector, string> = {
@@ -21,6 +21,7 @@ const PROBE_FIELD: Record<AccountConnector, string> = {
     facebook_organic: 'page_fans',
     linkedin_organic: 'organization_follower_count',
     google_my_business: 'impressions',
+    tiktok_organic: 'total_followers_count',
 };
 
 export interface WindsorAccount { id: string; name: string }
