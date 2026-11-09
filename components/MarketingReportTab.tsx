@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail, Handshake, Youtube } from 'lucide-react'
+import { RefreshCw, TrendingUp, Instagram, Facebook, Search as SearchIcon, Linkedin, AlertCircle, ArrowUpRight, MapPin, Mail, Handshake, Youtube, Music2 } from 'lucide-react'
 import { MetricoolCard } from '@/components/metricool/MetricoolCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
@@ -23,6 +23,7 @@ const PLATFORM_META: Record<PlatformKey, { icon: any; variant: 'blue' | 'orange'
   ga4: { icon: TrendingUp, variant: 'purple', detail: 'ga4' },
   searchconsole: { icon: SearchIcon, variant: 'gray', detail: 'search-console' },
   linkedin_organic: { icon: Linkedin, variant: 'blue', detail: 'linkedin' },
+  tiktok: { icon: Music2, variant: 'pink', detail: 'tiktok' },
   klaviyo: { icon: Mail, variant: 'orange', detail: 'klaviyo' },
   awin: { icon: Handshake, variant: 'purple', detail: 'awin' },
   gbp: { icon: MapPin, variant: 'green', detail: 'gbp' },

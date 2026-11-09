@@ -89,7 +89,8 @@ export type MetricRow = { date: string } & Record<string, number | string>;
  * Come leggere una colonna giornaliera: `sum` somma le righe dello stesso giorno (impression, click…);
  * `last` tiene l'ultimo valore del giorno (i totali che sono uno stato, come i follower: sommarli li raddoppierebbe).
  */
-export type DailyFieldMap = Record<string, { field: string; mode?: 'sum' | 'last' }>;
+/** `skipZero`: uno 0 è dato non pronto, non un valore (follower TikTok dell'ultimo giorno): il giorno resta senza punto. */
+export type DailyFieldMap = Record<string, { field: string; mode?: 'sum' | 'last'; skipZero?: boolean }>;
 
 /** Righe giornaliere grezze (Windsor) → una riga per giorno con le chiavi del report, ordinata per data. */
 export function metricRowsFromRows(rows: Record<string, unknown>[], map: DailyFieldMap): MetricRow[] {
@@ -98,9 +99,10 @@ export function metricRowsFromRows(rows: Record<string, unknown>[], map: DailyFi
         const date = dayOf(r.date);
         if (!date) continue;
         const row = byDay.get(date) ?? ({ date } as MetricRow);
-        for (const [key, { field, mode = 'sum' }] of Object.entries(map)) {
+        for (const [key, { field, mode = 'sum', skipZero }] of Object.entries(map)) {
             const v = r[field];
             if (typeof v !== 'number' || !Number.isFinite(v)) continue;
+            if (skipZero && v === 0) continue;
             row[key] = mode === 'last' ? v : ((row[key] as number | undefined) ?? 0) + v;
         }
         byDay.set(date, row);
