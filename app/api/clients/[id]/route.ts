@@ -188,6 +188,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'Il Property ID di GA4 deve essere un numero (es. 345678901), non un\'email né il codice G-…' }, { status: 400 });
     }
 
+    // L'Ad Account Meta si salva nel formato di Windsor (solo numero): Business Manager lo mostra
+    // come act_123…, ma con il prefisso la lettura dei dati non trova l'account.
+    if (typeof body.metaAdAccountId === 'string') {
+      body.metaAdAccountId = body.metaAdAccountId.trim().replace(/^act_/i, '');
+      if (body.metaAdAccountId !== '' && !/^\d{6,}$/.test(body.metaAdAccountId)) {
+        return NextResponse.json({ error: 'L\'Ad Account ID di Meta deve essere un numero (es. 1083559196248959, con o senza act_).' }, { status: 400 });
+      }
+    }
+
     // 1. Gestione sicura dei token
     if (body.metaAccessToken) {
       await saveClientToken(id, 'meta', {

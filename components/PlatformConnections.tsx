@@ -292,8 +292,9 @@ function MetaModal({
       <div className="space-y-4">
         <div className="space-y-1.5">
           <label htmlFor="meta-ad-account-id" className="text-xs font-bold text-muted-foreground">Ad Account ID</label>
-          <input autoComplete="off" id="meta-ad-account-id" value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="act_123456789"
+          <input autoComplete="off" id="meta-ad-account-id" value={adAccountId} onChange={(e) => setAdAccountId(e.target.value)} placeholder="es. 1083559196248959 (anche act_…)"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">I dati arrivano da Windsor: l&apos;account deve essere tra quelli collegati su Windsor (Facebook Ads). Il prefisso act_ viene tolto da solo.</p>
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-page-id" className="text-xs font-bold text-muted-foreground">Page ID (Facebook)</label>
@@ -302,11 +303,11 @@ function MetaModal({
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-system-user-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
-            System User Token
+            System User Token <span className="font-normal normal-case">(facoltativo)</span>
             {hasToken && <span className="px-1.5 py-0.5 rounded text-xs uppercase font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">Già configurato</span>}
           </label>
           <input autoComplete="new-password" id="meta-system-user-token" type="password" value={token} onChange={(e) => setToken(e.target.value)}
-            placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "EAAB... (System User Token)"}
+            placeholder={hasToken ? "Lascia vuoto per mantenere quello attuale" : "Non serve per i dati (letti da Windsor): solo per le azioni dirette su Meta"}
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
         </div>
         <button onClick={save} disabled={saving}
@@ -1212,11 +1213,14 @@ export default function PlatformConnections({
               </div>
               <span className="text-sm font-bold text-foreground">Meta Ads</span>
             </div>
-            {client.hasMetaToken && <ConnectedBadge />}
+            {(client.hasMetaToken || !!client.metaAdAccountId) && <ConnectedBadge />}
           </div>
+          {client.metaAdAccountId && (
+            <p className="text-xs text-muted-foreground">Account {client.metaAdAccountId} · dati da Windsor</p>
+          )}
           <button type="button" onClick={() => setActiveModal("meta")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
-            {client.hasMetaToken ? <><ExternalLink size={11} /> Modifica configurazione</> : <><Link2 size={11} /> Collega Meta Ads</>}
+            {(client.hasMetaToken || client.metaAdAccountId) ? <><ExternalLink size={11} /> Modifica configurazione</> : <><Link2 size={11} /> Collega Meta Ads</>}
           </button>
         </div>
 

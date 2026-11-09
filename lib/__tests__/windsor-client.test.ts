@@ -41,3 +41,39 @@ describe('getData con accountIds', () => {
         expect(out).toHaveLength(3);
     });
 });
+
+describe('getData su facebook con Ad Account ID nel formato act_…', () => {
+    const metaRows = [
+        { account_id: '1083559196248959', spend: 12 },
+        { account_id: '338194659896964', spend: 7 },
+    ];
+    let urls: string[];
+
+    beforeEach(() => {
+        process.env.WINDSOR_API_KEY = 'test-key';
+        urls = [];
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+            urls.push(url);
+            return { ok: true, json: async () => ({ data: metaRows }) } as any;
+        }));
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('toglie il prefisso act_ sia nel filtro mandato a Windsor sia nel confronto sulle righe', async () => {
+        const out = await getData({ connector: 'facebook', accountId: 'act_1083559196248959', fields: ['spend', 'account_id'] });
+        const filter = JSON.parse(new URL(urls[0]).searchParams.get('filter')!);
+        expect(filter).toEqual([['account_id', 'in', JSON.stringify(['1083559196248959'])]]);
+        expect(out).toEqual([{ account_id: '1083559196248959', spend: 12 }]);
+    });
+
+    it('con accountIds misti (act_ e numero) tiene entrambi gli account', async () => {
+        const out = await getData({ connector: 'facebook', accountIds: ['act_1083559196248959', '338194659896964'], fields: ['spend', 'account_id'] });
+        expect(out.map(r => r.spend)).toEqual([12, 7]);
+    });
+
+    it('non tocca gli ID degli altri connector (GBP usa locations/…)', async () => {
+        await getData({ connector: 'google_my_business', accountId: 'locations/1', fields: ['impressions'] });
+        const filter = JSON.parse(new URL(urls[0]).searchParams.get('filter')!);
+        expect(filter).toEqual([['account_id', 'in', JSON.stringify(['locations/1'])]]);
+    });
+});
