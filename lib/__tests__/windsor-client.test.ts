@@ -77,3 +77,41 @@ describe('getData su facebook con Ad Account ID nel formato act_…', () => {
         expect(filter).toEqual([['account_id', 'in', JSON.stringify(['locations/1'])]]);
     });
 });
+
+describe('getData su facebook con campaignPrefix (campagne del cliente nell\'account agenzia)', () => {
+    const agencyRows = [
+        { account_id: '521414698671784', campaign: 'Parafarmacia - Notorietà', spend: 72.94 },
+        { account_id: '521414698671784', campaign: 'Medical - Notorietà', spend: 318.24 },
+        { account_id: '521414698671784', campaign: 'parafarmacia - Natale', spend: 10 },
+        { account_id: '521414698671784', campaign: 'Dalla Longa - Presentazione', spend: 449.6 },
+    ];
+    let urls: string[];
+
+    beforeEach(() => {
+        process.env.WINDSOR_API_KEY = 'test-key';
+        urls = [];
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+            urls.push(url);
+            return { ok: true, json: async () => ({ data: agencyRows }) } as any;
+        }));
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('tiene solo le campagne col prefisso, senza distinguere maiuscole, e aggiunge campaign ai campi', async () => {
+        const out = await getData({ connector: 'facebook', accountId: 'act_521414698671784', fields: ['spend', 'account_id'], campaignPrefix: 'Parafarmacia -' });
+        expect(new URL(urls[0]).searchParams.get('fields')!.split(',')).toContain('campaign');
+        expect(out.map(r => r.spend)).toEqual([72.94, 10]);
+    });
+
+    it('senza prefisso restituisce tutto e non aggiunge campi', async () => {
+        const out = await getData({ connector: 'facebook', accountId: '521414698671784', fields: ['spend', 'account_id'] });
+        expect(new URL(urls[0]).searchParams.get('fields')).toBe('spend,account_id');
+        expect(out).toHaveLength(4);
+    });
+
+    it('il prefisso è ignorato sugli altri connector', async () => {
+        const out = await getData({ connector: 'google_my_business', accountId: '521414698671784', fields: ['spend'], campaignPrefix: 'Parafarmacia -' });
+        expect(new URL(urls[0]).searchParams.get('fields')).toBe('spend');
+        expect(out).toHaveLength(4);
+    });
+});
