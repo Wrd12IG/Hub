@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hasReportSources, needsWarming, progressPercent, sourcesSignature } from '../report-warm';
+import { hasReportSources, needsWarming, progressPercent, sourcesSignature, REPORT_FORMAT_VERSION } from '../report-warm';
 
 const HOUR = 3_600_000;
 const NOW = Date.parse('2026-10-20T03:00:00Z');
@@ -46,5 +46,11 @@ describe('impronta delle fonti', () => {
         expect(needsWarming(fresh, NOW, 20 * HOUR, sig)).toBe(true);
         expect(needsWarming({ ...fresh, sig: 'altra' }, NOW, 20 * HOUR, sig)).toBe(true);
         expect(needsWarming({ ...fresh, sig }, NOW, 20 * HOUR, sig)).toBe(false);
+    });
+});
+
+describe('sourcesSignature: versione del formato', () => {
+    it('contiene la versione del formato, così un deploy che aggiunge una piattaforma rifà le copie vecchie', () => {
+        expect(JSON.parse(sourcesSignature({ metaAdAccountId: '1' })).v).toBe(REPORT_FORMAT_VERSION);
     });
 });

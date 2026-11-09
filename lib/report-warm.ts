@@ -8,6 +8,13 @@ export function hasReportSources(client: any): boolean {
 }
 
 /**
+ * Versione del FORMATO del report: da alzare quando una release aggiunge una piattaforma o cambia le metriche (es. TikTok).
+ * Entra nell'impronta, così le copie in cache fatte dal codice vecchio si rifanno da sole al deploy: senza, una scheda
+ * nuova non compare finché la cache (6 ore) non scade o qualcuno preme «Aggiorna», anche se l'account è già collegato.
+ */
+export const REPORT_FORMAT_VERSION = 2;
+
+/**
  * L'impronta delle fonti collegate a un cliente: cambia quando in Setup API si abbina, toglie o cambia un account.
  * Una copia del report con un'impronta diversa è vecchia anche se è di cinque minuti fa (altrimenti la scheda di una
  * pagina appena abbinata non compare fino alla scadenza della cache).
@@ -18,7 +25,7 @@ export function sourcesSignature(client: any): string {
     const rest = Object.fromEntries(Object.entries(w).filter(([k]) => k !== 'gbp').sort(([a], [b]) => a.localeCompare(b)));
     return JSON.stringify({
         meta: client?.metaAdAccountId ?? null, google: client?.googleAdAccountId ?? null, ga4: client?.ga4PropertyId ?? null,
-        awin: client?.awinAdvertiserId ?? null, gbp, w: rest,
+        awin: client?.awinAdvertiserId ?? null, gbp, w: rest, v: REPORT_FORMAT_VERSION,
     });
 }
 
