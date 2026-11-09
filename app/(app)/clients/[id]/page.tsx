@@ -125,6 +125,7 @@ interface Client {
   targetROAS: number | null;
   industry: string | null;
   metaAdAccountId: string;
+  metaCampaignFilter?: string | null;
   metaPageId: string;
   metaPixelId: string | null;
   hasMetaToken: boolean;
@@ -2290,6 +2291,7 @@ export default function ClientDetailPage() {
               id: client.id,
               hasMetaToken: client.hasMetaToken,
               metaAdAccountId: client.metaAdAccountId,
+              metaCampaignFilter: client.metaCampaignFilter,
               metaPageId: client.metaPageId,
               ga4PropertyId: client.ga4PropertyId,
               googleAdAccountId: client.googleAdAccountId,

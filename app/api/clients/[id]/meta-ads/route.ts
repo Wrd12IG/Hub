@@ -28,6 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   const snap = await adminDb.collection('clients').doc(params.id).get();
   const accountId = snap.exists ? (snap.data() as any)?.metaAdAccountId : null;
+  const campaignPrefix = snap.exists ? ((snap.data() as any)?.metaCampaignFilter as string | undefined) : undefined;
   if (!accountId) {
     return NextResponse.json(
       { campaigns: [], error: 'Questo cliente non ha un Meta Ad Account ID: inseriscilo in Setup API.' },
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const rows = await getData({
       connector: 'facebook',
       accountId,
+      campaignPrefix,
       fields: ['campaign', 'campaign_id', 'campaign_status', 'spend', 'clicks', 'impressions', 'reach', 'actions_link_click',
         ...ACTION_FIELDS, 'action_values_omni_purchase', 'action_values_purchase', 'account_id'],
       datePreset: `last_${days}d`,
@@ -52,6 +54,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const dailyRows = await getData({
       connector: 'facebook',
       accountId,
+      campaignPrefix,
       fields: ['date', 'spend', ...ACTION_FIELDS, 'account_id'],
       datePreset: `last_${days}d`,
       fresh: request.nextUrl.searchParams.get('refresh') === '1',

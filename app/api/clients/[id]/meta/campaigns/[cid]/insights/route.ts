@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const { from, to } = presetDates(sp.get('datePreset') || 'last_30d');
 
   try {
-    const rows = await getData({ connector: 'facebook', accountId, fields: CAMPAIGN_REPORT_FIELDS, dateFrom: from, dateTo: to, fresh: sp.get('refresh') === '1' });
+    const rows = await getData({ connector: 'facebook', accountId, fields: CAMPAIGN_REPORT_FIELDS, dateFrom: from, dateTo: to, fresh: sp.get('refresh') === '1', campaignPrefix: (snap.data() as any)?.metaCampaignFilter });
     const mine = rows.filter((r: any) => String(r.campaign_id ?? '') === params.cid);
     return NextResponse.json({ ...buildCampaignReport(mine as any, sp.get('objective') || undefined), campaignId: params.cid, from, to });
   } catch (error: any) {

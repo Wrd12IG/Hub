@@ -43,6 +43,8 @@ import type { Client } from './data';
 // place staff already knows, instead of re-entering the same ids for Windsor.
 type ClientReportSource = Pick<Client, 'windsorAccounts'> & {
     metaAdAccountId?: string;
+    /** Solo Meta: prefisso del nome campagna (clienti senza account proprio, campagne nell'account agenzia). */
+    metaCampaignFilter?: string;
     googleAdAccountId?: string;
     ga4PropertyId?: string;
     /**
@@ -449,23 +451,25 @@ export async function getClientMarketingReport(
         const allFields = [...fields, 'account_id', 'account_name'];
         // Meta: lead, costo per lead e percentuali si ricalcolano sui totali aggregati.
         const derive = platform === 'facebook' ? withMetaDerived : (r: Record<string, string | number | undefined>) => r;
+        // Solo Meta: campagne del cliente dentro l'account agenzia, riconosciute dal prefisso del nome
+        const campaignPrefix = platform === 'facebook' ? client.metaCampaignFilter : undefined;
         try {
             const dailyCfg = DAILY_MAPS[platform];
             const [rows, previousRows, dailyRows, otherDaily] = await withTimeout(platform, Promise.all([
                 getData({
-                    connector, accountId, fields: allFields, fresh,
+                    connector, accountId, fields: allFields, fresh, campaignPrefix,
                     ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
                 }),
                 windows?.previous
                     ? getData({
-                        connector, accountId, fields: allFields, fresh,
+                        connector, accountId, fields: allFields, fresh, campaignPrefix,
                         dateFrom: windows.previous.dateFrom, dateTo: windows.previous.dateTo,
                     })
                     : Promise.resolve([]),
                 // Righe per giorno (spesa e lead) per il grafico di andamento. Facoltativa: un errore qui non fa fallire Meta.
                 platform === 'facebook'
                     ? getData({
-                        connector, accountId, fresh, fields: ['date', 'spend', 'clicks', 'impressions', 'actions_lead', 'account_id'],
+                        connector, accountId, fresh, campaignPrefix, fields: ['date', 'spend', 'clicks', 'impressions', 'actions_lead', 'account_id'],
                         ...(windows ? { dateFrom: windows.current.dateFrom, dateTo: windows.current.dateTo } : { datePreset }),
                     }).catch((e) => { console.error('[reporting] serie giornaliera Meta non disponibile:', e.message); return [] as any[]; })
                     : Promise.resolve([] as any[]),

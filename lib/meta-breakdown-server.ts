@@ -23,7 +23,7 @@ export async function metaBreakdownResponse(
     if (!accountId) {
         return NextResponse.json({ rows: [], error: 'Questo cliente non ha un Meta Ad Account ID: inseriscilo in Setup API.' }, { status: 503 });
     }
-    return readBreakdown(request, clientId, accountId, opts);
+    return readBreakdown(request, clientId, accountId, { ...opts, campaignPrefix: (snap.data() as any)?.metaCampaignFilter });
 }
 
 /** La lettura vera e propria, dopo i controlli di accesso. */
@@ -31,7 +31,7 @@ export async function readBreakdown(
     request: NextRequest,
     clientId: string,
     accountId: string,
-    opts: { dimensionFields: string[]; omitFields?: string[]; build: (rows: any[], basis: string | null) => BreakdownRow[] },
+    opts: { dimensionFields: string[]; omitFields?: string[]; campaignPrefix?: string; build: (rows: any[], basis: string | null) => BreakdownRow[] },
 ) {
     const raw = request.nextUrl.searchParams.get('days');
     const days = raw === '7' ? 7 : raw === '90' ? 90 : 30;
@@ -40,6 +40,7 @@ export async function readBreakdown(
         const data = await getData({
             connector: 'facebook',
             accountId,
+            campaignPrefix: opts.campaignPrefix,
             fields: [...opts.dimensionFields, 'spend', 'impressions', 'clicks', 'reach', ...ACTION_FIELDS, LEAD_ALIAS_FIELD, 'account_id'].filter((f) => !opts.omitFields?.includes(f)),
             datePreset: `last_${days}d`,
             fresh: request.nextUrl.searchParams.get('refresh') === '1',

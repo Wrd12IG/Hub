@@ -136,6 +136,7 @@ export async function GET(
           accountId,
           fields: [...fields, 'account_id'],
           datePreset,
+          ...(platform === 'meta' && client?.metaCampaignFilter ? { campaignPrefix: client.metaCampaignFilter } : {}),
         });
 
         // Group by campaign id (falling back to the name when Windsor has no

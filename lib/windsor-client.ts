@@ -82,6 +82,7 @@ export async function getData({
     dateFrom,
     dateTo,
     fresh = false,
+    campaignPrefix,
 }: {
     connector: WindsorConnector;
     accountId?: string;
@@ -98,6 +99,13 @@ export async function getData({
     dateTo?: string;
     /** Salta la cache condivisa e rilegge Windsor (pulsante Aggiorna). */
     fresh?: boolean;
+    /**
+     * Solo Meta Ads: tiene le sole campagne il cui nome inizia con questo testo (senza distinguere
+     * maiuscole). Serve ai clienti senza un account pubblicitario proprio, le cui campagne girano
+     * nell'account dell'agenzia (Wrdigital_Account) con il nome del cliente come prefisso
+     * ("Parafarmacia - …", "Medical - …", "Dalla Longa - …"). Aggiunge `campaign` ai campi letti.
+     */
+    campaignPrefix?: string;
 }): Promise<WindsorRow[]> {
     // Windsor identifica gli account Meta Ads con il solo numero (es. 1083559196248959), mentre
     // Business Manager e il form di Setup API li mostrano come `act_1083559196248959`. Con il
@@ -106,6 +114,9 @@ export async function getData({
     // salvato come act_…, contro Yeppon salvato come numero e funzionante).
     accountId = normalizeWindsorAccountId(connector, accountId);
     accountIds = accountIds?.map((id) => normalizeWindsorAccountId(connector, id)!).filter(Boolean);
+
+    const prefix = connector === 'facebook' && campaignPrefix ? campaignPrefix.trim().toLowerCase() : '';
+    if (prefix && !fields.includes('campaign')) fields = [...fields, 'campaign'];
 
     const params = new URLSearchParams({
         api_key: getApiKey(),
@@ -158,7 +169,7 @@ export async function getData({
     if (rows.length === 0 && dateFrom && dateTo) {
         const yesterday = previousDay(dateTo);
         if (yesterday && dateTo >= todayIso() && yesterday >= dateFrom) {
-            return getData({ connector, accountId, accountIds, fields, dateFrom, dateTo: yesterday, fresh });
+            return getData({ connector, accountId, accountIds, fields, dateFrom, dateTo: yesterday, fresh, campaignPrefix });
         }
     }
 
@@ -166,14 +177,16 @@ export async function getData({
     // account_id server-side, others silently ignore an unrecognized filter param
     // and return every connected account instead of erroring — never trust that
     // an unfiltered response means "no account_id was requested".
+    const byPrefix = (list: WindsorRow[]) =>
+        prefix ? list.filter((row) => String(row.campaign ?? '').trim().toLowerCase().startsWith(prefix)) : list;
     if (accountId) {
-        return rows.filter((row) => String(row.account_id) === String(accountId));
+        return byPrefix(rows.filter((row) => String(row.account_id) === String(accountId)));
     }
     if (accountIds && accountIds.length > 0) {
         const wanted = new Set(accountIds.map(String));
-        return rows.filter((row) => wanted.has(String(row.account_id)));
+        return byPrefix(rows.filter((row) => wanted.has(String(row.account_id))));
     }
-    return rows;
+    return byPrefix(rows);
 }
 
 /**

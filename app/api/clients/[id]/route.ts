@@ -61,6 +61,7 @@ export async function GET(
         industry: d.industry,
         ga4PropertyId: d.ga4PropertyId,
         metaAdAccountId: d.metaAdAccountId,
+        metaCampaignFilter: d.metaCampaignFilter,
         googleAdAccountId: d.googleAdAccountId,
         windsorAccounts: d.windsorAccounts,
         lastSeoScore: d.lastSeoScore,
@@ -195,6 +196,11 @@ export async function PATCH(
       if (body.metaAdAccountId !== '' && !/^\d{6,}$/.test(body.metaAdAccountId)) {
         return NextResponse.json({ error: 'L\'Ad Account ID di Meta deve essere un numero (es. 1083559196248959, con o senza act_).' }, { status: 400 });
       }
+    }
+
+    // Prefisso del nome campagna (clienti senza account Meta proprio): testo libero, vuoto = nessun filtro
+    if (typeof body.metaCampaignFilter === 'string') {
+      body.metaCampaignFilter = body.metaCampaignFilter.trim().slice(0, 80);
     }
 
     // 1. Gestione sicura dei token

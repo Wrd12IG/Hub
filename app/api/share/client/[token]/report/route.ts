@@ -43,7 +43,7 @@ export async function GET(request: Request, { params }: { params: { token: strin
 
     const found = await findClientByPublicToken(adminDb, token);
     if (!found) return notFound();
-    const client = found.data as Client & { metaAdAccountId?: string; googleAdAccountId?: string };
+    const client = found.data as Client & { metaAdAccountId?: string; metaCampaignFilter?: string; googleAdAccountId?: string };
     const clientId = found.id;
 
     const days = parsePeriod(new URL(request.url).searchParams.get('days'));
@@ -55,6 +55,7 @@ export async function GET(request: Request, { params }: { params: { token: strin
       const platforms = await getClientMarketingReport(
         {
           metaAdAccountId: client.metaAdAccountId,
+          metaCampaignFilter: client.metaCampaignFilter,
           googleAdAccountId: client.googleAdAccountId,
           windsorAccounts: client.windsorAccounts?.gbp ? { gbp: client.windsorAccounts.gbp } : undefined,
         } as any,

@@ -35,6 +35,7 @@ export interface ClientConnections {
   id: string;
   hasMetaToken: boolean;
   metaAdAccountId?: string | null;
+  metaCampaignFilter?: string | null;
   metaPageId?: string | null;
   hasGoogleToken?: boolean;
   ga4PropertyId?: string | null;
@@ -251,6 +252,7 @@ function MetaModal({
   clientId,
   currentAdAccountId,
   currentPageId,
+  currentCampaignFilter,
   hasToken,
   onClose,
   onSaved,
@@ -258,6 +260,7 @@ function MetaModal({
   clientId: string;
   currentAdAccountId?: string | null;
   currentPageId?: string | null;
+  currentCampaignFilter?: string | null;
   hasToken: boolean;
   onClose: () => void;
   onSaved: () => void;
@@ -265,6 +268,7 @@ function MetaModal({
   const [token, setToken] = useState("");
   const [adAccountId, setAdAccountId] = useState(currentAdAccountId ?? "");
   const [pageId, setPageId] = useState(currentPageId ?? "");
+  const [campaignFilter, setCampaignFilter] = useState(currentCampaignFilter ?? "");
   const [saving, setSaving] = useState(false);
   const API_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== "undefined" ? window.location.origin : "");
 
@@ -272,7 +276,7 @@ function MetaModal({
     setSaving(true);
     try {
       const authToken = localStorage.getItem("token");
-      const body: Record<string, string> = { metaAdAccountId: adAccountId, metaPageId: pageId };
+      const body: Record<string, string> = { metaAdAccountId: adAccountId, metaPageId: pageId, metaCampaignFilter: campaignFilter };
       if (token) body.metaAccessToken = token;
       const res = await fetch(`${API_URL}/api/clients/${clientId}`, {
         method: "PATCH",
@@ -300,6 +304,12 @@ function MetaModal({
           <label htmlFor="meta-page-id" className="text-xs font-bold text-muted-foreground">Page ID (Facebook)</label>
           <input autoComplete="off" id="meta-page-id" value={pageId} onChange={(e) => setPageId(e.target.value)} placeholder="es. 104345345345"
             className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+        </div>
+        <div className="space-y-1.5">
+          <label htmlFor="meta-campaign-filter" className="text-xs font-bold text-muted-foreground">Solo campagne che iniziano con <span className="font-normal normal-case">(facoltativo)</span></label>
+          <input autoComplete="off" id="meta-campaign-filter" value={campaignFilter} onChange={(e) => setCampaignFilter(e.target.value)} placeholder="es. Parafarmacia -"
+            className="w-full text-sm bg-background border border-border text-foreground px-3 py-2.5 rounded-lg outline-none focus:border-blue-500/50 transition-all placeholder:text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">Per i clienti senza account proprio, le cui campagne girano nell&apos;account dell&apos;agenzia con il nome del cliente davanti. Vuoto = tutte le campagne dell&apos;account.</p>
         </div>
         <div className="space-y-1.5">
           <label htmlFor="meta-system-user-token" className="text-xs font-bold text-muted-foreground flex items-center gap-2">
@@ -1216,7 +1226,7 @@ export default function PlatformConnections({
             {(client.hasMetaToken || !!client.metaAdAccountId) && <ConnectedBadge />}
           </div>
           {client.metaAdAccountId && (
-            <p className="text-xs text-muted-foreground">Account {client.metaAdAccountId} · dati da Windsor</p>
+            <p className="text-xs text-muted-foreground">Account {client.metaAdAccountId} · dati da Windsor{client.metaCampaignFilter ? ` · solo campagne "${client.metaCampaignFilter}…"` : ""}</p>
           )}
           <button type="button" onClick={() => setActiveModal("meta")}
             className="w-full mt-auto flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg border border-blue-500/20 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 transition-all cursor-pointer">
@@ -1474,7 +1484,7 @@ export default function PlatformConnections({
 
       {/* ── MODALS ── */}
       {activeModal === "meta" && (
-        <MetaModal clientId={clientId} currentAdAccountId={client.metaAdAccountId} currentPageId={client.metaPageId}
+        <MetaModal clientId={clientId} currentAdAccountId={client.metaAdAccountId} currentPageId={client.metaPageId} currentCampaignFilter={client.metaCampaignFilter}
           hasToken={client.hasMetaToken} onClose={() => setActiveModal(null)}
           onSaved={() => { refreshClient(); setActiveModal(null); }} />
       )}

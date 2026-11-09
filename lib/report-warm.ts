@@ -24,7 +24,7 @@ export function sourcesSignature(client: any): string {
     const gbp = Array.isArray(w.gbp) ? [...w.gbp].map(String).sort() : [];
     const rest = Object.fromEntries(Object.entries(w).filter(([k]) => k !== 'gbp').sort(([a], [b]) => a.localeCompare(b)));
     return JSON.stringify({
-        meta: client?.metaAdAccountId ?? null, google: client?.googleAdAccountId ?? null, ga4: client?.ga4PropertyId ?? null,
+        meta: client?.metaAdAccountId ?? null, metaFilter: client?.metaCampaignFilter ?? null, google: client?.googleAdAccountId ?? null, ga4: client?.ga4PropertyId ?? null,
         awin: client?.awinAdvertiserId ?? null, gbp, w: rest, v: REPORT_FORMAT_VERSION,
     });
 }
