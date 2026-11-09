@@ -54,6 +54,19 @@ export function previousDay(iso: string): string | null {
 }
 
 /**
+ * Porta un ID account nel formato che Windsor usa in `account_id`.
+ * Per Meta Ads (`facebook`) toglie il prefisso `act_` di Business Manager; per
+ * gli altri connector l'ID resta com'è (solo trim).
+ */
+export function normalizeWindsorAccountId(connector: WindsorConnector, id?: string | null): string | undefined {
+    if (id == null) return undefined;
+    const trimmed = String(id).trim();
+    if (!trimmed) return undefined;
+    if (connector === 'facebook') return trimmed.replace(/^act_/i, '');
+    return trimmed;
+}
+
+/**
  * Read data from a Windsor connector.
  *
  * `accountId`, when passed, is applied both as a server-side filter (so we never
@@ -86,6 +99,14 @@ export async function getData({
     /** Salta la cache condivisa e rilegge Windsor (pulsante Aggiorna). */
     fresh?: boolean;
 }): Promise<WindsorRow[]> {
+    // Windsor identifica gli account Meta Ads con il solo numero (es. 1083559196248959), mentre
+    // Business Manager e il form di Setup API li mostrano come `act_1083559196248959`. Con il
+    // prefisso il filtro server-side non trova nulla e quello client-side scarta tutte le righe:
+    // la card Meta Ads restava vuota pur con l'account corretto (misurato il 09/11/2026 su Rovi,
+    // salvato come act_…, contro Yeppon salvato come numero e funzionante).
+    accountId = normalizeWindsorAccountId(connector, accountId);
+    accountIds = accountIds?.map((id) => normalizeWindsorAccountId(connector, id)!).filter(Boolean);
+
     const params = new URLSearchParams({
         api_key: getApiKey(),
         connector,
