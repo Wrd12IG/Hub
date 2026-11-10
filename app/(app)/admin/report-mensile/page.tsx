@@ -7,11 +7,11 @@ import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { hasReportSources } from '@/lib/report-warm'
 import {
-  KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SOURCE_LABELS, kpiIdsFor, monthlyMailState, suggestionFor, isKpiProfile,
+  KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SOURCE_LABELS, kpiIdsFor, kpiIdsForClient, monthlyMailState, suggestionFor, isKpiProfile,
   type KpiOverrides, type KpiProfile,
 } from '@/lib/kpi-profiles'
 
-type Row = { kpiProfile?: KpiProfile | null; monthlyKpiMail?: boolean }
+type Row = { kpiProfile?: KpiProfile | null; monthlyKpiMail?: boolean; kpiSelection?: string[] | null }
 
 const select = 'h-9 w-full rounded-lg border border-border bg-background px-2 text-sm text-foreground'
 
@@ -26,11 +26,13 @@ export default function ReportMensilePage() {
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [bulk, setBulk] = useState(false)
   const [search, setSearch] = useState('')
+  const [openId, setOpenId] = useState<string | null>(null)
+  const profiles = useProfileOverrides()
 
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
     return [...clients]
-      .map((c: any) => ({ c, v: { kpiProfile: c.kpiProfile ?? null, monthlyKpiMail: c.monthlyKpiMail === true, ...overrides[c.id] } as Row }))
+      .map((c: any) => ({ c, v: { kpiProfile: c.kpiProfile ?? null, monthlyKpiMail: c.monthlyKpiMail === true, kpiSelection: c.kpiSelection ?? null, ...overrides[c.id] } as Row }))
       .filter(({ c }) => !q || String(c.name || '').toLowerCase().includes(q))
       .sort((a, b) => String(a.c.name).localeCompare(String(b.c.name), 'it', { sensitivity: 'base' }))
   }, [clients, overrides, search])
@@ -115,14 +117,17 @@ export default function ReportMensilePage() {
               <th className="px-3 py-2">Cliente</th>
               <th className="px-3 py-2 w-56">Profilo</th>
               <th className="px-3 py-2 w-28 text-center">Nella mail</th>
-              <th className="px-3 py-2 w-40">Dati collegati</th>
+              <th className="px-3 py-2 w-44">KPI</th>
+              <th className="px-3 py-2 w-32">Dati collegati</th>
             </tr>
           </thead>
           <tbody>
             {rows.map(({ c, v }) => {
               const state = monthlyMailState(v)
+              const effective = kpiIdsForClient(v, profiles.overrides)
               return (
-                <tr key={c.id} className="border-t border-border">
+                <React.Fragment key={c.id}>
+                <tr className="border-t border-border">
                   <td className="px-3 py-2 font-medium">{c.name}</td>
                   <td className="px-3 py-2">
                     <select aria-label={`Profilo di ${c.name}`} className={select} disabled={!!saving[c.id]}
@@ -138,18 +143,36 @@ export default function ReportMensilePage() {
                       onChange={(e) => save(c.id, { monthlyKpiMail: e.target.checked })} />
                     {state === 'no_profile' && <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-400">serve un profilo</p>}
                   </td>
+                  <td className="px-3 py-2 text-xs">
+                    {effective ? (
+                      <button type="button" aria-expanded={openId === c.id} onClick={() => setOpenId(openId === c.id ? null : c.id)}
+                        className="text-left hover:underline">
+                        {effective.length} KPI <span className="text-muted-foreground">{v.kpiSelection ? '· solo suoi' : '· del profilo'}</span>
+                      </button>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </td>
                   <td className="px-3 py-2 text-xs text-muted-foreground">
                     {hasReportSources(c) ? 'Collegati' : <span className="text-amber-700 dark:text-amber-400">Nessuna fonte</span>}
                   </td>
                 </tr>
+                {openId === c.id && effective && (
+                  <tr className="border-t border-border bg-muted/20">
+                    <td colSpan={5} className="px-3 py-3">
+                      <ClientKpiEditor name={c.name} ids={effective} personal={!!v.kpiSelection} saving={!!saving[c.id]}
+                        onSave={(ids) => save(c.id, { kpiSelection: ids })}
+                        onReset={() => save(c.id, { kpiSelection: null })} />
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               )
             })}
-            {rows.length === 0 && <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Nessun cliente.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">Nessun cliente.</td></tr>}
           </tbody>
         </table>
       </div>
 
-      <ProfileEditor />
+      <ProfileEditor overrides={profiles.overrides} setOverrides={profiles.setOverrides} loading={profiles.loading} />
     </div>
   )
 }
@@ -158,22 +181,10 @@ export default function ReportMensilePage() {
  * «Cosa guarda ogni profilo»: i KPI di ogni profilo si possono togliere, aggiungere (fino a 5) e riordinare. Il primo è il
  * KPI principale. «Ripristina» torna ai predefiniti. La scelta vale per TUTTI i clienti di quel profilo.
  */
-function ProfileEditor() {
+function ProfileEditor({ overrides, setOverrides, loading }: { overrides: KpiOverrides; setOverrides: (o: KpiOverrides) => void; loading: boolean }) {
   const { authFetch } = useAuthFetch()
-  const [overrides, setOverrides] = useState<KpiOverrides>({})
   const [draft, setDraft] = useState<Partial<Record<KpiProfile, string[]>>>({})
   const [saving, setSaving] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let off = false
-    authFetch('/api/admin/kpi-profiles')
-      .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error || `Errore ${r.status}`); return j })
-      .then((j) => { if (!off) setOverrides(j.overrides ?? {}) })
-      .catch((e) => toast.error(`Profili KPI: ${e.message}`))
-      .finally(() => { if (!off) setLoading(false) })
-    return () => { off = true }
-  }, [authFetch])
 
   const current = (p: KpiProfile) => draft[p] ?? kpiIdsFor(p, overrides)
   const dirty = (p: KpiProfile) => draft[p] !== undefined && draft[p]!.join() !== kpiIdsFor(p, overrides).join()
@@ -204,32 +215,12 @@ function ProfileEditor() {
         <div className="grid gap-3 sm:grid-cols-2">
           {KPI_PROFILES.map((p) => {
             const ids = current(p)
-            const free = Object.values(KPI_CATALOG).filter((k) => !ids.includes(k.id))
             const isDefault = overrides[p] === undefined
             return (
               <div key={p} className="rounded-xl border border-border p-3">
                 <p className="text-sm font-semibold">{PROFILE_DEFS[p].label} {!isDefault && <span className="ml-1 text-[11px] font-normal text-muted-foreground">personalizzato</span>}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">{PROFILE_DEFS[p].description}</p>
-                <ol className="mt-2 space-y-1">
-                  {ids.map((id, i) => (
-                    <li key={id} className="flex items-center gap-2 rounded-lg bg-muted/40 px-2 py-1 text-xs">
-                      <span className="w-4 text-muted-foreground">{i + 1}</span>
-                      <span className="flex-1">{KPI_CATALOG[id]?.label ?? id}<span className="ml-1.5 text-muted-foreground">{KPI_CATALOG[id] ? SOURCE_LABELS[KPI_CATALOG[id].source] : ''}</span></span>
-                      <button type="button" aria-label={`Sposta su ${KPI_CATALOG[id]?.label}`} disabled={i === 0}
-                        onClick={() => { const n = [...ids]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; change(p, n) }}
-                        className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30">↑</button>
-                      <button type="button" aria-label={`Togli ${KPI_CATALOG[id]?.label}`} disabled={ids.length <= 1}
-                        onClick={() => change(p, ids.filter((x) => x !== id))}
-                        className="px-1 text-muted-foreground hover:text-red-500 disabled:opacity-30">✕</button>
-                    </li>
-                  ))}
-                </ol>
-                <select aria-label={`Aggiungi un KPI a ${PROFILE_DEFS[p].label}`} className={`${select} mt-2`} value=""
-                  disabled={ids.length >= MAX_KPIS}
-                  onChange={(e) => { if (e.target.value) change(p, [...ids, e.target.value]) }}>
-                  <option value="">{ids.length >= MAX_KPIS ? `Massimo ${MAX_KPIS} KPI` : 'Aggiungi un KPI…'}</option>
-                  {free.map((k) => <option key={k.id} value={k.id}>{k.label} — {SOURCE_LABELS[k.source]}</option>)}
-                </select>
+                <KpiListEditor ids={ids} label={PROFILE_DEFS[p].label} onChange={(n) => change(p, n)} />
                 <div className="mt-2 flex items-center gap-2">
                   <button type="button" disabled={!dirty(p) || saving === p} onClick={() => send(p, ids)}
                     className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40">
@@ -249,6 +240,83 @@ function ProfileEditor() {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Carica i KPI scelti per ogni profilo (settings/kpiProfiles): servono sia all'editor dei profili sia a mostrare i KPI di ogni cliente. */
+function useProfileOverrides() {
+  const { authFetch } = useAuthFetch()
+  const [overrides, setOverrides] = useState<KpiOverrides>({})
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let off = false
+    authFetch('/api/admin/kpi-profiles')
+      .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error || `Errore ${r.status}`); return j })
+      .then((j) => { if (!off) setOverrides(j.overrides ?? {}) })
+      .catch((e) => toast.error(`Profili KPI: ${e.message}`))
+      .finally(() => { if (!off) setLoading(false) })
+    return () => { off = true }
+  }, [authFetch])
+  return { overrides, setOverrides, loading }
+}
+
+/** Elenco di KPI modificabile: ↑ per riordinare, ✕ per togliere, menu per aggiungere (da 1 a MAX_KPIS). Non salva: avvisa chi lo usa. */
+function KpiListEditor({ ids, label, onChange }: { ids: string[]; label: string; onChange: (ids: string[]) => void }) {
+  const free = Object.values(KPI_CATALOG).filter((k) => !ids.includes(k.id))
+  return (
+    <>
+      <ol className="mt-2 space-y-1">
+        {ids.map((id, i) => (
+          <li key={id} className="flex items-center gap-2 rounded-lg bg-muted/40 px-2 py-1 text-xs">
+            <span className="w-4 text-muted-foreground">{i + 1}</span>
+            <span className="flex-1">{KPI_CATALOG[id]?.label ?? id}<span className="ml-1.5 text-muted-foreground">{KPI_CATALOG[id] ? SOURCE_LABELS[KPI_CATALOG[id].source] : ''}</span></span>
+            <button type="button" aria-label={`Sposta su ${KPI_CATALOG[id]?.label}`} disabled={i === 0}
+              onClick={() => { const n = [...ids]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; onChange(n) }}
+              className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30">↑</button>
+            <button type="button" aria-label={`Togli ${KPI_CATALOG[id]?.label}`} disabled={ids.length <= 1}
+              onClick={() => onChange(ids.filter((x) => x !== id))}
+              className="px-1 text-muted-foreground hover:text-red-500 disabled:opacity-30">✕</button>
+          </li>
+        ))}
+      </ol>
+      <select aria-label={`Aggiungi un KPI a ${label}`} className={`${select} mt-2`} value=""
+        disabled={ids.length >= MAX_KPIS}
+        onChange={(e) => { if (e.target.value) onChange([...ids, e.target.value]) }}>
+        <option value="">{ids.length >= MAX_KPIS ? `Massimo ${MAX_KPIS} KPI` : 'Aggiungi un KPI…'}</option>
+        {free.map((k) => <option key={k.id} value={k.id}>{k.label} — {SOURCE_LABELS[k.source]}</option>)}
+      </select>
+    </>
+  )
+}
+
+/**
+ * KPI di UN cliente. Parte da quelli attuali (del profilo o già personali): salvandoli, il cliente ha un elenco suo che
+ * non segue più le modifiche al profilo. «Usa quelli del profilo» toglie l'elenco personale.
+ */
+function ClientKpiEditor({ name, ids, personal, saving, onSave, onReset }: {
+  name: string; ids: string[]; personal: boolean; saving: boolean; onSave: (ids: string[]) => void; onReset: () => void
+}) {
+  const [draft, setDraft] = useState<string[] | null>(null)
+  const current = draft ?? ids
+  const dirty = draft !== null && draft.join() !== ids.join()
+  return (
+    <div className="max-w-md">
+      <p className="text-xs font-semibold">KPI di {name}</p>
+      <p className="text-[11px] text-muted-foreground">
+        {personal ? 'Elenco solo suo: non segue più le modifiche al profilo.' : 'Oggi usa quelli del profilo. Se li cambi, questo cliente avrà un elenco suo.'}
+      </p>
+      <KpiListEditor ids={current} label={name} onChange={setDraft} />
+      <div className="mt-2 flex items-center gap-2">
+        <button type="button" disabled={!dirty || saving} onClick={() => { onSave(current); setDraft(null) }}
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40">
+          {saving && <Loader2 size={12} className="animate-spin" />} Salva per {name.length > 18 ? 'questo cliente' : name}
+        </button>
+        {dirty && <button type="button" onClick={() => setDraft(null)} className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground">Annulla</button>}
+        {personal && !dirty && (
+          <button type="button" disabled={saving} onClick={onReset} className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground">Usa quelli del profilo</button>
+        )}
+      </div>
     </div>
   )
 }

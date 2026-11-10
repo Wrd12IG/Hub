@@ -156,6 +156,19 @@ export function kpiIdsFor(profile: KpiProfile, overrides?: KpiOverrides): string
     return overrides?.[profile] ?? defaultKpiIds(profile);
 }
 
+/**
+ * I KPI di un cliente: il suo elenco personale se ne ha uno valido, altrimenti quelli del suo profilo (con le scelte
+ * dell'agenzia). Senza elenco personale e senza profilo non c'è nulla da mostrare: restituisce null.
+ */
+export function kpiIdsForClient(
+    client: { kpiProfile?: unknown; kpiSelection?: unknown },
+    overrides?: KpiOverrides,
+): string[] | null {
+    const own = client.kpiSelection == null ? null : validateKpiSelection(client.kpiSelection);
+    if (own && own.ok) return own.ids;
+    return isKpiProfile(client.kpiProfile) ? kpiIdsFor(client.kpiProfile, overrides) : null;
+}
+
 /** I KPI (definizioni complete) di un profilo, nell'ordine di importanza. */
 export function kpisForProfile(profile: KpiProfile, overrides?: KpiOverrides): KpiDef[] {
     return kpiIdsFor(profile, overrides).map((id) => KPI_CATALOG[id]).filter(Boolean);
@@ -172,6 +185,11 @@ export function validateKpiFields(body: Record<string, unknown>): string | null 
     }
     if ('monthlyKpiMail' in body && typeof body.monthlyKpiMail !== 'boolean') {
         return 'monthlyKpiMail deve essere true o false.';
+    }
+    // Elenco KPI personale del cliente: null = usa quello del profilo
+    if ('kpiSelection' in body && body.kpiSelection !== null) {
+        const v = validateKpiSelection(body.kpiSelection);
+        if (!v.ok) return v.error;
     }
     return null;
 }
