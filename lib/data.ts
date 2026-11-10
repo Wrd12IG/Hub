@@ -67,6 +67,8 @@ export interface Client {
     // flag acceso il cliente non compare, e senza profilo non si sa quali KPI mostrare.
     kpiProfile?: 'auto' | 'ecommerce' | 'locale' | 'b2b' | 'social' | null;
     monthlyKpiMail?: boolean;
+    /** Elenco KPI solo di questo cliente (1-5): ha la precedenza su quello del profilo. Assente/null = usa il profilo. */
+    kpiSelection?: string[] | null;
 }
 
 export interface SocialProfile {

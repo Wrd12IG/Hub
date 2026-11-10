@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-    KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SUGGESTED, defaultKpiIds, isKpiProfile, kpiIdsFor, kpisForProfile,
+    KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SUGGESTED, defaultKpiIds, isKpiProfile, kpiIdsFor, kpiIdsForClient, kpisForProfile,
     monthlyMailState, normalizeName, sanitizeOverrides, suggestionFor, validateKpiFields, validateKpiSelection,
 } from '../kpi-profiles';
 
@@ -124,5 +124,37 @@ describe('kpi-profiles: KPI scelti a mano', () => {
         expect(sanitizeOverrides(null)).toEqual({});
         expect(sanitizeOverrides(undefined)).toEqual({});
         expect(sanitizeOverrides('boh')).toEqual({});
+    });
+});
+
+describe('kpi-profiles: KPI di un singolo cliente', () => {
+    it('l\'elenco personale vince su quello del profilo e sulle scelte dell\'agenzia', () => {
+        const o = { auto: ['sessions', 'gbp_calls'] };
+        expect(kpiIdsForClient({ kpiProfile: 'auto', kpiSelection: ['leads_meta'] }, o)).toEqual(['leads_meta']);
+    });
+
+    it('senza elenco personale segue il profilo, con le scelte dell\'agenzia se ci sono', () => {
+        const o = { auto: ['sessions', 'gbp_calls'] };
+        expect(kpiIdsForClient({ kpiProfile: 'auto' }, o)).toEqual(['sessions', 'gbp_calls']);
+        expect(kpiIdsForClient({ kpiProfile: 'auto', kpiSelection: null })).toEqual(defaultKpiIds('auto'));
+    });
+
+    it('un elenco personale rovinato si ignora e si ricade sul profilo', () => {
+        expect(kpiIdsForClient({ kpiProfile: 'b2b', kpiSelection: ['inventato'] })).toEqual(defaultKpiIds('b2b'));
+        expect(kpiIdsForClient({ kpiProfile: 'b2b', kpiSelection: [] })).toEqual(defaultKpiIds('b2b'));
+    });
+
+    it('senza profilo e senza elenco personale non c\'è nulla da mostrare', () => {
+        expect(kpiIdsForClient({})).toBeNull();
+        expect(kpiIdsForClient({ kpiProfile: 'boh' })).toBeNull();
+        expect(kpiIdsForClient({ kpiSelection: ['sessions'] })).toEqual(['sessions']);
+    });
+
+    it('il PATCH accetta un elenco valido o null, rifiuta il resto', () => {
+        expect(validateKpiFields({ kpiSelection: ['sessions', 'gbp_calls'] })).toBeNull();
+        expect(validateKpiFields({ kpiSelection: null })).toBeNull();
+        expect(validateKpiFields({ kpiSelection: [] })).toMatch(/almeno un KPI/);
+        expect(validateKpiFields({ kpiSelection: ['a', 'b', 'c', 'd', 'e', 'f'] })).toBeTruthy();
+        expect(validateKpiFields({ kpiSelection: 'sessions' })).toBeTruthy();
     });
 });
