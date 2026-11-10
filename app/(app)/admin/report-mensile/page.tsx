@@ -1,7 +1,9 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
+import { DEFAULT_SEND_DAY, splitRecipients } from '@/lib/monthly-mail-settings'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
@@ -102,7 +104,10 @@ export default function ReportMensilePage() {
         </button>
       </div>
 
+      <MailSettingsCard />
+
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <Link href="/admin/report-mensile/dati-reali" className="font-medium underline underline-offset-2">Dati reali del mese →</Link>
         <span><b>{counts.included}</b> nella mail</span>
         <span><b>{counts.excluded}</b> esclusi</span>
         {counts.no_profile > 0 && <span className="text-amber-700 dark:text-amber-400"><b>{counts.no_profile}</b> con flag acceso ma senza profilo</span>}
@@ -317,6 +322,76 @@ function ClientKpiEditor({ name, ids, personal, saving, onSave, onReset }: {
           <button type="button" disabled={saving} onClick={onReset} className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground">Usa quelli del profilo</button>
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Chi riceve la mail mensile e che giorno parte. È UNA mail con tutti i clienti, a indirizzi decisi qui: non va mai ai
+ * clienti. L'invio automatico non è ancora attivo: oggi queste impostazioni sono solo salvate.
+ */
+function MailSettingsCard() {
+  const { authFetch } = useAuthFetch()
+  const [recipients, setRecipients] = useState('')
+  const [sendDay, setSendDay] = useState(DEFAULT_SEND_DAY)
+  const [saved, setSaved] = useState<string>('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    let off = false
+    authFetch('/api/admin/monthly-kpi-mail-settings')
+      .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error || `Errore ${r.status}`); return j })
+      .then((j) => {
+        if (off) return
+        const text = (j.settings.recipients as string[]).join('\n')
+        setRecipients(text); setSendDay(j.settings.sendDay); setSaved(`${text}|${j.settings.sendDay}`)
+      })
+      .catch((e) => toast.error(`Impostazioni invio: ${e.message}`))
+      .finally(() => { if (!off) setLoading(false) })
+    return () => { off = true }
+  }, [authFetch])
+
+  const list = splitRecipients(recipients)
+  const dirty = `${list.join('\n')}|${sendDay}` !== saved
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await authFetch('/api/admin/monthly-kpi-mail-settings', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipients: list, sendDay }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`)
+      const text = (j.settings.recipients as string[]).join('\n')
+      setRecipients(text); setSendDay(j.settings.sendDay); setSaved(`${text}|${j.settings.sendDay}`)
+      toast.success('Impostazioni salvate')
+    } catch (e: any) { toast.error(e.message || 'Impossibile salvare') }
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="rounded-xl border border-border p-4">
+      <h2 className="text-sm font-semibold">Invio della mail</h2>
+      <p className="mt-0.5 text-xs text-muted-foreground">Una sola mail al mese con tutti i clienti, solo a questi indirizzi. L&apos;invio automatico non è ancora attivo.</p>
+      {loading ? <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 size={12} className="animate-spin" /> Carico…</p> : (
+        <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+          <label className="text-xs font-medium text-muted-foreground">Destinatari (uno per riga)
+            <textarea value={recipients} onChange={(e) => setRecipients(e.target.value)} rows={3}
+              className="mt-1 block w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground" />
+          </label>
+          <label className="text-xs font-medium text-muted-foreground">Giorno del mese
+            <select value={sendDay} onChange={(e) => setSendDay(Number(e.target.value))} className={`${select} mt-1 w-28`}>
+              {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <span className="mt-1 block text-[11px] font-normal">alle 08:00, dal 1 al 28</span>
+          </label>
+        </div>
+      )}
+      <button type="button" onClick={save} disabled={!dirty || saving || loading || list.length === 0}
+        className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40">
+        {saving && <Loader2 size={12} className="animate-spin" />} Salva
+      </button>
     </div>
   )
 }
