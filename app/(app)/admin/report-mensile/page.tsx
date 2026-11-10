@@ -108,6 +108,7 @@ export default function ReportMensilePage() {
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
         <Link href="/admin/report-mensile/dati-reali" className="font-medium underline underline-offset-2">Dati reali del mese →</Link>
+        <Link href="/admin/report-mensile/anteprima" className="font-medium underline underline-offset-2">Anteprima della mail →</Link>
         <span><b>{counts.included}</b> nella mail</span>
         <span><b>{counts.excluded}</b> esclusi</span>
         {counts.no_profile > 0 && <span className="text-amber-700 dark:text-amber-400"><b>{counts.no_profile}</b> con flag acceso ma senza profilo</span>}
