@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { MANUAL_FIELD_IDS, cleanManualValues, fieldsForProfile, isMonthKey, parseManualCsv, previousMonthKey } from '../manual-kpis';
-import { DEFAULT_RECIPIENTS, settingsOrDefault, splitRecipients, validateMailSettings } from '../monthly-mail-settings';
+import { DEFAULT_RECIPIENTS, FALLBACK_SENDER, resolveSender, settingsOrDefault, splitRecipients, validateMailSettings } from '../monthly-mail-settings';
 
 const clients = [
     { id: 'c1', name: 'BETTIN - BGF SRL' },
@@ -98,5 +98,22 @@ describe('monthly-mail-settings', () => {
     it('splitRecipients accetta virgole, punti e virgola, spazi e righe', () => {
         expect(splitRecipients('a@x.it, B@x.it;c@x.it\nA@x.it')).toEqual(['a@x.it', 'b@x.it', 'c@x.it']);
         expect(splitRecipients('')).toEqual([]);
+    });
+});
+
+describe('monthly-mail-settings: mittente', () => {
+    it('come le notifiche del Hub, che arrivano: hub@wrdigital.it', () => {
+        expect(resolveSender(undefined, undefined)).toEqual(FALLBACK_SENDER);
+        expect(FALLBACK_SENDER.address).toBe('hub@wrdigital.it');
+        expect(resolveSender(undefined, { emailFromName: 'Altro nome', emailFromAddress: 'noreply@wrdigital.it' })).toEqual({ name: 'Altro nome', address: 'noreply@wrdigital.it' });
+    });
+    it('la variabile d\'ambiente vince, ma solo se è un indirizzo vero', () => {
+        expect(resolveSender('roberto@wrdigital.it', { emailFromAddress: 'hub@wrdigital.it' }).address).toBe('roberto@wrdigital.it');
+        expect(resolveSender('non-una-mail', { emailFromAddress: 'hub@wrdigital.it' }).address).toBe('hub@wrdigital.it');
+    });
+    it('un indirizzo rovinato nelle impostazioni ricade sul predefinito; il nome non può iniettare intestazioni', () => {
+        expect(resolveSender(undefined, { emailFromAddress: 'boh' }).address).toBe('hub@wrdigital.it');
+        expect(resolveSender(undefined, { emailFromName: 'A\r\nBcc: x@y.it', emailFromAddress: 'a@b.it' }).name).toBe('ABcc: x@y.it');
+        expect(resolveSender(undefined, { emailFromName: '   ' }).name).toBe(FALLBACK_SENDER.name);
     });
 });

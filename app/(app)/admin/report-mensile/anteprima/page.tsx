@@ -85,7 +85,7 @@ export default function AnteprimaPage() {
       })
       const j = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`)
-      toast.success(`Prova inviata a ${j.sentTo} (${j.clients} clienti${j.missing ? `, ${j.missing} non calcolati` : ''})`)
+      toast.success(`Prova inviata a ${j.sentTo} da ${j.from} (${j.clients} clienti${j.missing ? `, ${j.missing} non calcolati` : ''}). Se non arriva in pochi minuti guarda anche lo spam.`, { duration: 12000 })
     } catch (e: any) { toast.error(e.message || 'Invio non riuscito') }
     finally { setSending(false) }
   }

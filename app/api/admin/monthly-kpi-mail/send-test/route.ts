@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const mail = buildMonthlyMail({ month: body.month, clients, baseUrl: request.nextUrl.origin });
     const sent = await sendMonthlyMail({ to: [to], subject: `[PROVA] ${mail.subject}`, html: mail.html, text: mail.text });
     if (!sent.success) return NextResponse.json({ error: `Invio non riuscito: ${sent.error}` }, { status: 502 });
-    return NextResponse.json({ sentTo: to, clients: clients.length, missing: ids.length - clients.length, bytes: mail.bytes });
+    return NextResponse.json({ sentTo: to, from: sent.from, clients: clients.length, missing: ids.length - clients.length, bytes: mail.bytes });
   } catch (e: any) {
     console.error('[monthly-kpi-mail/send-test]', e?.message);
     return NextResponse.json({ error: 'Invio di prova non riuscito' }, { status: 500 });

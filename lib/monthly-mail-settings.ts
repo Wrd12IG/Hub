@@ -35,3 +35,21 @@ export function settingsOrDefault(raw: unknown): MailSettings {
     const v = validateMailSettings(raw);
     return v.ok ? v.settings : { recipients: [...DEFAULT_RECIPIENTS], sendDay: DEFAULT_SEND_DAY };
 }
+
+/** Il mittente di riserva: lo stesso che il Hub usa per le notifiche (impostazioni predefinite in lib/notifications.ts). */
+export const FALLBACK_SENDER = { name: 'W[r]Digital Hub', address: 'hub@wrdigital.it' };
+
+/**
+ * Chi risulta come mittente. Ordine: `MONTHLY_MAIL_FROM` se impostata, poi il mittente delle notifiche del Hub
+ * (settings/notifications), poi `hub@wrdigital.it`.
+ *
+ * ⚠️ Non la casella di accesso SMTP: con Brevo il login SMTP non è un mittente validato, e il provider accetta il messaggio
+ * (risponde «ok» al nostro server) per poi scartarlo senza dire nulla. Le notifiche arrivano perché partono da
+ * `hub@wrdigital.it`: la mail mensile deve usare lo stesso indirizzo.
+ */
+export function resolveSender(envFrom: string | undefined, notif: { emailFromName?: unknown; emailFromAddress?: unknown } | undefined): { name: string; address: string } {
+    const pick = (v: unknown) => (typeof v === 'string' && /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]{2,}$/.test(v.trim()) ? v.trim() : null);
+    const name = typeof notif?.emailFromName === 'string' && notif.emailFromName.trim() ? notif.emailFromName.trim().replace(/["<>\r\n]/g, '') : FALLBACK_SENDER.name;
+    const address = pick(envFrom) ?? pick(notif?.emailFromAddress) ?? FALLBACK_SENDER.address;
+    return { name, address };
+}
