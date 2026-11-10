@@ -50,7 +50,10 @@ async function assertActive(connector: AccountConnector): Promise<void> {
 
 export async function listAccounts(connector: AccountConnector): Promise<WindsorAccount[]> {
     await assertActive(connector);
-    const rows = await getData({ connector, fields: ['account_id', 'account_name', PROBE_FIELD[connector]], datePreset: 'last_7d' });
+    // 30 giorni, non 7: l'elenco si ricava dalle righe di dati, e Windsor omette un account che nella finestra non ne ha.
+    // Misurato il 10/11/2026: la pagina LinkedIn di Help Computer mancava con last_7d (7 account su 8) e c'era con last_30d.
+    // Non allargare oltre: TikTok con last_90d torna 0 account.
+    const rows = await getData({ connector, fields: ['account_id', 'account_name', PROBE_FIELD[connector]], datePreset: 'last_30d' });
     const accounts = uniqueAccounts(rows);
     // GBP: l'elenco di Windsor mescola alle sedi (id «locations/…») anche account di altri servizi (misurato: 52 sedi su 75
     // voci): una sede vera ha sempre l'id che inizia con «locations/»
