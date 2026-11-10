@@ -25,6 +25,11 @@ export type KpiSource =
     | 'meta' | 'google_ads' | 'ga4' | 'gbp' | 'instagram' | 'facebook_page' | 'linkedin' | 'tiktok'
     | 'searchconsole' | 'klaviyo' | 'awin' | 'manual';
 
+export const SOURCE_LABELS: Record<KpiSource, string> = {
+    meta: 'Meta', google_ads: 'Google Ads', ga4: 'Sito (GA4)', gbp: 'Google Maps', instagram: 'Instagram', facebook_page: 'Facebook',
+    linkedin: 'LinkedIn', tiktok: 'TikTok', searchconsole: 'Ricerca Google', klaviyo: 'Email (Klaviyo)', awin: 'Awin', manual: 'Dato inserito a mano',
+};
+
 export interface KpiDef {
     id: string;
     label: string;
@@ -117,9 +122,43 @@ export function defaultKpiIds(profile: KpiProfile): string[] {
     return PROFILE_DEFS[profile].defaultKpis.slice(0, MAX_KPIS);
 }
 
+/** Le scelte dell'agenzia: per un profilo, l'elenco di KPI al posto di quello predefinito. Un profilo assente usa il predefinito. */
+export type KpiOverrides = Partial<Record<KpiProfile, string[]>>;
+
+/**
+ * Controlla un elenco di KPI scelto a mano: da 1 a MAX_KPIS voci, tutte nel catalogo, senza ripetizioni. L'ordine è
+ * quello scelto (è anche l'ordine nella mail: il primo è il KPI principale).
+ */
+export function validateKpiSelection(ids: unknown): { ok: true; ids: string[] } | { ok: false; error: string } {
+    if (!Array.isArray(ids) || ids.some((x) => typeof x !== 'string')) return { ok: false, error: 'L\'elenco dei KPI non è valido.' };
+    if (ids.length === 0) return { ok: false, error: 'Serve almeno un KPI.' };
+    if (ids.length > MAX_KPIS) return { ok: false, error: `Al massimo ${MAX_KPIS} KPI per profilo.` };
+    if (new Set(ids).size !== ids.length) return { ok: false, error: 'Un KPI è ripetuto.' };
+    const unknown = ids.find((id) => !KPI_CATALOG[id]);
+    if (unknown) return { ok: false, error: `KPI sconosciuto: ${unknown}.` };
+    return { ok: true, ids: ids as string[] };
+}
+
+/** Rilegge le scelte salvate scartando ciò che non è valido (un KPI tolto dal catalogo non deve rompere la mail). */
+export function sanitizeOverrides(raw: unknown): KpiOverrides {
+    const out: KpiOverrides = {};
+    if (!raw || typeof raw !== 'object') return out;
+    for (const p of KPI_PROFILES) {
+        const v = (raw as Record<string, unknown>)[p];
+        const valid = v === undefined ? null : validateKpiSelection(v);
+        if (valid && valid.ok) out[p] = valid.ids;
+    }
+    return out;
+}
+
+/** I KPI di un profilo: la scelta dell'agenzia se c'è, altrimenti i predefiniti. */
+export function kpiIdsFor(profile: KpiProfile, overrides?: KpiOverrides): string[] {
+    return overrides?.[profile] ?? defaultKpiIds(profile);
+}
+
 /** I KPI (definizioni complete) di un profilo, nell'ordine di importanza. */
-export function kpisForProfile(profile: KpiProfile): KpiDef[] {
-    return defaultKpiIds(profile).map((id) => KPI_CATALOG[id]).filter(Boolean);
+export function kpisForProfile(profile: KpiProfile, overrides?: KpiOverrides): KpiDef[] {
+    return kpiIdsFor(profile, overrides).map((id) => KPI_CATALOG[id]).filter(Boolean);
 }
 
 /**

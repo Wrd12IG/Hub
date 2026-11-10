@@ -1,14 +1,14 @@
 "use client"
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { hasReportSources } from '@/lib/report-warm'
 import {
-  KPI_PROFILES, PROFILE_DEFS, kpisForProfile, monthlyMailState, suggestionFor, isKpiProfile,
-  type KpiProfile,
+  KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SOURCE_LABELS, kpiIdsFor, monthlyMailState, suggestionFor, isKpiProfile,
+  type KpiOverrides, type KpiProfile,
 } from '@/lib/kpi-profiles'
 
 type Row = { kpiProfile?: KpiProfile | null; monthlyKpiMail?: boolean }
@@ -149,18 +149,106 @@ export default function ReportMensilePage() {
         </table>
       </div>
 
-      <div>
-        <h2 className="mb-2 text-sm font-semibold">Cosa guarda ogni profilo</h2>
+      <ProfileEditor />
+    </div>
+  )
+}
+
+/**
+ * «Cosa guarda ogni profilo»: i KPI di ogni profilo si possono togliere, aggiungere (fino a 5) e riordinare. Il primo è il
+ * KPI principale. «Ripristina» torna ai predefiniti. La scelta vale per TUTTI i clienti di quel profilo.
+ */
+function ProfileEditor() {
+  const { authFetch } = useAuthFetch()
+  const [overrides, setOverrides] = useState<KpiOverrides>({})
+  const [draft, setDraft] = useState<Partial<Record<KpiProfile, string[]>>>({})
+  const [saving, setSaving] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let off = false
+    authFetch('/api/admin/kpi-profiles')
+      .then(async (r) => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j?.error || `Errore ${r.status}`); return j })
+      .then((j) => { if (!off) setOverrides(j.overrides ?? {}) })
+      .catch((e) => toast.error(`Profili KPI: ${e.message}`))
+      .finally(() => { if (!off) setLoading(false) })
+    return () => { off = true }
+  }, [authFetch])
+
+  const current = (p: KpiProfile) => draft[p] ?? kpiIdsFor(p, overrides)
+  const dirty = (p: KpiProfile) => draft[p] !== undefined && draft[p]!.join() !== kpiIdsFor(p, overrides).join()
+  const change = (p: KpiProfile, ids: string[]) => setDraft((d) => ({ ...d, [p]: ids }))
+
+  async function send(p: KpiProfile, kpis: string[] | null) {
+    setSaving(p)
+    try {
+      const res = await authFetch('/api/admin/kpi-profiles', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profile: p, kpis }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`)
+      setOverrides(j.overrides ?? {})
+      setDraft((d) => { const n = { ...d }; delete n[p]; return n })
+      toast.success(kpis === null ? 'Ripristinati i KPI predefiniti' : 'KPI salvati')
+    } catch (e: any) { toast.error(e.message || 'Impossibile salvare') }
+    finally { setSaving(null) }
+  }
+
+  return (
+    <div>
+      <h2 className="mb-1 text-sm font-semibold">Cosa guarda ogni profilo</h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Togli o aggiungi i KPI (da 1 a {MAX_KPIS}). Il primo è il KPI principale. La scelta vale per tutti i clienti del profilo.
+      </p>
+      {loading ? <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 size={12} className="animate-spin" /> Carico i profili…</p> : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {KPI_PROFILES.map((p) => (
-            <div key={p} className="rounded-xl border border-border p-3">
-              <p className="text-sm font-semibold">{PROFILE_DEFS[p].label}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{PROFILE_DEFS[p].description}</p>
-              <p className="mt-2 text-xs">{kpisForProfile(p).map((k) => k.label).join(' · ')}</p>
-            </div>
-          ))}
+          {KPI_PROFILES.map((p) => {
+            const ids = current(p)
+            const free = Object.values(KPI_CATALOG).filter((k) => !ids.includes(k.id))
+            const isDefault = overrides[p] === undefined
+            return (
+              <div key={p} className="rounded-xl border border-border p-3">
+                <p className="text-sm font-semibold">{PROFILE_DEFS[p].label} {!isDefault && <span className="ml-1 text-[11px] font-normal text-muted-foreground">personalizzato</span>}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{PROFILE_DEFS[p].description}</p>
+                <ol className="mt-2 space-y-1">
+                  {ids.map((id, i) => (
+                    <li key={id} className="flex items-center gap-2 rounded-lg bg-muted/40 px-2 py-1 text-xs">
+                      <span className="w-4 text-muted-foreground">{i + 1}</span>
+                      <span className="flex-1">{KPI_CATALOG[id]?.label ?? id}<span className="ml-1.5 text-muted-foreground">{KPI_CATALOG[id] ? SOURCE_LABELS[KPI_CATALOG[id].source] : ''}</span></span>
+                      <button type="button" aria-label={`Sposta su ${KPI_CATALOG[id]?.label}`} disabled={i === 0}
+                        onClick={() => { const n = [...ids]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; change(p, n) }}
+                        className="px-1 text-muted-foreground hover:text-foreground disabled:opacity-30">↑</button>
+                      <button type="button" aria-label={`Togli ${KPI_CATALOG[id]?.label}`} disabled={ids.length <= 1}
+                        onClick={() => change(p, ids.filter((x) => x !== id))}
+                        className="px-1 text-muted-foreground hover:text-red-500 disabled:opacity-30">✕</button>
+                    </li>
+                  ))}
+                </ol>
+                <select aria-label={`Aggiungi un KPI a ${PROFILE_DEFS[p].label}`} className={`${select} mt-2`} value=""
+                  disabled={ids.length >= MAX_KPIS}
+                  onChange={(e) => { if (e.target.value) change(p, [...ids, e.target.value]) }}>
+                  <option value="">{ids.length >= MAX_KPIS ? `Massimo ${MAX_KPIS} KPI` : 'Aggiungi un KPI…'}</option>
+                  {free.map((k) => <option key={k.id} value={k.id}>{k.label} — {SOURCE_LABELS[k.source]}</option>)}
+                </select>
+                <div className="mt-2 flex items-center gap-2">
+                  <button type="button" disabled={!dirty(p) || saving === p} onClick={() => send(p, ids)}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40">
+                    {saving === p && <Loader2 size={12} className="animate-spin" />} Salva
+                  </button>
+                  {dirty(p) && (
+                    <button type="button" onClick={() => setDraft((d) => { const n = { ...d }; delete n[p]; return n })}
+                      className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground">Annulla</button>
+                  )}
+                  {!isDefault && !dirty(p) && (
+                    <button type="button" disabled={saving === p} onClick={() => send(p, null)}
+                      className="h-8 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground">Ripristina predefiniti</button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
-      </div>
+      )}
     </div>
   )
 }
