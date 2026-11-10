@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-    KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SUGGESTED, defaultKpiIds, isKpiProfile, kpisForProfile,
-    monthlyMailState, normalizeName, suggestionFor, validateKpiFields,
+    KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SUGGESTED, defaultKpiIds, isKpiProfile, kpiIdsFor, kpisForProfile,
+    monthlyMailState, normalizeName, sanitizeOverrides, suggestionFor, validateKpiFields, validateKpiSelection,
 } from '../kpi-profiles';
 
 describe('kpi-profiles: catalogo', () => {
@@ -96,5 +96,33 @@ describe('kpi-profiles: proposta iniziale', () => {
         expect(suggestionFor('Cyberwise')).toEqual({ profile: null, include: false });
         expect(suggestionFor('Bike House')).toEqual({ profile: null, include: false });
         expect(suggestionFor('ATLANTIS')).toBeUndefined();
+    });
+});
+
+describe('kpi-profiles: KPI scelti a mano', () => {
+    it('da 1 a 5 KPI del catalogo, senza ripetizioni; l\'ordine resta quello scelto', () => {
+        expect(validateKpiSelection(['sessions', 'leads_meta'])).toEqual({ ok: true, ids: ['sessions', 'leads_meta'] });
+        expect(validateKpiSelection([])).toMatchObject({ ok: false, error: expect.stringMatching(/almeno un KPI/) });
+        expect(validateKpiSelection(Object.keys(KPI_CATALOG).slice(0, MAX_KPIS + 1))).toMatchObject({ ok: false, error: expect.stringMatching(/Al massimo 5/) });
+        expect(validateKpiSelection(['sessions', 'sessions'])).toMatchObject({ ok: false, error: expect.stringMatching(/ripetuto/) });
+        expect(validateKpiSelection(['inventato'])).toMatchObject({ ok: false, error: expect.stringMatching(/sconosciuto/) });
+        expect(validateKpiSelection('sessions')).toMatchObject({ ok: false });
+        expect(validateKpiSelection([1, 2])).toMatchObject({ ok: false });
+        expect(validateKpiSelection(null)).toMatchObject({ ok: false });
+    });
+
+    it('la scelta dell\'agenzia vince sul predefinito, ma solo per quel profilo', () => {
+        const o = { auto: ['sessions', 'gbp_calls'] };
+        expect(kpiIdsFor('auto', o)).toEqual(['sessions', 'gbp_calls']);
+        expect(kpiIdsFor('b2b', o)).toEqual(defaultKpiIds('b2b'));
+        expect(kpiIdsFor('auto')).toEqual(defaultKpiIds('auto'));
+        expect(kpisForProfile('auto', o).map((k) => k.id)).toEqual(['sessions', 'gbp_calls']);
+    });
+
+    it('rileggendo da Firestore si scarta ciò che non è valido, senza rompere gli altri profili', () => {
+        expect(sanitizeOverrides({ auto: ['sessions'], b2b: ['inventato'], locale: 'x', altro: ['sessions'] })).toEqual({ auto: ['sessions'] });
+        expect(sanitizeOverrides(null)).toEqual({});
+        expect(sanitizeOverrides(undefined)).toEqual({});
+        expect(sanitizeOverrides('boh')).toEqual({});
     });
 });
