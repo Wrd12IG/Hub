@@ -1,5 +1,6 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
+import type { ClientMonthly } from '@/lib/kpi-compute';
 import { cleanManualValues, isMonthKey, type ManualValues } from '@/lib/manual-kpis';
 import { settingsOrDefault, validateMailSettings, type MailSettings } from '@/lib/monthly-mail-settings';
 
@@ -72,4 +73,28 @@ export async function writeManualKpis(
     });
     if (saved.length) await batch.commit();
     return { saved, rejected };
+}
+
+/* ───────────── fotografie mensili ───────────── */
+
+
+const snapshotRef = (month: string, clientId: string) =>
+    adminDb.collection('monthly_kpi_snapshots').doc(month).collection('clients').doc(clientId);
+
+/**
+ * La fotografia dei KPI di un cliente per un mese: quella che la mail legge. Il giro da JSON toglie gli `undefined`, che
+ * Firestore rifiuta (questo progetto non ha `ignoreUndefinedProperties`): senza, la scrittura fallirebbe in silenzio.
+ */
+export async function writeSnapshot(month: string, result: ClientMonthly): Promise<void> {
+    await snapshotRef(month, result.clientId).set(JSON.parse(JSON.stringify({ computedAt: new Date().toISOString(), result })));
+}
+
+/** Le fotografie di un mese per i clienti indicati, in una lettura sola. Chi non ha fotografia non compare. */
+export async function readSnapshots(month: string, clientIds: string[]): Promise<Record<string, { computedAt: string; result: ClientMonthly }>> {
+    if (!isMonthKey(month)) throw new Error('Mese non valido.');
+    if (clientIds.length === 0) return {};
+    const snaps = await adminDb.getAll(...clientIds.map((id) => snapshotRef(month, id)));
+    const out: Record<string, { computedAt: string; result: ClientMonthly }> = {};
+    snaps.forEach((s, i) => { if (s.exists) out[clientIds[i]] = s.data() as { computedAt: string; result: ClientMonthly }; });
+    return out;
 }

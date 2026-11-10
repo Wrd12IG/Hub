@@ -285,7 +285,7 @@ export interface ComputeInput {
 }
 
 const MANUAL_IDS = ['leads_real', 'appointments', 'test_drives', 'sales'];
-const SOURCE_NAMES: Partial<Record<Platform, string>> = {
+export const SOURCE_NAMES: Partial<Record<Platform, string>> = {
     facebook: 'Meta Ads', google_ads: 'Google Ads', ga4: 'sito (GA4)', gbp: 'Google Maps', instagram: 'Instagram', facebook_page: 'Facebook',
     linkedin_organic: 'LinkedIn', klaviyo: 'Klaviyo', searchconsole: 'Search Console', awin: 'Awin', tiktok: 'TikTok',
 };

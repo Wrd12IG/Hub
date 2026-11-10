@@ -141,7 +141,7 @@ export function buildMonthlyMail(input: MonthlyMailInput): MonthlyMail {
     const expanded = new Set(attention.map((c) => c.clientId));
     const order = attention.map((c) => c.clientId);
     let html = render(expanded);
-    while (Buffer.byteLength(html, 'utf8') > BUDGET && expanded.size > 0) {
+    while (new TextEncoder().encode(html).length > BUDGET && expanded.size > 0) {
         expanded.delete(order[expanded.size - 1]);
         html = render(expanded);
     }
@@ -156,5 +156,5 @@ export function buildMonthlyMail(input: MonthlyMailInput): MonthlyMail {
         baseUrl,
     ].join('\n');
 
-    return { subject: `Report KPI clienti — ${label}${counts.down ? ` (${counts.down} in calo)` : ''}`, html, text, bytes: Buffer.byteLength(html, 'utf8'), counts };
+    return { subject: `Report KPI clienti — ${label}${counts.down ? ` (${counts.down} in calo)` : ''}`, html, text, bytes: new TextEncoder().encode(html).length, counts };
 }
