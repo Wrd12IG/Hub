@@ -63,6 +63,10 @@ export interface Client {
         gbp?: string[];             // One Windsor GBP account id per sede (multi-location)
         tiktok?: string;            // Account id Windsor (connettore tiktok_organic)
     };
+    // Mail mensile dei KPI (lib/kpi-profiles.ts): quali KPI guardare e se il cliente entra nella mail. Opt-in: senza il
+    // flag acceso il cliente non compare, e senza profilo non si sa quali KPI mostrare.
+    kpiProfile?: 'auto' | 'ecommerce' | 'locale' | 'b2b' | 'social' | null;
+    monthlyKpiMail?: boolean;
 }
 
 export interface SocialProfile {

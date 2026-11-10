@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { splitPrivateFields, savePrivateFields, readPrivateFields } from '@/lib/client-private';
 import { hasLegacyPrivateFields, migrateClientDoc } from '@/lib/client-private-migrate';
+import { validateKpiFields } from '@/lib/kpi-profiles';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource, saveClientToken } from '@/lib/api-auth';
 
 export async function GET(
@@ -202,6 +203,10 @@ export async function PATCH(
     if (typeof body.metaCampaignFilter === 'string') {
       body.metaCampaignFilter = body.metaCampaignFilter.trim().slice(0, 80);
     }
+
+    // Profilo KPI e flag della mail mensile: un booleano finto ("false" stringa) metterebbe il cliente nella mail
+    const kpiError = validateKpiFields(body);
+    if (kpiError) return NextResponse.json({ error: kpiError }, { status: 400 });
 
     // 1. Gestione sicura dei token
     if (body.metaAccessToken) {
