@@ -74,8 +74,8 @@ describe('makeGa4Runner', () => {
 describe('accesso con l\'account Google (chiamata REST)', () => {
     const saved = { ...process.env };
     beforeEach(() => {
-        process.env.GOOGLE_REFRESH_TOKEN = 'rt'; process.env.GOOGLE_CLIENT_ID = 'cid'; process.env.GOOGLE_CLIENT_SECRET = 'cs';
-        delete process.env.GA4_OAUTH_REFRESH_TOKEN; delete process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL; delete process.env.GOOGLE_ANALYTICS_PRIVATE_KEY;
+        process.env.GA4_OAUTH_REFRESH_TOKEN = 'rt'; process.env.GA4_OAUTH_CLIENT_ID = 'cid'; process.env.GA4_OAUTH_CLIENT_SECRET = 'cs';
+        delete process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL; delete process.env.GOOGLE_ANALYTICS_PRIVATE_KEY;
     });
     afterEach(() => { process.env = { ...saved }; vi.restoreAllMocks(); });
 
@@ -106,7 +106,7 @@ describe('accesso con l\'account Google (chiamata REST)', () => {
     });
 
     it('senza nessuna credenziale spiega cosa manca', async () => {
-        delete process.env.GOOGLE_REFRESH_TOKEN;
+        delete process.env.GA4_OAUTH_REFRESH_TOKEN;
         await expect(getGA4Totals('111111', '2026-10-01', '2026-10-31')).rejects.toThrow(/Mancano le credenziali per GA4/);
     });
 });

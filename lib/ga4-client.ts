@@ -79,14 +79,22 @@ function serviceAccountSource(): Ga4Source | null {
 // ─── Account Google dell'agenzia (OAuth) ─────────────────────────────────────
 
 /**
- * Token di rinnovo dell'account Google dell'agenzia. `GA4_OAUTH_REFRESH_TOKEN` se c'è, altrimenti lo stesso
- * `GOOGLE_REFRESH_TOKEN` che già usa l'elenco delle proprietà. Serve l'ambito analytics.readonly.
+ * Credenziali OAuth dedicate a GA4 (client + token di rinnovo con ambito analytics.readonly).
+ * Nomi propri, separati da GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET che usano YouTube e il resto del Hub:
+ * il token di rinnovo vale solo con il client con cui è stato creato.
  */
-function accountSource(): Ga4Source | null {
-  const refreshToken = process.env.GA4_OAUTH_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN;
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+function ga4OAuthEnv() {
+  const refreshToken = process.env.GA4_OAUTH_REFRESH_TOKEN;
+  const clientId = process.env.GA4_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GA4_OAUTH_CLIENT_SECRET;
   if (!refreshToken || !clientId || !clientSecret) return null;
+  return { refreshToken, clientId, clientSecret };
+}
+
+function accountSource(): Ga4Source | null {
+  const creds = ga4OAuthEnv();
+  if (!creds) return null;
+  const { refreshToken, clientId, clientSecret } = creds;
 
   const oauth = new OAuth2Client(clientId, clientSecret);
   oauth.setCredentials({ refresh_token: refreshToken });
@@ -127,7 +135,7 @@ function getGa4Client() {
   // Prima l'account dell'agenzia (vede già tutte le proprietà), poi il service account.
   const sources = [accountSource(), serviceAccountSource()].filter((s): s is Ga4Source => !!s);
   if (sources.length === 0) {
-    throw new Error('Mancano le credenziali per GA4: né l\'account Google (GOOGLE_REFRESH_TOKEN, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) né il service account (GOOGLE_ANALYTICS_*).');
+    throw new Error('Mancano le credenziali per GA4: né l\'account Google (GA4_OAUTH_REFRESH_TOKEN, GA4_OAUTH_CLIENT_ID, GA4_OAUTH_CLIENT_SECRET) né il service account (GOOGLE_ANALYTICS_*).');
   }
   return makeGa4Runner(sources, remembered);
 }
@@ -148,7 +156,7 @@ function explainGa4Error(err: any, propertyId: string): string {
   const email = process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL || 'il service account del Hub';
   const code = err?.code;
   const msg = String(err?.message || err);
-  const hasAccount = !!((process.env.GA4_OAUTH_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN) && process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+  const hasAccount = !!ga4OAuthEnv();
   const hasService = !!(process.env.GOOGLE_ANALYTICS_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_ANALYTICS_PRIVATE_KEY);
 
   if (code === 7 || code === 16 || /permission|insufficient|does not have access|unauthenticated|invalid_grant/i.test(msg)) {
