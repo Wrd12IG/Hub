@@ -7,7 +7,7 @@
  * Cosa fanno oggi (verificato nel codice il 12/11/2026):
  *  - le spunte delle PAGINE decidono solo se la voce compare nel menu e nella barra in basso. Non bloccano l'indirizzo: le
  *    rotte dei report e le regole del database sono aperte a tutto lo staff;
- *  - solo tre AZIONI sono lette dall'app: _create-task, _approve-tasks e _create-recurring-projects. _view-financials non limita ancora nulla;
+ *  - quattro AZIONI sono lette dall'app: _create-task, _approve-tasks, _create-recurring-projects e _view-financials (budget e note riservate dei clienti: l'Amministratore le vede sempre);
  *  - il ruolo Cliente non passa da qui: vede un elenco fisso (risultati, PED e brief del proprio cliente).
  */
 import { PAGES_ALWAYS_FOR_PM } from '@/lib/nav-permissions';
@@ -67,19 +67,18 @@ export const ACTIVE_ACTIONS: PermissionItem[] = [
     { key: '_create-task', label: 'Crea Task', description: 'Permette di creare un nuovo task.' },
     { key: '_approve-tasks', label: 'Approva Task', description: 'Permette di approvare i task completati.' },
     { key: '_create-recurring-projects', label: 'Task e Progetti Ricorrenti', description: 'Mostra le voci Task Ricorrenti e Progetti Ricorrenti e permette di crearli.' },
+    { key: '_view-financials', label: 'Visualizza Budget e Costi', description: 'Mostra budget e note riservate dei clienti (scheda Admin → Clienti, Redditività nella dashboard, scheda Finanza delle analisi). Senza la spunta restano nascosti anche al server. L\'Amministratore li vede sempre.' },
 ];
 
 /**
- * Azioni che l'app non legge ancora. Resta solo questa: vale la pena attivarla (oggi budget, costi e note riservate dei clienti
- * le vede tutto lo staff). Le altre cinque sono state tolte il 12/11/2026 perché non avevano né effetto né motivo di averlo:
+ * Azioni che l'app NON legge: nessuna. _view-financials è attiva dal 12/11/2026 (era l'ultima ancora senza effetto).
+ * Le altre cinque, che non avevano né effetto né motivo di averlo, sono state tolte lo stesso giorno:
  * _manage-users (gli utenti li gestiscono solo gli amministratori, per regole del database e per la pagina Admin),
  * _approve-absences (le assenze si approvano da sole), _manage-clients (si modificano da Admin → Clienti), _delete-task
  * (solo l'amministratore vede «Elimina») e _manage-editorial-plan (nessun PED in sola lettura richiesto).
  * Le chiavi già salvate nei ruoli restano nel database, ignorate: non serve ripulirle.
  */
-export const INACTIVE_ACTIONS: PermissionItem[] = [
-    { key: '_view-financials', label: 'Visualizza Budget e Costi', description: 'Oggi non nasconde nulla: budget, costi e note riservate dei clienti li vede tutto lo staff.' },
-];
+export const INACTIVE_ACTIONS: PermissionItem[] = [];
 
 export const ALL_PAGE_ITEMS: PermissionItem[] = PAGE_GROUPS.flatMap((g) => g.items);
 export const ALL_ITEMS: PermissionItem[] = [...ALL_PAGE_ITEMS, ...ACTIVE_ACTIONS, ...INACTIVE_ACTIONS];

@@ -4,6 +4,7 @@ import { onIdTokenChanged, User as AuthUser, signInWithEmailAndPassword } from '
 import { auth, db } from '@/lib/firebase';
 import { getDoc, doc, collection, query, where, orderBy, limit, onSnapshot, getDocs, setDoc, Timestamp, documentId, type Query } from 'firebase/firestore';
 import type { User, Client, Project, Task, ActivityType, Absence, RolePermissions, Conversation, Notification, CalendarActivity, TaskPrioritySettings, CalendarActivityPreset, BriefService, BriefServiceCategory, ServiceContract } from '@/lib/data';
+import { canSeeFinancials, withoutFinancials } from '@/lib/financial-access';
 import { getUsers, getClients, getProjects, getTasks, getActivityTypes, getAbsences, getRolePermissions, getTask, getProject, createNotification, addUser, getCalendarActivities, getTaskPrioritySettings, getCalendarActivityPresets, getBriefServices, getBriefServiceCategories, getServiceContracts } from '@/lib/actions';
 import { playSound, showBrowserNotification } from '@/lib/sounds';
 
@@ -21,6 +22,8 @@ interface LayoutContextType {
   users: User[];
   usersById: Record<string, User>;
   clients: Client[];
+  /** Vede budget, note riservate e costi dei clienti: amministratore sempre, gli altri solo con la spunta in Admin → Permessi. */
+  canViewFinancials: boolean;
   clientsById: Record<string, Client>;
   allProjects: Project[];
   allTasks: Task[];
@@ -106,9 +109,14 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   const [clientsRaw, setClients] = useState<Client[]>([]);
   // Budget e note interne non stanno più nel documento cliente (lo legge anche il Cliente): lo staff li riceve da una route Admin SDK.
   const [clientInternal, setClientInternal] = useState<Record<string, { budget?: number; notes?: string }>>({});
+  const canViewFinancials = canSeeFinancials(currentUser?.role, currentUser ? permissions[currentUser.role] : undefined);
   const clients = useMemo(
-    () => clientsRaw.map(c => (clientInternal[c.id] ? { ...c, ...clientInternal[c.id] } : c)),
-    [clientsRaw, clientInternal],
+    () => clientsRaw.map(c => {
+      // Senza il permesso niente budget e note nemmeno dal vecchio campo nel documento (non ancora migrato).
+      const base = canViewFinancials ? c : withoutFinancials(c);
+      return canViewFinancials && clientInternal[c.id] ? { ...base, ...clientInternal[c.id] } : base;
+    }),
+    [clientsRaw, clientInternal, canViewFinancials],
   );
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -533,6 +541,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       users: sanitizedUsers,
       usersById,
       clients,
+      canViewFinancials,
       clientsById,
       get allProjects() { requestWorkData(); return allProjects; },
       get allTasks() { requestWorkData(); return allTasks; },
@@ -567,6 +576,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     users,
     usersById,
     clients,
+    canViewFinancials,
     clientsById,
     allProjects,
     allTasks,

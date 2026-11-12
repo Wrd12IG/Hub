@@ -58,6 +58,11 @@ service cloud.firestore {
       return isSignedIn() && myRole() == 'Amministratore';
     }
 
+    function canViewFinancials() {
+      return isAdmin()
+        || get(/databases/$(database)/documents/rolePermissions/$(myRole())).data.get('permissions', []).hasAny(['_view-financials']);
+    }
+
     function ownsClient(clientId) {
       return isSignedIn() && myRole() == 'Cliente' && myClientId() == clientId;
     }
@@ -104,8 +109,11 @@ service cloud.firestore {
 
       // Dati interni (piano media, post-lead, budget, note, token pubblico): il documento clients/{id} è leggibile dal cliente
       // proprietario, questi no. La route /api/clients/[id] (Admin SDK) li unisce al documento per lo staff.
+      // «internal» (budget e note) è finanziario: amministratore, oppure un ruolo con la spunta «Visualizza Budget e Costi»
+      // (`_view-financials` in rolePermissions). Le regole con lo stesso percorso si sommano: per questo la condizione sta qui
+      // dentro, non in una regola a parte.
       match /private/{doc} {
-        allow read, write: if isStaff();
+        allow read, write: if isStaff() && (doc != 'internal' || canViewFinancials());
       }
 
       match /integrations/{platform} {

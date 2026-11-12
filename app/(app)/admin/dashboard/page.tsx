@@ -304,7 +304,7 @@ const formatCurrency = formatEuro;
 
 
 export default function Dashboard() {
-    const { users, usersById, clients, clientsById, allTasks, allProjects, activityTypes, absences, calendarActivities, calendarActivityPresets, isLoadingLayout, currentUser } = useLayoutData();
+    const { users, usersById, clients, clientsById, allTasks, allProjects, activityTypes, absences, calendarActivities, calendarActivityPresets, isLoadingLayout, currentUser, canViewFinancials } = useLayoutData();
 
     // Protezione accesso: solo Amministratore può vedere la dashboard
     // NOTA: non usare early return qui — violerebbe le Rules of Hooks.
@@ -3273,7 +3273,7 @@ export default function Dashboard() {
             )}
 
             {/* ===== Client Profitability Dashboard ===== */}
-            {isWidgetVisible('chart_client_profitability') && (
+            {isWidgetVisible('chart_client_profitability') && canViewFinancials && (
                 <Card className="glass-card">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">

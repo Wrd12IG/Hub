@@ -178,7 +178,7 @@ const AdminFormSkeleton = () => (
 
 
 function AdminPageContent() {
-    const { currentUser, handleCreateUser, users, clients, activityTypes, allTasks: tasks, isLoadingLayout, refetchData, taskPrioritySettings: initialPrioritySettings, setTaskPrioritySettings, calendarActivityPresets: presets } = useLayoutData();
+    const { currentUser, canViewFinancials, handleCreateUser, users, clients, activityTypes, allTasks: tasks, isLoadingLayout, refetchData, taskPrioritySettings: initialPrioritySettings, setTaskPrioritySettings, calendarActivityPresets: presets } = useLayoutData();
     const [departments, setDepartments] = useState<Department[]>([]);
     const [teams, setTeams] = useState<Team[]>([]);
     const [briefServices, setBriefServices] = useState<BriefService[]>([]);
@@ -453,10 +453,10 @@ function AdminPageContent() {
                         name: data.name,
                         email: data.email,
                         phone: data.phone,
-                        budget: Number(data.budget) || 0,
+                        ...(canViewFinancials ? { budget: Number(data.budget) || 0 } : {}),
                         address: data.address,
                         color: data.color,
-                        notes: data.notes,
+                        ...(canViewFinancials ? { notes: data.notes } : {}),
                         socialManagerId: data.socialManagerId && data.socialManagerId !== 'none' ? data.socialManagerId : undefined,
                         managedBy: getMembersFromForm(form, 'managedBy'),
                         allowedActivityTypeIds: getMembersFromForm(form, 'allowedActivityTypeIds'),
@@ -468,10 +468,10 @@ function AdminPageContent() {
                         name: data.name,
                         email: data.email,
                         phone: data.phone,
-                        budget: Number(data.budget) || 0,
+                        ...(canViewFinancials ? { budget: Number(data.budget) || 0 } : {}),
                         address: data.address,
                         color: data.color,
-                        notes: data.notes,
+                        ...(canViewFinancials ? { notes: data.notes } : {}),
                         socialManagerId: data.socialManagerId && data.socialManagerId !== 'none' ? data.socialManagerId : undefined,
                         managedBy: getMembersFromForm(form, 'managedBy'),
                         allowedActivityTypeIds: getMembersFromForm(form, 'allowedActivityTypeIds'),
@@ -870,7 +870,7 @@ function AdminPageContent() {
                                             <TableHead className="hidden sm:table-cell">Contatto</TableHead>
                                             <TableHead className="hidden md:table-cell">Social Manager</TableHead>
                                             <TableHead className="hidden md:table-cell">N. Task</TableHead>
-                                            <TableHead className="hidden lg:table-cell">Budget</TableHead>
+                                            {canViewFinancials && <TableHead className="hidden lg:table-cell">Budget</TableHead>}
                                             <TableHead className="text-right">
                                                 <span className="sr-only">Azioni</span>
                                             </TableHead>
@@ -925,9 +925,11 @@ function AdminPageContent() {
                                                     <TableCell className="hidden md:table-cell">
                                                         <Badge variant="outline">{stats.taskCount}</Badge>
                                                     </TableCell>
-                                                    <TableCell className="hidden lg:table-cell">
-                                                        €{(client.budget || 0).toLocaleString('it-IT')}
-                                                    </TableCell>
+                                                    {canViewFinancials && (
+                                                        <TableCell className="hidden lg:table-cell">
+                                                            €{(client.budget || 0).toLocaleString('it-IT')}
+                                                        </TableCell>
+                                                    )}
                                                     <TableCell className="text-right">
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
@@ -1392,6 +1394,7 @@ function AdminPageContent() {
                             users={users}
                             clients={clients}
                             activityTypes={activityTypes}
+                            canViewFinancials={canViewFinancials}
                             handleFormSubmit={handleFormSubmit}
                             handleCloseModal={handleCloseModal}
                         />
