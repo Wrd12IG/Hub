@@ -84,14 +84,14 @@ function RolePanel({ role, permissions, onChange }: { role: EditableRole; permis
 
             <details className="group rounded-xl border bg-card">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                    <span>Altre azioni, oggi senza effetto ({INACTIVE_ACTIONS.length})</span>
+                    <span>Da attivare: budget e costi</span>
                     <span className="text-xs text-muted-foreground group-open:hidden">Mostra</span>
                     <span className="hidden text-xs text-muted-foreground group-open:inline">Nascondi</span>
                 </summary>
                 <div className="space-y-2 border-t p-4">
                     <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>Queste caselle ci sono da tempo ma l&apos;app non le legge ancora: spuntarle o toglierle <b>non cambia nulla</b>. Per esempio, togliere «Visualizza Budget e Costi» non nasconde i budget.</span>
+                        <span>Questa casella c&apos;è ma l&apos;app non la legge ancora: spuntarla o toglierla <b>non cambia nulla</b>. Togliere «Visualizza Budget e Costi» non nasconde i budget: oggi li vede tutto lo staff.</span>
                     </p>
                     {INACTIVE_ACTIONS.map((item) => <Row key={item.key} item={item} role={role} on={has(permissions, role, item.key)} disabled onToggle={() => {}} />)}
                 </div>

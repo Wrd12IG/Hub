@@ -7,7 +7,7 @@
  * Cosa fanno oggi (verificato nel codice il 12/11/2026):
  *  - le spunte delle PAGINE decidono solo se la voce compare nel menu e nella barra in basso. Non bloccano l'indirizzo: le
  *    rotte dei report e le regole del database sono aperte a tutto lo staff;
- *  - solo tre AZIONI sono lette dall'app: _create-task, _approve-tasks e _create-recurring-projects. Le altre sei non limitano nulla;
+ *  - solo tre AZIONI sono lette dall'app: _create-task, _approve-tasks e _create-recurring-projects. _view-financials non limita ancora nulla;
  *  - il ruolo Cliente non passa da qui: vede un elenco fisso (risultati, PED e brief del proprio cliente).
  */
 import { PAGES_ALWAYS_FOR_PM } from '@/lib/nav-permissions';
@@ -69,14 +69,16 @@ export const ACTIVE_ACTIONS: PermissionItem[] = [
     { key: '_create-recurring-projects', label: 'Task e Progetti Ricorrenti', description: 'Mostra le voci Task Ricorrenti e Progetti Ricorrenti e permette di crearli.' },
 ];
 
-/** Azioni presenti da tempo ma che l'app non legge ancora: spuntarle non cambia niente. */
+/**
+ * Azioni che l'app non legge ancora. Resta solo questa: vale la pena attivarla (oggi budget, costi e note riservate dei clienti
+ * le vede tutto lo staff). Le altre cinque sono state tolte il 12/11/2026 perché non avevano né effetto né motivo di averlo:
+ * _manage-users (gli utenti li gestiscono solo gli amministratori, per regole del database e per la pagina Admin),
+ * _approve-absences (le assenze si approvano da sole), _manage-clients (si modificano da Admin → Clienti), _delete-task
+ * (solo l'amministratore vede «Elimina») e _manage-editorial-plan (nessun PED in sola lettura richiesto).
+ * Le chiavi già salvate nei ruoli restano nel database, ignorate: non serve ripulirle.
+ */
 export const INACTIVE_ACTIONS: PermissionItem[] = [
-    { key: '_manage-users', label: 'Gestione Utenti', description: 'Oggi non limita nulla.' },
-    { key: '_view-financials', label: 'Visualizza Budget e Costi', description: 'Oggi non nasconde budget e costi: toglierla non cambia ciò che si vede.' },
-    { key: '_delete-task', label: 'Elimina Task', description: 'Oggi non limita nulla.' },
-    { key: '_manage-clients', label: 'Gestione Clienti', description: 'Oggi non limita nulla.' },
-    { key: '_approve-absences', label: 'Approva Assenze', description: 'Oggi non limita nulla.' },
-    { key: '_manage-editorial-plan', label: 'Gestione Piano Editoriale', description: 'Oggi non limita nulla.' },
+    { key: '_view-financials', label: 'Visualizza Budget e Costi', description: 'Oggi non nasconde nulla: budget, costi e note riservate dei clienti li vede tutto lo staff.' },
 ];
 
 export const ALL_PAGE_ITEMS: PermissionItem[] = PAGE_GROUPS.flatMap((g) => g.items);
