@@ -108,11 +108,27 @@ export async function addUser(userId: string, userData: Omit<User, 'id'>): Promi
     });
 }
 
+// Stipendio e costo orario non stanno nel profilo (lo legge ogni utente collegato): vedi lib/user-compensation.ts.
+const USER_COMPENSATION_KEYS = ['salary', 'hourlyRate'] as const;
+
 export async function updateUser(userId: string, data: Partial<User>): Promise<void> {
-    await updateDoc(doc(db, 'users', userId), {
-        ...cleanData(data),
-        updatedAt: Timestamp.now(),
-    });
+    const rest: Record<string, any> = { ...data };
+    const compensation: Record<string, any> = {};
+    for (const k of USER_COMPENSATION_KEYS) if (k in rest) { compensation[k] = rest[k]; delete rest[k]; }
+    if (Object.keys(rest).length > 0) {
+        await updateDoc(doc(db, 'users', userId), {
+            ...cleanData(rest),
+            updatedAt: Timestamp.now(),
+        });
+    }
+    if (Object.keys(compensation).length > 0) {
+        const res = await authedFetch('/api/users/compensation', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, ...compensation }),
+        });
+        if (!res.ok) throw new Error(`Salvataggio di stipendio e costo orario non riuscito (${res.status})`);
+    }
 }
 
 // Clients

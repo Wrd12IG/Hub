@@ -74,11 +74,10 @@ service cloud.firestore {
     // ── users ────────────────────────────────────────────────────────────
     match /users/{uid} {
       // Everyone signed in can read the roster (names/avatars are shown across
-      // the UI for assignees, mentions, etc.). Sensitive fields (salary,
-      // hourlyRate) must NOT be trusted from this read alone — the client
-      // already strips them for Cliente-role in layout-context.tsx, but that
-      // is a UX nicety, not a security boundary; do not add new sensitive
-      // fields to this collection without also field-scoping this rule.
+      // the UI for assignees, mentions, etc.). Per questo stipendio e costo
+      // orario NON stanno qui: sono in users/{uid}/private/compensation (vedi
+      // sotto e lib/user-compensation.ts). Non aggiungere a questo documento
+      // campi riservati.
       allow read: if isSignedIn();
       // Un utente può aggiornare il proprio profilo ma NON i campi che
       // governano permessi e compensi: il ruolo viene letto da questo stesso
@@ -93,6 +92,13 @@ service cloud.firestore {
 
       match /notifications/{notificationId} {
         allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+
+      // Stipendio e costo orario (compensation): letti da chi ha il permesso finanziario, scritti solo dagli amministratori.
+      // Prima stavano nel documento utente, leggibile da qualunque utente collegato, Cliente compreso.
+      match /private/{doc} {
+        allow read: if canViewFinancials();
+        allow write: if isAdmin();
       }
     }
 

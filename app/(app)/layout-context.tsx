@@ -118,6 +118,8 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     }),
     [clientsRaw, clientInternal, canViewFinancials],
   );
+  // Stipendio e costo orario: area riservata, li riceve solo chi ha il permesso finanziario (route Admin SDK).
+  const [userCompensation, setUserCompensation] = useState<Record<string, { salary?: number; hourlyRate?: number }>>({});
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
@@ -182,7 +184,30 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     return () => { cancelled = true; };
   }, [currentUser?.id, currentUser?.role, clientsRaw]);
 
-  const usersById = useMemo(() => Object.fromEntries(users.map(user => [user.id, user])) as Record<string, User>, [users]);
+  // Compensi delle persone: si rileggono quando cambia l'elenco utenti (salvare un costo orario aggiorna il profilo).
+  useEffect(() => {
+    if (!currentUser?.id || !canViewFinancials) { setUserCompensation({}); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/users/compensation', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (res.ok && !cancelled) setUserCompensation(await res.json());
+      } catch (e) {
+        console.error('Error fetching user compensation:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentUser?.id, canViewFinancials, users]);
+
+  // Stipendio e costo orario: dall'area riservata a chi ne ha diritto; per tutti gli altri mai, nemmeno dal vecchio campo nel
+  // profilo (se non ancora spostato). usersById parte da qui, così i costi calcolati nell'app usano gli stessi valori.
+  const usersView = useMemo(() => users.map(u => {
+    if (!canViewFinancials) return { ...u, salary: undefined, hourlyRate: undefined } as User;
+    const comp = userCompensation[u.id];
+    return comp ? { ...u, salary: comp.salary, hourlyRate: comp.hourlyRate } as User : u;
+  }), [users, canViewFinancials, userCompensation]);
+  const usersById = useMemo(() => Object.fromEntries(usersView.map(user => [user.id, user])) as Record<string, User>, [usersView]);
   const clientsById = useMemo(() => Object.fromEntries(clients.map(client => [client.id, client])) as Record<string, Client>, [clients]);
   const tasksById = useMemo(() => Object.fromEntries(allTasks.map(task => [task.id, task])) as Record<string, Task>, [allTasks]);
   const projectsById = useMemo(() => Object.fromEntries(allProjects.map(project => [project.id, project])) as Record<string, Project>, [allProjects]);
@@ -531,14 +556,9 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   }, [soundSettings]);
 
   const value: LayoutContextType = useMemo(() => {
-    // Sanitize sensitive financial fields (salary, hourlyRate) for Client role users
-    const sanitizedUsers = currentUser?.role === 'Cliente'
-      ? users.map(u => ({ ...u, salary: undefined, hourlyRate: undefined }))
-      : users;
-
     return {
       currentUser,
-      users: sanitizedUsers,
+      users: usersView,
       usersById,
       clients,
       canViewFinancials,
@@ -574,6 +594,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   }, [
     currentUser,
     users,
+    usersView,
     usersById,
     clients,
     canViewFinancials,
