@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import {
-    ACTIVE_ACTIONS, ALL_PAGE_ITEMS, EDITABLE_ROLES, INACTIVE_ACTIONS, PAGE_GROUPS, changedCount, has, isLockedOn,
+    ACTIVE_ACTIONS, ALL_PAGE_ITEMS, EDITABLE_ROLES, PAGE_GROUPS, changedCount, has, isLockedOn,
     type EditableRole, type PermissionItem, type Permissions,
 } from '@/lib/admin-permissions-model';
 
@@ -81,21 +81,6 @@ function RolePanel({ role, permissions, onChange }: { role: EditableRole; permis
                     {ACTIVE_ACTIONS.map((item) => <Row key={item.key} item={item} role={role} on={has(permissions, role, item.key)} onToggle={(v) => onChange(role, item.key, v)} />)}
                 </CardContent>
             </Card>
-
-            <details className="group rounded-xl border bg-card">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 text-sm font-medium [&::-webkit-details-marker]:hidden">
-                    <span>Da attivare: budget e costi</span>
-                    <span className="text-xs text-muted-foreground group-open:hidden">Mostra</span>
-                    <span className="hidden text-xs text-muted-foreground group-open:inline">Nascondi</span>
-                </summary>
-                <div className="space-y-2 border-t p-4">
-                    <p className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>Questa casella c&apos;è ma l&apos;app non la legge ancora: spuntarla o toglierla <b>non cambia nulla</b>. Togliere «Visualizza Budget e Costi» non nasconde i budget: oggi li vede tutto lo staff.</span>
-                    </p>
-                    {INACTIVE_ACTIONS.map((item) => <Row key={item.key} item={item} role={role} on={has(permissions, role, item.key)} disabled onToggle={() => {}} />)}
-                </div>
-            </details>
         </div>
     );
 }

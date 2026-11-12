@@ -21,6 +21,7 @@ import {
 import { getTasks, getUsers, getClients, getProjects } from '@/lib/actions'
 import type { Task, User, Client, Project } from '@/lib/data'
 import { rateOf } from '@/lib/cost-model'
+import { useLayoutData } from '@/app/(app)/layout-context'
 
 // ─── Period options ────────────────────────────────────────────────────────────
 type Period = '7d' | '30d' | '90d'
@@ -276,6 +277,7 @@ function monthLabel(offset: number): string {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
+  const { canViewFinancials } = useLayoutData()
   const [tab, setTab] = useState<'produttivita' | 'finanza' | 'previsioni'>('produttivita')
   const [period, setPeriod] = useState<Period>('30d')
   const [loading, setLoading] = useState(true)
@@ -342,11 +344,12 @@ export default function AnalyticsPage() {
     return rawDate ? new Date(rawDate) >= cutoffDate : false
   }).length
 
-  const TABS = [
+  // La scheda Finanza (budget dei clienti, margini) è riservata a chi ha il permesso finanziario.
+  const TABS = ([
     { id: 'produttivita', label: 'Produttività' },
     { id: 'finanza', label: 'Finanza' },
     { id: 'previsioni', label: 'Previsioni' },
-  ] as const
+  ] as const).filter((t) => t.id !== 'finanza' || canViewFinancials)
 
   const lastMonth = monthlyLaborCosts[monthlyLaborCosts.length - 1] ?? 0
   const forecastEnd = budgetForecast[2] ?? 0
@@ -523,7 +526,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* ── FINANZA ── */}
-      {tab === 'finanza' && (
+      {tab === 'finanza' && canViewFinancials && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
             <KpiCard icon={DollarSign} label="Fatturato Stimato" value={loading ? '—' : `€${totalRevenue.toLocaleString('it-IT')}`} sub="da budget clienti" color="#22c55e" loading={loading} />

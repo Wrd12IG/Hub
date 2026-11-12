@@ -20,10 +20,10 @@ describe('modello dei permessi', () => {
         expect(PAGE_GROUPS[0].hint).toContain('TUTTI i clienti');
         expect(PAGE_GROUPS[0].items.map((i) => i.key)).toEqual(['/clients', '/reports']);
     });
-    it('le azioni attive sono le tre che l\'app legge; resta una sola, «Budget e Costi», dichiarata senza effetto', () => {
-        expect(ACTIVE_ACTIONS.map((a) => a.key).sort()).toEqual(['_approve-tasks', '_create-recurring-projects', '_create-task']);
-        expect(INACTIVE_ACTIONS.map((a) => a.key)).toEqual(['_view-financials']);
-        expect(INACTIVE_ACTIONS[0].description).toContain('Oggi non nasconde nulla');
+    it('le azioni sono le quattro che l\'app legge, e non ne resta nessuna senza effetto', () => {
+        expect(ACTIVE_ACTIONS.map((a) => a.key).sort()).toEqual(['_approve-tasks', '_create-recurring-projects', '_create-task', '_view-financials']);
+        expect(INACTIVE_ACTIONS).toEqual([]);
+        expect(ACTIVE_ACTIONS.find((a) => a.key === '_view-financials')!.description).toContain('Amministratore');
     });
     it('«Clienti» è sempre attivo solo per il Project Manager', () => {
         expect(isLockedOn('Project Manager', '/clients')).toBe(true);

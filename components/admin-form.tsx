@@ -32,11 +32,13 @@ interface AdminFormProps {
     clients: Client[];
     briefServiceCategories: BriefServiceCategory[];
     activityTypes: ActivityType[];
+    /** Budget e note riservate del cliente: senza il permesso i campi non si mostrano (e non si inviano). */
+    canViewFinancials?: boolean;
     handleFormSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
     handleCloseModal: () => void;
 }
 
-export default function AdminForm({ modalOpen, editingUser, editingClient, editingDepartment, editingTeam, editingActivity, editingService, editingCalendarPreset, departments, teams, users, clients, briefServiceCategories, activityTypes, handleFormSubmit, handleCloseModal }: AdminFormProps) {
+export default function AdminForm({ modalOpen, editingUser, editingClient, editingDepartment, editingTeam, editingActivity, editingService, editingCalendarPreset, departments, teams, users, clients, briefServiceCategories, activityTypes, canViewFinancials = false, handleFormSubmit, handleCloseModal }: AdminFormProps) {
     const isEdit = modalOpen?.startsWith('edit-') || false;
     const [selectedRole, setSelectedRole] = React.useState(editingUser?.role || '');
     const [avatarUrl, setAvatarUrl] = React.useState(editingUser?.avatar || '');
@@ -121,7 +123,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div><Label htmlFor="phone">Telefono</Label><Input id="phone" name="phone" defaultValue={editingClient?.phone} /></div>
-                        <div><Label htmlFor="budget">Budget</Label><Input id="budget" name="budget" type="number" defaultValue={editingClient?.budget || 0} /></div>
+                        {canViewFinancials && <div><Label htmlFor="budget">Budget</Label><Input id="budget" name="budget" type="number" defaultValue={editingClient?.budget || 0} /></div>}
                     </div>
                     <div><Label htmlFor="address">Indirizzo</Label><Input id="address" name="address" defaultValue={editingClient?.address} /></div>
                     <div>
@@ -139,7 +141,7 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                         </Select>
                     </div>
                     <div><Label htmlFor="color">Colore</Label><Input id="color" name="color" type="color" defaultValue={editingClient?.color || "#34A853"} /></div>
-                    <div><Label htmlFor="notes">Note</Label><Textarea id="notes" name="notes" defaultValue={editingClient?.notes} /></div>
+                    {canViewFinancials && <div><Label htmlFor="notes">Note</Label><Textarea id="notes" name="notes" defaultValue={editingClient?.notes} /></div>}
                     <div>
                         <Label>Utenti Responsabili</Label>
                         <div className="space-y-2 max-h-48 overflow-y-auto border p-2 rounded-md">

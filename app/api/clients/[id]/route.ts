@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { deleteClientCascade } from '@/lib/client-delete';
+import { canViewFinancialsServer, withoutFinancials, FINANCIAL_CLIENT_FIELDS } from '@/lib/financial-access';
 import { splitPrivateFields, savePrivateFields, readPrivateFields } from '@/lib/client-private';
 import { hasLegacyPrivateFields, migrateClientDoc } from '@/lib/client-private-migrate';
 import { validateKpiFields } from '@/lib/kpi-profiles';
@@ -71,11 +72,15 @@ export async function GET(
     }
 
     // Piano media, post-lead, budget, note e token stanno in clients/{id}/private (solo staff): qui tornano nel documento.
-    const privateFields = await readPrivateFields(adminDb, id, doc.data() as Record<string, unknown>);
+    const canFinancials = await canViewFinancialsServer(adminDb, user);
+    const privateRaw = await readPrivateFields(adminDb, id, doc.data() as Record<string, unknown>);
+    // Budget e note solo a chi ha il permesso: né dal documento (vecchio campo non ancora migrato) né dall'area riservata.
+    const privateFields = canFinancials ? privateRaw : withoutFinancials(privateRaw as Record<string, unknown>);
+    const baseDoc = canFinancials ? doc.data() : withoutFinancials(doc.data() as Record<string, unknown>);
 
     return NextResponse.json({
       id: doc.id,
-      ...doc.data(),
+      ...baseDoc,
       ...privateFields,
       // Social organico — solo flag di presenza e nome visibile, mai token cifrati
       hasYoutubeToken:    !!youtubeData?.accessToken,
@@ -117,6 +122,8 @@ export async function PUT(
 
     // Il token del link pubblico si cambia solo da /api/clients/[id]/public-link (tiene allineato l'indice).
     delete body.publicToken; delete body.publicTokenCreatedAt;
+    // Senza il permesso finanziario budget e note si ignorano (non si sovrascrivono con i valori vuoti di un modulo che non li mostrava).
+    if (!(await canViewFinancialsServer(adminDb, await getAppUser(auth.uid)))) for (const f of FINANCIAL_CLIENT_FIELDS) delete body[f];
     const { rest, privateFields } = splitPrivateFields(body);
     const updateData: Record<string, unknown> = {
       ...rest,
@@ -247,6 +254,7 @@ export async function PATCH(
 
     // 2. Aggiornamento dei restanti campi pubblici (il token del link pubblico passa solo da /public-link)
     delete body.publicToken; delete body.publicTokenCreatedAt;
+    if (!(await canViewFinancialsServer(adminDb, await getAppUser(auth.uid)))) for (const f of FINANCIAL_CLIENT_FIELDS) delete body[f];
     const { rest, privateFields } = splitPrivateFields(body);
     const updateData: Record<string, unknown> = {
       ...rest,
