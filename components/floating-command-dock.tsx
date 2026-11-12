@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useCommandMenu } from '@/components/command-menu';
 import { useLayoutData } from '@/app/(app)/layout-context';
+import { PAGES_ALWAYS_FOR_PM, isProjectManagerRole } from '@/lib/nav-permissions';
 import { RolePermissions } from '@/lib/data';
 
 // ── Stessa struttura di allNavItems dalla sidebar ──
@@ -163,7 +164,8 @@ export function FloatingCommandDock() {
             if (item.permission && userPermissions.includes(item.permission)) return true;
             if (userPermissions.includes(item.href)) return true;
             if (item.altHrefs?.some(h => userPermissions.includes(h))) return true;
-            const isPM = (normalizedRole.includes('project') && normalizedRole.includes('manager')) || normalizedRole === 'pm';
+            const isPM = isProjectManagerRole(normalizedRole);
+            if (isPM && PAGES_ALWAYS_FOR_PM.includes(item.href)) return true;
             if (isPM && isRecurringItem) {
                 return userPermissions.includes('_create-recurring-projects') || userPermissions.includes(item.href);
             }
