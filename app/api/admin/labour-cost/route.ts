@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { readAllCompensation } from '@/lib/user-compensation';
 import { adminDb } from '@/lib/firebase-admin';
 import { computeLabourCost, hourlyOverheadOf, type AllocateMode, type LabourActivity, type LabourTask } from '@/lib/labour-cost';
 
@@ -39,7 +40,9 @@ export async function GET(request: NextRequest) {
       adminDb.collection('settings').doc('companyCosts').get(),
     ]);
 
-    const usersById = Object.fromEntries(usersSnap.docs.map((d) => [d.id, { hourlyRate: d.get('hourlyRate') }]));
+    // Il costo orario sta nell'area riservata (lib/user-compensation.ts), con ripiego sul vecchio campo nel profilo.
+    const comp = await readAllCompensation(adminDb);
+    const usersById = Object.fromEntries(usersSnap.docs.map((d) => [d.id, { hourlyRate: comp[d.id]?.hourlyRate ?? d.get('hourlyRate') }]));
     const clientNames = Object.fromEntries(clientsSnap.docs.map((d) => [d.id, String(d.get('name') ?? d.id)]));
     const tasks: LabourTask[] = tasksSnap.docs.map((d) => ({
       clientId: d.get('clientId'), timeSpent: d.get('timeSpent'), assignedUserId: d.get('assignedUserId'),

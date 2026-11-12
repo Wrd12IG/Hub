@@ -18,7 +18,7 @@ import {
   type ClientRevenueInput,
   type ProjectROIInput,
 } from '@/lib/analytics-engine'
-import { getTasks, getUsers, getClients, getProjects } from '@/lib/actions'
+import { getTasks, getClients, getProjects } from '@/lib/actions'
 import type { Task, User, Client, Project } from '@/lib/data'
 import { rateOf } from '@/lib/cost-model'
 import { useLayoutData } from '@/app/(app)/layout-context'
@@ -277,23 +277,22 @@ function monthLabel(offset: number): string {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
-  const { canViewFinancials } = useLayoutData()
+  // Gli utenti arrivano dal contesto: lì il costo orario è già quello dell'area riservata (e manca a chi non ha il permesso).
+  const { canViewFinancials, users } = useLayoutData()
   const [tab, setTab] = useState<'produttivita' | 'finanza' | 'previsioni'>('produttivita')
   const [period, setPeriod] = useState<Period>('30d')
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
   const [tasks, setTasks] = useState<Task[]>([])
-  const [users, setUsers] = useState<User[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [projects, setProjects] = useState<Project[]>([])
 
   const loadData = async () => {
     setLoading(true)
     try {
-      const [t, u, c, p] = await Promise.all([getTasks(), getUsers(), getClients(), getProjects()])
+      const [t, c, p] = await Promise.all([getTasks(), getClients(), getProjects()])
       setTasks(t)
-      setUsers(u)
       setClients(c)
       setProjects(p)
       setLastRefresh(new Date())
@@ -345,11 +344,12 @@ export default function AnalyticsPage() {
   }).length
 
   // La scheda Finanza (budget dei clienti, margini) è riservata a chi ha il permesso finanziario.
+  // Finanza (budget, margini) e Previsioni (costo del lavoro, da stipendi e costi orari) sono riservate al permesso finanziario.
   const TABS = ([
     { id: 'produttivita', label: 'Produttività' },
     { id: 'finanza', label: 'Finanza' },
     { id: 'previsioni', label: 'Previsioni' },
-  ] as const).filter((t) => t.id !== 'finanza' || canViewFinancials)
+  ] as const).filter((t) => t.id === 'produttivita' || canViewFinancials)
 
   const lastMonth = monthlyLaborCosts[monthlyLaborCosts.length - 1] ?? 0
   const forecastEnd = budgetForecast[2] ?? 0
@@ -625,7 +625,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* ── PREVISIONI ── */}
-      {tab === 'previsioni' && (
+      {tab === 'previsioni' && canViewFinancials && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border-color, rgba(0,0,0,0.08))', borderRadius: '16px', padding: '1.5rem' }}>
             <h3 style={{ margin: '0 0 1.5rem', fontSize: '1rem', fontWeight: 700 }}>Costo Lavoro — Storico + Previsione 3 Mesi</h3>

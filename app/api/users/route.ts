@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, getAppUser, forbiddenResponse } from '@/lib/api-auth';
+import { splitCompensation, saveCompensation } from '@/lib/user-compensation';
 
 /**
  * Creazione utenti lato server.
@@ -71,8 +72,10 @@ export async function POST(request: Request) {
     }
   }
 
+  // Stipendio e costo orario non vanno nel profilo (lo legge ogni utente collegato): area riservata.
+  const { rest: profiloPubblico, fields: compensi } = splitCompensation(profile as Record<string, unknown>);
   const dati: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(profile)) if (v !== undefined) dati[k] = v;
+  for (const [k, v] of Object.entries(profiloPubblico)) if (v !== undefined) dati[k] = v;
 
   try {
     await adminDb.collection('users').doc(uid!).set({
@@ -88,6 +91,14 @@ export async function POST(request: Request) {
     if (!riparazione) await adminAuth.deleteUser(uid!).catch(() => {});
     console.error('[api/users] scrittura profilo fallita:', e);
     return NextResponse.json({ error: 'Account non creato: scrittura del profilo fallita.' }, { status: 500 });
+  }
+
+  try {
+    await saveCompensation(adminDb, uid!, compensi);
+  } catch (e) {
+    // L'utente esiste: il profilo non va buttato per un costo orario non salvato. Si dice, e si imposta dal profilo.
+    console.error('[api/users] salvataggio costo orario fallito:', e);
+    return NextResponse.json({ uid, riparato: riparazione, avviso: 'Utente creato, ma stipendio e costo orario non sono stati salvati: impostali dalla modifica utente.' });
   }
 
   return NextResponse.json({ uid, riparato: riparazione });
