@@ -326,6 +326,13 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
 
           if (userDoc.exists()) {
             const profile = { id: userDoc.id, ...userDoc.data() } as User;
+            // Uno stato «Inattivo» deve togliere l'accesso anche agli account creati prima che la disattivazione bloccasse
+            // l'account di accesso (Authentication): senza questo controllo restavano entrati con la loro password.
+            if (profile.status === 'Inattivo') {
+              console.warn(`Utente ${user.uid} disattivato: accesso negato.`);
+              handleLogout();
+              return;
+            }
             setCurrentUser(profile);
             // Permessi di menu e priorità dei task servono solo allo staff. Per l'utente «Cliente» le regole Firestore
             // negano la lettura di `settings`: prima l'errore finiva nel catch qui sotto, che faceva il logout, e il

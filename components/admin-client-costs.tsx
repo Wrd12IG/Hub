@@ -17,7 +17,7 @@ const th = 'px-3 py-2 text-xs font-medium text-muted-foreground text-right'
 const td = 'px-3 py-2 text-sm text-right [font-variant-numeric:tabular-nums]'
 
 /** Costo del lavoro interno per cliente: ore registrate × costo orario di chi le ha fatte. Solo amministratori. */
-export default function CostiClientiPage() {
+export default function AdminClientCosts() {
   const { authFetch } = useAuthFetch()
   const { currentUser } = useLayoutData()
   const [months, setMonths] = useState(3)
@@ -38,13 +38,13 @@ export default function CostiClientiPage() {
 
   useEffect(() => { if (currentUser?.role === 'Amministratore') load() }, [load, currentUser?.role])
 
-  if (currentUser?.role !== 'Amministratore') return <p className="p-6 text-sm text-muted-foreground">Pagina riservata agli amministratori.</p>
+  if (currentUser?.role !== 'Amministratore') return null
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Costi per cliente</h1>
+          <h2 className="text-xl font-semibold tracking-tight">Costo del lavoro per cliente</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Costo del lavoro interno: ore registrate su task e attività di calendario per il costo orario di chi le ha fatte (30 €/h se nel profilo manca). La stima mensile è la media dei mesi completi.
           </p>
@@ -112,7 +112,7 @@ export default function CostiClientiPage() {
         <div className="space-y-1 text-xs text-muted-foreground">
           <p><span className="font-medium text-foreground">Diretta</span> = ore × costo orario del profilo. {data.hourlyOverhead > 0
             ? <><span className="font-medium text-foreground">Piena</span> = diretta + sovrapprezzo dei costi aziendali ({formatEuro(data.hourlyOverhead)}/h: dirigenza, struttura e varie ÷ collaboratori e PM attivi ÷ 160 ore).</>
-            : <>I costi aziendali non sono impostati (Admin → Costi Aziendali): il costo pieno non si può calcolare.</>}</p>
+            : <>I costi aziendali non sono impostati (il blocco «Costi fissi» qui sopra): il costo pieno non si può calcolare.</>}</p>
           <p>
             {data.allocate === 'none'
               ? <>La riga «Senza cliente» raccoglie le ore di task e attività non collegati a nessun cliente: sono nel totale. Scegli «Lavoro interno» in alto per ripartirle sui clienti.</>

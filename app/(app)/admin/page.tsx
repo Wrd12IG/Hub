@@ -34,7 +34,6 @@ import {
     addDepartment,
     addTeam,
     updateUser,
-    deleteUser,
     updateDepartment,
     deleteDepartment,
     updateTeam,
@@ -44,15 +43,11 @@ import {
     updateActivityType,
     deleteActivityType,
     updateClient,
-    deleteClient,
     getClients,
     getRolePermissions,
     updateRolePermissions,
-    getEditorialPillars,
     getEditorialFormats,
     getEditorialStatuses,
-    addEditorialPillar,
-    deleteEditorialPillar,
     addEditorialFormat,
     deleteEditorialFormat,
     addEditorialStatus,
@@ -81,7 +76,6 @@ import {
     User,
     ActivityType,
     RolePermissions,
-    EditorialPillar,
     EditorialFormat,
     EditorialStatus,
     EditorialColumn,
@@ -95,7 +89,7 @@ import { Badge } from '@/components/ui/badge';
 import { AdminPermissions } from '@/components/admin-permissions';
 import { toggle as togglePermission } from '@/lib/admin-permissions-model';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon, Users, Building2, Shield, Sliders, FolderTree, CheckSquare, Calendar, FileText, CalendarDays, Database } from 'lucide-react';
+import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon, Users, Building2, Shield, Sliders, CheckSquare, Calendar, FileText, CalendarDays } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -107,6 +101,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { useAuthFetch } from '@/hooks/useAuthFetch';
+import { SYSTEM_STATUSES, SYSTEM_FORMATS, isSystemRow } from '@/lib/actions';
+import type { ClientImpact } from '@/lib/client-delete';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -144,6 +141,7 @@ const AdminAutomations = dynamic(() => import('@/components/admin-automations').
     loading: () => <div className="p-6 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
 });
 
+const AdminClientCosts = dynamic(() => import('@/components/admin-client-costs'), { ssr: false });
 const AdminCompanyCosts = dynamic(() => import('@/components/admin-company-costs'), {
     loading: () => <div className="p-6 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
 });
@@ -197,6 +195,9 @@ function AdminPageContent() {
 
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+    const [clientImpact, setClientImpact] = useState<ClientImpact | null>(null);
+    const [clientImpactError, setClientImpactError] = useState<string | null>(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [departmentToDelete, setDepartmentToDelete] = useState<Department | null>(null);
     const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
     const [activityToDelete, setActivityToDelete] = useState<ActivityType | null>(null);
@@ -238,12 +239,9 @@ function AdminPageContent() {
 
 
     // Editorial Plan Settings State
-    const [editorialPillars, setEditorialPillars] = useState<EditorialPillar[]>([]);
     const [editorialFormats, setEditorialFormats] = useState<EditorialFormat[]>([]);
     const [editorialStatuses, setEditorialStatuses] = useState<EditorialStatus[]>([]);
     const [editorialColumns, setEditorialColumns] = useState<EditorialColumn[]>([]);
-    const [newPillarName, setNewPillarName] = useState('');
-    const [newPillarClient, setNewPillarClient] = useState('all');
     const [newFormatName, setNewFormatName] = useState('');
     const [newStatusName, setNewStatusName] = useState('');
     const [newStatusColor, setNewStatusColor] = useState('#888888');
@@ -265,7 +263,6 @@ function AdminPageContent() {
                 departmentsData,
                 teamsData,
                 permissionsData,
-                pillarsData,
                 formatsData,
                 statusesData,
                 columnsData,
@@ -275,7 +272,6 @@ function AdminPageContent() {
                 getDepartments(),
                 getTeams(),
                 getRolePermissions(),
-                getEditorialPillars(),
                 getEditorialFormats(),
                 getEditorialStatuses(),
                 getEditorialColumns(),
@@ -286,7 +282,6 @@ function AdminPageContent() {
             setTeams(teamsData);
             setRolePermissions(permissionsData);
             setInitialPermissions(permissionsData);
-            setEditorialPillars(pillarsData);
             setEditorialFormats(formatsData);
             setEditorialStatuses(statusesData);
             setEditorialColumns(columnsData);
@@ -577,29 +572,65 @@ function AdminPageContent() {
         }
     }, [modalOpen, editingUser, editingClient, editingDepartment, editingTeam, editingActivity, editingService, editingCalendarPreset, toast, handleCreateUser, fetchData]);
 
+    const { authFetch } = useAuthFetch();
+
+    /** Blocca o riapre l'accesso di una persona (account di accesso incluso). I suoi task e lo storico restano. */
+    const handleToggleUserStatus = async (user: User) => {
+        const next = user.status === 'Inattivo' ? 'Attivo' : 'Inattivo';
+        try {
+            const res = await authFetch(`/api/users/${user.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`);
+            toast({ title: next === 'Inattivo' ? 'Accesso bloccato' : 'Accesso riaperto', description: next === 'Inattivo' ? `${user.name} non può più entrare.` : `${user.name} può entrare di nuovo.` });
+            fetchData();
+        } catch (error: any) {
+            toast({ title: 'Errore', description: error.message || "Impossibile cambiare lo stato.", variant: 'destructive' });
+        }
+    };
+
     const handleDeleteUser = async () => {
         if (!userToDelete) return;
         try {
-            await deleteUser(userToDelete.id);
-            toast({ title: "Successo", description: `Utente ${userToDelete.name} eliminato.` });
+            const res = await authFetch(`/api/users/${userToDelete.id}`, { method: 'DELETE' });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`);
+            toast({ title: "Utente eliminato", description: `${userToDelete.name} non ha più né profilo né accesso.` });
             setUserToDelete(null);
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete user:', error);
-            toast({ title: "Errore", description: "Impossibile eliminare l'utente.", variant: 'destructive' });
+            toast({ title: "Errore", description: error.message || "Impossibile eliminare l'utente.", variant: 'destructive' });
+        }
+    };
+
+    /** Apre la conferma e legge cosa sparirebbe davvero: i numeri veri, non una frase generica. */
+    const askDeleteClient = async (client: Client) => {
+        setClientToDelete(client);
+        setClientImpact(null);
+        setClientImpactError(null);
+        setDeleteConfirmText('');
+        try {
+            const res = await authFetch(`/api/clients/${client.id}/impact`);
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`);
+            setClientImpact(j);
+        } catch (error: any) {
+            setClientImpactError(error.message || 'Impossibile leggere cosa verrebbe eliminato.');
         }
     };
 
     const handleDeleteClient = async () => {
         if (!clientToDelete) return;
         try {
-            await deleteClient(clientToDelete.id);
-            toast({ title: "Successo", description: `Cliente ${clientToDelete.name} eliminato.` });
+            const res = await authFetch(`/api/clients/${clientToDelete.id}`, { method: 'DELETE' });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`);
+            toast({ title: "Cliente eliminato", description: `${clientToDelete.name} e i dati collegati sono stati eliminati.` });
             setClientToDelete(null);
             fetchData();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete client:', error);
-            toast({ title: "Errore", description: "Impossibile eliminare il cliente.", variant: 'destructive' });
+            toast({ title: "Errore", description: error.message || "Impossibile eliminare il cliente.", variant: 'destructive' });
         }
     };
 
@@ -667,17 +698,6 @@ function AdminPageContent() {
     };
 
     // --- Editorial Plan Settings Handlers ---
-    const handleAddPillar = async () => {
-        if (!newPillarName.trim()) return;
-        try {
-            await addEditorialPillar({ name: newPillarName, clientId: newPillarClient === 'all' ? undefined : newPillarClient });
-            setNewPillarName('');
-            setNewPillarClient('all');
-            await fetchData();
-            toast({ title: "Topic Aggiunto" });
-        } catch (e) { toast({ title: "Errore", variant: 'destructive' }); }
-    };
-
     const handleAddFormat = async () => {
         if (!newFormatName.trim()) return;
         try {
@@ -733,44 +753,26 @@ function AdminPageContent() {
                     Pannello di Amministrazione
                 </h1>
                 <p className="text-muted-foreground">
-                    Gestisci utenti, clienti, reparti, team, attività e permessi.
+                    Persone e accessi, regole di lavoro, costi, comunicazioni e aspetto dell&apos;app.
                 </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                <TabsList className="h-auto flex flex-wrap justify-start gap-2 bg-transparent p-0">
-                    <TabsTrigger value="users" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Users className="h-4 w-4 text-blue-400" /> Utenti</TabsTrigger>
-                    <TabsTrigger value="clients" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Building2 className="h-4 w-4 text-emerald-400" /> Clienti</TabsTrigger>
-                    <TabsTrigger value="permissions" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Shield className="h-4 w-4 text-amber-400" /> Permessi</TabsTrigger>
-                    <TabsTrigger value="task_priorities" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Sliders className="h-4 w-4 text-purple-400" /> Priorità</TabsTrigger>
-                    <TabsTrigger value="departments_teams" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><FolderTree className="h-4 w-4 text-indigo-400" /> Reparti & Team</TabsTrigger>
-                    <TabsTrigger value="activities" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><CheckSquare className="h-4 w-4 text-teal-400" /> Tipi Attività Task</TabsTrigger>
-                    <TabsTrigger value="calendar_activities" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Calendar className="h-4 w-4 text-rose-400" /> Tipi Attività Calendario</TabsTrigger>
-                    <TabsTrigger value="brief_services" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><FileText className="h-4 w-4 text-yellow-400" /> Servizi Brief</TabsTrigger>
-                    <TabsTrigger value="editorial-plan" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-pink-400" /> Piano Editoriale</TabsTrigger>
-                    <TabsTrigger value="dashboard_widgets" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><LayoutDashboard className="h-4 w-4 text-cyan-400" /> Widget della Dashboard</TabsTrigger>
-                    <TabsTrigger value="email_templates" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Mail className="h-4 w-4 text-sky-400" /> Template Email</TabsTrigger>
-                    <TabsTrigger value="sounds" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Volume2 className="h-4 w-4 text-violet-400" /> Suoni</TabsTrigger>
-                    <TabsTrigger value="automations" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Zap className="h-4 w-4 text-amber-400" /> Automazioni</TabsTrigger>
-                    <TabsTrigger value="company_costs" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Coins className="h-4 w-4 text-emerald-400" /> Costi Aziendali</TabsTrigger>
-                    <TabsTrigger value="site_icons" className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><ImageIcon className="h-4 w-4 text-fuchsia-400" /> Icone Sito</TabsTrigger>
-                    {/* Pagina di servizio per spostare i dati interni dei clienti nell'area solo-staff: solo amministratori.
-                        Stesso aspetto e stessa riga delle schede, ma apre una pagina a parte. */}
-                    {currentUser?.role === 'Amministratore' && (
-                        <Link href="/admin/migrazione-dati" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
-                            <Database className="h-4 w-4 text-sky-400" /> Migrazione dati
-                        </Link>
-                    )}
-                    {currentUser?.role === 'Amministratore' && (
-                        <Link href="/admin/costi-clienti" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
-                            <Coins className="h-4 w-4 text-emerald-400" /> Costi per cliente
-                        </Link>
-                    )}
-                    {currentUser?.role === 'Amministratore' && (
-                        <Link href="/admin/report-mensile" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
-                            <Mail className="h-4 w-4 text-sky-400" /> Mail mensile KPI
-                        </Link>
-                    )}
+                <TabsList className="h-auto flex-col items-stretch gap-3 bg-transparent p-0">
+                    {ADMIN_GROUPS.map((group) => (
+                        <div key={group.label} className="flex flex-wrap items-center gap-2">
+                            <span className="w-full text-[11px] font-semibold uppercase tracking-wider text-muted-foreground sm:w-36">{group.label}</span>
+                            {group.tabs.map(({ value, label, Icon, color }) => (
+                                <TabsTrigger key={value} value={value} className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Icon className={`h-4 w-4 ${color}`} /> {label}</TabsTrigger>
+                            ))}
+                            {/* Collegamento a una pagina a parte (non è una scheda): stesso aspetto, solo amministratori. */}
+                            {group.label === 'Azienda' && currentUser?.role === 'Amministratore' && (
+                                <Link href="/admin/report-mensile" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
+                                    <Mail className="h-4 w-4 text-sky-400" /> Mail mensile KPI
+                                </Link>
+                            )}
+                        </div>
+                    ))}
                 </TabsList>
 
                 <TabsContent value="users">
@@ -836,7 +838,7 @@ function AdminPageContent() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuItem onClick={() => openEditUserModal(user)}>Modifica</DropdownMenuItem>
-                                                            <DropdownMenuItem>Disattiva</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleToggleUserStatus(user)}>{user.status === 'Inattivo' ? 'Riattiva accesso' : 'Blocca accesso'}</DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem className="text-red-500" onClick={() => setUserToDelete(user)}>
                                                                 Elimina
@@ -945,7 +947,7 @@ function AdminPageContent() {
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => openEditClientModal(client)}>Modifica</DropdownMenuItem>
                                                                 <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-red-500" onClick={() => setClientToDelete(client)}>
+                                                                <DropdownMenuItem className="text-red-500" onClick={() => askDeleteClient(client)}>
                                                                     Elimina
                                                                 </DropdownMenuItem>
                                                             </DropdownMenuContent>
@@ -1005,116 +1007,6 @@ function AdminPageContent() {
                             </div>
                         </CardContent>
                     </Card>
-                </TabsContent>
-
-                <TabsContent value="departments_teams">
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>Reparti</CardTitle>
-                                <Button size="sm" onClick={() => setModalOpen('department')}>+ Nuovo Reparto</Button>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Nome</TableHead>
-                                                <TableHead className="hidden sm:table-cell">Utenti</TableHead>
-                                                <TableHead className="text-right">
-                                                    <span className="sr-only">Azioni</span>
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {departments.map((dept) => (
-                                                <TableRow key={dept.id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <span
-                                                                className="w-3 h-3 rounded-full"
-                                                                style={{ backgroundColor: dept.color }}
-                                                            />
-                                                            {dept.name}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="hidden sm:table-cell">
-                                                        {dept.members?.length || 0}
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon">
-                                                                    <MoreVertical />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent>
-                                                                <DropdownMenuItem onClick={() => openEditDepartmentModal(dept)}>Modifica</DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-red-500" onClick={() => setDepartmentToDelete(dept)}>Elimina</DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>Team</CardTitle>
-                                <Button size="sm" onClick={() => setModalOpen('team')}>+ Nuovo Team</Button>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="overflow-x-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Nome</TableHead>
-                                                <TableHead className="hidden sm:table-cell">Membri</TableHead>
-                                                <TableHead className="text-right">
-                                                    <span className="sr-only">Azioni</span>
-                                                </TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {teams.map((team) => (
-                                                <TableRow key={team.id}>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <span
-                                                                className="w-3 h-3 rounded-full"
-                                                                style={{ backgroundColor: team.color }}
-                                                            />
-                                                            {team.name}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="hidden sm:table-cell">{(team.members || []).length}</TableCell>
-                                                    <TableCell className="text-right">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon">
-                                                                    <MoreVertical />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent>
-                                                                <DropdownMenuItem onClick={() => openEditTeamModal(team)}>Modifica</DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-red-500" onClick={() => setTeamToDelete(team)}>Elimina</DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
                 </TabsContent>
 
                 <TabsContent value="activities">
@@ -1280,39 +1172,6 @@ function AdminPageContent() {
                         </CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-8">
                             <div className="space-y-6">
-                                {/* Gestione Pillars (Topics) */}
-                                <div className="space-y-4 p-4 border rounded-lg">
-                                    <h3 className="font-semibold">Topics</h3>
-                                    <div className="flex gap-2">
-                                        <Input placeholder="Nuovo Topic" value={newPillarName} onChange={e => setNewPillarName(e.target.value)} />
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <Select value={newPillarClient} onValueChange={setNewPillarClient}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">Per tutti i clienti</SelectItem>
-                                                {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <Button type="button" onClick={handleAddPillar}><Plus /></Button>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <Table>
-                                            <TableBody>
-                                                {editorialPillars.map(p => (
-                                                    <TableRow key={p.id}>
-                                                        <TableCell>{p.name} <Badge variant="outline">{p.clientId ? clients.find(c => c.id === p.clientId)?.name : 'Globale'}</Badge></TableCell>
-                                                        <TableCell className="text-right">
-                                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => { await deleteEditorialPillar(p.id); await fetchData(); }}>
-                                                                <Trash2 />
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                </div>
                                 {/* Gestione Formats */}
                                 <div className="space-y-4 p-4 border rounded-lg">
                                     <h3 className="font-semibold">Formati</h3>
@@ -1327,9 +1186,11 @@ function AdminPageContent() {
                                                     <TableRow key={f.id}>
                                                         <TableCell>{f.name}</TableCell>
                                                         <TableCell className="text-right">
-                                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => { await deleteEditorialFormat(f.id); await fetchData(); }}>
-                                                                <Trash2 />
-                                                            </Button>
+                                                            {isSystemRow(f) || (SYSTEM_FORMATS as readonly string[]).includes(f.name)
+                                                                ? <span className="text-[11px] text-muted-foreground" title="Lo usa l'app: non si elimina">di sistema</span>
+                                                                : <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => { await deleteEditorialFormat(f.id); await fetchData(); }}>
+                                                                    <Trash2 />
+                                                                </Button>}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}
@@ -1352,9 +1213,11 @@ function AdminPageContent() {
                                                     <TableRow key={s.id}>
                                                         <TableCell><Badge style={{ backgroundColor: s.color, color: 'white' }}>{s.name}</Badge></TableCell>
                                                         <TableCell className="text-right">
-                                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => { await deleteEditorialStatus(s.id); await fetchData(); }}>
-                                                                <Trash2 />
-                                                            </Button>
+                                                            {isSystemRow(s) || SYSTEM_STATUSES.some(([n]) => n === s.name)
+                                                                ? <span className="text-[11px] text-muted-foreground" title="Lo usa l'app: non si elimina">di sistema</span>
+                                                                : <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={async () => { await deleteEditorialStatus(s.id); await fetchData(); }}>
+                                                                    <Trash2 />
+                                                                </Button>}
                                                         </TableCell>
                                                     </TableRow>
                                                 ))}
@@ -1474,7 +1337,13 @@ function AdminPageContent() {
 
                 {/* Company Costs Tab */}
                 <TabsContent value="company_costs">
-                    <AdminCompanyCosts users={users} />
+                    <div className="space-y-10">
+                        <section>
+                            <h2 className="mb-3 text-xl font-semibold tracking-tight">Costi fissi</h2>
+                            <AdminCompanyCosts users={users} />
+                        </section>
+                        <AdminClientCosts />
+                    </div>
                 </TabsContent>
 
                 {/* Site Icons Tab */}
@@ -1533,16 +1402,17 @@ function AdminPageContent() {
             <AlertDialog open={!!userToDelete} onOpenChange={(isOpen) => !isOpen && setUserToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Questa azione non può essere annullata. Questo eliminerà permanentemente l&apos;utente
-                            <span className="font-bold"> {userToDelete?.name}</span>.
+                        <AlertDialogTitle>Eliminare {userToDelete?.name}?</AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                            <span className="block">Verranno eliminati il profilo <b>e l&apos;account con cui accede</b>: non potrà più entrare, e non si torna indietro.</span>
+                            <span className="block">I suoi task, le ore registrate e i commenti restano dove sono, con il suo nome nello storico.</span>
+                            <span className="block">Se vuoi solo impedirgli di entrare per ora, usa «Blocca accesso»: si può riaprire.</span>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setUserToDelete(null)}>Annulla</AlertDialogCancel>
                         <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90">
-                            Elimina
+                            Elimina definitivamente
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -1551,16 +1421,37 @@ function AdminPageContent() {
             <AlertDialog open={!!clientToDelete} onOpenChange={(isOpen) => !isOpen && setClientToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Questa azione non può essere annullata. Questo eliminerà permanentemente il cliente
-                            <span className="font-bold"> {clientToDelete?.name}</span> e tutti i suoi dati associati (task, progetti, ecc.).
+                        <AlertDialogTitle>Eliminare {clientToDelete?.name}?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3 text-sm">
+                                <p>Non si torna indietro. Insieme alla scheda sparisce:</p>
+                                {clientImpactError && <p className="rounded-md border border-destructive/40 bg-destructive/10 p-2 text-destructive">{clientImpactError}</p>}
+                                {!clientImpact && !clientImpactError && <p>Sto contando cosa verrebbe eliminato…</p>}
+                                {clientImpact && (
+                                    <ul className="list-disc space-y-0.5 pl-5">
+                                        <li>budget, note riservate e collegamenti con Meta, Google e gli altri canali (token compresi)</li>
+                                        {clientImpact.hasPublicLink && <li>il link pubblico del report: chi lo ha non lo vedrà più</li>}
+                                        {clientImpact.counts.map((c) => <li key={c.label}><b>{c.count}</b> {c.label}</li>)}
+                                        {clientImpact.counts.length === 0 && <li>nessun task, progetto o contenuto collegato</li>}
+                                    </ul>
+                                )}
+                                {clientImpact && clientImpact.sharedActivities > 0 && <p>{clientImpact.sharedActivities} attività del calendario condivise con altri clienti restano, senza questo cliente.</p>}
+                                {clientImpact && clientImpact.clientUsers.length > 0 && <p>Gli accessi del cliente ({clientImpact.clientUsers.map((u) => u.email || u.name).join(', ')}) non vengono eliminati ma <b>vengono bloccati</b>.</p>}
+                                <div>
+                                    <label className="mb-1 block text-xs font-medium text-foreground">Per confermare scrivi il nome del cliente: <b>{clientToDelete?.name}</b></label>
+                                    <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder={clientToDelete?.name} autoComplete="off" />
+                                </div>
+                            </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setClientToDelete(null)}>Annulla</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteClient} className="bg-destructive hover:bg-destructive/90">
-                            Elimina
+                        <AlertDialogAction
+                            onClick={handleDeleteClient}
+                            disabled={!clientImpact || deleteConfirmText.trim().toLowerCase() !== (clientToDelete?.name || '').trim().toLowerCase()}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            Elimina definitivamente
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -1658,6 +1549,34 @@ function AdminPageContent() {
         </div>
     );
 }
+
+/** Come sono raggruppate le schede. L'ordine segue il lavoro: prima chi (persone e accessi), poi come si lavora, poi i soldi. */
+const ADMIN_GROUPS: { label: string; tabs: { value: string; label: string; Icon: React.ComponentType<{ className?: string }>; color: string }[] }[] = [
+    { label: 'Persone e accessi', tabs: [
+        { value: 'users', label: 'Utenti', Icon: Users, color: 'text-blue-400' },
+        { value: 'clients', label: 'Clienti', Icon: Building2, color: 'text-emerald-400' },
+        { value: 'permissions', label: 'Permessi', Icon: Shield, color: 'text-amber-400' },
+    ] },
+    { label: 'Come si lavora', tabs: [
+        { value: 'task_priorities', label: 'Priorità', Icon: Sliders, color: 'text-purple-400' },
+        { value: 'activities', label: 'Attività dei task', Icon: CheckSquare, color: 'text-teal-400' },
+        { value: 'calendar_activities', label: 'Attività del calendario', Icon: Calendar, color: 'text-rose-400' },
+        { value: 'brief_services', label: 'Servizi dei brief', Icon: FileText, color: 'text-yellow-400' },
+        { value: 'editorial-plan', label: 'Piano editoriale', Icon: CalendarDays, color: 'text-pink-400' },
+    ] },
+    { label: 'Azienda', tabs: [
+        { value: 'company_costs', label: 'Costi', Icon: Coins, color: 'text-emerald-400' },
+    ] },
+    { label: 'Comunicazione', tabs: [
+        { value: 'email_templates', label: 'Template email', Icon: Mail, color: 'text-sky-400' },
+        { value: 'automations', label: 'Automazioni', Icon: Zap, color: 'text-amber-400' },
+    ] },
+    { label: 'Aspetto', tabs: [
+        { value: 'dashboard_widgets', label: 'Widget della dashboard', Icon: LayoutDashboard, color: 'text-cyan-400' },
+        { value: 'sounds', label: 'Suoni', Icon: Volume2, color: 'text-violet-400' },
+        { value: 'site_icons', label: 'Icone del sito', Icon: ImageIcon, color: 'text-fuchsia-400' },
+    ] },
+];
 
 export default function AdminPage() {
     return (
