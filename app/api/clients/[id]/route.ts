@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { deleteClientCascade } from '@/lib/client-delete';
 import { splitPrivateFields, savePrivateFields, readPrivateFields } from '@/lib/client-private';
 import { hasLegacyPrivateFields, migrateClientDoc } from '@/lib/client-private-migrate';
 import { validateKpiFields } from '@/lib/kpi-profiles';
@@ -145,20 +146,25 @@ export async function DELETE(
 ) {
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
-  if (!isStaffUser(await getAppUser(auth.uid))) return forbiddenResponse();
+  // Cancella anche budget, token delle integrazioni, link pubblico e tutto il lavoro collegato: solo un amministratore.
+  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse("Solo un amministratore puo' eliminare un cliente.");
 
   try {
     const id = params.id;
-    const docRef = adminDb.collection('clients').doc(id);
-    
-    const doc = await docRef.get();
+    const doc = await adminDb.collection('clients').doc(id).get();
     if (!doc.exists) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
-    await docRef.delete();
+    const { clientUserIds, removed } = await deleteClientCascade(adminDb, id);
 
-    return NextResponse.json({ success: true, message: 'Client deleted successfully' });
+    // Gli utenti con ruolo Cliente collegati non si cancellano (potrebbe servire riassegnarli): perdono l'accesso.
+    for (const uid of clientUserIds) {
+      await adminAuth.updateUser(uid, { disabled: true }).then(() => adminAuth.revokeRefreshTokens(uid)).catch(() => {});
+      await adminDb.collection('users').doc(uid).update({ status: 'Inattivo', updatedAt: new Date().toISOString() }).catch(() => {});
+    }
+
+    return NextResponse.json({ success: true, removed, disabledUsers: clientUserIds.length });
   } catch (error) {
     console.error(`Error deleting client ${params.id}:`, error);
     return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 });

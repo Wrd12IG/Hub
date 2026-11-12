@@ -166,10 +166,6 @@ export async function updateClient(clientId: string, data: Partial<Client>): Pro
     await saveClientInternal(clientId, internal);
 }
 
-export async function deleteClient(clientId: string): Promise<void> {
-    await deleteDoc(doc(db, 'clients', clientId));
-}
-
 // Projects
 export async function getProjects(): Promise<Project[]> {
     return fetchCollection<Project>('projects');
@@ -712,25 +708,36 @@ export async function deleteEditorialContent(contentIds: string | string[]): Pro
 }
 
 // Editorial Formats
+/**
+ * Formati e stati che l'app stessa scrive (editor storie, Piano PED, pubblicazione automatica, approvazione cliente).
+ * Devono esistere anche se nessuno li ha creati a mano con quel nome esatto: prima, se mancavano, modificando un contenuto lo
+ * stato poteva tornare a «Bozza» e il formato svuotarsi. Quelli «virtuali» (id che inizia con `virtual-`) non sono nel
+ * database: si rigenerano da soli, quindi cancellare quello vero non fa mai mancare il nome.
+ */
+export const SYSTEM_FORMATS = ['Storia', 'Reel', 'Carosello', 'Post Singolo'] as const;
+export const SYSTEM_STATUSES: readonly (readonly [string, string])[] = [
+    ['Bozza', 'bg-gray-100 text-gray-800'],
+    ['Approvato', 'bg-blue-100 text-blue-800'],
+    ['Pubblicato', 'bg-green-100 text-green-800'],
+    ['In Approvazione Cliente', 'bg-purple-100 text-purple-800'],
+];
+const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+export const isSystemRow = (row: { id: string }) => row.id.startsWith('virtual-');
+
 export async function getEditorialFormats(): Promise<EditorialFormat[]> {
-    return fetchCollection<EditorialFormat>('editorialFormats');
+    const formats = await fetchCollection<EditorialFormat>('editorialFormats');
+    for (const name of SYSTEM_FORMATS) {
+        if (!formats.some(f => f.name === name)) formats.push({ id: `virtual-${slug(name)}`, name } as EditorialFormat);
+    }
+    return formats;
 }
 
 // Editorial Statuses
 export async function getEditorialStatuses(): Promise<EditorialStatus[]> {
     const statuses = await fetchCollection<EditorialStatus>('editorialStatuses');
-    if (!statuses.some(s => s.name === 'Pubblicato')) {
-        statuses.push({
-            id: 'virtual-pubblicato',
-            name: 'Pubblicato',
-            color: 'bg-green-100 text-green-800'
-        });
-    }
-    // Stati scritti dal flusso di approvazione cliente (lib/content-approval.ts): devono esistere anche se nessuno li ha creati.
-    for (const [id, name, color] of [
-        ['virtual-in-approvazione-cliente', 'In Approvazione Cliente', 'bg-purple-100 text-purple-800'],
-    ] as const) {
-        if (!statuses.some(s => s.name === name)) statuses.push({ id, name, color });
+    for (const [name, color] of SYSTEM_STATUSES) {
+        if (!statuses.some(s => s.name === name)) statuses.push({ id: `virtual-${slug(name)}`, name, color });
     }
     return statuses;
 }
@@ -1002,9 +1009,6 @@ export async function getTeams(): Promise<Team[]> { return fetchCollection<Team>
 export async function addTeam(data: Omit<Team, 'id'>): Promise<string> { const docRef = await addDoc(collection(db, 'teams'), data); return docRef.id; }
 export async function updateTeam(id: string, data: Partial<Team>): Promise<void> { await updateDoc(doc(db, 'teams', id), data); }
 export async function deleteTeam(id: string): Promise<void> { await deleteDoc(doc(db, 'teams', id)); }
-
-// Users extra
-export async function deleteUser(id: string): Promise<void> { await deleteDoc(doc(db, 'users', id)); }
 
 // Role Permissions extra
 export async function updateRolePermissions(roleId: string, permissions: string[]): Promise<void> { await setDoc(doc(db, 'rolePermissions', roleId), { permissions }, { merge: true }); }
