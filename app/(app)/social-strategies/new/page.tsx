@@ -18,6 +18,7 @@ import Link from 'next/link';
 import nextDynamic from 'next/dynamic';
 import { Badge } from '@/components/ui/badge';
 import { getAuthHeaders } from '@/lib/client-api-auth';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 const SocialStrategyResults = nextDynamic(
   () => import('@/components/social-strategy-results').then(m => ({ default: m.SocialStrategyResults })),
@@ -424,7 +425,7 @@ Genera il JSON con questa struttura esatta:
                                         <SelectValue placeholder="Seleziona un cliente..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
+                                        {pickableClients(clients).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
                                             <SelectItem key={c.id} value={c.id}>
                                                 {c.name}
                                             </SelectItem>

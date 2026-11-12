@@ -14,7 +14,8 @@ import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid'
 import { ClientHealthDot, type ClientHealthRow } from '@/components/ClientHealthDot'
 
 export default function ClientsPage() {
-  const { clients, isLoadingLayout } = useLayoutData()
+  const { activeClients: clients, clients: allClients, currentUser, isLoadingLayout } = useLayoutData()
+  const archivedCount = (allClients || []).filter((c) => c.archived).length
   const [search, setSearch] = useState('')
 
   /* I verdetti già calcolati, in una chiamata sola. La route non calcola
@@ -67,6 +68,9 @@ export default function ClientsPage() {
               ? '…'
               : `${clients?.length ?? 0} clienti` +
                 (withVerdict > 0 ? ` · andamento calcolato per ${withVerdict} (si calcola aprendo la scheda del cliente)` : '')}
+            {currentUser?.role === 'Amministratore' && archivedCount > 0 && (
+              <> · <Link href="/admin?tab=clients&archived=1" className="underline underline-offset-2">{archivedCount} archiviati</Link></>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">

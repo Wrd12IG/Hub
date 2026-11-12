@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { denyUnlessCron } from '@/lib/cron-auth';
 import { adminDb } from '@/lib/firebase-admin';
+import { archivedClientIds } from '@/lib/client-archive';
 import { collectForClient } from '@/app/api/clients/[id]/competitors/route';
 
 // Questa route legge gli header a ogni richiesta, quindi non può essere
@@ -34,11 +35,12 @@ export async function GET(request: NextRequest) {
     // Si guardano solo i clienti che hanno davvero dei competitor: interrogare
     // sessanta documenti per trovarne tre sarebbe uno spreco quotidiano.
     const snap = await adminDb.collectionGroup('intelligence').get();
+    const archived = await archivedClientIds(adminDb);
     const clientIds = Array.from(new Set(
       snap.docs
         .filter((d) => d.id === 'competitors' && (d.data()?.competitors ?? []).length > 0)
         .map((d) => d.ref.parent.parent?.id)
-        .filter(Boolean) as string[]
+        .filter((id): id is string => !!id && !archived.has(id))
     ));
 
     for (const clientId of clientIds) {

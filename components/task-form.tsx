@@ -9,6 +9,7 @@ import { it } from "date-fns/locale"
 import { CalendarIcon, PlusCircle, Link as LinkIcon, FileText, Check, X, Upload, File as FileIcon, Zap, Trash2, AlertCircle, Plus, Loader2 } from "lucide-react"
 import { useRouter } from 'next/navigation';
 
+import { pickableClients } from '@/lib/client-archive-shared';
 import { Button } from "@/components/ui/button"
 import {
     Form,
@@ -293,8 +294,8 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
 
     // Sorted clients alphabetically
     const sortedClients = React.useMemo(() => {
-        return [...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' }));
-    }, [clients]);
+        return pickableClients(clients, watchedClientId).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' }));
+    }, [clients, watchedClientId]);
 
     // Filter activity types based on selected client
     const filteredActivityTypes = React.useMemo(() => {
