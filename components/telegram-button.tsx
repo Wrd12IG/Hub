@@ -7,13 +7,14 @@
  * un link del bot valido 15 minuti), prova il messaggio e può scollegare. Gli amministratori attivano il bot una volta.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { CheckCircle2, ExternalLink, Loader2, Send, Unplug } from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink, Loader2, Send, Smartphone, Unplug } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { authFetch } from '@/lib/client-api-auth';
 import { cn } from '@/lib/utils';
 
-interface Status { configured: boolean; linked: boolean; isAdmin: boolean; botUsername?: string | null; webhookReady?: boolean | null; error?: string }
+interface Status { configured: boolean; linked: boolean; isAdmin: boolean; companyLinked?: boolean; botUsername?: string | null; webhookReady?: boolean | null; error?: string }
+type Action = 'link' | 'test' | 'unlink' | 'setup' | 'link_company' | 'test_company' | 'unlink_company';
 
 export function TelegramButton() {
     const [open, setOpen] = useState(false);
@@ -21,6 +22,8 @@ export function TelegramButton() {
     const [busy, setBusy] = useState<string | null>(null);
     const [message, setMessage] = useState('');
     const [waiting, setWaiting] = useState(false);
+    const [companyUrl, setCompanyUrl] = useState('');
+    const [copied, setCopied] = useState(false);
     const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const load = useCallback(async () => {
@@ -34,9 +37,10 @@ export function TelegramButton() {
     const stopPolling = () => { if (poll.current) { clearInterval(poll.current); poll.current = null; } setWaiting(false); };
     useEffect(() => () => stopPolling(), []);
     useEffect(() => { if (open) { setMessage(''); load(); } else stopPolling(); }, [open, load]);
-    useEffect(() => { if (st?.linked && waiting) { stopPolling(); setMessage('Collegato!'); } }, [st?.linked, waiting]);
+    useEffect(() => { if (st?.linked && waiting && !companyUrl) { stopPolling(); setMessage('Collegato!'); } }, [st?.linked, waiting, companyUrl]);
+    useEffect(() => { if (st?.companyLinked && companyUrl) { stopPolling(); setCompanyUrl(''); setMessage('Telefono aziendale collegato!'); } }, [st?.companyLinked, companyUrl]);
 
-    const run = async (action: 'link' | 'test' | 'unlink' | 'setup') => {
+    const run = async (action: Action) => {
         setBusy(action); setMessage('');
         try {
             const res = await authFetch('/api/telegram', { method: 'POST', body: JSON.stringify({ action }) });
@@ -49,7 +53,15 @@ export function TelegramButton() {
                 // Il bot salva la chat quando riceve il codice: si controlla ogni 3 secondi per 2 minuti
                 const until = Date.now() + 120_000;
                 poll.current = setInterval(() => { if (Date.now() > until) { stopPolling(); setMessage('Tempo scaduto: premi di nuovo «Collega Telegram».'); } else load(); }, 3000);
-            } else if (action === 'test') setMessage('Messaggio inviato: controlla Telegram.');
+            } else if (action === 'link_company') {
+                setCompanyUrl(d.url);
+                setWaiting(true);
+                setMessage('Apri questo link dal telefono aziendale (o mandaglielo) e premi «Avvia»: qui si aggiorna da solo. Vale 15 minuti.');
+                const until = Date.now() + 15 * 60_000;
+                poll.current = setInterval(() => { if (Date.now() > until) { stopPolling(); setCompanyUrl(''); setMessage('Link scaduto: creane uno nuovo.'); } else load(); }, 4000);
+            } else if (action === 'test_company') setMessage('Messaggio inviato al telefono aziendale.');
+            else if (action === 'unlink_company') setMessage('Telefono aziendale scollegato.');
+            else if (action === 'test') setMessage('Messaggio inviato: controlla Telegram.');
             else if (action === 'unlink') setMessage('Scollegato.');
             else if (action === 'setup') setMessage('Bot attivato.');
             await load();
@@ -100,6 +112,30 @@ export function TelegramButton() {
                             </Button>
                         </div>
                     )
+                )}
+                {st?.configured && !st.error && st.isAdmin && st.webhookReady !== false && (
+                    <div className="space-y-2 border-t pt-3">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold"><Smartphone className="h-3.5 w-3.5" /> Telefono aziendale <span className="font-normal text-muted-foreground">(avvisi comuni)</span></div>
+                        {st.companyLinked ? (
+                            <div className="space-y-2">
+                                <p className="flex items-center gap-1.5 text-xs text-emerald-700"><CheckCircle2 className="h-3.5 w-3.5" /> Collegato: riceve gli avvisi per tutti i clienti.</p>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" className="flex-1" disabled={!!busy} onClick={() => run('test_company')}>{busy === 'test_company' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Prova</Button>
+                                    <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => run('unlink_company')} title="Scollega il telefono aziendale"><Unplug className="h-4 w-4" /></Button>
+                                </div>
+                            </div>
+                        ) : companyUrl ? (
+                            <div className="space-y-1.5">
+                                <div className="break-all rounded-md border bg-muted/40 p-2 text-[11px]">{companyUrl}</div>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" className="flex-1" onClick={async () => { try { await navigator.clipboard.writeText(companyUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* appunti non disponibili */ } }}><Copy className="mr-2 h-3.5 w-3.5" />{copied ? 'Copiato' : 'Copia link'}</Button>
+                                    <Button size="sm" variant="outline" onClick={() => window.open(companyUrl, '_blank', 'noopener')} title="Apri qui"><ExternalLink className="h-3.5 w-3.5" /></Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <Button size="sm" variant="outline" className="w-full" disabled={!!busy} onClick={() => run('link_company')}>{busy === 'link_company' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Collega il telefono aziendale</Button>
+                        )}
+                    </div>
                 )}
                 {message && <p className="text-xs text-muted-foreground">{message}</p>}
             </PopoverContent>
