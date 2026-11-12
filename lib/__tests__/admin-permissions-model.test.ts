@@ -3,12 +3,15 @@ import { ACTIVE_ACTIONS, ALL_ITEMS, ALL_PAGE_ITEMS, INACTIVE_ACTIONS, PAGE_GROUP
 
 // Le chiavi che il Hub aveva nella vecchia tabella: vanno tutte ritrovate, senza perderne né rinominarne
 const OLD_PAGES = ['/dashboard', '/tasks', '/projects', '/calendar', '/editorial-plan', '/clients', '/briefs', '/social-strategies', '/absences', '/chat', '/documents', '/reports', '/admin/recurring-tasks', '/admin/recurring-projects', '/admin'];
-const OLD_ACTIONS = ['_create-task', '_approve-tasks', '_create-recurring-projects', '_manage-users', '_view-financials', '_delete-task', '_manage-clients', '_approve-absences', '_manage-editorial-plan'];
+// Le sole azioni rimaste; le altre cinque sono state tolte perché senza effetto né motivo (vedi il commento nel modello)
+const KEPT_ACTIONS = ['_create-task', '_approve-tasks', '_create-recurring-projects', '_view-financials'];
+const REMOVED_ACTIONS = ['_manage-users', '_delete-task', '_manage-clients', '_approve-absences', '_manage-editorial-plan'];
 
 describe('modello dei permessi', () => {
-    it('contiene tutte le vecchie pagine e azioni, con le stesse chiavi, senza doppioni', () => {
+    it('contiene tutte le pagine di prima e le azioni rimaste, con le stesse chiavi, senza doppioni', () => {
         expect(ALL_PAGE_ITEMS.map((i) => i.key).sort()).toEqual([...OLD_PAGES].sort());
-        expect([...ACTIVE_ACTIONS, ...INACTIVE_ACTIONS].map((i) => i.key).sort()).toEqual([...OLD_ACTIONS].sort());
+        expect([...ACTIVE_ACTIONS, ...INACTIVE_ACTIONS].map((i) => i.key).sort()).toEqual([...KEPT_ACTIONS].sort());
+        for (const k of REMOVED_ACTIONS) expect(ALL_ITEMS.some((i) => i.key === k)).toBe(false);
         expect(new Set(ALL_ITEMS.map((i) => i.key)).size).toBe(ALL_ITEMS.length);
     });
     it('ogni voce ha etichetta e descrizione; «Clienti e report» è il primo gruppo e spiega la portata', () => {
@@ -17,10 +20,10 @@ describe('modello dei permessi', () => {
         expect(PAGE_GROUPS[0].hint).toContain('TUTTI i clienti');
         expect(PAGE_GROUPS[0].items.map((i) => i.key)).toEqual(['/clients', '/reports']);
     });
-    it('le sole azioni attive sono le tre che l\'app legge; le altre sei sono dichiarate senza effetto', () => {
+    it('le azioni attive sono le tre che l\'app legge; resta una sola, «Budget e Costi», dichiarata senza effetto', () => {
         expect(ACTIVE_ACTIONS.map((a) => a.key).sort()).toEqual(['_approve-tasks', '_create-recurring-projects', '_create-task']);
-        expect(INACTIVE_ACTIONS).toHaveLength(6);
-        expect(INACTIVE_ACTIONS.every((a) => /non|Oggi/.test(a.description))).toBe(true);
+        expect(INACTIVE_ACTIONS.map((a) => a.key)).toEqual(['_view-financials']);
+        expect(INACTIVE_ACTIONS[0].description).toContain('Oggi non nasconde nulla');
     });
     it('«Clienti» è sempre attivo solo per il Project Manager', () => {
         expect(isLockedOn('Project Manager', '/clients')).toBe(true);
