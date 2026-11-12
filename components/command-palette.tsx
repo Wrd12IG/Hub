@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getUserAvatar, getInitials } from '@/lib/utils';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 export function CommandPalette() {
     const [open, setOpen] = useState(false);
@@ -118,7 +119,7 @@ export function CommandPalette() {
                     {/* Clienti */}
                     {clients.length > 0 && (
                         <CommandGroup heading="Clienti">
-                            {clients.map(client => (
+                            {pickableClients(clients).map(client => (
                                 <CommandItem key={client.id} onSelect={() => runCommand(() => router.push(`/social-strategies/new?clientId=${client.id}`))}>
                                     <Building2 className="mr-2 h-4 w-4 text-muted-foreground" />
                                     <span>{client.name}</span>

@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { denyUnlessCron } from '@/lib/cron-auth';
+import { archivedClientIds } from '@/lib/client-archive';
 import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { format, addDays, addWeeks, addMonths } from 'date-fns';
@@ -158,8 +159,16 @@ export async function GET(request: NextRequest) {
         reason?: string; taskId?: string;
     }> = [];
 
+    // Clienti archiviati: i loro task ricorrenti restano, ma non ne nascono di nuovi.
+    const archived = await archivedClientIds(adminDb);
+
     for (const template of templates) {
         const { recurrence } = template;
+
+        if (template.clientId && archived.has(template.clientId)) {
+            results.push({ templateId: template.id, title: template.title, action: 'skipped_not_due', reason: 'Cliente archiviato' });
+            continue;
+        }
 
         // Salta weekend
         if (isWeekend) {

@@ -195,6 +195,8 @@ function AdminPageContent() {
 
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+    const [showArchivedClients, setShowArchivedClients] = useState(false);
+    const [clientToArchive, setClientToArchive] = useState<Client | null>(null);
     const [clientImpact, setClientImpact] = useState<ClientImpact | null>(null);
     const [clientImpactError, setClientImpactError] = useState<string | null>(null);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -255,6 +257,7 @@ function AdminPageContent() {
     const searchParams = useSearchParams();
     const initialTab = searchParams.get('tab') || 'users';
     const [activeTab, setActiveTab] = useState(initialTab);
+    useEffect(() => { if (searchParams.get('archived') === '1') setShowArchivedClients(true); }, [searchParams]);
 
 
     const fetchData = useCallback(async () => {
@@ -603,6 +606,26 @@ function AdminPageContent() {
         }
     };
 
+    /** Archivia o riattiva un cliente: si ferma tutto ciò che è automatico (vedi lib/client-archive.ts), niente viene cancellato. */
+    const handleArchiveClient = async (client: Client, archived: boolean) => {
+        try {
+            const res = await authFetch(`/api/clients/${client.id}/archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived }) });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`);
+            toast({
+                title: archived ? 'Cliente archiviato' : 'Cliente riattivato',
+                description: archived
+                    ? `${client.name} non è più attivo.${j.blockedUsers ? ` ${j.blockedUsers} accessi cliente bloccati.` : ''}`
+                    : `${client.name} è di nuovo attivo.${j.restoredUsers ? ` ${j.restoredUsers} accessi cliente riaperti.` : ''}`,
+            });
+            setClientToArchive(null);
+            await refetchData('clients');
+            fetchData();
+        } catch (error: any) {
+            toast({ title: 'Errore', description: error.message || 'Operazione non riuscita.', variant: 'destructive' });
+        }
+    };
+
     /** Apre la conferma e legge cosa sparirebbe davvero: i numeri veri, non una frase generica. */
     const askDeleteClient = async (client: Client) => {
         setClientToDelete(client);
@@ -859,7 +882,15 @@ function AdminPageContent() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Clienti</CardTitle>
-                            <Button size="sm" onClick={() => setModalOpen('client')}>+ Nuovo Cliente</Button>
+                            <div className="flex items-center gap-3">
+                                {clients.some((c) => c.archived) && (
+                                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                                        <input type="checkbox" checked={showArchivedClients} onChange={(e) => setShowArchivedClients(e.target.checked)} className="h-3.5 w-3.5" />
+                                        Mostra archiviati ({clients.filter((c) => c.archived).length})
+                                    </label>
+                                )}
+                                <Button size="sm" onClick={() => setModalOpen('client')}>+ Nuovo Cliente</Button>
+                            </div>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
@@ -877,7 +908,7 @@ function AdminPageContent() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((client) => {
+                                        {[...clients].filter((c) => showArchivedClients || !c.archived).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((client) => {
                                             const stats = getClientStats(client.id);
                                             const socialManager = client.socialManagerId ? users.find(u => u.id === client.socialManagerId) : null;
                                             return (
@@ -897,6 +928,7 @@ function AdminPageContent() {
                                                             <Link href={`/clients/${client.id}`} className="font-medium hover:underline">
                                                                 {client.name}
                                                             </Link>
+                                                            {client.archived && <Badge variant="secondary" className="text-[10px]">Archiviato</Badge>}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="hidden sm:table-cell">
@@ -948,6 +980,9 @@ function AdminPageContent() {
                                                                     <Link href={`/clients/${client.id}`} className="w-full">Visualizza Profilo</Link>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => openEditClientModal(client)}>Modifica</DropdownMenuItem>
+                                                                {client.archived
+                                                                    ? <DropdownMenuItem onClick={() => handleArchiveClient(client, false)}>Riattiva</DropdownMenuItem>
+                                                                    : <DropdownMenuItem onClick={() => setClientToArchive(client)}>Archivia</DropdownMenuItem>}
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem className="text-red-500" onClick={() => askDeleteClient(client)}>
                                                                     Elimina
@@ -1417,6 +1452,31 @@ function AdminPageContent() {
                         <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90">
                             Elimina definitivamente
                         </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!clientToArchive} onOpenChange={(isOpen) => !isOpen && setClientToArchive(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Archiviare {clientToArchive?.name}?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-2 text-sm">
+                                <p>Il cliente smette di essere attivo, ma <b>non si cancella niente</b>: task, progetti, contenuti, ore e budget restano. Si può riattivare in qualsiasi momento.</p>
+                                <p>Da subito:</p>
+                                <ul className="list-disc space-y-0.5 pl-5">
+                                    <li>non nascono più task ricorrenti per questo cliente</li>
+                                    <li>i contenuti già approvati non vengono pubblicati in automatico</li>
+                                    <li>report, competitor e mail mensile dei KPI non lo considerano più</li>
+                                    <li>il link pubblico del report non risponde e gli accessi del cliente vengono bloccati</li>
+                                    <li>non compare più nell&apos;elenco Clienti né quando si crea lavoro nuovo</li>
+                                </ul>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setClientToArchive(null)}>Annulla</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => clientToArchive && handleArchiveClient(clientToArchive, true)}>Archivia</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

@@ -47,6 +47,7 @@ import { CalendarActivity } from '@/lib/data';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { UserWorkloadPreview } from '@/components/UserWorkloadPreview';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 const ClientMultiSelect = ({
     value = [],
@@ -60,7 +61,7 @@ const ClientMultiSelect = ({
     const [open, setOpen] = useState(false);
 
     // Sort clients alphabetically
-    const sortedClients = [...clients].sort((a, b) =>
+    const sortedClients = pickableClients(clients).sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })
     );
 

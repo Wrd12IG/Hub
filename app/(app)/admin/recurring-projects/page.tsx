@@ -34,6 +34,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 
 const daysOfWeek = [
@@ -600,7 +601,7 @@ function RecurringProjectForm({ isOpen, onClose, onSubmit, projectTemplate, user
                 <div><Label htmlFor="projectName">Nome Progetto</Label><Input id="projectName" name="projectName" placeholder="Es. Newsletter [Mese]" required defaultValue={projectTemplate?.projectDetails.name} /></div>
                 <div><Label htmlFor="description">Descrizione Progetto</Label><Textarea id="description" name="description" defaultValue={projectTemplate?.projectDetails.description} /></div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><Label htmlFor="clientId">Cliente</Label><Select name="clientId" required defaultValue={projectTemplate?.projectDetails.clientId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{clients.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
+                  <div><Label htmlFor="clientId">Cliente</Label><Select name="clientId" required defaultValue={projectTemplate?.projectDetails.clientId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{pickableClients(clients, projectTemplate?.projectDetails.clientId).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
                   <div><Label htmlFor="teamLeaderId">Team Leader</Label><Select name="teamLeaderId" required defaultValue={projectTemplate?.projectDetails.teamLeaderId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{users.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

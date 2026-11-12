@@ -37,6 +37,8 @@ export interface Client {
     managedBy?: string[]; // User IDs managing this client
     socialManagerId?: string; // Social Media Manager assigned to this client
     allowedActivityTypeIds?: string[]; // IDs of activity types allowed for this client
+    archived?: boolean; // Cliente archiviato: non più attivo, dati conservati (lib/client-archive.ts)
+    archivedAt?: string;
     publicToken?: string; // Token for public secure access
     publicTokenCreatedAt?: string;
     createdAt?: string;
