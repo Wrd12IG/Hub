@@ -92,6 +92,8 @@ import {
     CalendarActivityPreset,
 } from '@/lib/data';
 import { Badge } from '@/components/ui/badge';
+import { AdminPermissions } from '@/components/admin-permissions';
+import { toggle as togglePermission } from '@/lib/admin-permissions-model';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon, Users, Building2, Shield, Sliders, FolderTree, CheckSquare, Calendar, FileText, CalendarDays, Database } from 'lucide-react';
 import {
@@ -152,33 +154,6 @@ const AdminSiteIcons = dynamic(() => import('@/components/admin-site-icons'), {
 
 
 type ModalState = 'user' | 'client' | 'department' | 'team' | 'activity' | 'service' | 'calendar_preset' | 'edit-user' | 'edit-client' | 'edit-department' | 'edit-team' | 'edit-activity' | 'edit-service' | 'edit-calendar_preset' | null;
-
-const navItems = [
-    { href: '/dashboard', label: 'Dashboard' },
-    { href: '/tasks', label: 'Tasks' },
-    { href: '/projects', label: 'Progetti' },
-    { href: '/calendar', label: 'Calendario' },
-    { href: '/editorial-plan', label: 'Piano Editoriale' },
-    { href: '/briefs', label: 'Brief' },
-    { href: '/absences', label: 'Assenze' },
-    { href: '/chat', label: 'Chat' },
-    { href: '/documents', label: 'Documenti' },
-    { href: '/admin/recurring-tasks', label: 'Task Ricorrenti' },
-    { href: '/admin/recurring-projects', label: 'Progetti Ricorrenti' },
-    { href: '/admin', label: 'Pannello Admin' },
-];
-
-const actionPermissions = [
-    { key: '_create-task', label: 'Crea Task' },
-    { key: '_approve-tasks', label: 'Approva Task' },
-    { key: '_create-recurring-projects', label: 'Crea Progetti Ricorrenti' },
-    { key: '_manage-users', label: 'Gestione Utenti' },
-    { key: '_view-financials', label: 'Visualizza Budget e Costi' },
-    { key: '_delete-task', label: 'Elimina Task' },
-    { key: '_manage-clients', label: 'Gestione Clienti' },
-    { key: '_approve-absences', label: 'Approva Assenze' },
-    { key: '_manage-editorial-plan', label: 'Gestione Piano Editoriale' },
-];
 
 const AdminFormSkeleton = () => (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-4 pt-2">
@@ -329,30 +304,26 @@ function AdminPageContent() {
         fetchData();
     }, [fetchData]);
 
+    const [isSavingPermissions, setIsSavingPermissions] = useState(false);
+
     const handlePermissionChange = (role: string, permission: string, checked: boolean) => {
-        setRolePermissions(prev => {
-            const currentPermissions = prev[role] || [];
-            const newPermissions = checked
-                ? [...currentPermissions, permission]
-                : currentPermissions.filter(p => p !== permission);
-            return {
-                ...prev,
-                [role]: newPermissions
-            };
-        });
+        setRolePermissions(prev => togglePermission(prev, role, permission, checked));
     };
 
     const handleSavePermissions = async () => {
+        setIsSavingPermissions(true);
         try {
             const promises = Object.entries(rolePermissions).map(([roleId, permissions]) =>
                 updateRolePermissions(roleId, permissions)
             );
             await Promise.all(promises);
             setInitialPermissions(rolePermissions);
-            toast({ title: "Successo", description: "Permessi aggiornati." });
+            toast({ title: "Permessi salvati", description: "Le modifiche valgono da subito; chi è già collegato le vede ricaricando la pagina." });
         } catch (error) {
             console.error("Failed to save permissions", error);
             toast({ title: "Errore", description: "Impossibile salvare i permessi.", variant: 'destructive' });
+        } finally {
+            setIsSavingPermissions(false);
         }
     };
 
@@ -991,94 +962,15 @@ function AdminPageContent() {
                 </TabsContent>
 
                 <TabsContent value="permissions">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Gestione Permessi Ruoli</CardTitle>
-                            <CardDescription>
-                                Definisci quali pagine possono essere visualizzate e quali azioni possono essere eseguite da ciascun ruolo.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-[200px]">Permesso</TableHead>
-                                            <TableHead className="text-center">Amministratore</TableHead>
-                                            <TableHead className="text-center">Project Manager</TableHead>
-                                            <TableHead className="text-center">Collaboratore</TableHead>
-                                            <TableHead className="text-center">Cliente</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow className="bg-secondary/30">
-                                            <TableCell colSpan={5} className="font-semibold">Accesso Pagine</TableCell>
-                                        </TableRow>
-                                        {navItems.map((page) => (
-                                            <TableRow key={page.href}>
-                                                <TableCell className="font-medium">{page.label}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox checked disabled />
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox
-                                                        checked={rolePermissions['Project Manager']?.includes(page.href)}
-                                                        onCheckedChange={(checked) => handlePermissionChange('Project Manager', page.href, !!checked)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox
-                                                        checked={rolePermissions['Collaboratore']?.includes(page.href)}
-                                                        onCheckedChange={(checked) => handlePermissionChange('Collaboratore', page.href, !!checked)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox
-                                                        checked={rolePermissions['Cliente']?.includes(page.href)}
-                                                        onCheckedChange={(checked) => handlePermissionChange('Cliente', page.href, !!checked)}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        <TableRow className="bg-secondary/30">
-                                            <TableCell colSpan={5} className="font-semibold">Azioni Specifiche</TableCell>
-                                        </TableRow>
-                                        {actionPermissions.map((action) => (
-                                            <TableRow key={action.key}>
-                                                <TableCell className="font-medium">{action.label}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox checked disabled />
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox
-                                                        checked={rolePermissions['Project Manager']?.includes(action.key)}
-                                                        onCheckedChange={(checked) => handlePermissionChange('Project Manager', action.key, !!checked)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox
-                                                        checked={rolePermissions['Collaboratore']?.includes(action.key)}
-                                                        onCheckedChange={(checked) => handlePermissionChange('Collaboratore', action.key, !!checked)}
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-center">
-                                                    <Checkbox
-                                                        checked={rolePermissions['Cliente']?.includes(action.key)}
-                                                        onCheckedChange={(checked) => handlePermissionChange('Cliente', action.key, !!checked)}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                            <div className="flex justify-end mt-4">
-                                <Button onClick={handleSavePermissions} disabled={isEqual(initialPermissions, rolePermissions)}>
-                                    Salva Permessi
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <AdminPermissions
+                        permissions={rolePermissions}
+                        initial={initialPermissions}
+                        onChange={handlePermissionChange}
+                        onDiscard={() => setRolePermissions(initialPermissions)}
+                        onSave={handleSavePermissions}
+                        saving={isSavingPermissions}
+                        onGoToUsers={() => setActiveTab('users')}
+                    />
                 </TabsContent>
 
                 <TabsContent value="task_priorities">
