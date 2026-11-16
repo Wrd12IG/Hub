@@ -111,6 +111,7 @@ export const allNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-500' },
+  { href: '/andamento-clienti', icon: BarChart3, label: 'Andamento clienti', color: 'text-violet-400' },
   { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-400' },
 ];
 

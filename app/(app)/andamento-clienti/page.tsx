@@ -1,0 +1,224 @@
+"use client"
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
+import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, HelpCircle, Loader2, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import { useAuthFetch } from '@/hooks/useAuthFetch'
+import { useLayoutData } from '@/app/(app)/layout-context'
+import { isMonthKey, previousMonthKey } from '@/lib/manual-kpis'
+import { PROFILE_DEFS } from '@/lib/kpi-profiles'
+import { formatDelta, formatValue, monthLabel, type ClientMonthly, type Delta, type VerdictState } from '@/lib/kpi-compute'
+
+type Snap = { computedAt: string; result: ClientMonthly }
+type Included = { id: string; name: string }
+type Filter = 'all' | VerdictState
+
+const CONCURRENCY = 2
+const btn = 'inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50'
+
+const STATE: Record<VerdictState, { label: string; text: string; ring: string; bg: string; icon: React.ElementType; order: number }> = {
+  down: { label: 'In calo', text: 'text-red-600 dark:text-red-400', ring: 'border-red-500/40', bg: 'bg-red-500/10', icon: ArrowDownRight, order: 0 },
+  flat: { label: 'Stabile', text: 'text-amber-600 dark:text-amber-400', ring: 'border-amber-500/40', bg: 'bg-amber-500/10', icon: ArrowRight, order: 2 },
+  up: { label: 'In crescita', text: 'text-emerald-600 dark:text-emerald-400', ring: 'border-emerald-500/40', bg: 'bg-emerald-500/10', icon: ArrowUpRight, order: 3 },
+  unknown: { label: 'Dati insufficienti', text: 'text-muted-foreground', ring: 'border-border', bg: 'bg-muted/40', icon: HelpCircle, order: 4 },
+}
+const TONE: Record<Delta['tone'], string> = { good: 'text-emerald-600 dark:text-emerald-400', bad: 'text-red-600 dark:text-red-400', neutral: 'text-muted-foreground' }
+
+function DeltaText({ d, unit }: { d: Delta | null; unit: ClientMonthly['kpis'][number]['unit'] }) {
+  if (!d) return <span className="text-muted-foreground">—</span>
+  return <span className={TONE[d.tone]}>{formatDelta(d, unit)}</span>
+}
+
+/** Peso per l'ordinamento: prima chi è in calo, poi chi ha segnali da guardare, poi gli altri. */
+const rank = (r: ClientMonthly) => (r.verdict.state === 'down' ? 0 : r.alerts.length > 0 && r.verdict.state !== 'unknown' ? 1 : STATE[r.verdict.state].order)
+
+/**
+ * Andamento clienti: per ogni cliente nella mail mensile, i KPI scelti per il suo profilo con il confronto sul mese scorso
+ * e sull'anno scorso, e il verdetto (in crescita / stabile / in calo). I numeri sono le stesse «fotografie» della mail
+ * mensile (lib/kpi-compute.ts): qui non si ricalcola niente di diverso, si leggono. Solo amministratori.
+ */
+export default function AndamentoClientiPage() {
+  const { authFetch } = useAuthFetch()
+  const { currentUser } = useLayoutData()
+  const [month, setMonth] = useState(previousMonthKey())
+  const [included, setIncluded] = useState<Included[]>([])
+  const [snaps, setSnaps] = useState<Record<string, Snap>>({})
+  const [loading, setLoading] = useState(true)
+  const [running, setRunning] = useState(false)
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [filter, setFilter] = useState<Filter>('all')
+  const stop = useRef(false)
+
+  const load = useCallback(async () => {
+    if (!isMonthKey(month)) return
+    setLoading(true)
+    try {
+      const res = await authFetch(`/api/admin/monthly-kpi-mail/snapshots?month=${month}`)
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`)
+      setIncluded(j.included ?? []); setSnaps(j.snapshots ?? {}); setErrors({})
+    } catch (e: any) { toast.error(e.message || 'Impossibile leggere') }
+    finally { setLoading(false) }
+  }, [authFetch, month])
+
+  useEffect(() => { if (currentUser?.role === 'Amministratore') load() }, [load, currentUser?.role])
+
+  async function computeOne(c: Included): Promise<void> {
+    try {
+      const res = await authFetch('/api/admin/monthly-kpi-mail/client', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientId: c.id, month }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`)
+      setSnaps((s) => ({ ...s, [c.id]: { computedAt: new Date().toISOString(), result: j.result } }))
+      setErrors((e) => { const n = { ...e }; delete n[c.id]; return n })
+    } catch (e: any) { setErrors((x) => ({ ...x, [c.id]: e.message || 'Errore' })) }
+  }
+
+  async function run(list: Included[]) {
+    if (list.length === 0) return
+    stop.current = false; setRunning(true); setProgress({ done: 0, total: list.length })
+    let next = 0, done = 0
+    const worker = async () => {
+      while (!stop.current) {
+        const c = list[next++]
+        if (!c) return
+        await computeOne(c)
+        setProgress({ done: ++done, total: list.length })
+      }
+    }
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker))
+    setRunning(false)
+  }
+
+  const missing = useMemo(() => included.filter((c) => !snaps[c.id]), [included, snaps])
+  const results = useMemo(
+    () => included.map((c) => snaps[c.id]?.result).filter((r): r is ClientMonthly => !!r)
+      .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'it', { sensitivity: 'base' })),
+    [included, snaps],
+  )
+  const counts = useMemo(() => {
+    const c: Record<VerdictState, number> = { down: 0, flat: 0, up: 0, unknown: 0 }
+    for (const r of results) c[r.verdict.state]++
+    return c
+  }, [results])
+  const withAlerts = results.filter((r) => r.alerts.length > 0).length
+  const shown = filter === 'all' ? results : results.filter((r) => r.verdict.state === filter)
+
+  if (!currentUser) return null
+  if (currentUser.role !== 'Amministratore') return <p className="p-6 text-sm text-muted-foreground">Pagina riservata agli amministratori.</p>
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-8">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Andamento clienti</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Come sta andando ogni cliente rispetto ai KPI scelti per il suo profilo, nel mese di <b>{isMonthKey(month) ? monthLabel(month) : '—'}</b>.
+          Il verdetto guarda il KPI principale contro il mese scorso; sotto i 10 eventi si dice «dati insufficienti» invece di inventare una percentuale.
+          Per cambiare i KPI o chi compare qui: <Link href="/admin/report-mensile" className="underline">Mail mensile KPI</Link>.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="text-xs font-medium text-muted-foreground">Mese
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} disabled={running}
+            className="mt-1 block h-9 rounded-lg border border-border bg-background px-2 text-sm text-foreground" />
+        </label>
+        <button type="button" className={btn} disabled={running || loading || missing.length === 0} onClick={() => run(missing)}>
+          {running ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Calcola i mancanti ({missing.length})
+        </button>
+        <button type="button" className={btn} disabled={running || loading || included.length === 0}
+          onClick={() => { if (window.confirm(`Ricalcolo tutti i ${included.length} clienti? Richiede alcuni minuti.`)) run(included) }}>
+          Ricalcola tutti
+        </button>
+        {running && <button type="button" className={btn} onClick={() => { stop.current = true }}>Ferma</button>}
+      </div>
+
+      {running && <p className="text-sm">Calcolo… <b>{progress.done}</b> di {progress.total}. Lascia aperta la pagina.</p>}
+      {Object.keys(errors).length > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+          <p className="font-semibold">Non calcolati ({Object.keys(errors).length}) — premi «Calcola i mancanti» per riprovare:</p>
+          <ul className="mt-1 list-disc pl-5">{included.filter((c) => errors[c.id]).map((c) => <li key={c.id}>{c.name}: {errors[c.id]}</li>)}</ul>
+        </div>
+      )}
+
+      {loading ? <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 size={12} className="animate-spin" /> Carico…</p>
+        : included.length === 0 ? <p className="text-sm text-muted-foreground">Nessun cliente da mostrare: in «Mail mensile KPI» accendi «Nella mail» e assegna un profilo ai clienti.</p>
+        : results.length === 0 ? <p className="text-sm text-muted-foreground">Nessun cliente ancora calcolato per questo mese: premi «Calcola i mancanti».</p>
+        : (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {(['down', 'flat', 'up', 'unknown'] as VerdictState[]).map((s) => {
+                const st = STATE[s]; const Icon = st.icon
+                return (
+                  <button key={s} type="button" onClick={() => setFilter(filter === s ? 'all' : s)}
+                    className={`rounded-xl border p-3 text-left transition ${st.ring} ${st.bg} ${filter === s ? 'ring-2 ring-primary' : ''}`}>
+                    <span className={`flex items-center gap-1 text-xs font-medium ${st.text}`}><Icon size={14} /> {st.label}</span>
+                    <span className="mt-1 block text-2xl font-bold">{counts[s]}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {results.length} clienti calcolati su {included.length}
+              {withAlerts > 0 && <> · <AlertTriangle size={11} className="mb-0.5 inline text-amber-500" /> {withAlerts} con segnali da guardare</>}
+              {filter !== 'all' && <> · filtro: {STATE[filter].label} (<button type="button" className="underline" onClick={() => setFilter('all')}>mostra tutti</button>)</>}
+            </p>
+
+            <div className="space-y-3">
+              {shown.map((r) => {
+                const st = STATE[r.verdict.state]; const Icon = st.icon
+                return (
+                  <section key={r.clientId} className={`rounded-xl border bg-card p-4 ${st.ring}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <Link href={`/clients/${encodeURIComponent(r.clientId)}`} className="text-base font-semibold hover:underline">{r.name}</Link>
+                        <span className="ml-2 text-xs text-muted-foreground">{PROFILE_DEFS[r.profile]?.label ?? r.profile}</span>
+                      </div>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.bg} ${st.text}`}><Icon size={13} /> {st.label}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">{r.verdict.headline}</p>
+
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-xs text-muted-foreground">
+                            <th className="py-1 pr-2 text-left font-medium">KPI</th>
+                            <th className="px-2 py-1 text-right font-medium">Mese</th>
+                            <th className="px-2 py-1 text-right font-medium">vs mese scorso</th>
+                            <th className="py-1 pl-2 text-right font-medium">vs anno scorso</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {r.kpis.map((k) => (
+                            <tr key={k.id} className="border-t border-border/50">
+                              <td className="py-1.5 pr-2">{k.label}</td>
+                              <td className="whitespace-nowrap px-2 py-1.5 text-right font-semibold">
+                                {k.value === null ? <span className="font-normal text-muted-foreground">{k.missing ?? '—'}</span> : formatValue(k.value, k.unit)}
+                                {k.kind === 'proxy' && <sup className="text-amber-600" title={`Stima: ${k.proxyOf}`}>*</sup>}
+                              </td>
+                              <td className="whitespace-nowrap px-2 py-1.5 text-right"><DeltaText d={k.vsPrev} unit={k.unit} /></td>
+                              <td className="whitespace-nowrap py-1.5 pl-2 text-right"><DeltaText d={k.vsYoy} unit={k.unit} /></td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {r.kpis.some((k) => k.kind === 'proxy') && <p className="mt-1 text-[11px] text-amber-600">* stima di piattaforma: il dato reale del mese non è stato inserito.</p>}
+
+                    {r.alerts.length > 0 && (
+                      <ul className="mt-3 space-y-1 text-xs">
+                        {r.alerts.map((a, i) => <li key={i} className="flex gap-1.5"><AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-500" /> {a}</li>)}
+                      </ul>
+                    )}
+                  </section>
+                )
+              })}
+            </div>
+          </>
+        )}
+    </div>
+  )
+}
