@@ -98,3 +98,55 @@ export async function readSnapshots(month: string, clientIds: string[]): Promise
     snaps.forEach((s, i) => { if (s.exists) out[clientIds[i]] = s.data() as { computedAt: string; result: ClientMonthly }; });
     return out;
 }
+
+/* ───────────── registro dell'invio automatico ───────────── */
+
+const runRef = (month: string) => adminDb.collection('monthly_kpi_mail_runs').doc(month);
+
+export interface MailRun {
+    /** Quando è partita la mail (assente = non ancora partita). */
+    sentAt?: string;
+    sentTo?: string[];
+    clients?: number;
+    /** Clienti lasciati fuori dalla mail perché il calcolo è fallito più volte (nome → errore). */
+    skipped?: Record<string, string>;
+    /** Tentativi di calcolo falliti per cliente. */
+    attempts?: Record<string, number>;
+    lastError?: string;
+    /** Chi sta spedendo adesso: impedisce a due chiamate ravvicinate di mandare la mail due volte. */
+    sendingSince?: string;
+}
+
+export async function readMailRun(month: string): Promise<MailRun> {
+    const s = await runRef(month).get();
+    return s.exists ? (s.data() as MailRun) : {};
+}
+
+export async function patchMailRun(month: string, patch: Record<string, unknown>): Promise<void> {
+    await runRef(month).set(JSON.parse(JSON.stringify(patch)), { merge: true });
+}
+
+export async function bumpAttempt(month: string, clientId: string, error: string): Promise<void> {
+    await runRef(month).set({ attempts: { [clientId]: FieldValue.increment(1) }, lastError: error.slice(0, 300) }, { merge: true });
+}
+
+/**
+ * Prenota l'invio in modo atomico. Vero solo per la prima chiamata: se la mail è già partita (e non è un invio forzato) o un'altra
+ * chiamata sta spedendo da meno di 10 minuti, falso. Una prenotazione rimasta appesa oltre i 10 minuti (funzione caduta a metà)
+ * si riprende.
+ */
+export async function claimSend(month: string, force: boolean): Promise<boolean> {
+    return adminDb.runTransaction(async (tx) => {
+        const snap = await tx.get(runRef(month));
+        const d = (snap.exists ? snap.data() : {}) as MailRun;
+        if (d.sentAt && !force) return false;
+        if (d.sendingSince && Date.now() - new Date(d.sendingSince).getTime() < 10 * 60 * 1000) return false;
+        tx.set(runRef(month), { sendingSince: new Date().toISOString() }, { merge: true });
+        return true;
+    });
+}
+
+/** Riparte da zero per un invio forzato: azzera tentativi, errori e il «già inviata» del mese. */
+export async function resetMailRun(month: string): Promise<void> {
+    await runRef(month).delete();
+}
