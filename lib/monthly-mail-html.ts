@@ -13,7 +13,8 @@
  * dimensione sotto soglia con 47 clienti in calo (il caso peggiore).
  */
 
-import { PROFILE_DEFS, KPI_PROFILES } from './kpi-profiles';
+import { PROFILE_DEFS, KPI_PROFILES, KPI_CATALOG } from './kpi-profiles';
+import type { WeekResult } from './kpi-weekly';
 import { formatDelta, formatValue, monthLabel, shiftMonth, type ClientMonthly, type Delta, type KpiResult, type VerdictState } from './kpi-compute';
 
 export const GMAIL_CLIP_BYTES = 100 * 1024;
@@ -28,6 +29,7 @@ const STATE: Record<VerdictState, { color: string; label: string }> = {
     up: { color: '#15803d', label: 'In crescita' },
     unknown: { color: '#6b7280', label: 'Dati insufficienti' },
 };
+const TEXT_MARK: Record<VerdictState, string> = { up: 'su', down: 'giù', flat: '=', unknown: 'n.d.' };
 const FONT = "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;";
 
 export interface MonthlyMailInput {
@@ -58,6 +60,46 @@ function kpiRow(k: KpiResult): string {
 
 const clientLink = (baseUrl: string, id: string) => `${baseUrl.replace(/\/$/, '')}/clients/${encodeURIComponent(id)}`;
 
+
+/* ───────────── settimane ───────────── */
+
+const WEEK_MARK: Record<VerdictState, { sym: string; color: string }> = {
+    up: { sym: '&#9650;', color: '#15803d' }, down: { sym: '&#9660;', color: '#b91c1c' },
+    flat: { sym: '=', color: '#b45309' }, unknown: { sym: '&middot;', color: '#9ca3af' },
+};
+
+/** «1–7»: i giorni della settimana. */
+const weekDays = (w: WeekResult) => `${Number(w.dateFrom.slice(8, 10))}&ndash;${Number(w.dateTo.slice(8, 10))}`;
+
+/** Una riga per i clienti in ordine: ogni settimana con la sua freccia (verdetto della settimana). */
+function weekStrip(weeks: WeekResult[] | undefined): string {
+    if (!weeks?.length) return '';
+    return `<div style="margin-top:2px;font-size:11px;color:#6b7280;">Settimane: `
+        + weeks.map((w) => `${weekDays(w)} <span style="color:${WEEK_MARK[w.verdict].color};">${WEEK_MARK[w.verdict].sym}</span>`).join(' &nbsp; ')
+        + `</div>`;
+}
+
+/** Tabella settimana su settimana: per ogni KPI, valore e variazione sulla stessa settimana del mese prima. */
+function weekTable(weeks: WeekResult[] | undefined): string {
+    if (!weeks?.length) return '';
+    const ids = (weeks.find((w) => w.kpis.length)?.kpis ?? []).map((k) => k.id);
+    if (ids.length === 0) return '';
+    const th = weeks.map((w) => `<td style="text-align:right;padding:0 2px 2px;">${weekDays(w)}</td>`).join('');
+    const rows = ids.map((id) => {
+        const def = KPI_CATALOG[id];
+        const cells = weeks.map((w) => {
+            const k = w.kpis.find((x) => x.id === id);
+            if (w.unavailable || !k) return `<td style="text-align:right;padding:3px 2px;color:#9ca3af;">n/d</td>`;
+            const val = k.value === null ? '<span style="color:#9ca3af;">&mdash;</span>' : `${esc(formatValue(k.value, def.unit))}${k.kind === 'proxy' ? '<sup style="color:#b45309;">*</sup>' : ''}`;
+            const delta = k.vsPrev ? `<div style="font-size:10px;color:${TONE[k.vsPrev.tone]};">${esc(formatDelta(k.vsPrev, def.unit))}</div>` : '';
+            return `<td style="text-align:right;vertical-align:top;padding:3px 2px;white-space:nowrap;"><div style="font-weight:600;color:#111827;">${val}</div>${delta}</td>`;
+        }).join('');
+        return `<tr><td style="padding:3px 6px 3px 0;color:#374151;vertical-align:top;">${esc(def.label)}</td>${cells}</tr>`;
+    }).join('');
+    return `<div style="margin:10px 0 2px;font-size:11px;font-weight:700;color:#6b7280;">Settimana su settimana <span style="font-weight:400;">(giorni del mese; variazione sulla stessa settimana del mese prima)</span></div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:11px;border-collapse:collapse;"><tr style="color:#9ca3af;font-size:10px;"><td></td>${th}</tr>${rows}</table>`;
+}
+
 /** Cliente da guardare: nome, verdetto, tabella dei KPI e segnali. */
 function expandedBlock(c: ClientMonthly, baseUrl: string): string {
     const v = STATE[c.verdict.state];
@@ -69,6 +111,7 @@ function expandedBlock(c: ClientMonthly, baseUrl: string): string {
         + `<tr style="color:#9ca3af;font-size:11px;"><td></td><td style="text-align:right;padding:0 8px;">Mese</td><td style="text-align:right;padding:0 8px;">vs mese scorso</td><td style="text-align:right;padding:0 0 0 8px;">vs anno scorso</td></tr>`
         + c.kpis.map(kpiRow).join('')
         + `</table>`
+        + weekTable(c.weeks)
         + (c.alerts.length ? `<ul style="margin:8px 0 0;padding-left:18px;font-size:12px;color:#92400e;">${c.alerts.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : '')
         + `</td></tr>`;
 }
@@ -81,6 +124,7 @@ function compactBlock(c: ClientMonthly, baseUrl: string, withAlerts = false): st
     return `<tr><td style="padding:7px 0;border-top:1px solid #f3f4f6;font-size:13px;color:#4b5563;">`
         + `${dot(c.verdict.state)} <a href="${esc(clientLink(baseUrl, c.clientId))}" style="color:#111827;font-weight:600;text-decoration:none;">${esc(c.name)}</a>`
         + `<div style="margin-top:2px;font-size:12px;">${top || esc(c.verdict.headline)}</div>`
+        + weekStrip(c.weeks)
         + (withAlerts && c.alerts.length ? `<div style="margin-top:2px;font-size:11px;color:#92400e;">${esc(c.alerts.join(' · '))}</div>` : '')
         + `</td></tr>`;
 }
@@ -119,7 +163,7 @@ export function buildMonthlyMail(input: MonthlyMailInput): MonthlyMail {
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border-radius:12px;padding:20px;${FONT}">`
         + `<tr><td><div style="font-size:12px;color:#6b7280;">WRDigital · report mensile</div>`
         + `<div style="font-size:22px;font-weight:700;color:#111827;margin-top:2px;">Come stanno andando i clienti</div>`
-        + `<div style="font-size:14px;color:#4b5563;margin-top:2px;">${esc(label)} · confronto con ${esc(monthLabel(shiftMonth(month, -1)))} e ${esc(monthLabel(shiftMonth(month, -12)))}</div></td></tr>`
+        + `<div style="font-size:14px;color:#4b5563;margin-top:2px;">${esc(label)} · confronto con ${esc(monthLabel(shiftMonth(month, -1)))} e ${esc(monthLabel(shiftMonth(month, -12)))}, e settimana su settimana</div></td></tr>`
         + `<tr><td style="padding-top:14px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr>${chip(counts.down, 'down')}${chip(counts.flat, 'flat')}${chip(counts.up, 'up')}${chip(counts.unknown, 'unknown')}</tr></table></td></tr>`
         + (attention.length ? sectionTitle('Da guardare per primi', 'In calo o con un segnale da controllare') + attention.map((c) => (expanded.has(c.clientId) ? expandedBlock(c, baseUrl) : compactBlock(c, baseUrl, true))).join('') : '')
         + okSections
@@ -129,6 +173,7 @@ export function buildMonthlyMail(input: MonthlyMailInput): MonthlyMail {
             : '')
         + `<tr><td style="padding-top:18px;border-top:1px solid #e5e7eb;font-size:11px;color:#9ca3af;">`
         + `Il giudizio parte dal primo KPI di ogni cliente. Sotto 10 eventi non si calcola la percentuale. `
+        + `Le settimane sono blocchi di 7 giorni dal 1° del mese (la 5ª è più corta), ognuna confrontata con la stessa del mese prima: ▲ meglio, ▼ peggio, = stabile, · dati insufficienti; i dati reali inseriti a mano sono solo mensili. `
         + (hasProxy ? `<span style="color:#b45309;">*</span> stima da Meta: il dato reale non è stato inserito. ` : '')
         + `Apri il nome del cliente per il report completo nel Hub.`
         + (expanded.size < attention.length ? ` ${attention.length - expanded.size} clienti da guardare sono in forma ridotta per la dimensione del messaggio.` : '')
@@ -150,7 +195,7 @@ export function buildMonthlyMail(input: MonthlyMailInput): MonthlyMail {
         `Report KPI clienti — ${label}`,
         `In calo ${counts.down} · Stabili ${counts.flat} · In crescita ${counts.up} · Dati insufficienti ${counts.unknown}`,
         '',
-        ...(attention.length ? ['DA GUARDARE PER PRIMI', ...attention.flatMap((c) => [`- ${c.name}: ${c.verdict.headline}`, ...c.alerts.map((a) => `    ! ${a}`)]), ''] : []),
+        ...(attention.length ? ['DA GUARDARE PER PRIMI', ...attention.flatMap((c) => [`- ${c.name}: ${c.verdict.headline}`, ...(c.weeks?.length ? [`    settimane: ${c.weeks.map((w) => `${Number(w.dateFrom.slice(8, 10))}-${Number(w.dateTo.slice(8, 10))} ${TEXT_MARK[w.verdict]}`).join(' · ')}`] : []), ...c.alerts.map((a) => `    ! ${a}`)]), ''] : []),
         ...(ok.length ? ['ALTRI CLIENTI', ...ok.sort(byName).map((c) => `- ${c.name}: ${c.verdict.headline}`), ''] : []),
         ...(insufficient.length ? ['DATI INSUFFICIENTI', ...insufficient.map((c) => `- ${c.name}`), ''] : []),
         baseUrl,

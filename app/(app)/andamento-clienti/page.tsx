@@ -7,7 +7,8 @@ import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { isMonthKey, previousMonthKey } from '@/lib/manual-kpis'
-import { PROFILE_DEFS } from '@/lib/kpi-profiles'
+import { KPI_CATALOG, PROFILE_DEFS } from '@/lib/kpi-profiles'
+import type { WeekResult } from '@/lib/kpi-weekly'
 import { formatDelta, formatValue, monthLabel, type ClientMonthly, type Delta, type VerdictState } from '@/lib/kpi-compute'
 
 type Snap = { computedAt: string; result: ClientMonthly }
@@ -28,6 +29,57 @@ const TONE: Record<Delta['tone'], string> = { good: 'text-emerald-600 dark:text-
 function DeltaText({ d, unit }: { d: Delta | null; unit: ClientMonthly['kpis'][number]['unit'] }) {
   if (!d) return <span className="text-muted-foreground">—</span>
   return <span className={TONE[d.tone]}>{formatDelta(d, unit)}</span>
+}
+
+
+const WEEK_MARK: Record<VerdictState, { sym: string; cls: string; label: string }> = {
+  up: { sym: '▲', cls: 'text-emerald-600 dark:text-emerald-400', label: 'meglio' },
+  down: { sym: '▼', cls: 'text-red-600 dark:text-red-400', label: 'peggio' },
+  flat: { sym: '=', cls: 'text-amber-600 dark:text-amber-400', label: 'stabile' },
+  unknown: { sym: '·', cls: 'text-muted-foreground', label: 'dati insufficienti' },
+}
+const days = (w: WeekResult) => `${Number(w.dateFrom.slice(8, 10))}–${Number(w.dateTo.slice(8, 10))}`
+
+/** Settimana su settimana: ogni settimana (blocchi di 7 giorni dal 1°) contro la stessa del mese prima. */
+function WeeksTable({ weeks }: { weeks: WeekResult[] }) {
+  const ids = (weeks.find((w) => w.kpis.length)?.kpis ?? []).map((k) => k.id)
+  if (ids.length === 0) return null
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-muted-foreground">
+            <th className="py-1 pr-2 text-left font-medium">KPI</th>
+            {weeks.map((w) => (
+              <th key={w.n} className="px-2 py-1 text-right font-medium" title={w.comparable ? 'Confrontata con la stessa settimana del mese scorso' : 'Nessuna settimana uguale nel mese scorso'}>
+                {days(w)} <span className={WEEK_MARK[w.verdict].cls} title={WEEK_MARK[w.verdict].label}>{WEEK_MARK[w.verdict].sym}</span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {ids.map((id) => {
+            const def = KPI_CATALOG[id]
+            return (
+              <tr key={id} className="border-t border-border/50">
+                <td className="py-1.5 pr-2">{def.label}</td>
+                {weeks.map((w) => {
+                  const k = w.kpis.find((x) => x.id === id)
+                  if (w.unavailable || !k) return <td key={w.n} className="px-2 py-1.5 text-right text-muted-foreground">n/d</td>
+                  return (
+                    <td key={w.n} className="whitespace-nowrap px-2 py-1.5 text-right align-top">
+                      <div className="font-semibold">{k.value === null ? <span className="font-normal text-muted-foreground">—</span> : formatValue(k.value, def.unit)}{k.kind === 'proxy' && <sup className="text-amber-600" title="Stima da Meta">*</sup>}</div>
+                      {k.vsPrev && <div className="text-[11px]"><DeltaText d={k.vsPrev} unit={def.unit} /></div>}
+                    </td>
+                  )
+                })}
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
 }
 
 /** Peso per l'ordinamento: prima chi è in calo, poi chi ha segnali da guardare, poi gli altri. */
@@ -117,6 +169,7 @@ export default function AndamentoClientiPage() {
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
           Come sta andando ogni cliente rispetto ai KPI scelti per il suo profilo, nel mese di <b>{isMonthKey(month) ? monthLabel(month) : '—'}</b>.
           Il verdetto guarda il KPI principale contro il mese scorso; sotto i 10 eventi si dice «dati insufficienti» invece di inventare una percentuale.
+          Ogni cliente ha anche il confronto settimana su settimana, così un calo si vede a metà mese: scegli il mese in corso per le settimane già chiuse.
           Per cambiare i KPI o chi compare qui: <Link href="/admin/report-mensile" className="underline">Mail mensile KPI</Link>.
         </p>
       </div>
@@ -207,6 +260,18 @@ export default function AndamentoClientiPage() {
                       </table>
                     </div>
                     {r.kpis.some((k) => k.kind === 'proxy') && <p className="mt-1 text-[11px] text-amber-600">* stima di piattaforma: il dato reale del mese non è stato inserito.</p>}
+                    {r.partial && <p className="mt-1 text-[11px] text-muted-foreground">Mese in corso: numeri dei primi {r.partial.days} giorni, confrontati con gli stessi giorni del mese scorso e dell&apos;anno scorso.</p>}
+
+                    {r.weeks && r.weeks.length > 0 && (
+                      <details className="mt-3" open={r.verdict.state === 'down'}>
+                        <summary className="cursor-pointer text-xs font-semibold text-muted-foreground">
+                          Settimana su settimana{' '}
+                          {r.weeks.map((w) => <span key={w.n} className={`mr-1 ${WEEK_MARK[w.verdict].cls}`} title={`${days(w)}: ${WEEK_MARK[w.verdict].label}`}>{WEEK_MARK[w.verdict].sym}</span>)}
+                        </summary>
+                        <div className="mt-2"><WeeksTable weeks={r.weeks} /></div>
+                        <p className="mt-1 text-[11px] text-muted-foreground">Settimane = blocchi di 7 giorni dal 1° (la 5ª è più corta), contro la stessa del mese scorso. I dati inseriti a mano sono solo mensili.</p>
+                      </details>
+                    )}
 
                     {r.alerts.length > 0 && (
                       <ul className="mt-3 space-y-1 text-xs">

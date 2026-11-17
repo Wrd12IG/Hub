@@ -4,11 +4,11 @@ import { isMonthKey } from '@/lib/manual-kpis';
 import { computeClientMonth } from '@/lib/kpi-monthly';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * POST { clientId, month } → calcola i KPI di UN cliente per il mese (legge le piattaforme, 10-40 s) e ne salva la
- * fotografia. Un cliente per chiamata: il limite di Vercel è 60 secondi, quindi chi vuole calcolarli tutti li chiama uno
+ * fotografia. Un cliente per chiamata: con le settimane un cliente può metterci più di un minuto: il limite è 300 secondi, quindi chi vuole calcolarli tutti li chiama uno
  * alla volta (la pagina di anteprima, il giro automatico). Solo amministratori.
  */
 export async function POST(request: NextRequest) {
