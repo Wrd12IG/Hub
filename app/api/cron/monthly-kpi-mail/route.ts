@@ -57,8 +57,13 @@ export async function GET(request: NextRequest) {
     // Con force i tentativi falliti si azzerano: si riparte pulito
     const attempts = force ? {} : run.attempts ?? {};
     const shots = await readSnapshots(month, clients.map((c) => c.id));
+    // Una fotografia senza `weeks` è di prima delle settimane: va rifatta anche se recente
     const { todo, gaveUp } = splitWork(
-      clients.map((c) => ({ id: c.id, computedAt: shots[c.id]?.computedAt, attempts: Number(attempts[c.id] ?? 0) })),
+      clients.map((c) => ({
+        id: c.id,
+        computedAt: shots[c.id]?.result.weeks ? shots[c.id].computedAt : undefined,
+        attempts: Number(attempts[c.id] ?? 0),
+      })),
       cutoff,
     );
 

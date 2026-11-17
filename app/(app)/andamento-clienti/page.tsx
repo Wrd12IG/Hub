@@ -145,7 +145,8 @@ export default function AndamentoClientiPage() {
     setRunning(false)
   }
 
-  const missing = useMemo(() => included.filter((c) => !snaps[c.id]), [included, snaps])
+  // Una fotografia calcolata prima delle settimane (senza `weeks`) conta come da aggiornare
+  const missing = useMemo(() => included.filter((c) => !snaps[c.id]?.result.weeks), [included, snaps])
   const results = useMemo(
     () => included.map((c) => snaps[c.id]?.result).filter((r): r is ClientMonthly => !!r)
       .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'it', { sensitivity: 'base' })),
