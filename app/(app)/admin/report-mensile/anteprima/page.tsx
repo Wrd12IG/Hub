@@ -90,7 +90,8 @@ export default function AnteprimaPage() {
     finally { setSending(false) }
   }
 
-  const missing = useMemo(() => included.filter((c) => !snaps[c.id]), [included, snaps])
+  // Una fotografia calcolata prima delle settimane (senza `weeks`) conta come da aggiornare
+  const missing = useMemo(() => included.filter((c) => !snaps[c.id]?.result.weeks), [included, snaps])
   const mail = useMemo(() => {
     const clients = included.map((c) => snaps[c.id]?.result).filter((r): r is ClientMonthly => !!r)
     return clients.length ? buildMonthlyMail({ month, clients, baseUrl: typeof window !== 'undefined' ? window.location.origin : '' }) : null
