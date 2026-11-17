@@ -7,13 +7,16 @@ import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { isMonthKey, previousMonthKey } from '@/lib/manual-kpis'
-import { KPI_CATALOG, PROFILE_DEFS } from '@/lib/kpi-profiles'
+import { KPI_CATALOG, KPI_PROFILES, PROFILE_DEFS, isKpiProfile, type KpiProfile } from '@/lib/kpi-profiles'
 import type { WeekResult } from '@/lib/kpi-weekly'
 import { formatDelta, formatValue, monthLabel, type ClientMonthly, type Delta, type VerdictState } from '@/lib/kpi-compute'
 
 type Snap = { computedAt: string; result: ClientMonthly }
-type Included = { id: string; name: string }
+type Included = { id: string; name: string; profile?: KpiProfile }
 type Filter = 'all' | VerdictState
+/** Chi si vede e si aggiorna: tutti, uno o più settori (profili KPI), oppure clienti a scelta libera. */
+type ScopeMode = 'all' | 'sector' | 'free'
+const SCOPE_KEY = 'andamento-clienti:scope'
 
 const CONCURRENCY = 2
 const btn = 'inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50'
@@ -101,7 +104,27 @@ export default function AndamentoClientiPage() {
   const [progress, setProgress] = useState({ done: 0, total: 0 })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [filter, setFilter] = useState<Filter>('all')
+  const [mode, setMode] = useState<ScopeMode>('all')
+  const [sectors, setSectors] = useState<KpiProfile[]>([])
+  const [picked, setPicked] = useState<string[]>([])
+  const [search, setSearch] = useState('')
+  const [busy, setBusy] = useState<string[]>([])
   const stop = useRef(false)
+
+  // Si ricorda l'ultima scelta (solo comodità del browser: se non c'è, parte da «Tutti»)
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(window.localStorage.getItem(SCOPE_KEY) || 'null')
+      if (raw && (raw.mode === 'sector' || raw.mode === 'free')) {
+        setMode(raw.mode)
+        setSectors(Array.isArray(raw.sectors) ? raw.sectors.filter(isKpiProfile) : [])
+        setPicked(Array.isArray(raw.picked) ? raw.picked.filter((x: unknown) => typeof x === 'string') : [])
+      }
+    } catch { /* storage non disponibile: nessun problema */ }
+  }, [])
+  useEffect(() => {
+    try { window.localStorage.setItem(SCOPE_KEY, JSON.stringify({ mode, sectors, picked })) } catch { /* idem */ }
+  }, [mode, sectors, picked])
 
   const load = useCallback(async () => {
     if (!isMonthKey(month)) return
@@ -145,13 +168,37 @@ export default function AndamentoClientiPage() {
     setRunning(false)
   }
 
+  /** Aggiorna un solo cliente (il pulsante sulla sua scheda). */
+  async function refreshOne(c: Included) {
+    setBusy((b) => [...b, c.id])
+    await computeOne(c)
+    setBusy((b) => b.filter((x) => x !== c.id))
+  }
+
+  // I clienti nel campo scelto: tutto ciò che si vede e si aggiorna (contatori, elenco, pulsanti) riguarda solo loro
+  const scoped = useMemo(() => {
+    if (mode === 'sector') return included.filter((c) => c.profile && sectors.includes(c.profile))
+    if (mode === 'free') return included.filter((c) => picked.includes(c.id))
+    return included
+  }, [included, mode, sectors, picked])
+  const sectorCounts = useMemo(() => {
+    const m: Partial<Record<KpiProfile, number>> = {}
+    for (const c of included) if (c.profile) m[c.profile] = (m[c.profile] ?? 0) + 1
+    return m
+  }, [included])
+  const pickList = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return included.filter((c) => !q || c.name.toLowerCase().includes(q))
+  }, [included, search])
+
   // Una fotografia calcolata prima delle settimane (senza `weeks`) conta come da aggiornare
-  const missing = useMemo(() => included.filter((c) => !snaps[c.id]?.result.weeks), [included, snaps])
+  const missing = useMemo(() => scoped.filter((c) => !snaps[c.id]?.result.weeks), [scoped, snaps])
   const results = useMemo(
-    () => included.map((c) => snaps[c.id]?.result).filter((r): r is ClientMonthly => !!r)
+    () => scoped.map((c) => snaps[c.id]?.result).filter((r): r is ClientMonthly => !!r)
       .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, 'it', { sensitivity: 'base' })),
-    [included, snaps],
+    [scoped, snaps],
   )
+  const toggle = <T,>(list: T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
   const counts = useMemo(() => {
     const c: Record<VerdictState, number> = { down: 0, flat: 0, up: 0, unknown: 0 }
     for (const r of results) c[r.verdict.state]++
@@ -183,12 +230,60 @@ export default function AndamentoClientiPage() {
         <button type="button" className={btn} disabled={running || loading || missing.length === 0} onClick={() => run(missing)}>
           {running ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Calcola i mancanti ({missing.length})
         </button>
-        <button type="button" className={btn} disabled={running || loading || included.length === 0}
-          onClick={() => { if (window.confirm(`Ricalcolo tutti i ${included.length} clienti? Richiede alcuni minuti.`)) run(included) }}>
-          Ricalcola tutti
+        <button type="button" className={btn} disabled={running || loading || scoped.length === 0}
+          onClick={() => { if (window.confirm(`Ricalcolo ${scoped.length === 1 ? 'il cliente' : `i ${scoped.length} clienti`}? ${scoped.length > 1 ? 'Richiede alcuni minuti.' : ''}`)) run(scoped) }}>
+          {mode === 'all' ? 'Ricalcola tutti' : `Ricalcola i selezionati (${scoped.length})`}
         </button>
         {running && <button type="button" className={btn} onClick={() => { stop.current = true }}>Ferma</button>}
       </div>
+
+      {!loading && included.length > 0 && (
+        <div className="space-y-2 rounded-xl border border-border bg-card/50 p-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Clienti:</span>
+            {([['all', `Tutti (${included.length})`], ['sector', 'Per settore'], ['free', 'Scelta libera']] as [ScopeMode, string][]).map(([m, label]) => (
+              <button key={m} type="button" disabled={running} onClick={() => setMode(m)}
+                className={`h-8 rounded-full border px-3 text-xs font-medium disabled:opacity-50 ${mode === m ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background hover:bg-accent'}`}>
+                {label}
+              </button>
+            ))}
+            {mode !== 'all' && <span className="text-xs text-muted-foreground">→ {scoped.length} {scoped.length === 1 ? 'cliente' : 'clienti'}</span>}
+          </div>
+
+          {mode === 'sector' && (
+            <div className="flex flex-wrap gap-2">
+              {KPI_PROFILES.filter((p) => sectorCounts[p]).map((p) => (
+                <button key={p} type="button" disabled={running} onClick={() => setSectors((l) => toggle(l, p))} title={PROFILE_DEFS[p].description}
+                  className={`h-8 rounded-lg border px-3 text-xs font-medium disabled:opacity-50 ${sectors.includes(p) ? 'border-primary bg-primary/10 text-foreground ring-1 ring-primary' : 'border-border bg-background hover:bg-accent'}`}>
+                  {PROFILE_DEFS[p].label} ({sectorCounts[p]})
+                </button>
+              ))}
+              {sectors.length === 0 && <span className="self-center text-xs text-muted-foreground">Scegli uno o più settori.</span>}
+            </div>
+          )}
+
+          {mode === 'free' && (
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cerca un cliente…"
+                  className="h-8 w-56 rounded-lg border border-border bg-background px-2 text-xs" />
+                <button type="button" disabled={running} className="text-xs underline disabled:opacity-50" onClick={() => setPicked((p) => Array.from(new Set([...p, ...pickList.map((c) => c.id)])))}>Seleziona i {pickList.length} visibili</button>
+                <button type="button" disabled={running || picked.length === 0} className="text-xs underline disabled:opacity-50" onClick={() => setPicked([])}>Deseleziona tutti</button>
+                <span className="text-xs text-muted-foreground">{picked.length} selezionati</span>
+              </div>
+              <div className="grid max-h-56 grid-cols-1 gap-x-4 gap-y-1 overflow-y-auto rounded-lg border border-border bg-background p-2 sm:grid-cols-2 md:grid-cols-3">
+                {pickList.map((c) => (
+                  <label key={c.id} className="flex cursor-pointer items-center gap-2 text-xs">
+                    <input type="checkbox" disabled={running} checked={picked.includes(c.id)} onChange={() => setPicked((p) => toggle(p, c.id))} />
+                    <span className="truncate">{c.name}</span>
+                  </label>
+                ))}
+                {pickList.length === 0 && <span className="text-xs text-muted-foreground">Nessun cliente trovato.</span>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {running && <p className="text-sm">Calcolo… <b>{progress.done}</b> di {progress.total}. Lascia aperta la pagina.</p>}
       {Object.keys(errors).length > 0 && (
@@ -200,6 +295,7 @@ export default function AndamentoClientiPage() {
 
       {loading ? <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 size={12} className="animate-spin" /> Carico…</p>
         : included.length === 0 ? <p className="text-sm text-muted-foreground">Nessun cliente da mostrare: in «Mail mensile KPI» accendi «Nella mail» e assegna un profilo ai clienti.</p>
+        : scoped.length === 0 ? <p className="text-sm text-muted-foreground">{mode === 'sector' ? 'Scegli uno o più settori.' : 'Scegli uno o più clienti.'}</p>
         : results.length === 0 ? <p className="text-sm text-muted-foreground">Nessun cliente ancora calcolato per questo mese: premi «Calcola i mancanti».</p>
         : (
           <>
@@ -216,7 +312,7 @@ export default function AndamentoClientiPage() {
               })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {results.length} clienti calcolati su {included.length}
+              {results.length} clienti calcolati su {scoped.length}{mode !== 'all' && ' selezionati'}
               {withAlerts > 0 && <> · <AlertTriangle size={11} className="mb-0.5 inline text-amber-500" /> {withAlerts} con segnali da guardare</>}
               {filter !== 'all' && <> · filtro: {STATE[filter].label} (<button type="button" className="underline" onClick={() => setFilter('all')}>mostra tutti</button>)</>}
             </p>
@@ -231,7 +327,14 @@ export default function AndamentoClientiPage() {
                         <Link href={`/clients/${encodeURIComponent(r.clientId)}`} className="text-base font-semibold hover:underline">{r.name}</Link>
                         <span className="ml-2 text-xs text-muted-foreground">{PROFILE_DEFS[r.profile]?.label ?? r.profile}</span>
                       </div>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.bg} ${st.text}`}><Icon size={13} /> {st.label}</span>
+                      <div className="flex items-center gap-2">
+                        <button type="button" title="Aggiorna solo questo cliente" disabled={running || busy.includes(r.clientId)}
+                          onClick={() => { const c = included.find((x) => x.id === r.clientId); if (c) refreshOne(c) }}
+                          className="inline-flex h-7 items-center gap-1 rounded-md border border-border bg-background px-2 text-xs hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50">
+                          <RefreshCw size={12} className={busy.includes(r.clientId) ? 'animate-spin' : ''} /> Aggiorna
+                        </button>
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${st.bg} ${st.text}`}><Icon size={13} /> {st.label}</span>
+                      </div>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">{r.verdict.headline}</p>
 
