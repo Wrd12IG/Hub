@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ClientMonthly, KpiResult } from '../kpi-compute';
+import type { WeekResult } from '../kpi-weekly';
 import { GMAIL_CLIP_BYTES, buildMonthlyMail } from '../monthly-mail-html';
 
 const kpi = (over: Partial<KpiResult> = {}): KpiResult => ({
@@ -14,6 +15,12 @@ const client = (over: Partial<ClientMonthly> = {}): ClientMonthly => ({
 });
 
 const BASE = 'https://hub.wrdigital.it';
+
+const weeks = (over: Partial<WeekResult>[] = []): WeekResult[] => [[1, 7], [8, 14], [15, 21], [22, 28], [29, 31]].map(([a, b], i) => ({
+    n: i + 1, dateFrom: `2026-10-${String(a).padStart(2, '0')}`, dateTo: `2026-10-${String(b).padStart(2, '0')}`, days: b - a + 1, comparable: i < 4,
+    kpis: ['sessions', 'gbp_calls', 'cost_per_lead'].map((id, k) => ({ id, value: 1000 + k * 10 + i, previous: 900, kind: 'real' as const, vsPrev: i < 4 ? { kind: 'pct' as const, value: 11 + i, tone: (i % 2 ? 'bad' : 'good') as 'good' | 'bad', small: false } : null })),
+    verdict: (['up', 'down', 'flat', 'up', 'unknown'] as const)[i], ...(over[i] ?? {}),
+}));
 
 describe('monthly-mail-html', () => {
     it('oggetto con mese e numero di clienti in calo', () => {
@@ -109,6 +116,57 @@ describe('monthly-mail-html', () => {
         expect(m.html.split('Fonti che non hanno risposto: Google Maps.').length - 1).toBe(47);
         // i più urgenti (primi della lista) hanno ancora la tabella
         expect(m.html).toContain('vs mese scorso');
+    });
+
+    it('settimana su settimana: i clienti da guardare hanno la tabella, gli altri la riga con le frecce', () => {
+        const m = buildMonthlyMail({
+            month: '2026-10', baseUrl: BASE,
+            clients: [
+                client({ clientId: 'd', name: 'IN CALO', verdict: { state: 'down', headline: 'In calo: x' }, weeks: weeks() }),
+                client({ clientId: 'k', name: 'IN ORDINE', weeks: weeks() }),
+            ],
+        });
+        // tabella (solo per il cliente in calo): giorni delle settimane, valori e variazioni
+        expect(m.html.split('Settimana su settimana').length - 1).toBe(1);
+        expect(m.html).toContain('1&ndash;7');
+        expect(m.html).toContain('29&ndash;31');
+        expect(m.html).toContain('+11%');
+        expect(m.html).toContain('Sessioni sito');
+        // riga con le frecce per il cliente in ordine (e anche sotto quello in calo se ridotto: qui è espanso, quindi una sola)
+        expect(m.html.split('Settimane: ').length - 1).toBe(1);
+        expect(m.html).toContain('&#9650;'); // su
+        expect(m.html).toContain('&#9660;'); // giù
+        expect(m.html).toContain('stessa del mese prima');
+    });
+
+    it('settimana non disponibile: n/d, mai uno zero', () => {
+        const w = weeks([{}, { unavailable: true, kpis: [], verdict: 'unknown' }]);
+        const m = buildMonthlyMail({ month: '2026-10', baseUrl: BASE, clients: [client({ verdict: { state: 'down', headline: 'x' }, weeks: w })] });
+        expect(m.html).toContain('n/d');
+    });
+
+    it('una fotografia vecchia, senza settimane, si legge ancora e non mostra sezioni vuote', () => {
+        const m = buildMonthlyMail({ month: '2026-10', baseUrl: BASE, clients: [client({ verdict: { state: 'down', headline: 'x' } }), client({ clientId: 'b', name: 'B' })] });
+        expect(m.html).not.toContain('Settimana su settimana');
+        expect(m.html).not.toContain('Settimane: ');
+    });
+
+    it('testo: le settimane dei clienti da guardare', () => {
+        const m = buildMonthlyMail({ month: '2026-10', baseUrl: BASE, clients: [client({ name: 'IN CALO', verdict: { state: 'down', headline: 'x' }, weeks: weeks() })] });
+        expect(m.text).toContain('settimane: 1-7 su · 8-14 giù · 15-21 = · 22-28 su · 29-31 n.d.');
+    });
+
+    it('47 clienti da guardare CON le settimane: resta sotto il limite di Gmail e non perde nessuno', () => {
+        const clients = Array.from({ length: 47 }, (_, i) => client({
+            clientId: `id${i}`, name: `CLIENTE NUMERO ${i + 1} S.R.L.`, verdict: { state: 'down', headline: 'In calo: sessioni sito 3.000, −25% sul mese scorso.' },
+            kpis: Array.from({ length: 5 }, (_, k) => kpi({ id: `k${k}`, label: `Indicatore numero ${k + 1}` })),
+            alerts: ['Fonti che non hanno risposto: Google Maps.'], weeks: weeks(),
+        }));
+        const m = buildMonthlyMail({ month: '2026-10', clients, baseUrl: BASE });
+        expect(m.bytes).toBeLessThan(GMAIL_CLIP_BYTES);
+        for (const c of clients) expect(m.html).toContain(c.name);
+        // anche ridotti, i clienti hanno la riga con le settimane
+        expect(m.html.split('Settimane: ').length - 1 + m.html.split('Settimana su settimana').length - 1).toBeGreaterThanOrEqual(47);
     });
 
     it('con pochi clienti non riduce nulla', () => {

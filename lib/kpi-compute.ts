@@ -17,6 +17,7 @@
 import type { PlatformReport } from './reporting';
 import { KPI_CATALOG, type KpiProfile, type KpiUnit } from './kpi-profiles';
 import { MIN_BASE_CONVERSIONS, NEUTRAL_BAND_PCT } from './client-health';
+import type { WeekResult } from './kpi-weekly';
 
 /* ───────────── mesi ───────────── */
 
@@ -267,6 +268,10 @@ export interface ClientMonthly {
     verdict: Verdict;
     /** Da 0 a 3 segnali da guardare. */
     alerts: string[];
+    /** Settimana su settimana (blocchi di 7 giorni dal 1°, lib/kpi-weekly.ts). Assente nelle fotografie vecchie. */
+    weeks?: WeekResult[];
+    /** Presente se il mese è in corso: i numeri sono dei primi `days` giorni, confrontati con gli stessi giorni. */
+    partial?: { days: number };
 }
 
 export interface ComputeInput {
