@@ -187,7 +187,7 @@ service cloud.firestore {
     // regola a parte: bisogna escluderle da qui. Si leggono e scrivono solo dalle route
     // /api/outreach (Admin SDK, che le regole non vincolano), mai dal client.
     match /{document=**} {
-      allow read, write: if isStaff() && !string(document).matches('outreach.*');
+      allow read, write: if isStaff() && !string(document).matches('/outreach.*');
     }
   }
 }
