@@ -15,6 +15,7 @@ Variabili d'ambiente:
   HUB_URL                   indirizzo della hub, es. https://hub.wrdigital.it                  [obbligatoria]
   OUTREACH_BRIDGE_SECRET    lo stesso segreto configurato sulla hub (almeno 32 caratteri)      [obbligatoria]
   BRIDGE_INTERVAL_SECONDS   pausa tra un giro e l'altro, default 120
+  SELLBIRD_CMD              come lanciare Sellbird; default <SELLBIRD_DIR>/.venv/bin/sellbird, in Docker "python -m sellbird"
 
 Uso:  python3 bridge.py          # in continuo
       python3 bridge.py --once   # un solo giro (per provare)
@@ -22,6 +23,7 @@ Uso:  python3 bridge.py          # in continuo
 import json
 import os
 import re
+import shlex
 import sqlite3
 import subprocess
 import sys
@@ -85,11 +87,12 @@ def apply_command(sellbird_dir, cmd):
     outbox_id, action = cmd.get("outboxId"), cmd.get("action")
     if not isinstance(outbox_id, str) or not ID_RE.match(outbox_id) or action not in ("approve", "reject"):
         return False, "comando non valido"
-    exe = os.path.join(sellbird_dir, ".venv", "bin", "sellbird")
-    if not os.path.exists(exe):
-        return False, "sellbird non trovato in .venv/bin"
+    # Di default l'eseguibile nel .venv di Sellbird; in Docker (dove il .venv non c'è) si imposta SELLBIRD_CMD="python -m sellbird".
+    base = shlex.split(os.environ.get("SELLBIRD_CMD", "")) or [os.path.join(sellbird_dir, ".venv", "bin", "sellbird")]
+    if len(base) == 1 and not os.path.exists(base[0]):
+        return False, f"sellbird non trovato: {base[0]}"
     try:
-        res = subprocess.run([exe, "outbox", f"--{action}", outbox_id], cwd=sellbird_dir,
+        res = subprocess.run([*base, "outbox", f"--{action}", outbox_id], cwd=sellbird_dir,
                              capture_output=True, text=True, timeout=120)
     except subprocess.TimeoutExpired:
         return False, "sellbird non ha risposto in tempo"

@@ -1,0 +1,48 @@
+# Aggiunte al docker-compose.yml di Sellbird per farlo girare da solo su un server:
+#   docker compose -f docker-compose.yml -f docker-compose.vm.yml up -d --build
+#
+# - sellbird: avvia direttamente il ciclo automatico (`run`) invece della sola dashboard, che da sola non invierebbe nulla.
+#   La dashboard resta raggiungibile solo dal server (127.0.0.1:5555), tramite tunnel SSH.
+# - bridge: il ponte con la hub, nella stessa immagine, dentro la stessa cartella (bridge/bridge.py).
+#   Legge HUB_URL e OUTREACH_BRIDGE_SECRET da bridge.env (permessi 600, mai su Git).
+services:
+  sellbird:
+    image: sellbird-local
+    command: ["run"]
+    healthcheck:
+      disable: true   # il controllo di salute guarda la porta della dashboard, che con `run` non c'è
+
+  bridge:
+    build:
+      context: .
+      args:
+        SELLBIRD_UID: ${SELLBIRD_UID:-1000}
+        SELLBIRD_GID: ${SELLBIRD_GID:-1000}
+    image: sellbird-local
+    entrypoint: ["python", "/app/bridge/bridge.py"]
+    command: []
+    working_dir: /app
+    env_file: ./bridge.env
+    environment:
+      SELLBIRD_DIR: /app
+      SELLBIRD_CMD: "python -m sellbird"
+    volumes:
+      - type: bind
+        source: .
+        target: /app
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${HOME}/.claude
+        target: /home/sellbird/.claude
+        bind:
+          create_host_path: false
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      disable: true
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
