@@ -2,6 +2,8 @@
 
 import React, { useMemo } from 'react'
 import type { OutreachSignalItem } from '@/lib/outreach'
+import { isFreeSignal } from '@/lib/outreach'
+import { btn } from './shared'
 
 const STATUS: Record<string, { label: string; cls: string }> = {
   confirmed: { label: 'Attivo', cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
@@ -9,7 +11,14 @@ const STATUS: Record<string, { label: string; cls: string }> = {
   rejected: { label: 'Escluso', cls: 'bg-muted text-muted-foreground' },
 }
 
-export function SignalsTab({ signals }: { signals: OutreachSignalItem[] }) {
+type Props = {
+  signals: OutreachSignalItem[]
+  busy: boolean
+  /** Attiva (confirmed) o esclude (rejected) un segnale gratuito. */
+  setSignal: (code: string, status: 'confirmed' | 'rejected') => void
+}
+
+export function SignalsTab({ signals, busy, setSignal }: Props) {
   const groups = useMemo(() => {
     const m = new Map<string, OutreachSignalItem[]>()
     for (const s of signals) m.set(s.category || 'Altro', [...(m.get(s.category || 'Altro') ?? []), s])
@@ -22,7 +31,8 @@ export function SignalsTab({ signals }: { signals: OutreachSignalItem[] }) {
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
         I segnali sono i fatti che Sellbird raccoglie sulle aziende (se fanno pubblicità, se hanno la prenotazione online…).
-        Qui sono in sola lettura: si attivano e si disattivano da Sellbird, perché alcuni costano.
+        Da qui si attivano e si escludono solo quelli <strong>gratuiti</strong>; quelli che costano crediti si cambiano da Sellbird, dove vedi il costo prima di decidere.
+        Un segnale attivo viene raccolto nei cicli successivi.
       </p>
       {groups.map(([category, list]) => (
         <section key={category} className="space-y-2">
@@ -40,6 +50,11 @@ export function SignalsTab({ signals }: { signals: OutreachSignalItem[] }) {
                   <div className="flex shrink-0 flex-col items-end gap-1">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.cls}`}>{st.label}</span>
                     <span className="text-xs text-muted-foreground">{s.companies} aziende</span>
+                    {isFreeSignal(s.costNote) && (
+                      <button className={btn} disabled={busy} onClick={() => setSignal(s.code, s.status === 'confirmed' ? 'rejected' : 'confirmed')}>
+                        {s.status === 'confirmed' ? 'Escludi' : 'Attiva'}
+                      </button>
+                    )}
                   </div>
                 </div>
               )

@@ -1,4 +1,4 @@
-import type { OutreachCampaignItem, OutreachCompanyItem, OutreachContactItem, OutreachOutboxItem, OutreachReplyItem, OutreachSignalItem, OutreachStats } from '@/lib/outreach'
+import type { OutreachDiscoverInfo, OutreachCampaignItem, OutreachCompanyItem, OutreachContactItem, OutreachOutboxItem, OutreachReplyItem, OutreachSignalItem, OutreachStats } from '@/lib/outreach'
 
 export type Meta = {
   syncedAt: string
@@ -8,9 +8,28 @@ export type Meta = {
   sendingPaused: string | null
   campaigns?: OutreachCampaignItem[]
   signals?: OutreachSignalItem[]
+  discover?: OutreachDiscoverInfo | null
 }
 
-export type Pending = { outboxId: string | null; action: 'approve' | 'reject' | 'pause_sending' | 'resume_sending' }
+export type Pending = { outboxId: string | null; action: 'approve' | 'reject' | 'pause_sending' | 'resume_sending' | 'discover_estimate' | 'discover_run' | 'signals_set' }
+
+/** Un'azione con parametri chiesta dalla hub (Discover, segnali), con il suo stato e quello che Sellbird ha risposto. */
+export type ActionRecord = {
+  id: string
+  action: 'discover_estimate' | 'discover_run' | 'signals_set'
+  status: 'pending' | 'applied' | 'failed'
+  provider: string | null
+  cities: string[]
+  maxSpend: number | null
+  codes: string[]
+  signalStatus: 'confirmed' | 'rejected' | null
+  estimatedCost: number | null
+  result: string | null
+  error: string | null
+  used: boolean
+  requestedAt: string | null
+  appliedAt: string | null
+}
 
 export type Overview = {
   meta: Meta | null
@@ -19,6 +38,7 @@ export type Overview = {
   contacts: OutreachContactItem[]
   replies: OutreachReplyItem[]
   pending: Pending[]
+  actions: ActionRecord[]
 }
 
 export const btn =

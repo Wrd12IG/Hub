@@ -13,6 +13,7 @@ import { PipelineTab } from './pipeline-tab'
 import { ContactsTab } from './contacts-tab'
 import { CampaignsTab } from './campaigns-tab'
 import { SignalsTab } from './signals-tab'
+import { ActionsTab } from './actions-tab'
 
 /** Il ponte sincronizza ogni pochi minuti: oltre questa soglia vuol dire che Sellbird o il ponte sono fermi. */
 const STALE_MINUTES = 30
@@ -27,8 +28,8 @@ export default function OutreachPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const isAdmin = currentUser?.role === 'Amministratore'
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const res = await authFetch('/api/outreach/overview')
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Errore ${res.status}`)
@@ -41,6 +42,14 @@ export default function OutreachPage() {
   }, [authFetch])
 
   useEffect(() => { if (isAdmin) load() }, [isAdmin, load])
+
+  // Finché c'è qualcosa in attesa di Sellbird (un'approvazione, una stima, una ricerca) la pagina si aggiorna da sola.
+  const hasPending = (data?.pending.length ?? 0) > 0
+  useEffect(() => {
+    if (!isAdmin || !hasPending) return
+    const t = setInterval(() => load(true), 10_000)
+    return () => clearInterval(t)
+  }, [isAdmin, hasPending, load])
 
   const send = async (url: string, body: object, busyKey: string, ok: string) => {
     setBusy(busyKey)
@@ -59,6 +68,14 @@ export default function OutreachPage() {
   const decide = (id: string, action: 'approve' | 'reject') =>
     send(`/api/outreach/outbox/${id}`, { action }, id,
       action === 'approve' ? 'Approvazione registrata: Sellbird la applica entro pochi minuti.' : 'Rifiuto registrato: Sellbird lo applica entro pochi minuti.')
+
+  const act = (body: object, busyKey: string, ok: string) => send('/api/outreach/actions', body, busyKey, ok)
+  const estimate = (provider: string, cities: string[]) =>
+    act({ action: 'discover_estimate', provider, cities }, 'estimate', 'Stima richiesta: Sellbird la calcola entro un paio di minuti.')
+  const runDiscover = (estimateId: string) =>
+    act({ action: 'discover_run', estimateId }, 'run', 'Ricerca registrata: Sellbird la avvia entro un paio di minuti e può durare diversi minuti.')
+  const setSignal = (code: string, status: 'confirmed' | 'rejected') =>
+    act({ action: 'signals_set', codes: [code], status }, 'signals', status === 'confirmed' ? 'Segnale da attivare: Sellbird lo applica entro un paio di minuti.' : 'Segnale da escludere: Sellbird lo applica entro un paio di minuti.')
 
   const paused = data?.meta?.sendingPaused ?? null
   const sendingCommand = useMemo(() => data?.pending.find((p) => p.action === 'pause_sending' || p.action === 'resume_sending'), [data])
@@ -96,7 +113,7 @@ export default function OutreachPage() {
               {sendingCommand ? 'In attesa di Sellbird' : paused === null ? 'Ferma gli invii' : 'Riprendi gli invii'}
             </button>
           )}
-          <button className={btn} onClick={load} disabled={loading}>
+          <button className={btn} onClick={() => load()} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Aggiorna
           </button>
         </div>
@@ -122,6 +139,7 @@ export default function OutreachPage() {
           <TabsTrigger value="contatti">Contatti{data?.contacts.length ? ` (${data.contacts.length})` : ''}</TabsTrigger>
           <TabsTrigger value="campagne">Campagne</TabsTrigger>
           <TabsTrigger value="segnali">Segnali</TabsTrigger>
+          <TabsTrigger value="trova">Trova aziende</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline e uso</TabsTrigger>
         </TabsList>
         <TabsContent value="email" className="mt-4">
@@ -137,7 +155,10 @@ export default function OutreachPage() {
           <CampaignsTab campaigns={data?.meta?.campaigns ?? []} />
         </TabsContent>
         <TabsContent value="segnali" className="mt-4">
-          <SignalsTab signals={data?.meta?.signals ?? []} />
+          <SignalsTab signals={data?.meta?.signals ?? []} busy={busy === 'signals' || (data?.pending.some((p) => p.action === 'signals_set') ?? false)} setSignal={setSignal} />
+        </TabsContent>
+        <TabsContent value="trova" className="mt-4">
+          <ActionsTab meta={data?.meta ?? null} actions={data?.actions ?? []} busy={busy} estimate={estimate} run={runDiscover} />
         </TabsContent>
         <TabsContent value="pipeline" className="mt-4">
           <PipelineTab stats={data?.meta?.stats ?? null} />

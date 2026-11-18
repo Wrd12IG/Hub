@@ -23,6 +23,7 @@ import {
     parseCompanyItem,
     parseContactItem,
     parseCounts,
+    parseDiscoverInfo,
     parsePaused,
     parseOutboxItem,
     parseReplyItem,
@@ -100,6 +101,7 @@ export async function POST(request: NextRequest) {
         stats: parseStats(body?.stats),
         campaigns,
         signals,
+        discover: parseDiscoverInfo(body?.discover),
         sendingPaused: parsePaused(body?.sendingPaused),
     });
 
