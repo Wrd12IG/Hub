@@ -1,4 +1,4 @@
-import type { OutreachCompanyItem, OutreachOutboxItem, OutreachReplyItem, OutreachStats } from '@/lib/outreach'
+import type { OutreachCampaignItem, OutreachCompanyItem, OutreachContactItem, OutreachOutboxItem, OutreachReplyItem, OutreachSignalItem, OutreachStats } from '@/lib/outreach'
 
 export type Meta = {
   syncedAt: string
@@ -6,6 +6,8 @@ export type Meta = {
   companies: number
   stats: OutreachStats | null
   sendingPaused: string | null
+  campaigns?: OutreachCampaignItem[]
+  signals?: OutreachSignalItem[]
 }
 
 export type Pending = { outboxId: string | null; action: 'approve' | 'reject' | 'pause_sending' | 'resume_sending' }
@@ -14,6 +16,7 @@ export type Overview = {
   meta: Meta | null
   outbox: OutreachOutboxItem[]
   companies: OutreachCompanyItem[]
+  contacts: OutreachContactItem[]
   replies: OutreachReplyItem[]
   pending: Pending[]
 }
@@ -46,4 +49,10 @@ export const PROSPECT_STATUS: Record<string, string> = {
   bounced: 'Indirizzo non valido',
   no_tip: 'Senza spunto',
   queued: 'In coda',
+}
+
+export const EMAIL_STATUS: Record<string, { label: string; cls: string }> = {
+  verified: { label: 'Verificato', cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
+  risky: { label: 'Rischioso', cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+  guess: { label: 'Ipotizzato', cls: 'bg-muted text-muted-foreground' },
 }
