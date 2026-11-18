@@ -21,12 +21,20 @@ Il segreto non va scritto in nessun file del repository.
 
 ## Cosa fa e cosa no
 
-- Manda alla hub email in coda e aziende (indirizzi, oggetti, testi delle bozze). Non le risposte né le conversazioni.
-- Un'approvazione o un rifiuto dalla hub viene applicata entro un paio di minuti con `sellbird outbox --approve|--reject`.
-  Se Sellbird o il ponte sono spenti, la decisione resta in coda e parte quando ripartono.
+- Manda alla hub, ogni 2 minuti: email in coda, aziende, **risposte** dei destinatari (gli ultimi messaggi di ogni
+  conversazione), contatori della pipeline, uso di Claude degli ultimi 7 giorni e stato della pausa degli invii.
+  Sono dati di terze persone: stanno in collezioni `outreach*` chiuse al browser (vedi `firestore.rules`) e li legge
+  solo la pagina Outreach, riservata agli amministratori.
+- Applica le decisioni prese dalla hub con la CLI di Sellbird, da una lista fissa: `outbox --approve|--reject <id>` e
+  `sending pause|resume`. Qualunque altra azione viene rifiutata. Se Sellbird o il ponte sono spenti, la decisione resta
+  in coda e parte quando ripartono.
 - Non scrive mai nel database di Sellbird e non invia nulla da sé: l'invio lo fa Sellbird, con i suoi limiti
   giornalieri e le sue pause.
 - Se la hub non vede una sincronizzazione da più di 30 minuti, la pagina Outreach lo segnala.
+- Non porta nella hub: Discover, segnali, addestramento, riscaldamento della casella e impostazioni. Restano nella
+  dashboard di Sellbird, raggiungibile dal server con un tunnel SSH.
+
+Prove: `python3 -m unittest scripts/sellbird-bridge/test_bridge.py` (database inventato, nessuna rete).
 
 ## Sul server (Docker)
 

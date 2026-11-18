@@ -22,6 +22,9 @@ export const OUTBOX_STATUSES = ['pending_review', 'approved', 'sending', 'sent',
 export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
 
 export type OutreachAction = 'approve' | 'reject';
+/** Comandi senza un'email di riferimento: fermano o riprendono tutti gli invii (`sellbird sending pause|resume`). */
+export type SendingAction = 'pause_sending' | 'resume_sending';
+export const SENDING_ACTIONS: readonly SendingAction[] = ['pause_sending', 'resume_sending'];
 
 export interface OutreachOutboxItem {
     id: string;
@@ -49,14 +52,52 @@ export interface OutreachCompanyItem {
     replied: boolean;
 }
 
+export type ReplyAuthor = 'them' | 'us';
+
+export interface OutreachReplyMessage {
+    from: ReplyAuthor;
+    text: string;
+    at: string | null;
+}
+
+/** Una conversazione in cui il destinatario ha risposto. Gli ultimi messaggi bastano per capire a che punto è. */
+export interface OutreachReplyItem {
+    id: string;
+    company: string;
+    contact: string;
+    email: string;
+    intent: string;
+    stage: string;
+    status: string;
+    updatedAt: string | null;
+    messages: OutreachReplyMessage[];
+}
+
+/** Solo numeri, con chiavi controllate: contatori della pipeline e uso della quota Claude. */
+export interface OutreachStats {
+    companies: number;
+    prospects: Record<string, number>;
+    emailsSent: number;
+    emailsSentToday: number;
+    conversations: number;
+    intents: Record<string, number>;
+    usage: { calls7d: number; errors7d: number; inputTokens7d: number; outputTokens7d: number; byAgent: Record<string, number> };
+}
+
 export interface OutreachSnapshot {
     outbox: OutreachOutboxItem[];
     companies: OutreachCompanyItem[];
+    replies: OutreachReplyItem[];
+    stats: OutreachStats | null;
+    /** Il motivo della pausa degli invii, oppure null se Sellbird sta inviando. */
+    sendingPaused: string | null;
 }
 
 /** Un'istantanea che porta più righe di queste non è la nostra: si rifiuta invece di riempire Firestore. */
 export const MAX_OUTBOX = 1000;
 export const MAX_COMPANIES = 2000;
+export const MAX_REPLIES = 500;
+const MAX_REPLY_MESSAGES = 8;
 
 const str = (v: unknown, max: number): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const strOrNull = (v: unknown, max: number): string | null => (typeof v === 'string' && v ? v.slice(0, max) : null);
@@ -123,4 +164,66 @@ export function denyUnlessBridge(request: NextRequest): NextResponse | null {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return null;
+}
+
+export function parseReplyItem(raw: unknown): OutreachReplyItem | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    if (!isValidOutreachId(r.id)) return null;
+    const messages = (Array.isArray(r.messages) ? r.messages : [])
+        .slice(-MAX_REPLY_MESSAGES)
+        .map((m): OutreachReplyMessage | null => {
+            if (!m || typeof m !== 'object') return null;
+            const x = m as Record<string, unknown>;
+            if (x.from !== 'them' && x.from !== 'us') return null;
+            return { from: x.from, text: str(x.text, 4000), at: strOrNull(x.at, 40) };
+        })
+        .filter((m): m is OutreachReplyMessage => m !== null);
+    return {
+        id: r.id,
+        company: str(r.company, 200),
+        contact: str(r.contact, 200),
+        email: str(r.email, 254),
+        intent: str(r.intent, 40),
+        stage: str(r.stage, 40),
+        status: str(r.status, 40),
+        updatedAt: strOrNull(r.updatedAt, 40),
+        messages,
+    };
+}
+
+/** Un contatore per chiave: le chiavi vengono da Sellbird (stati, intenti, agenti), qui si accettano solo parole brevi. */
+function counts(v: unknown): Record<string, number> {
+    const out: Record<string, number> = {};
+    if (!v || typeof v !== 'object') return out;
+    for (const [k, n] of Object.entries(v as Record<string, unknown>).slice(0, 40)) {
+        if (/^[A-Za-z0-9_ -]{1,40}$/.test(k)) out[k] = int(n);
+    }
+    return out;
+}
+
+export function parseStats(raw: unknown): OutreachStats | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, any>;
+    const u = (r.usage && typeof r.usage === 'object' ? r.usage : {}) as Record<string, unknown>;
+    return {
+        companies: int(r.companies),
+        prospects: counts(r.prospects),
+        emailsSent: int(r.emailsSent),
+        emailsSentToday: int(r.emailsSentToday),
+        conversations: int(r.conversations),
+        intents: counts(r.intents),
+        usage: {
+            calls7d: int(u.calls7d),
+            errors7d: int(u.errors7d),
+            inputTokens7d: int(u.inputTokens7d),
+            outputTokens7d: int(u.outputTokens7d),
+            byAgent: counts(u.byAgent),
+        },
+    };
+}
+
+/** `sendingPaused`: null = sta inviando; una stringa (anche breve) = in pausa, con il motivo che ha scritto Sellbird. */
+export function parsePaused(v: unknown): string | null {
+    return typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null;
 }

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     if (denied) return denied;
 
     const snap = await adminDb.collection('outreachCommands').where('status', '==', 'pending').limit(50).get();
-    const commands = snap.docs.map((d) => ({ id: d.id, outboxId: d.get('outboxId'), action: d.get('action') }));
+    const commands = snap.docs.map((d) => ({ id: d.id, outboxId: d.get('outboxId') ?? null, action: d.get('action') }));
     return NextResponse.json({ commands });
 }
 
