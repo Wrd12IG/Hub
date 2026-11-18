@@ -116,25 +116,12 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
 
         <div className="space-y-3">
           <div className="text-sm font-medium">
-            Dove {cities.length === 0 && <span className="font-normal text-muted-foreground">(nessuna scelta: le città del profilo)</span>}
+            Dove {cities.length === 0 && <span className="font-normal text-muted-foreground">(nessuna scelta: Sellbird usa le città del suo profilo)</span>}
             {cities.length > 0 && <span className="font-normal text-muted-foreground"> ({cities.length} di {MAX_CITIES})</span>}
           </div>
 
-          {discover.cities.length > 0 && (
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Dal profilo del cliente ideale</div>
-              <div className="flex flex-wrap gap-2">
-                {discover.cities.map((c) => (
-                  <label key={c} className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-sm">
-                    <input type="checkbox" checked={cities.includes(c)} disabled={!cities.includes(c) && cities.length >= MAX_CITIES} onChange={() => toggle(c)} /> {c}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="space-y-2">
-            <div className="text-xs text-muted-foreground">Altre zone d&apos;Italia (elenco ISTAT)</div>
+            <div className="text-xs text-muted-foreground">Regione, provincia e comune (elenco ISTAT)</div>
             <div className="flex flex-wrap gap-2">
               <select className={input} value={region} onChange={(e) => { setRegion(e.target.value); setProvince(''); setQ('') }} aria-label="Regione">
                 <option value="">Scegli una regione</option>
