@@ -5,7 +5,8 @@
  * le valida con queste funzioni prima di scrivere il comando, e il ponte le ricontrolla da sé prima di lanciarle.
  *
  * Il principio: dalla hub non passa mai testo libero verso Sellbird. Ogni valore viene da una lista fissa o dal catalogo
- * che il ponte stesso ha dichiarato (città del profilo, segnali), e la spesa ha un tetto che nessun parametro alza.
+ * che il ponte stesso ha dichiarato (città del profilo, segnali) o dall'elenco ISTAT dei luoghi d'Italia, e la spesa ha
+ * un tetto che nessun parametro alza.
  */
 import {
     DISCOVER_HARD_CAP,
@@ -18,6 +19,7 @@ import {
     type OutreachDiscoverInfo,
     type OutreachSignalItem,
 } from './outreach';
+import { isKnownPlace } from './italy-places';
 
 export type ActionContext = {
     discover: OutreachDiscoverInfo | null;
@@ -43,7 +45,8 @@ export function parseDiscoverParams(body: any, discover: OutreachDiscoverInfo | 
     const cities: unknown = body?.cities ?? [];
     if (!Array.isArray(cities) || cities.length > MAX_CITIES) return `Al massimo ${MAX_CITIES} città.`;
     const unique = Array.from(new Set(cities.map(String)));
-    if (!unique.every((c) => discover.cities.includes(c))) return 'Città non presente nel profilo del cliente ideale.';
+    // Le città del profilo del cliente ideale (dichiarate dal ponte) oppure una regione o un comune dell'elenco ISTAT.
+    if (!unique.every((c) => discover.cities.includes(c) || isKnownPlace(c))) return 'Luogo sconosciuto: scegli una regione o un comune dall\'elenco.';
     return { provider, cities: unique };
 }
 

@@ -35,7 +35,7 @@ export type DiscoverProvider = (typeof DISCOVER_PROVIDERS)[number];
 export const DISCOVER_HARD_CAP = 2;
 /** Una stima vale mezz'ora e per una sola ricerca: i prezzi e i risultati cambiano. */
 export const ESTIMATE_VALID_MS = 30 * 60 * 1000;
-export const MAX_CITIES = 5;
+export const MAX_CITIES = 10;
 export const MAX_SIGNAL_CODES = 40;
 
 /** Sellbird chiama «gratuito» un segnale la cui nota di costo comincia con free o included (non basta contenere la parola). */
