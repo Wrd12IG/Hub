@@ -164,6 +164,112 @@ class DeltaTest(unittest.TestCase):
         self.assertEqual(bridge.load_state(path), {})  # file rovinato: si riparte, mandando tutto
 
 
+class ActionTest(unittest.TestCase):
+    """Discover e segnali dalla hub: liste fisse, tetto di spesa, solo segnali gratuiti, risultato riportato."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        os.makedirs(os.path.join(self.dir.name, "data"))
+        make_db(os.path.join(self.dir.name, "data", "sellbird.db"))
+        con = sqlite3.connect(os.path.join(self.dir.name, "data", "sellbird.db"))
+        con.execute("INSERT INTO signal_codes VALUES ('FREE_ONE', 'Gratis', '', 'sito', 'free: legge la home', 'proposed')")
+        con.execute("INSERT INTO signal_codes VALUES ('TRICKY', 'Quasi gratis', '', 'sito', '1 credit (free tiers available)', 'proposed')")
+        con.commit()
+        con.close()
+        self.env = mock.patch.dict(os.environ, {"SELLBIRD_CMD": "python -m sellbird"})
+        self.cities = mock.patch.object(bridge, "config_cities", return_value=["Milano", "Monza"])
+        self.env.start()
+        self.cities.start()
+        self.calls = []
+
+    def tearDown(self):
+        self.env.stop()
+        self.cities.stop()
+        self.dir.cleanup()
+
+    def run_cmd(self, cmd, stdout="", returncode=0):
+        def fake_run(args, **kw):
+            self.calls.append((args, kw.get("timeout")))
+            return mock.Mock(returncode=returncode, stdout=stdout, stderr="")
+
+        with mock.patch.object(bridge.subprocess, "run", fake_run):
+            return bridge.apply_command(self.dir.name, cmd)
+
+    def test_estimate_reads_the_cost(self):
+        ok, err, extra = self.run_cmd({"action": "discover_estimate", "provider": "serper", "cities": ["Milano", "Monza"]},
+                                      stdout="  2 queries via Serper\n\n  Estimated cost: $0.0120   (cap: $2.00)\n")
+        self.assertTrue(ok, err)
+        self.assertEqual(extra["estimatedCost"], 0.012)
+        args = self.calls[0][0]
+        self.assertEqual(args[:5], ["python", "-m", "sellbird", "discover", "--provider"])
+        self.assertIn("--estimate", args)
+        self.assertEqual(args[args.index("--city") + 1], "Milano;Monza")
+        self.assertEqual(args[args.index("--max-spend") + 1], "2.00")  # il tetto del ponte, non un valore della hub
+
+    def test_estimate_without_a_readable_cost_fails(self):
+        ok, err, _ = self.run_cmd({"action": "discover_estimate", "provider": "osm", "cities": []}, stdout="boh")
+        self.assertFalse(ok)
+
+    def test_run_respects_the_cap(self):
+        ok, err, extra = self.run_cmd({"action": "discover_run", "provider": "serper", "cities": ["Milano"], "maxSpend": 0.5}, stdout="DISCOVER, 12 results")
+        self.assertTrue(ok, err)
+        args, timeout = self.calls[0]
+        self.assertEqual(args[args.index("--max-spend") + 1], "0.50")
+        self.assertNotIn("--estimate", args)
+        self.assertEqual(extra["result"], "DISCOVER, 12 results")
+        self.assertGreater(timeout, 300)  # una ricerca vera può durare minuti
+        for spend in (2.5, 0, -1, None, "x"):
+            self.calls.clear()
+            ok, _, _ = self.run_cmd({"action": "discover_run", "provider": "serper", "cities": [], "maxSpend": spend})
+            self.assertFalse(ok, spend)
+            self.assertEqual(self.calls, [], spend)  # fuori limite: nemmeno lanciato
+
+    def test_cap_can_be_lowered_or_switched_off_by_env(self):
+        with mock.patch.dict(os.environ, {"OUTREACH_MAX_DISCOVER_SPEND": "0.30"}):
+            ok, _, _ = self.run_cmd({"action": "discover_run", "provider": "serper", "cities": [], "maxSpend": 0.5})
+            self.assertFalse(ok)
+        with mock.patch.dict(os.environ, {"OUTREACH_MAX_DISCOVER_SPEND": "9"}):
+            self.assertEqual(bridge.discover_cap(), 2.0)  # mai oltre il massimo
+        with mock.patch.dict(os.environ, {"OUTREACH_MAX_DISCOVER_SPEND": "0"}):
+            ok, err, _ = self.run_cmd({"action": "discover_estimate", "provider": "osm", "cities": []})
+            self.assertFalse(ok)
+            self.assertEqual(self.calls, [])
+
+    def test_rejects_unknown_provider_and_cities(self):
+        for cmd in ({"action": "discover_estimate", "provider": "dataforseo_serp", "cities": []},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["Roma"]},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["Milano; rm -rf /"]},
+                    {"action": "discover_estimate", "provider": "serper", "cities": "Milano"},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["Milano"] * 6}):
+            ok, _, _ = self.run_cmd(cmd)
+            self.assertFalse(ok, cmd)
+        self.assertEqual(self.calls, [])
+
+    def test_signals_only_free(self):
+        ok, err, extra = self.run_cmd({"action": "signals_set", "codes": ["FREE_ONE"], "signalStatus": "confirmed"}, stdout="1 signal(s) confirmed.")
+        self.assertTrue(ok, err)
+        self.assertEqual(self.calls[0][0][-3:], ["signals", "--confirm", "FREE_ONE"])
+        self.calls.clear()
+        ok, _, _ = self.run_cmd({"action": "signals_set", "codes": ["FREE_ONE"], "signalStatus": "rejected"})
+        self.assertEqual(self.calls[0][0][-3:], ["signals", "--reject", "FREE_ONE"])
+        self.calls.clear()
+        for codes in (["TRICKY"], ["FREE_ONE", "TRICKY"], ["NON_ESISTE"], ["free"], ["FREE_ONE; ls"], [], "FREE_ONE"):
+            ok, _, _ = self.run_cmd({"action": "signals_set", "codes": codes, "signalStatus": "confirmed"})
+            self.assertFalse(ok, codes)
+        ok, _, _ = self.run_cmd({"action": "signals_set", "codes": ["FREE_ONE"], "signalStatus": "boh"})
+        self.assertFalse(ok)
+        self.assertEqual(self.calls, [])  # nessuno dei rifiutati è arrivato a Sellbird
+
+    def test_failure_returns_the_text(self):
+        ok, err, extra = self.run_cmd({"action": "discover_run", "provider": "serper", "cities": [], "maxSpend": 1}, stdout="ERROR: missing key", returncode=1)
+        self.assertFalse(ok)
+        self.assertIn("ERROR", extra["result"])
+
+    def test_snapshot_declares_what_discover_can_do(self):
+        info = bridge.snapshot(os.path.join(self.dir.name, "data", "sellbird.db"), self.dir.name)["discover"]
+        self.assertEqual((info["providers"], info["cities"], info["cap"]), (["osm", "serper"], ["Milano", "Monza"], 2.0))
+
+
 class CommandTest(unittest.TestCase):
     def run_cmd(self, cmd):
         calls = []
@@ -176,23 +282,23 @@ class CommandTest(unittest.TestCase):
             return bridge.apply_command("/tmp", cmd), calls
 
     def test_approve_reject(self):
-        (ok, _), calls = self.run_cmd({"action": "approve", "outboxId": "abcd1234"})
+        (ok, _, _extra), calls = self.run_cmd({"action": "approve", "outboxId": "abcd1234"})
         self.assertTrue(ok)
         self.assertEqual(calls[0], ["python", "-m", "sellbird", "outbox", "--approve", "abcd1234"])
-        (ok, _), calls = self.run_cmd({"action": "reject", "outboxId": "abcd1234"})
+        (ok, _, _extra), calls = self.run_cmd({"action": "reject", "outboxId": "abcd1234"})
         self.assertEqual(calls[0][-2:], ["--reject", "abcd1234"])
 
     def test_pause_resume(self):
-        (ok, _), calls = self.run_cmd({"action": "pause_sending", "outboxId": None})
+        (ok, _, _extra), calls = self.run_cmd({"action": "pause_sending", "outboxId": None})
         self.assertTrue(ok)
         self.assertEqual(calls[0], ["python", "-m", "sellbird", "sending", "pause"])
-        (ok, _), calls = self.run_cmd({"action": "resume_sending"})
+        (ok, _, _extra), calls = self.run_cmd({"action": "resume_sending"})
         self.assertEqual(calls[0][-2:], ["sending", "resume"])
 
     def test_rejects_anything_else(self):
         for cmd in ({"action": "approve", "outboxId": "../x"}, {"action": "approve"}, {"action": "rm -rf"},
                     {"action": "approve", "outboxId": "abcd1234; ls"}, {}):
-            (ok, err), calls = self.run_cmd(cmd)
+            (ok, err, _extra), calls = self.run_cmd(cmd)
             self.assertFalse(ok, cmd)
             self.assertEqual(calls, [])
 

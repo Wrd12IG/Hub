@@ -24,6 +24,22 @@ export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];
 export type OutreachAction = 'approve' | 'reject';
 /** Comandi senza un'email di riferimento: fermano o riprendono tutti gli invii (`sellbird sending pause|resume`). */
 export type SendingAction = 'pause_sending' | 'resume_sending';
+/** Azioni con parametri, scelte da una lista fissa: stima e lancio di Discover, attivazione dei segnali gratuiti. */
+export type ParamAction = 'discover_estimate' | 'discover_run' | 'signals_set';
+export const PARAM_ACTIONS: readonly ParamAction[] = ['discover_estimate', 'discover_run', 'signals_set'];
+
+/** Chi sa cercare aziende: `osm` (gratis, senza account) e `serper` (a pagamento, con la chiave nel server). Il resto non si lancia dalla hub. */
+export const DISCOVER_PROVIDERS = ['osm', 'serper'] as const;
+export type DiscoverProvider = (typeof DISCOVER_PROVIDERS)[number];
+/** Tetto di spesa per ogni ricerca lanciata dalla hub, in dollari. Il ponte ha il suo (OUTREACH_MAX_DISCOVER_SPEND) e vale il più basso. */
+export const DISCOVER_HARD_CAP = 2;
+/** Una stima vale mezz'ora e per una sola ricerca: i prezzi e i risultati cambiano. */
+export const ESTIMATE_VALID_MS = 30 * 60 * 1000;
+export const MAX_CITIES = 5;
+export const MAX_SIGNAL_CODES = 40;
+
+/** Sellbird chiama «gratuito» un segnale la cui nota di costo comincia con free o included (non basta contenere la parola). */
+export const isFreeSignal = (costNote: string): boolean => /^(free|included)/i.test(costNote.trim());
 export const SENDING_ACTIONS: readonly SendingAction[] = ['pause_sending', 'resume_sending'];
 
 export interface OutreachOutboxItem {
@@ -119,6 +135,13 @@ export interface OutreachSignalItem {
     status: string;
     costNote: string;
     companies: number;
+}
+
+/** Cosa si può chiedere a Discover dalla hub, come lo dichiara il ponte: provider ammessi, città del profilo cliente ideale, tetto. */
+export interface OutreachDiscoverInfo {
+    providers: DiscoverProvider[];
+    cities: string[];
+    cap: number;
 }
 
 export interface OutreachSnapshot {
@@ -319,4 +342,13 @@ export function parseSignalItem(raw: unknown): OutreachSignalItem | null {
         costNote: str(r.costNote, 200),
         companies: int(r.companies),
     };
+}
+
+export function parseDiscoverInfo(raw: unknown): OutreachDiscoverInfo | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    const providers = (Array.isArray(r.providers) ? r.providers : []).filter((p): p is DiscoverProvider => DISCOVER_PROVIDERS.includes(p as DiscoverProvider));
+    const cities = (Array.isArray(r.cities) ? r.cities : []).filter((c): c is string => typeof c === 'string' && /^[^;<>\n\r]{1,80}$/.test(c)).slice(0, 40);
+    const cap = typeof r.cap === 'number' && Number.isFinite(r.cap) && r.cap > 0 ? Math.min(r.cap, DISCOVER_HARD_CAP) : 0;
+    return { providers, cities, cap };
 }

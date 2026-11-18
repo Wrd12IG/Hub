@@ -18,6 +18,7 @@ Variabili d'ambiente:
   HUB_URL                   indirizzo della hub, es. https://hub.wrdigital.it                  [obbligatoria]
   OUTREACH_BRIDGE_SECRET    lo stesso segreto configurato sulla hub (almeno 32 caratteri)      [obbligatoria]
   BRIDGE_INTERVAL_SECONDS   pausa tra un giro e l'altro, default 120
+  OUTREACH_MAX_DISCOVER_SPEND  tetto in dollari per ogni ricerca (Discover) lanciata dalla hub: default e massimo 2; 0 la spegne
   SELLBIRD_CMD              come lanciare Sellbird; default <SELLBIRD_DIR>/.venv/bin/sellbird, in Docker "python -m sellbird"
 
 Uso:  python3 bridge.py          # in continuo
@@ -47,6 +48,14 @@ FULL_EVERY = 30
 DELTA_LISTS = ("outbox", "companies", "replies", "contacts")
 MAX_THREAD_MESSAGES = 8
 SENDING_COMMANDS = {"pause_sending": "pause", "resume_sending": "resume"}
+# Azioni con parametri dalla hub: tutto da liste fisse, mai testo libero. La hub le controlla e il ponte le ricontrolla da sé.
+DISCOVER_PROVIDERS = ("osm", "serper")
+DISCOVER_HARD_CAP = 2.0
+MAX_CITIES = 5
+MAX_SIGNAL_CODES = 40
+CODE_RE = re.compile(r"^[A-Z0-9_]{2,60}$")
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+COST_RE = re.compile(r"Estimated cost:\s*\$([0-9]+(?:\.[0-9]+)?)")
 
 OUTBOX_SQL = """
 SELECT o.id, o.status, o.to_email, o.subject, o.body, o.step, o.kind, o.send_at, o.sent_at, o.error, o.updated_at,
@@ -140,26 +149,126 @@ def sellbird_base(sellbird_dir):
     return base, None
 
 
-def apply_command(sellbird_dir, cmd):
-    """Applica un comando con la CLI di Sellbird. Ritorna (ok, errore). Solo azioni di una lista fissa, mai testo libero."""
-    action = cmd.get("action")
-    outbox_id = cmd.get("outboxId")
-    if action in ("approve", "reject") and isinstance(outbox_id, str) and ID_RE.match(outbox_id):
-        args = ["outbox", f"--{action}", outbox_id]
-    elif action in SENDING_COMMANDS:
-        args = ["sending", SENDING_COMMANDS[action]]
-    else:
-        return False, "comando non valido"
+def discover_cap():
+    """Tetto di spesa per ogni ricerca lanciata dalla hub, in dollari: OUTREACH_MAX_DISCOVER_SPEND (default 2), mai oltre 2.
+    0 o un valore non valido spegne Discover dalla hub."""
+    try:
+        cap = float(os.environ.get("OUTREACH_MAX_DISCOVER_SPEND", str(DISCOVER_HARD_CAP)))
+    except ValueError:
+        return 0.0
+    return max(0.0, min(cap, DISCOVER_HARD_CAP))
+
+
+def config_cities(sellbird_dir):
+    """Le città del profilo del cliente ideale (icp.geography): le sole che la hub può scegliere per Discover."""
+    if not sellbird_dir:
+        return []
+    try:
+        import yaml  # c'è nell'immagine di Sellbird; fuori da Docker può mancare: allora nessuna città scelta, vale il profilo
+    except ImportError:
+        return []
+    for name in ("sellbird.local.yaml", "sellbird.yaml"):
+        path = os.path.join(sellbird_dir, name)
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    cities = ((yaml.safe_load(f) or {}).get("icp") or {}).get("geography") or []
+            except (OSError, yaml.YAMLError):
+                return []
+            return [c for c in cities if isinstance(c, str) and c and ";" not in c][:40]
+    return []
+
+
+def free_signal_codes(db_path, codes):
+    """Dei codici dati, quelli che esistono e sono GRATUITI. Stessa regola di `sellbird signals --confirm free`:
+    la nota di costo comincia con free o included (contenere la parola non basta)."""
+    con = sqlite3.connect(db_path, timeout=10)
+    con.execute("PRAGMA query_only = ON")
+    try:
+        found = {code: (note or "") for code, note in con.execute("SELECT code, cost_note FROM signal_codes")}
+    finally:
+        con.close()
+    return {c for c in codes if c in found and re.match(r"(?i)^(free|included)", found[c].strip())}
+
+
+def run_sellbird(sellbird_dir, args, timeout=120):
+    """Lancia Sellbird con `args`. Ritorna (ok, errore, testo): il testo è quanto ha stampato, senza colori e accorciato."""
     base, err = sellbird_base(sellbird_dir)
     if err:
-        return False, err
+        return False, err, ""
     try:
-        res = subprocess.run([*base, *args], cwd=sellbird_dir, capture_output=True, text=True, timeout=120)
+        res = subprocess.run([*base, *args], cwd=sellbird_dir, capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        return False, "sellbird non ha risposto in tempo"
+        return False, "sellbird non ha risposto in tempo", ""
+    out = ANSI_RE.sub("", res.stdout or "").strip()[-1500:]
     if res.returncode != 0:
-        return False, (res.stderr or res.stdout or "errore sconosciuto").strip()[-300:]
-    return True, None
+        return False, (res.stderr or res.stdout or "errore sconosciuto").strip()[-300:], out
+    return True, None, out
+
+
+def discover_args(sellbird_dir, cmd):
+    """(provider, città) controllati, oppure (None, messaggio d'errore)."""
+    provider, cities = cmd.get("provider"), cmd.get("cities") or []
+    if provider not in DISCOVER_PROVIDERS:
+        return None, "provider non ammesso"
+    if not isinstance(cities, list) or len(cities) > MAX_CITIES or not all(isinstance(c, str) for c in cities):
+        return None, "città non valide"
+    allowed = config_cities(sellbird_dir)
+    if not all(c in allowed for c in cities):
+        return None, "città non presente nel profilo del cliente ideale"
+    return (provider, cities), None
+
+
+def apply_command(sellbird_dir, cmd):
+    """Applica un comando con la CLI di Sellbird, solo da una lista fissa di azioni. Ritorna (ok, errore, extra):
+    `extra` è il testo stampato da Sellbird e, per una stima, il costo letto da lì: la hub li mostra a chi ha chiesto."""
+    action = cmd.get("action")
+    outbox_id = cmd.get("outboxId")
+
+    if action in ("approve", "reject") and isinstance(outbox_id, str) and ID_RE.match(outbox_id):
+        ok, err, _ = run_sellbird(sellbird_dir, ["outbox", f"--{action}", outbox_id])
+        return ok, err, {}
+    if action in SENDING_COMMANDS:
+        ok, err, _ = run_sellbird(sellbird_dir, ["sending", SENDING_COMMANDS[action]])
+        return ok, err, {}
+
+    if action in ("discover_estimate", "discover_run"):
+        cap = discover_cap()
+        if cap <= 0:
+            return False, "Discover dalla hub è spento (OUTREACH_MAX_DISCOVER_SPEND)", {}
+        parsed, err = discover_args(sellbird_dir, cmd)
+        if err:
+            return False, err, {}
+        provider, cities = parsed
+        city = ["--city", ";".join(cities)] if cities else []
+        if action == "discover_estimate":
+            ok, err, out = run_sellbird(sellbird_dir, ["discover", "--provider", provider, "--estimate", "--max-spend", f"{cap:.2f}", *city], timeout=300)
+            m = COST_RE.search(out)
+            if ok and not m:
+                return False, "non riesco a leggere la stima", {"result": out}
+            return ok, err, {"result": out, "estimatedCost": float(m.group(1)) if m else None}
+        try:
+            spend = float(cmd.get("maxSpend"))
+        except (TypeError, ValueError):
+            return False, "tetto di spesa mancante", {}
+        if not 0 < spend <= cap:
+            return False, f"tetto di spesa fuori dal limite ({cap:.2f} $)", {}
+        ok, err, out = run_sellbird(sellbird_dir, ["discover", "--provider", provider, "--max-spend", f"{spend:.2f}", *city], timeout=1500)
+        return ok, err, {"result": out}
+
+    if action == "signals_set":
+        codes, status = cmd.get("codes"), cmd.get("signalStatus")
+        if status not in ("confirmed", "rejected") or not isinstance(codes, list) or not 0 < len(codes) <= MAX_SIGNAL_CODES:
+            return False, "comando non valido", {}
+        if not all(isinstance(c, str) and CODE_RE.match(c) for c in codes):
+            return False, "codice di segnale non valido", {}
+        free = free_signal_codes(os.path.join(sellbird_dir, "data", "sellbird.db"), codes)
+        if free != set(codes):
+            return False, "solo i segnali gratuiti si cambiano dalla hub: " + ", ".join(sorted(set(codes) - free)), {}
+        ok, err, out = run_sellbird(sellbird_dir, ["signals", "--confirm" if status == "confirmed" else "--reject", ",".join(codes)])
+        return ok, err, {"result": out}
+
+    return False, "comando non valido", {}
 
 
 def thread_messages(thread_json):
@@ -193,7 +302,7 @@ def optional(fn, default):
         return default
 
 
-def snapshot(db_path):
+def snapshot(db_path, sellbird_dir=None):
     # `mode=ro` fallisce quando Sellbird è spento (database in modalità WAL, senza i file di appoggio): si apre
     # normalmente e si vieta ogni scrittura a questa connessione con query_only.
     con = sqlite3.connect(db_path, timeout=10)
@@ -275,6 +384,8 @@ def snapshot(db_path):
     return {
         "outbox": outbox, "companies": companies, "contacts": contacts, "replies": replies, "campaigns": campaigns,
         "signals": signals, "outboxCounts": outbox_counts, "stats": stats, "sendingPaused": paused or None,
+        # Cosa la hub può chiedere a Discover: provider, città del profilo e tetto. Cap 0 = spento.
+        "discover": {"providers": list(DISCOVER_PROVIDERS), "cities": config_cities(sellbird_dir), "cap": discover_cap()},
     }
 
 
@@ -322,11 +433,11 @@ def to_delta(snap, state):
 def run_once(sellbird_dir, hub, secret):
     # 1) prima le decisioni, così la fotografia che segue le riflette già
     for cmd in hub_call(hub, secret, "GET", "/api/outreach/commands").get("commands", []):
-        ok, err = apply_command(sellbird_dir, cmd)
+        ok, err, extra = apply_command(sellbird_dir, cmd)
         log(f"{cmd.get('action')} {cmd.get('outboxId') or ''}: {'ok' if ok else 'FALLITO - ' + str(err)}".replace("  ", " "))
-        hub_call(hub, secret, "POST", "/api/outreach/commands", {"id": cmd["id"], "ok": ok, "error": err})
+        hub_call(hub, secret, "POST", "/api/outreach/commands", {"id": cmd["id"], "ok": ok, "error": err, **extra})
     # 2) poi la fotografia
-    snap = snapshot(os.path.join(sellbird_dir, "data", "sellbird.db"))
+    snap = snapshot(os.path.join(sellbird_dir, "data", "sellbird.db"), sellbird_dir)
     state_path = os.path.join(sellbird_dir, "data", "bridge-state.json")
     payload, new_state = to_delta(snap, load_state(state_path))
     res = hub_call(hub, secret, "POST", "/api/outreach/sync", payload)
