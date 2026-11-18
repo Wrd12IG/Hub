@@ -181,8 +181,13 @@ service cloud.firestore {
     // recurringProjects, emailTemplates, taskTemplateBundles,
     // editorialFormats, editorialPillars, editorialStatuses, and anything
     // added later). Staff only until each is reviewed and given its own rule.
+    //
+    // Eccezione: le collezioni outreach* (Sellbird) contengono indirizzi email e testi di terzi.
+    // Le regole si sommano (basta un `allow` per aprire), quindi non basta un `if false` in una
+    // regola a parte: bisogna escluderle da qui. Si leggono e scrivono solo dalle route
+    // /api/outreach (Admin SDK, che le regole non vincolano), mai dal client.
     match /{document=**} {
-      allow read, write: if isStaff();
+      allow read, write: if isStaff() && !string(document).matches('outreach.*');
     }
   }
 }

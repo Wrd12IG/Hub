@@ -24,6 +24,7 @@ import {
     Upload,
     Library,
     Repeat,
+    Send,
 } from 'lucide-react';
 import {
     Tooltip,
@@ -70,6 +71,7 @@ const allNavItems: DockNavItem[] = [
 const adminNavItems: DockNavItem[] = [
     { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-600', group: 'admin' },
     { href: '/andamento-clienti', icon: BarChart3, label: 'Andamento clienti', color: 'text-violet-500', group: 'admin' },
+    { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-sky-500', group: 'admin' },
     { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500', group: 'admin' },
 ];
 
