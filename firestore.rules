@@ -182,12 +182,18 @@ service cloud.firestore {
     // editorialFormats, editorialPillars, editorialStatuses, and anything
     // added later). Staff only until each is reviewed and given its own rule.
     //
-    // Eccezione: le collezioni outreach* (Sellbird) contengono indirizzi email e testi di terzi.
-    // Le regole si sommano (basta un `allow` per aprire), quindi non basta un `if false` in una
-    // regola a parte: bisogna escluderle da qui. Si leggono e scrivono solo dalle route
-    // /api/outreach (Admin SDK, che le regole non vincolano), mai dal client.
+    // Eccezioni: questo match vale per TUTTO il database, sottocollezioni comprese, e le regole si
+    // sommano (basta un `allow` per aprire). Quindi i percorsi con una regola più stretta vanno esclusi
+    // da qui, altrimenti per lo staff quella regola non conta. string(document) inizia con '/'.
+    //   - outreach*: indirizzi email e testi di terzi (Sellbird), solo dalle route /api/outreach.
+    //   - users/{uid}/private: stipendio e costo orario, solo con il permesso finanziario.
+    //   - clients/{id}/private: «internal» solo con il permesso finanziario (vedi sopra).
+    //   - clients/{id}/integrations: token cifrati, solo Admin SDK.
+    // Tutti e quattro si leggono e scrivono dal client solo come dicono le loro regole; il resto passa
+    // dalle route con l'Admin SDK, che le regole non vincolano.
     match /{document=**} {
-      allow read, write: if isStaff() && !string(document).matches('/outreach.*');
+      allow read, write: if isStaff()
+        && !string(document).matches('/(outreach.*|users/[^/]+/private/.*|clients/[^/]+/(private|integrations)/.*)');
     }
   }
 }
