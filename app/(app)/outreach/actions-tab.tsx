@@ -1,8 +1,9 @@
 "use client"
 
-import React, { useMemo, useState } from 'react'
-import { Loader2, Play, Search } from 'lucide-react'
-import { DISCOVER_HARD_CAP, ESTIMATE_VALID_MS } from '@/lib/outreach'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Loader2, Play, Search, X } from 'lucide-react'
+import { useAuthFetch } from '@/hooks/useAuthFetch'
+import { DISCOVER_HARD_CAP, ESTIMATE_VALID_MS, MAX_CITIES } from '@/lib/outreach'
 import { btn, fmt, type ActionRecord, type Meta } from './shared'
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -17,6 +18,11 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
 }
 const sameSet = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x))
 const usd = (n: number) => `${n.toFixed(2)} $`
+const SHOWN = 300
+const input = 'h-8 rounded-lg border border-border bg-background px-3 text-sm'
+
+type Comune = { nome: string; label: string }
+type Prov = { nome: string; sigla: string; capoluogo: string; comuni: Comune[] }
 
 type Props = {
   meta: Meta | null
@@ -28,9 +34,41 @@ type Props = {
 
 export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
   const discover = meta?.discover ?? null
+  const { authFetch } = useAuthFetch()
   const [provider, setProvider] = useState('serper')
   const [cities, setCities] = useState<string[]>([])
+  const [regions, setRegions] = useState<string[]>([])
+  const [region, setRegion] = useState('')
+  const [province, setProvince] = useState('')
+  const [q, setQ] = useState('')
+  const [geo, setGeo] = useState<Record<string, Prov[]>>({})
+  const [geoError, setGeoError] = useState('')
   const pending = actions.some((a) => a.status === 'pending' && a.action !== 'signals_set')
+
+  // L'elenco ISTAT arriva dal server una regione alla volta: 7.900 comuni insieme non servono al browser.
+  const available = !!discover && discover.cap > 0 && discover.providers.length > 0
+  const cap = Math.min(discover?.cap ?? 0, DISCOVER_HARD_CAP)
+  useEffect(() => {
+    if (!available || regions.length > 0) return
+    authFetch('/api/outreach/places').then((r) => r.json()).then((d) => setRegions(d.regions ?? [])).catch(() => setGeoError('Non riesco a caricare l\'elenco delle regioni.'))
+  }, [available, regions.length, authFetch])
+  useEffect(() => {
+    if (!region || geo[region]) return
+    authFetch(`/api/outreach/places?region=${encodeURIComponent(region)}`)
+      .then((r) => r.json())
+      .then((d) => (d.provinces ? setGeo((g) => ({ ...g, [region]: d.provinces })) : setGeoError(d.error || 'Regione non trovata.')))
+      .catch(() => setGeoError('Non riesco a caricare i comuni.'))
+  }, [region, geo, authFetch])
+
+  const provinces = useMemo(() => geo[region] ?? [], [geo, region])
+  const comuni = useMemo(() => {
+    const t = q.trim().toLowerCase()
+    return provinces
+      .filter((p) => !province || p.sigla === province)
+      .flatMap((p) => p.comuni.map((c) => ({ ...c, sigla: p.sigla, capoluogo: p.capoluogo === c.nome })))
+      .filter((c) => !t || c.nome.toLowerCase().includes(t))
+      .sort((a, b) => Number(b.capoluogo) - Number(a.capoluogo) || a.nome.localeCompare(b.nome))
+  }, [provinces, province, q])
 
   // La stima valida per questa scelta: applicata, mai usata, di meno di mezz'ora fa, per lo stesso provider e le stesse città.
   const usable = useMemo(
@@ -50,8 +88,7 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
     return <p className="text-sm text-muted-foreground">La ricerca di aziende dalla hub è spenta sul server (OUTREACH_MAX_DISCOVER_SPEND a 0). Resta disponibile da Sellbird.</p>
   }
 
-  const toggle = (c: string) => setCities((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]))
-  const cap = Math.min(discover.cap, DISCOVER_HARD_CAP)
+  const toggle = (c: string) => setCities((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : cur.length >= MAX_CITIES ? cur : [...cur, c]))
   const maxSpend = usable ? Math.min(cap, Math.max(0.05, Math.round((usable.estimatedCost as number) * 1.25 * 100) / 100)) : 0
 
   const doRun = () => {
@@ -77,15 +114,77 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
           </select>
         </div>
 
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Città {cities.length === 0 && <span className="font-normal text-muted-foreground">(nessuna scelta: tutte quelle del profilo)</span>}</div>
-          <div className="flex flex-wrap gap-2">
-            {discover.cities.map((c) => (
-              <label key={c} className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-sm">
-                <input type="checkbox" checked={cities.includes(c)} onChange={() => toggle(c)} /> {c}
-              </label>
-            ))}
+        <div className="space-y-3">
+          <div className="text-sm font-medium">
+            Dove {cities.length === 0 && <span className="font-normal text-muted-foreground">(nessuna scelta: le città del profilo)</span>}
+            {cities.length > 0 && <span className="font-normal text-muted-foreground"> ({cities.length} di {MAX_CITIES})</span>}
           </div>
+
+          {discover.cities.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">Dal profilo del cliente ideale</div>
+              <div className="flex flex-wrap gap-2">
+                {discover.cities.map((c) => (
+                  <label key={c} className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-sm">
+                    <input type="checkbox" checked={cities.includes(c)} disabled={!cities.includes(c) && cities.length >= MAX_CITIES} onChange={() => toggle(c)} /> {c}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">Altre zone d&apos;Italia (elenco ISTAT)</div>
+            <div className="flex flex-wrap gap-2">
+              <select className={input} value={region} onChange={(e) => { setRegion(e.target.value); setProvince(''); setQ('') }} aria-label="Regione">
+                <option value="">Scegli una regione</option>
+                {regions.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+              {region && (
+                <select className={input} value={province} onChange={(e) => setProvince(e.target.value)} aria-label="Provincia">
+                  <option value="">Tutte le province</option>
+                  {provinces.map((p) => <option key={p.sigla} value={p.sigla}>{p.nome} ({p.sigla})</option>)}
+                </select>
+              )}
+              {region && <input className={`${input} w-48`} placeholder="Cerca un comune" value={q} onChange={(e) => setQ(e.target.value)} />}
+            </div>
+            {geoError && <p className="text-xs text-red-600 dark:text-red-400">{geoError}</p>}
+
+            {region && (
+              <div className="space-y-2">
+                <label className="flex items-center gap-1.5 text-sm">
+                  <input type="checkbox" checked={cities.includes(region)} disabled={provider === 'osm' || (!cities.includes(region) && cities.length >= MAX_CITIES)} onChange={() => toggle(region)} />
+                  Tutta la regione ({region})
+                  {provider === 'osm' && <span className="text-xs text-muted-foreground">: OpenStreetMap cerca attorno a un punto, scegli i comuni</span>}
+                </label>
+                <div className="max-h-56 overflow-auto rounded-lg border border-border">
+                  {!geo[region] && <div className="p-3 text-sm text-muted-foreground">Carico i comuni…</div>}
+                  {comuni.slice(0, SHOWN).map((c) => (
+                    <label key={c.label} className="flex cursor-pointer items-center gap-2 border-b border-border px-3 py-1.5 text-sm last:border-b-0 hover:bg-accent">
+                      <input type="checkbox" checked={cities.includes(c.label)} disabled={!cities.includes(c.label) && cities.length >= MAX_CITIES} onChange={() => toggle(c.label)} />
+                      <span>{c.nome}</span>
+                      <span className="text-xs text-muted-foreground">{c.sigla}{c.capoluogo ? ' · capoluogo' : ''}</span>
+                    </label>
+                  ))}
+                  {geo[region] && comuni.length === 0 && <div className="p-3 text-sm text-muted-foreground">Nessun comune con questo nome.</div>}
+                </div>
+                {comuni.length > SHOWN && <p className="text-xs text-muted-foreground">Mostrati i primi {SHOWN} di {comuni.length}: scegli una provincia o cerca per nome.</p>}
+              </div>
+            )}
+          </div>
+
+          {cities.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {cities.map((c) => (
+                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs">
+                  {c}
+                  <button aria-label={`Togli ${c}`} onClick={() => toggle(c)}><X className="h-3 w-3" /></button>
+                </span>
+              ))}
+              <button className="text-xs underline underline-offset-2" onClick={() => setCities([])}>Svuota</button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">Più luoghi vuol dire più ricerche e più costo: la stima te lo dice prima, e il tetto resta {usd(cap)}.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

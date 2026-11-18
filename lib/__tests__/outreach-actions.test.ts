@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildActionCommand, type ActionContext } from '../outreach-actions';
 import { isFreeSignal, parseDiscoverInfo } from '../outreach';
+import { REGIONS, isKnownPlace, regionData } from '../italy-places';
 
 const discover = { providers: ['osm', 'serper'] as ('osm' | 'serper')[], cities: ['Milano', 'Monza', 'Bergamo'], cap: 2 };
 const sig = (code: string, costNote: string) => ({ code, label: code, description: '', category: 'sito', status: 'proposed', costNote, companies: 0 });
@@ -36,7 +37,20 @@ describe('discover_estimate', () => {
         const r = buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: ['Milano', 'Monza', 'Milano'] }, base);
         expect(r).toEqual({ ok: true, command: { action: 'discover_estimate', provider: 'serper', cities: ['Milano', 'Monza'] } });
     });
+    it('accetta regioni e comuni d\'Italia nel formato «Comune, SIGLA», oltre alle città del profilo', () => {
+        const cities = ['Lombardia', 'Roma, RM', 'Bolzano, BZ', 'Milano'];
+        expect(buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities }, base)).toEqual({ ok: true, command: { action: 'discover_estimate', provider: 'serper', cities } });
+    });
+    it('fino a 10 luoghi, non di più', () => {
+        const ten = Array.from({ length: 10 }, (_, i) => ['Milano, MI', 'Monza, MB', 'Bergamo, BG', 'Brescia, BS', 'Como, CO', 'Lecco, LC', 'Varese, VA', 'Pavia, PV', 'Lodi, LO', 'Cremona, CR'][i]);
+        expect(buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: ten }, base).ok).toBe(true);
+        expect(buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: [...ten, 'Mantova, MN'] }, base).ok).toBe(false);
+    });
     it.each([
+        [{ provider: 'serper', cities: ['Roma, XX'] }],
+        [{ provider: 'serper', cities: ['Milano, RM'] }],
+        [{ provider: 'serper', cities: ['Lombardia; Veneto'] }],
+        [{ provider: 'serper', cities: ['lombardia'] }],
         [{ provider: 'dataforseo_serp', cities: [] }],
         [{ provider: 'serper', cities: ['Roma'] }],
         [{ provider: 'serper', cities: ['Milano; ls'] }],
@@ -106,4 +120,23 @@ describe('azioni sconosciute', () => {
     it('non si inventano comandi', () => {
         for (const action of ['rm', 'discover', 'sending', undefined]) expect(buildActionCommand({ action }, base).ok).toBe(false);
     });
+});
+
+describe('elenco ISTAT dei luoghi', () => {
+    it('ha 20 regioni e tutti i comuni', () => {
+        expect(REGIONS).toHaveLength(20);
+        expect(REGIONS).toContain('Lombardia');
+        expect(REGIONS).toContain("Valle d'Aosta"); // normalizzata: senza il nome francese
+        const comuni = REGIONS.reduce((n, r) => n + regionData(r)!.province.reduce((m, p) => m + p.comuni.length, 0), 0);
+        expect(comuni).toBeGreaterThan(7800);
+    });
+    it('distingue i comuni con lo stesso nome dalla sigla', () => {
+        expect(isKnownPlace('Milano, MI')).toBe(true);
+        expect(isKnownPlace('Monza, MB')).toBe(true);
+        expect(isKnownPlace('Bolzano, BZ')).toBe(true);
+        expect(isKnownPlace('Milano, RM')).toBe(false);
+        expect(isKnownPlace('Milano')).toBe(false); // senza sigla non è un comune dell'elenco
+        expect(isKnownPlace('')).toBe(false);
+    });
+    it('regionData sconosciuta -> null', () => { expect(regionData('Atlantide')).toBeNull(); });
 });

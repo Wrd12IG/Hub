@@ -235,12 +235,23 @@ class ActionTest(unittest.TestCase):
             self.assertFalse(ok)
             self.assertEqual(self.calls, [])
 
-    def test_rejects_unknown_provider_and_cities(self):
+    def test_accepts_places_beyond_the_profile(self):
+        # regioni e comuni d'Italia, nel formato «Comune, SIGLA»: li sceglie la hub dall'elenco ISTAT
+        ok, err, _ = self.run_cmd({"action": "discover_estimate", "provider": "serper", "cities": ["Lombardia", "Roma, RM", "Sant'Angelo, LO", "Bolzano, BZ"]},
+                                  stdout="Estimated cost: $0.10")
+        self.assertTrue(ok, err)
+        self.assertEqual(self.calls[0][0][self.calls[0][0].index("--city") + 1], "Lombardia;Roma, RM;Sant'Angelo, LO;Bolzano, BZ")
+
+    def test_rejects_unknown_provider_and_malformed_places(self):
         for cmd in ({"action": "discover_estimate", "provider": "dataforseo_serp", "cities": []},
-                    {"action": "discover_estimate", "provider": "serper", "cities": ["Roma"]},
-                    {"action": "discover_estimate", "provider": "serper", "cities": ["Milano; rm -rf /"]},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["Milano; rm -rf /"]},  # ';' separa le città
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["$(ls)"]},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["a`b`"]},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["M"]},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["x" * 81]},
                     {"action": "discover_estimate", "provider": "serper", "cities": "Milano"},
-                    {"action": "discover_estimate", "provider": "serper", "cities": ["Milano"] * 6}):
+                    {"action": "discover_estimate", "provider": "serper", "cities": [5]},
+                    {"action": "discover_estimate", "provider": "serper", "cities": ["Milano"] * 11}):
             ok, _, _ = self.run_cmd(cmd)
             self.assertFalse(ok, cmd)
         self.assertEqual(self.calls, [])

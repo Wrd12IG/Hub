@@ -51,7 +51,9 @@ SENDING_COMMANDS = {"pause_sending": "pause", "resume_sending": "resume"}
 # Azioni con parametri dalla hub: tutto da liste fisse, mai testo libero. La hub le controlla e il ponte le ricontrolla da sé.
 DISCOVER_PROVIDERS = ("osm", "serper")
 DISCOVER_HARD_CAP = 2.0
-MAX_CITIES = 5
+MAX_CITIES = 10
+# Un luogo è «Comune, SIGLA» o una regione: lettere, cifre, spazi e pochi segni. Niente ';' (separa le città), niente simboli di shell.
+PLACE_RE = re.compile(r"[\w .,'’()/-]{2,80}")
 MAX_SIGNAL_CODES = 40
 CODE_RE = re.compile(r"^[A-Z0-9_]{2,60}$")
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
@@ -207,15 +209,17 @@ def run_sellbird(sellbird_dir, args, timeout=120):
 
 
 def discover_args(sellbird_dir, cmd):
-    """(provider, città) controllati, oppure (None, messaggio d'errore)."""
+    """(provider, luoghi) controllati, oppure (None, messaggio d'errore).
+
+    La hub sceglie i luoghi dall'elenco ISTAT (regioni e comuni d'Italia) o dal profilo; qui si controlla il formato e il
+    numero, non l'elenco: la difesa sulla spesa è il tetto, che vale qualunque luogo si chieda."""
     provider, cities = cmd.get("provider"), cmd.get("cities") or []
     if provider not in DISCOVER_PROVIDERS:
         return None, "provider non ammesso"
     if not isinstance(cities, list) or len(cities) > MAX_CITIES or not all(isinstance(c, str) for c in cities):
-        return None, "città non valide"
-    allowed = config_cities(sellbird_dir)
-    if not all(c in allowed for c in cities):
-        return None, "città non presente nel profilo del cliente ideale"
+        return None, "luoghi non validi"
+    if not all(PLACE_RE.fullmatch(c) for c in cities):
+        return None, "luogo con caratteri non ammessi"
     return (provider, cities), None
 
 
@@ -384,7 +388,7 @@ def snapshot(db_path, sellbird_dir=None):
     return {
         "outbox": outbox, "companies": companies, "contacts": contacts, "replies": replies, "campaigns": campaigns,
         "signals": signals, "outboxCounts": outbox_counts, "stats": stats, "sendingPaused": paused or None,
-        # Cosa la hub può chiedere a Discover: provider, città del profilo e tetto. Cap 0 = spento.
+        # Cosa la hub può chiedere a Discover: provider, città del profilo (scorciatoie) e tetto. Cap 0 = spento.
         "discover": {"providers": list(DISCOVER_PROVIDERS), "cities": config_cities(sellbird_dir), "cap": discover_cap()},
     }
 

@@ -48,7 +48,10 @@ Discover è l'unica azione che spende. Dalla hub si fa in due passi e con più d
 2. **Tetto calcolato dal server**, non dalla pagina: la stima più un quarto, mai oltre 2 $. Il client non lo sceglie.
 3. **Tetto del ponte**, indipendente dalla hub: `OUTREACH_MAX_DISCOVER_SPEND` in `bridge.env` (default e massimo 2 $,
    `0` spegne Discover dalla hub). Una richiesta oltre il tetto non arriva nemmeno a Sellbird.
-4. **Liste fisse.** Provider solo `osm` e `serper`; città solo quelle di `icp.geography`; massimo 5. Niente testo libero.
+4. **Liste fisse.** Provider solo `osm` e `serper`; luoghi solo dall'elenco ISTAT (20 regioni e 7.896 comuni, nel formato
+   «Comune, SIGLA», es. «Monza, MB») oppure le città di `icp.geography`; massimo 10. Niente testo libero. La hub controlla
+   l'elenco; il ponte controlla formato e numero, e per la spesa conta il tetto, che vale qualunque luogo si chieda.
+   Una regione intera («Lombardia») vale per Serper; OpenStreetMap cerca attorno a un punto, quindi per lui si scelgono i comuni.
 5. **Una ricerca alla volta**, solo amministratori. Una ricerca vera può durare molti minuti: in quel tempo il ponte non
    sincronizza e la pagina mostra l'avviso «ultima sincronizzazione».
 
