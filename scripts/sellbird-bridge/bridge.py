@@ -6,7 +6,9 @@ Ogni giro:
   1. ritira dalla hub le decisioni prese da un amministratore (approva / rifiuta una bozza, ferma o riprendi gli invii)
      e le applica con la riga di comando di Sellbird (`sellbird outbox --approve|--reject <id>`,
      `sellbird sending pause|resume`), poi dice alla hub com'è andata;
-  2. manda alla hub una fotografia di email in coda, aziende, risposte, contatori e stato della pausa.
+  2. manda alla hub lo stato: email in coda, aziende, contatti, risposte, campagne, segnali, contatori e pausa.
+     Le liste lunghe vanno a differenza (solo le righe cambiate; tutto, una volta all'ora): scrivere ogni volta ogni
+     documento su Firestore costerebbe migliaia di scritture al giorno per niente.
 
 Non scrive mai nel database di Sellbird (la sua connessione è in sola lettura): ogni modifica passa dalla sua CLI.
 Solo libreria standard, niente da installare.
@@ -21,6 +23,7 @@ Variabili d'ambiente:
 Uso:  python3 bridge.py          # in continuo
       python3 bridge.py --once   # un solo giro (per provare)
 """
+import hashlib
 import json
 import os
 import re
@@ -36,6 +39,12 @@ ID_RE = re.compile(r"^[A-Za-z0-9_-]{4,64}$")
 MAX_OUTBOX = 1000
 MAX_COMPANIES = 2000
 MAX_REPLIES = 500
+MAX_CONTACTS = 1500
+MAX_CAMPAIGNS = 100
+MAX_SIGNALS = 100
+# Ogni FULL_EVERY giri si rimanda tutto, così una hub svuotata o un giro perso si riallineano da soli (30 giri = circa un'ora).
+FULL_EVERY = 30
+DELTA_LISTS = ("outbox", "companies", "replies", "contacts")
 MAX_THREAD_MESSAGES = 8
 SENDING_COMMANDS = {"pause_sending": "pause", "resume_sending": "resume"}
 
@@ -68,6 +77,33 @@ FROM conversations v
 LEFT JOIN prospects p ON p.id = v.prospect_id
 LEFT JOIN companies c ON c.id = p.company_id
 ORDER BY v.updated_at DESC
+LIMIT ?
+"""
+
+CONTACTS_SQL = """
+SELECT p.id, COALESCE(NULLIF(c.name, ''), p.company, ''), TRIM(COALESCE(p.first_name, '') || ' ' || COALESCE(p.last_name, '')),
+       COALESCE(p.title, ''), COALESCE(p.email, ''), COALESCE(p.email_status, ''), COALESCE(p.status, ''), COALESCE(p.score, 0)
+FROM prospects p
+LEFT JOIN companies c ON c.id = p.company_id
+ORDER BY p.score DESC, p.updated_at DESC
+LIMIT ?
+"""
+
+CAMPAIGNS_SQL = """
+SELECT k.id, k.name, k.channel, k.status, k.sequence_json, k.prospect_ids_json, k.created_at,
+       (SELECT COUNT(*) FROM outbox o WHERE o.campaign_id = k.id AND o.status = 'sent'),
+       (SELECT COUNT(*) FROM outbox o WHERE o.campaign_id = k.id AND o.status IN ('pending_review', 'approved', 'sending')),
+       (SELECT COUNT(*) FROM conversations v WHERE v.campaign_id = k.id AND v.stage != 'initial_outreach')
+FROM campaigns k
+ORDER BY k.created_at DESC
+LIMIT ?
+"""
+
+SIGNALS_SQL = """
+SELECT s.code, s.label, s.description, s.category, s.status, s.cost_note,
+       (SELECT COUNT(DISTINCT o.company_id) FROM observations o WHERE o.signal_code = s.code AND o.company_id != '')
+FROM signal_codes s
+ORDER BY s.category, s.code
 LIMIT ?
 """
 
@@ -193,6 +229,34 @@ def snapshot(db_path):
                 "byAgent": group(con, f"SELECT agent, COUNT(*) FROM usage_events WHERE {since} GROUP BY agent"),
             }
 
+        contacts = [{
+            "id": str(r[0]), "company": r[1], "name": r[2], "title": r[3], "email": r[4],
+            "emailStatus": r[5], "status": r[6], "score": r[7] or 0,
+        } for r in con.execute(CONTACTS_SQL, (MAX_CONTACTS,))]
+
+        def list_len(text):
+            try:
+                value = json.loads(text or "[]")
+            except ValueError:
+                return 0
+            return len(value) if isinstance(value, list) else 0
+
+        def campaigns_q():
+            return [{
+                "id": str(r[0]), "name": r[1] or "", "channel": r[2] or "", "status": r[3] or "", "steps": list_len(r[4]),
+                "prospects": list_len(r[5]), "createdAt": r[6], "sent": r[7], "queued": r[8], "replies": r[9],
+            } for r in con.execute(CAMPAIGNS_SQL, (MAX_CAMPAIGNS,))]
+
+        def signals_q():
+            return [{
+                "code": r[0], "label": r[1] or "", "description": r[2] or "", "category": r[3] or "",
+                "status": r[4] or "", "costNote": r[5] or "", "companies": r[6] or 0,
+            } for r in con.execute(SIGNALS_SQL, (MAX_SIGNALS,))]
+
+        campaigns = optional(campaigns_q, [])
+        signals = optional(signals_q, [])
+        outbox_counts = group(con, "SELECT status, COUNT(*) FROM outbox GROUP BY status")
+
         intents = {}
         for r in replies:
             intents[r["intent"] or "none"] = intents.get(r["intent"] or "none", 0) + 1
@@ -208,12 +272,51 @@ def snapshot(db_path):
         paused = optional(lambda: one_text(con, "SELECT value FROM settings WHERE key = 'sending_paused'"), "")
     finally:
         con.close()
-    return {"outbox": outbox, "companies": companies, "replies": replies, "stats": stats, "sendingPaused": paused or None}
+    return {
+        "outbox": outbox, "companies": companies, "contacts": contacts, "replies": replies, "campaigns": campaigns,
+        "signals": signals, "outboxCounts": outbox_counts, "stats": stats, "sendingPaused": paused or None,
+    }
 
 
 def one_text(con, sql):
     row = con.execute(sql).fetchone()
     return (row[0] or "") if row else ""
+
+
+def item_hash(item):
+    return hashlib.sha1(json.dumps(item, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def load_state(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            state = json.load(f)
+        return state if isinstance(state, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(path, state):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(state, f)
+    os.replace(tmp, path)
+
+
+def to_delta(snap, state):
+    """Toglie dalla fotografia le righe già mandate e invariate. Ritorna (da mandare, nuovo stato), senza scrivere nulla:
+    lo stato si salva solo dopo che la hub ha risposto, così un giro fallito si rimanda."""
+    runs = int(state.get("runs", 0))
+    full = runs % FULL_EVERY == 0
+    sent = state.get("hashes", {})
+    payload = dict(snap)
+    hashes = {}
+    for name in DELTA_LISTS:
+        current = {item["id"]: item_hash(item) for item in snap[name]}
+        hashes[name] = current
+        previous = sent.get(name, {})
+        payload[name] = snap[name] if full else [i for i in snap[name] if previous.get(i["id"]) != current[i["id"]]]
+    return payload, {"runs": runs + 1, "hashes": hashes}
 
 
 def run_once(sellbird_dir, hub, secret):
@@ -224,8 +327,12 @@ def run_once(sellbird_dir, hub, secret):
         hub_call(hub, secret, "POST", "/api/outreach/commands", {"id": cmd["id"], "ok": ok, "error": err})
     # 2) poi la fotografia
     snap = snapshot(os.path.join(sellbird_dir, "data", "sellbird.db"))
-    res = hub_call(hub, secret, "POST", "/api/outreach/sync", snap)
-    log(f"sincronizzate {res.get('outbox')} email, {res.get('companies')} aziende e {res.get('replies')} risposte")
+    state_path = os.path.join(sellbird_dir, "data", "bridge-state.json")
+    payload, new_state = to_delta(snap, load_state(state_path))
+    res = hub_call(hub, secret, "POST", "/api/outreach/sync", payload)
+    save_state(state_path, new_state)
+    log(f"inviate {res.get('outbox')} email, {res.get('companies')} aziende, {res.get('contacts')} contatti, "
+        f"{res.get('replies')} risposte (cambiate dall'ultima volta; tutto ogni {FULL_EVERY} giri)")
 
 
 def main():

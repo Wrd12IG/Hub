@@ -15,10 +15,11 @@ export async function GET(request: NextRequest) {
     if (!user) return unauthorizedResponse();
     if ((await getAppUser(user.uid))?.role !== 'Amministratore') return forbiddenResponse();
 
-    const [meta, outbox, companies, replies, commands] = await Promise.all([
+    const [meta, outbox, companies, contacts, replies, commands] = await Promise.all([
         adminDb.collection('outreachMeta').doc('current').get(),
         adminDb.collection('outreachOutbox').get(),
         adminDb.collection('outreachCompanies').get(),
+        adminDb.collection('outreachContacts').get(),
         adminDb.collection('outreachReplies').get(),
         adminDb.collection('outreachCommands').where('status', '==', 'pending').get(),
     ]);
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
         meta: meta.exists ? meta.data() : null,
         outbox: outbox.docs.map((d) => d.data()),
         companies: companies.docs.map((d) => d.data()),
+        contacts: contacts.docs.map((d) => d.data()),
         replies: replies.docs.map((d) => d.data()),
         pending: commands.docs.map((d) => ({ outboxId: d.get('outboxId') ?? null, action: d.get('action') })),
     });

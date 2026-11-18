@@ -10,6 +10,9 @@ import { btn, type Overview } from './shared'
 import { OutboxTab } from './outbox-tab'
 import { RepliesTab } from './replies-tab'
 import { PipelineTab } from './pipeline-tab'
+import { ContactsTab } from './contacts-tab'
+import { CampaignsTab } from './campaigns-tab'
+import { SignalsTab } from './signals-tab'
 
 /** Il ponte sincronizza ogni pochi minuti: oltre questa soglia vuol dire che Sellbird o il ponte sono fermi. */
 const STALE_MINUTES = 30
@@ -113,9 +116,12 @@ export default function OutreachPage() {
       )}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="email">Email{toReview > 0 ? ` (${toReview})` : ''}</TabsTrigger>
           <TabsTrigger value="risposte">Risposte{data?.replies.length ? ` (${data.replies.length})` : ''}</TabsTrigger>
+          <TabsTrigger value="contatti">Contatti{data?.contacts.length ? ` (${data.contacts.length})` : ''}</TabsTrigger>
+          <TabsTrigger value="campagne">Campagne</TabsTrigger>
+          <TabsTrigger value="segnali">Segnali</TabsTrigger>
           <TabsTrigger value="pipeline">Pipeline e uso</TabsTrigger>
         </TabsList>
         <TabsContent value="email" className="mt-4">
@@ -123,6 +129,15 @@ export default function OutreachPage() {
         </TabsContent>
         <TabsContent value="risposte" className="mt-4">
           <RepliesTab replies={data?.replies ?? []} outbox={data?.outbox ?? []} goToDraft={goToDraft} />
+        </TabsContent>
+        <TabsContent value="contatti" className="mt-4">
+          <ContactsTab contacts={data?.contacts ?? []} />
+        </TabsContent>
+        <TabsContent value="campagne" className="mt-4">
+          <CampaignsTab campaigns={data?.meta?.campaigns ?? []} />
+        </TabsContent>
+        <TabsContent value="segnali" className="mt-4">
+          <SignalsTab signals={data?.meta?.signals ?? []} />
         </TabsContent>
         <TabsContent value="pipeline" className="mt-4">
           <PipelineTab stats={data?.meta?.stats ?? null} />

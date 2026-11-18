@@ -84,9 +84,49 @@ export interface OutreachStats {
     usage: { calls7d: number; errors7d: number; inputTokens7d: number; outputTokens7d: number; byAgent: Record<string, number> };
 }
 
+/** Un contatto (persona o casella) trovato da Sellbird. Solo quanto serve a capire chi è e a che punto è. */
+export interface OutreachContactItem {
+    id: string;
+    company: string;
+    name: string;
+    title: string;
+    email: string;
+    /** verified / risky / guess: Sellbird invia solo agli indirizzi verificati. */
+    emailStatus: string;
+    status: string;
+    score: number;
+}
+
+export interface OutreachCampaignItem {
+    id: string;
+    name: string;
+    channel: string;
+    status: string;
+    steps: number;
+    prospects: number;
+    sent: number;
+    queued: number;
+    replies: number;
+    createdAt: string | null;
+}
+
+/** Un segnale del catalogo di Sellbird. Si attiva e si disattiva solo da Sellbird: qui è in sola lettura. */
+export interface OutreachSignalItem {
+    code: string;
+    label: string;
+    description: string;
+    category: string;
+    status: string;
+    costNote: string;
+    companies: number;
+}
+
 export interface OutreachSnapshot {
     outbox: OutreachOutboxItem[];
     companies: OutreachCompanyItem[];
+    contacts: OutreachContactItem[];
+    campaigns: OutreachCampaignItem[];
+    signals: OutreachSignalItem[];
     replies: OutreachReplyItem[];
     stats: OutreachStats | null;
     /** Il motivo della pausa degli invii, oppure null se Sellbird sta inviando. */
@@ -97,6 +137,9 @@ export interface OutreachSnapshot {
 export const MAX_OUTBOX = 1000;
 export const MAX_COMPANIES = 2000;
 export const MAX_REPLIES = 500;
+export const MAX_CONTACTS = 1500;
+export const MAX_CAMPAIGNS = 100;
+export const MAX_SIGNALS = 100;
 const MAX_REPLY_MESSAGES = 8;
 
 const str = (v: unknown, max: number): string => (typeof v === 'string' ? v.slice(0, max) : '');
@@ -193,7 +236,7 @@ export function parseReplyItem(raw: unknown): OutreachReplyItem | null {
 }
 
 /** Un contatore per chiave: le chiavi vengono da Sellbird (stati, intenti, agenti), qui si accettano solo parole brevi. */
-function counts(v: unknown): Record<string, number> {
+export function parseCounts(v: unknown): Record<string, number> {
     const out: Record<string, number> = {};
     if (!v || typeof v !== 'object') return out;
     for (const [k, n] of Object.entries(v as Record<string, unknown>).slice(0, 40)) {
@@ -208,17 +251,17 @@ export function parseStats(raw: unknown): OutreachStats | null {
     const u = (r.usage && typeof r.usage === 'object' ? r.usage : {}) as Record<string, unknown>;
     return {
         companies: int(r.companies),
-        prospects: counts(r.prospects),
+        prospects: parseCounts(r.prospects),
         emailsSent: int(r.emailsSent),
         emailsSentToday: int(r.emailsSentToday),
         conversations: int(r.conversations),
-        intents: counts(r.intents),
+        intents: parseCounts(r.intents),
         usage: {
             calls7d: int(u.calls7d),
             errors7d: int(u.errors7d),
             inputTokens7d: int(u.inputTokens7d),
             outputTokens7d: int(u.outputTokens7d),
-            byAgent: counts(u.byAgent),
+            byAgent: parseCounts(u.byAgent),
         },
     };
 }
@@ -226,4 +269,54 @@ export function parseStats(raw: unknown): OutreachStats | null {
 /** `sendingPaused`: null = sta inviando; una stringa (anche breve) = in pausa, con il motivo che ha scritto Sellbird. */
 export function parsePaused(v: unknown): string | null {
     return typeof v === 'string' && v.trim() ? v.trim().slice(0, 200) : null;
+}
+
+export function parseContactItem(raw: unknown): OutreachContactItem | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    if (!isValidOutreachId(r.id)) return null;
+    return {
+        id: r.id,
+        company: str(r.company, 200),
+        name: str(r.name, 200),
+        title: str(r.title, 200),
+        email: str(r.email, 254),
+        emailStatus: str(r.emailStatus, 20),
+        status: str(r.status, 40),
+        score: int(r.score),
+    };
+}
+
+export function parseCampaignItem(raw: unknown): OutreachCampaignItem | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    if (!isValidOutreachId(r.id)) return null;
+    return {
+        id: r.id,
+        name: str(r.name, 200),
+        channel: str(r.channel, 20),
+        status: str(r.status, 40),
+        steps: int(r.steps),
+        prospects: int(r.prospects),
+        sent: int(r.sent),
+        queued: int(r.queued),
+        replies: int(r.replies),
+        createdAt: strOrNull(r.createdAt, 40),
+    };
+}
+
+/** I codici dei segnali sono parole in maiuscolo (SERP_RANK, HIRING_ROLE…): non sono id di Firestore, ma non devono contenere altro. */
+export function parseSignalItem(raw: unknown): OutreachSignalItem | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const r = raw as Record<string, unknown>;
+    if (typeof r.code !== 'string' || !/^[A-Z0-9_]{2,60}$/.test(r.code)) return null;
+    return {
+        code: r.code,
+        label: str(r.label, 120),
+        description: str(r.description, 600),
+        category: str(r.category, 60),
+        status: str(r.status, 20),
+        costNote: str(r.costNote, 200),
+        companies: int(r.companies),
+    };
 }

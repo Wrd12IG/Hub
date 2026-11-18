@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
-import { denyUnlessBridge, isValidOutreachId, parseCompanyItem, parseOutboxItem, parsePaused, parseReplyItem, parseStats } from '../outreach';
+import { denyUnlessBridge, isValidOutreachId, parseCampaignItem, parseCompanyItem, parseContactItem, parseOutboxItem, parsePaused, parseReplyItem, parseSignalItem, parseStats } from '../outreach';
 
 const SECRET = 'a'.repeat(40);
 const req = (auth?: string) => new NextRequest('http://localhost/api/outreach/sync', { headers: auth ? { authorization: auth } : {} });
@@ -96,5 +96,30 @@ describe('parsePaused', () => {
         expect(parsePaused('')).toBeNull();
         expect(parsePaused(null)).toBeNull();
         expect(parsePaused('  paused manually ')).toBe('paused manually');
+    });
+});
+
+describe('parseContactItem', () => {
+    it('legge un contatto e usa 0 se il punteggio non è un numero', () => {
+        const c = parseContactItem({ id: 'p1p1', company: 'Autosalone Esempio', name: 'Mario Rossi', title: 'Titolare', email: 'info@esempio.example.com', emailStatus: 'verified', status: 'new', score: '80' })!;
+        expect(c).toMatchObject({ name: 'Mario Rossi', emailStatus: 'verified', score: 0 });
+    });
+    it('scarta un id che non è di Sellbird e taglia i campi lunghi', () => {
+        expect(parseContactItem({ id: 'a/b' })).toBeNull();
+        expect(parseContactItem({ id: 'p1p1', name: 'x'.repeat(500) })!.name).toHaveLength(200);
+    });
+});
+
+describe('parseCampaignItem', () => {
+    it('normalizza i contatori', () => {
+        const k = parseCampaignItem({ id: 'k1k1', name: 'Concessionari', channel: 'email', status: 'active', steps: 3, prospects: 12, sent: 5, queued: -2, replies: 'x' })!;
+        expect(k).toMatchObject({ steps: 3, prospects: 12, sent: 5, queued: 0, replies: 0 });
+    });
+});
+
+describe('parseSignalItem', () => {
+    it('accetta solo codici in maiuscolo', () => {
+        expect(parseSignalItem({ code: 'SERP_RANK', label: 'Posizione', status: 'proposed', companies: 4 })).toMatchObject({ code: 'SERP_RANK', companies: 4 });
+        for (const code of ['serp_rank', 'SERP RANK', '../x', 'A', '']) expect(parseSignalItem({ code })).toBeNull();
     });
 });
