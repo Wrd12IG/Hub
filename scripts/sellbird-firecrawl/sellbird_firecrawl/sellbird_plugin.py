@@ -121,10 +121,17 @@ async def _cli(args) -> None:
     query_db, rows, blocked, verify, make_prospect = await _sellbird_side(config, state)
     if action == "estimate":
         tried = finder.load_tried(await state.get_setting(finder.TRIED_KEY), _now(), s.retry_days)
-        cands = await finder.select_candidates(query_db, rows, tried, min_fit=s.min_fit, limit=args.limit)
+        skips: dict = {}
+        cands = await finder.select_candidates(query_db, rows, tried, min_fit=s.min_fit, limit=args.limit, keywords=s.keywords,
+                                               exclude=s.exclude, blocked=blocked, skips=skips)
         print(f"\n  {len(cands)} aziende candidate (punteggio almeno {s.min_fit}, solo casella generica, mai contattate):")
         for c in cands:
             print(f"    {c.fit:>3}  {c.name}  ({c.domain})  [{c.status}]")
+        if skips:
+            print(f"\n  Lasciate fuori ({len(skips)}), con il motivo:")
+            for domain, why in list(skips.items())[:15]:
+                print(f"    {domain}: {why}")
+        print(f"\n  Controllo di settore: {'spento' if not s.keywords else 'parole chiave ' + ', '.join(s.keywords)}")
         print(f"\n  Costo massimo al listino: {len(cands) * CREDITS_PER_HIT} crediti ({CREDITS_PER_HIT} per ogni titolare trovato; chi non si trova non costa).")
         print("  Nessuna chiamata fatta.\n")
         return

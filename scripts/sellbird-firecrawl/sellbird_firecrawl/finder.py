@@ -73,6 +73,17 @@ def clean_domain(value: str) -> str:
     return v if "." in v and " " not in v else ""
 
 
+def on_target(name: str, domain: str, description: str, keywords) -> bool:
+    """L'azienda sembra del settore giusto: almeno una parola chiave nel nome, nel dominio o nella descrizione.
+    Senza parole chiave (`*`) il controllo è spento. È una rete larga, non un giudizio: serve a non spendere crediti su una
+    barca o su un'azienda informatica trovata per sbaglio; la parola «auto» prende anche «automazione», e va bene, perché
+    l'ultima parola resta alla persona che legge la bozza."""
+    if not keywords:
+        return True
+    haystack = f"{name} {domain} {description}".lower()
+    return any(k in haystack for k in keywords)
+
+
 def load_tried(raw: str, now: datetime, retry_days: int) -> dict:
     """Le aziende già provate e quando, senza quelle oltre la finestra di nuovo tentativo."""
     try:
@@ -85,11 +96,16 @@ def load_tried(raw: str, now: datetime, retry_days: int) -> dict:
     return {k: v for k, v in data.items() if isinstance(k, str) and isinstance(v, str) and v >= limit}
 
 
-async def select_candidates(query_db: QueryDb, rows: list, tried: dict, *, min_fit: int, limit: int) -> list:
-    """Le aziende da provare, le migliori prima. `rows` è l'elenco aziende di Sellbird (con punteggio e stato)."""
+async def select_candidates(
+    query_db: QueryDb, rows: list, tried: dict, *, min_fit: int, limit: int, keywords=(), exclude=frozenset(),
+    blocked: Optional[Callable[[str], bool]] = None, skips: Optional[dict] = None,
+) -> list:
+    """Le aziende da provare, le migliori prima. `rows` è l'elenco aziende di Sellbird (con punteggio e stato).
+    `skips`, se dato, riceve {dominio: motivo} per chi viene scartato per settore, esclusione o «mai contattare»: serve a
+    `estimate` per far vedere cosa è stato lasciato fuori e perché."""
     pool = [r for r in rows if r.get("status") in ELIGIBLE_STATUS and (r.get("fit") or 0) >= min_fit and r.get("id") not in tried]
     pool.sort(key=lambda r: -(r.get("fit") or 0))
-    pool = pool[: max(limit * 6, 30)]  # c'è ancora da scartare: un margine, non l'elenco intero
+    pool = pool[: max(limit * 8, 40)]  # c'è ancora da scartare: un margine, non l'elenco intero
     ids = [r["id"] for r in pool]
     if not ids:
         return []
@@ -106,7 +122,7 @@ async def select_candidates(query_db: QueryDb, rows: list, tried: dict, *, min_f
             tuple(chunk),
         ):
             outbox.setdefault(o["company_id"], set()).add(o["status"])
-        for c in await query_db(f"SELECT id, domain, name, industry FROM companies WHERE id IN ({marks})", tuple(chunk)):
+        for c in await query_db(f"SELECT id, domain, name, industry, description FROM companies WHERE id IN ({marks})", tuple(chunk)):
             companies[c["id"]] = c
 
     out: list = []
@@ -115,6 +131,19 @@ async def select_candidates(query_db: QueryDb, rows: list, tried: dict, *, min_f
         c = companies.get(cid) or {}
         domain = clean_domain(c.get("domain") or "")
         if not domain or domain in PORTALS or any(domain.endswith("." + p) for p in PORTALS):
+            continue
+        def skip(reason: str) -> None:
+            if skips is not None:
+                skips[domain] = reason
+
+        if domain in exclude or any(domain.endswith("." + d) for d in exclude):
+            skip("esclusa a mano (FIRECRAWL_ENRICH_EXCLUDE_DOMAINS)")
+            continue
+        if blocked is not None and blocked(domain):
+            skip("in «mai contattare»")
+            continue
+        if not on_target(c.get("name") or "", domain, c.get("description") or "", keywords):
+            skip("non sembra del settore (nessuna parola chiave)")
             continue
         if outbox.get(cid, set()) & {"sent", "sending", "approved"}:
             continue  # una persona ha già approvato, o è già partita un'email
@@ -182,7 +211,10 @@ async def run_cycle(
         return report
 
     tried = load_tried(await state.get_setting(TRIED_KEY), now, settings.retry_days)
-    report.candidates = await select_candidates(query_db, rows, tried, min_fit=settings.min_fit, limit=limit or settings.per_cycle)
+    report.candidates = await select_candidates(
+        query_db, rows, tried, min_fit=settings.min_fit, limit=limit or settings.per_cycle,
+        keywords=getattr(settings, "keywords", ()), exclude=getattr(settings, "exclude", frozenset()), blocked=blocked,
+    )
     if dry_run or not report.candidates:
         return report
 
