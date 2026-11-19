@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sellbird-firecrawl"
+version = "0.1.0"
+description = "Estensione di Sellbird: trova il titolare delle aziende con solo una casella generica, tramite Firecrawl"
+requires-python = ">=3.9"
+dependencies = ["httpx"]
+
+[project.entry-points."sellbird.extensions"]
+firecrawl = "sellbird_firecrawl.sellbird_plugin:install"
+
+[tool.setuptools]
+packages = ["sellbird_firecrawl"]
