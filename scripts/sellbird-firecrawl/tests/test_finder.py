@@ -12,7 +12,7 @@ from sellbird_firecrawl.client import DecisionMaker, FirecrawlError, OutOfCredit
 
 NOW = datetime(2026, 11, 19, 12, 0, tzinfo=timezone.utc)
 SCHEMA = """
-CREATE TABLE companies (id TEXT PRIMARY KEY, domain TEXT, name TEXT, industry TEXT);
+CREATE TABLE companies (id TEXT PRIMARY KEY, domain TEXT, name TEXT, industry TEXT, description TEXT DEFAULT '');
 CREATE TABLE prospects (id TEXT PRIMARY KEY, company_id TEXT, first_name TEXT DEFAULT '', last_name TEXT DEFAULT '', email TEXT DEFAULT '',
                         email_status TEXT DEFAULT '', status TEXT DEFAULT 'new', title TEXT DEFAULT '', personalization_notes TEXT DEFAULT '', source TEXT DEFAULT '');
 CREATE TABLE outbox (id TEXT PRIMARY KEY, prospect_id TEXT, status TEXT);
@@ -71,13 +71,13 @@ class Base(unittest.IsolatedAsyncioTestCase):
         self.db.row_factory = sqlite3.Row
         self.db.executescript(SCHEMA)
         self.state = FakeState(self.db)
-        self.s = settings.load({})
+        self.s = settings.load({"FIRECRAWL_ENRICH_KEYWORDS": "*"})   # i test di base non guardano il settore: ci sono quelli a parte
 
     async def query_db(self, sql, params=()):
         return [dict(r) for r in self.db.execute(sql, params).fetchall()]
 
-    def company(self, cid="c1", domain="gruppo.it", name="Gruppo Esempio", fit=80, status="Draft waiting", generic=True, notes="spunto"):
-        self.db.execute("INSERT INTO companies VALUES (?,?,?,?)", (cid, domain, name, "Concessionario auto"))
+    def company(self, cid="c1", domain="gruppo.it", name="Gruppo Esempio", fit=80, status="Draft waiting", generic=True, notes="spunto", description=""):
+        self.db.execute("INSERT INTO companies VALUES (?,?,?,?,?)", (cid, domain, name, "Concessionario auto", description))
         if generic:
             self.db.execute("INSERT INTO prospects (id, company_id, email, email_status, title, personalization_notes) VALUES (?,?,?,?,?,?)",
                             (f"g-{cid}", cid, f"info@{domain}", "verified", "General inbox", notes))
@@ -209,7 +209,8 @@ class CycleTest(Base):
     async def test_blocked_domain_is_not_called(self):
         client = FakeClient(DM)
         report = await self.cycle([self.company()], client, blocked=lambda t: t == "gruppo.it")
-        self.assertEqual((client.calls, report.outcomes[0].result), ([], "skipped"))
+        # un dominio «mai contattare» si scarta già alla scelta: non diventa candidata, non occupa un posto, non si chiama
+        self.assertEqual((client.calls, report.candidates, report.outcomes), ([], [], []))
 
     async def test_blocked_email_is_paid_but_never_stored(self):
         report = await self.cycle([self.company()], FakeClient(DM), blocked=lambda t: t == "paolo@gruppo.it")
@@ -239,6 +240,67 @@ class CycleTest(Base):
         report = await self.cycle([row], FakeClient(DecisionMaker("Luca", "Verdi", "Marketing Manager", "luca@solo.it", "marketing")))
         self.assertEqual(report.outcomes[0].result, "hit")
         self.assertEqual((self.state.added[0].seniority, self.state.cancelled), ("director", []))
+
+
+class SectorTest(Base):
+    """Il punteggio di Sellbird dà i punti del «settore giusto» al termine con cui ha cercato: non basta a distinguere una barca."""
+
+    KW = settings.load({}).keywords
+
+    def test_defaults_are_automotive(self):
+        self.assertIn("auto", self.KW)
+        self.assertIn("concession", self.KW)
+
+    def test_on_target(self):
+        yes = [("Autostore Bergamo", "autostorebergamo.it", ""), ("AutoItalia", "autoitaliaonline.com", ""),
+               ("Auto 500", "auto500.it", ""), ("Bramocar Srl", "bramocar.it", "Concessionaria multimarca di auto usate e nuove"),
+               ("Gruppo Carmeli", "gruppocarmeli.com", "Concessionaria ufficiale Toyota"), ("G. Villa Monza", "gvilla.com", "Officina e vendita veicoli")]
+        no = [("Band of Boats", "bandofboats.com", "Noleggio barche"), ("Rimor IT", "rimor.it", "Camper e caravan"),
+              ("Inside Project", "insideproject.it", "Sviluppo software e consulenza")]
+        for n, d, desc in yes:
+            self.assertTrue(finder.on_target(n, d, desc, self.KW), n)
+        for n, d, desc in no:
+            self.assertFalse(finder.on_target(n, d, desc, self.KW), n)
+
+    def test_off_means_off(self):
+        self.assertTrue(finder.on_target("Band of Boats", "bandofboats.com", "", ()))
+        self.assertEqual(settings.load({"FIRECRAWL_ENRICH_KEYWORDS": "*"}).keywords, ())
+
+    async def test_selection_leaves_off_target_out_and_says_why(self):
+        rows = [self.company("a", "autostorebergamo.it", "Autostore Bergamo"), self.company("b", "bandofboats.com", "Band of Boats"),
+                self.company("c", "rimor.it", "Rimor IT"), self.company("d", "insideproject.it", "Inside Project")]
+        skips = {}
+        got = await finder.select_candidates(self.query_db, rows, {}, min_fit=50, limit=10, keywords=self.KW, skips=skips)
+        self.assertEqual([c.domain for c in got], ["autostorebergamo.it"])
+        self.assertEqual(sorted(skips), ["bandofboats.com", "insideproject.it", "rimor.it"])
+        self.assertIn("settore", skips["rimor.it"])
+
+    async def test_description_counts(self):
+        rows = [self.company("x", "esempio.it", "Esempio Srl", description="Concessionaria di auto usate")]
+        got = await finder.select_candidates(self.query_db, rows, {}, min_fit=50, limit=10, keywords=self.KW)
+        self.assertEqual(len(got), 1)
+
+    async def test_manual_exclusions_cover_subdomains_and_www(self):
+        s = settings.load({"FIRECRAWL_ENRICH_EXCLUDE_DOMAINS": "WWW.Rimor.it, bandofboats.com "})
+        self.assertEqual(s.exclude, frozenset({"rimor.it", "bandofboats.com"}))
+        rows = [self.company("a", "rimor.it", "Auto Rimor"), self.company("b", "shop.rimor.it", "Auto Rimor Shop"), self.company("c", "bandofboats.com", "Auto Boats"),
+                self.company("d", "buonauto.it", "Buonauto")]
+        skips = {}
+        got = await finder.select_candidates(self.query_db, rows, {}, min_fit=50, limit=10, exclude=s.exclude, skips=skips)
+        self.assertEqual([c.domain for c in got], ["buonauto.it"])
+        self.assertEqual(len(skips), 3)
+
+    async def test_blocked_companies_do_not_take_a_slot(self):
+        rows = [self.company("a", "bloccata.it", "Auto Bloccata", fit=95), self.company("b", "uno.it", "Auto Uno", fit=80), self.company("c", "due.it", "Auto Due", fit=70)]
+        got = await finder.select_candidates(self.query_db, rows, {}, min_fit=50, limit=2, blocked=lambda d: d == "bloccata.it")
+        self.assertEqual([c.domain for c in got], ["uno.it", "due.it"])   # il limite si riempie con aziende vere
+
+    async def test_a_run_with_the_default_filter_never_calls_for_off_target(self):
+        s = settings.load({})
+        rows = [self.company("b", "bandofboats.com", "Band of Boats"), self.company("a", "autostore.it", "Autostore")]
+        client = FakeClient(None)
+        await self.cycle(rows, client, settings=s)
+        self.assertEqual([c[0] for c in client.calls], ["autostore.it"])
 
 
 if __name__ == "__main__":

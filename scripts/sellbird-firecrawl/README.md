@@ -13,7 +13,8 @@ Un passo a ogni ciclo di Sellbird (solo se `FIRECRAWL_ENRICH=on`):
 
 1. **Candidate:** aziende con buon punteggio (`FIRECRAWL_ENRICH_MIN_FIT`, default 50), stato «Ready», «Draft waiting» o
    «Not contacted», **senza** una persona con nome e un indirizzo utilizzabile, **senza** email inviate o approvate (quello
-   che una persona ha approvato non si annulla mai), non provate negli ultimi 90 giorni, non portali (Subito, PagineBianche…).
+   che una persona ha approvato non si annulla mai), non provate negli ultimi 90 giorni, non portali (Subito, PagineBianche…),
+   non in «mai contattare», e **del settore giusto** (vedi sotto).
 2. **Bilancio prima di ogni chiamata:** tetto giornaliero e mensile, e una **riserva** sull'account che non si tocca (l'account
    Firecrawl è condiviso con altri usi). Il bilancio conta il **listino** (100 crediti per titolare trovato, 0 per chi non si
    trova), non quanto Firecrawl scala davvero: è la scelta prudente.
@@ -27,6 +28,19 @@ Un passo a ogni ciclo di Sellbird (solo se `FIRECRAWL_ENRICH=on`):
 6. **Stop che richiede una persona** (chiave rifiutata, crediti finiti, **termini del fornitore da accettare**): l'estensione si
    ferma da sola finché non lanci `sellbird firecrawl resume`. **Non accetta mai i termini di un fornitore**: lo fa un
    amministratore dal sito Firecrawl.
+
+## Il controllo di settore (importante)
+
+Il punteggio di Sellbird **non basta** a riconoscere il settore: i 20 punti del «settore giusto» vanno al termine con cui ha
+cercato l'azienda, non a quello che fa davvero. Per questo l'estensione chiede almeno una parola chiave nel **nome, nel dominio o
+nella descrizione** (default: `auto, concession, officina, carrozz, gommist, veicol, vettur, km0, motors`), e scarta il resto
+**prima** di spendere un credito. È una rete larga, non un giudizio: la parola «auto» prende anche «automazione», e l'ultima parola
+resta a chi legge la bozza.
+
+- `sellbird firecrawl estimate` mostra le candidate **e le aziende lasciate fuori, con il motivo**: guardalo prima di ogni pilota.
+- `FIRECRAWL_ENRICH_KEYWORDS=auto,concession,...` cambia le parole; `*` spegne il controllo.
+- `FIRECRAWL_ENRICH_EXCLUDE_DOMAINS=rimor.it,bandofboats.com` esclude a mano dei domini (e i loro sottodomini), sempre.
+- Un dominio in «mai contattare» (`compliance.do_not_contact` di Sellbird) è escluso alla scelta, non occupa un posto del `--limit`.
 
 ## Installazione sul server
 
@@ -92,6 +106,6 @@ della hub (scheda Email) prima di approvare: il nome è giusto? il ruolo? Si pro
 python3 -m unittest discover -s scripts/sellbird-firecrawl/tests -t scripts/sellbird-firecrawl
 ```
 
-37 prove con un database e un Firecrawl finti: nessuna rete, nessun credito. Coprono la scelta delle candidate, il bilancio e la
+45 prove con un database e un Firecrawl finti: nessuna rete, nessun credito. Coprono la scelta delle candidate, il bilancio e la
 riserva, gli stop che richiedono una persona, i controlli sul risultato (dominio, casella di ruolo, nome), le difese contro i
 doppioni e il fatto che il nostro verificatore possa solo bocciare.

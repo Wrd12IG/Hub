@@ -17,6 +17,11 @@ DEFAULTS = {
     "FIRECRAWL_ENRICH_MIN_FIT": "50",
     "FIRECRAWL_ENRICH_PER_CYCLE": "3",            # il passo di ogni ciclo ha due minuti
     "FIRECRAWL_ENRICH_RETRY_DAYS": "90",
+    # Almeno una di queste parole nel nome, nel dominio o nella descrizione dell'azienda: il punteggio di Sellbird non basta,
+    # perché dà i punti del «settore giusto» al termine con cui ha cercato, non a quello che l'azienda fa davvero.
+    # «*» spegne il controllo.
+    "FIRECRAWL_ENRICH_KEYWORDS": "auto,concession,officina,carrozz,gommist,veicol,vettur,km0,motors",
+    "FIRECRAWL_ENRICH_EXCLUDE_DOMAINS": "",   # domini da non provare mai, separati da virgola
 }
 
 
@@ -45,6 +50,10 @@ def _int(value: str, default: int, low: int = 0, high: int = 1_000_000) -> int:
         return default
 
 
+def _words(value: str) -> tuple:
+    return tuple(w.strip().lower() for w in value.split(",") if w.strip())
+
+
 @dataclass(frozen=True)
 class Settings:
     enabled: bool
@@ -53,6 +62,8 @@ class Settings:
     min_fit: int
     per_cycle: int
     retry_days: int
+    keywords: tuple = ()
+    exclude: frozenset = frozenset()
 
 
 def load(env: dict | None = None, home: Path | None = None) -> Settings:
@@ -77,4 +88,6 @@ def load(env: dict | None = None, home: Path | None = None) -> Settings:
         min_fit=_int(get("FIRECRAWL_ENRICH_MIN_FIT"), 50, 0, 100),
         per_cycle=_int(get("FIRECRAWL_ENRICH_PER_CYCLE"), 3, 1, 10),
         retry_days=_int(get("FIRECRAWL_ENRICH_RETRY_DAYS"), 90, 1, 3650),
+        keywords=() if get("FIRECRAWL_ENRICH_KEYWORDS").strip() == "*" else _words(get("FIRECRAWL_ENRICH_KEYWORDS")),
+        exclude=frozenset(d.removeprefix("www.") for d in _words(get("FIRECRAWL_ENRICH_EXCLUDE_DOMAINS"))),
     )
