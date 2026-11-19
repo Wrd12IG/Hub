@@ -7,6 +7,7 @@ import json
 import os
 import sqlite3
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -178,13 +179,17 @@ class ActionTest(unittest.TestCase):
         con.close()
         self.env = mock.patch.dict(os.environ, {"SELLBIRD_CMD": "python -m sellbird"})
         self.cities = mock.patch.object(bridge, "config_cities", return_value=["Milano", "Monza"])
+        # La presenza dell'opzione --industry si chiede a Sellbird: nei test si decide qui, senza lanciare nulla.
+        self.option = mock.patch.object(bridge, "supports_industry", return_value=True)
         self.env.start()
         self.cities.start()
+        self.option.start()
         self.calls = []
 
     def tearDown(self):
         self.env.stop()
         self.cities.stop()
+        self.option.stop()
         self.dir.cleanup()
 
     def run_cmd(self, cmd, stdout="", returncode=0):
@@ -271,6 +276,33 @@ class ActionTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(self.calls, [])  # nessuno dei rifiutati è arrivato a Sellbird
 
+    def test_industries_are_passed_as_an_option(self):
+        ok, err, _ = self.run_cmd({"action": "discover_estimate", "provider": "serper", "cities": ["Milano"], "industries": ["Officina meccanica", "Carrozzeria"]},
+                                  stdout="Estimated cost: $0.20")
+        self.assertTrue(ok, err)
+        args = self.calls[0][0]
+        self.assertEqual(args[args.index("--industry") + 1], "Officina meccanica;Carrozzeria")
+        self.calls.clear()
+        # senza settori scelti non si passa nulla: valgono quelli del profilo, come prima
+        self.run_cmd({"action": "discover_estimate", "provider": "serper", "cities": [], "industries": []}, stdout="Estimated cost: $0.20")
+        self.assertNotIn("--industry", self.calls[0][0])
+
+    def test_rejects_malformed_industries(self):
+        for industries in (["Officina; rm -rf /"], ["$(ls)"], ["x"], ["a" * 81], "Officina", [5], ["Officina"] * 6):
+            ok, _, _ = self.run_cmd({"action": "discover_run", "provider": "serper", "cities": [], "industries": industries, "maxSpend": 1})
+            self.assertFalse(ok, industries)
+        self.assertEqual(self.calls, [])
+
+    def test_clear_error_when_sellbird_lacks_the_option(self):
+        with mock.patch.object(bridge, "supports_industry", return_value=False):
+            ok, err, _ = self.run_cmd({"action": "discover_estimate", "provider": "serper", "cities": [], "industries": ["Carrozzeria"]})
+        self.assertFalse(ok)
+        self.assertIn("--industry", err)
+        self.assertEqual(self.calls, [])  # nemmeno lanciato
+        with mock.patch.object(bridge, "supports_industry", return_value=False):
+            ok, _, _ = self.run_cmd({"action": "discover_estimate", "provider": "serper", "cities": [], "industries": []}, stdout="Estimated cost: $0.10")
+        self.assertTrue(ok)  # senza settori la ricerca funziona anche con Sellbird originale
+
     def test_failure_returns_the_text(self):
         ok, err, extra = self.run_cmd({"action": "discover_run", "provider": "serper", "cities": [], "maxSpend": 1}, stdout="ERROR: missing key", returncode=1)
         self.assertFalse(ok)
@@ -279,6 +311,52 @@ class ActionTest(unittest.TestCase):
     def test_snapshot_declares_what_discover_can_do(self):
         info = bridge.snapshot(os.path.join(self.dir.name, "data", "sellbird.db"), self.dir.name)["discover"]
         self.assertEqual((info["providers"], info["cities"], info["cap"]), (["osm", "serper"], ["Milano", "Monza"], 2.0))
+        self.assertTrue(info["industryOption"])
+        self.assertIsInstance(info["industries"], list)
+
+
+class IndustryOptionTest(unittest.TestCase):
+    """Rilevamento dell'opzione --industry: si chiede a Sellbird (`discover --help`) e si ricorda per 10 minuti."""
+
+    def setUp(self):
+        bridge._INDUSTRY_OPTION.clear()
+        self.env = mock.patch.dict(os.environ, {"SELLBIRD_CMD": "python -m sellbird"})
+        self.env.start()
+
+    def tearDown(self):
+        self.env.stop()
+        bridge._INDUSTRY_OPTION.clear()
+
+    def fake(self, stdout):
+        calls = []
+
+        def run(args, **kw):
+            calls.append(args)
+            return mock.Mock(returncode=0, stdout=stdout, stderr="")
+
+        return calls, mock.patch.object(bridge.subprocess, "run", run)
+
+    def test_detects_the_option(self):
+        calls, patch = self.fake("usage: sellbird discover [--city CITY] [--industry INDUSTRY]")
+        with patch:
+            self.assertTrue(bridge.supports_industry("/x"))
+            self.assertTrue(bridge.supports_industry("/x"))
+        self.assertEqual(len(calls), 1)  # la seconda volta è ricordata
+        self.assertEqual(calls[0][-2:], ["discover", "--help"])
+
+    def test_detects_its_absence(self):
+        calls, patch = self.fake("usage: sellbird discover [--city CITY] [--depth DEPTH]")
+        with patch:
+            self.assertFalse(bridge.supports_industry("/x"))
+        self.assertFalse(bridge.supports_industry(None))
+
+    def test_expired_memory_asks_again(self):
+        calls, patch = self.fake("--industry")
+        with patch:
+            bridge.supports_industry("/x")
+            bridge._INDUSTRY_OPTION["/x"] = (time.time() - 700, True)
+            bridge.supports_industry("/x")
+        self.assertEqual(len(calls), 2)
 
 
 class CommandTest(unittest.TestCase):

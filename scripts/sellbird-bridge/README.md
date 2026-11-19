@@ -60,6 +60,27 @@ con `free` o `included` (non basta contenere la parola). Quelli a pagamento si c
 
 L'esito di ogni richiesta (testo stampato da Sellbird, stima, errori) compare nella scheda «Trova aziende».
 
+### Scegliere i settori: una modifica a Sellbird sul server
+
+Sellbird cerca i settori del profilo (`icp.industries`) e il suo comando `discover` non ha un'opzione per cambiarli. Per sceglierli dalla
+hub serve l'opzione `--industry`, che **non è nella versione originale**: è il file `sellbird-industry-option.patch` (8 righe in `sellbird/cli.py`).
+La scelta vale per quella ricerca soltanto, in memoria: il file di configurazione non cambia.
+
+Sul server, con il file accanto a `bridge.py`:
+
+```bash
+cd ~/sellbird && patch -p1 --dry-run < bridge/sellbird-industry-option.patch && patch -p1 < bridge/sellbird-industry-option.patch
+```
+
+Il primo `patch` è una prova a secco: se non stampa errori il secondo applica. Non serve riavviare nulla: il ponte lancia Sellbird a ogni
+richiesta. Per togliere la modifica: `patch -R -p1 < bridge/sellbird-industry-option.patch`. Un aggiornamento di Sellbird la sovrascrive e va
+riapplicata (come la riga `libatomic1` del Dockerfile). Finché non c'è, il ponte lo sa (chiede a Sellbird `discover --help`), la scheda dice
+cosa fare e la ricerca con i settori del profilo funziona come prima.
+
+I settori sono un elenco fisso (`lib/outreach-sectors.ts`: Automotive e altri settori, fino a 5 per ricerca) più quelli del profilo. Vale la
+stessa difesa sulla spesa: stima prima, tetto di 2 $. **Attenzione:** le aziende di un altro settore entrano nell'elenco ma il profilo resta
+sui concessionari (il settore giusto vale 20 punti su 100), e l'offerta e il testo di prodotto sono scritti per i concessionari.
+
 Prove: `python3 -m unittest scripts/sellbird-bridge/test_bridge.py` (database inventato, nessuna rete).
 
 ## Sul server (Docker)

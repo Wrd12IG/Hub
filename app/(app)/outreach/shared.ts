@@ -20,6 +20,7 @@ export type ActionRecord = {
   status: 'pending' | 'applied' | 'failed'
   provider: string | null
   cities: string[]
+  industries: string[]
   maxSpend: number | null
   codes: string[]
   signalStatus: 'confirmed' | 'rejected' | null

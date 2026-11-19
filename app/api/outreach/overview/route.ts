@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
                 status: d.get('status'),
                 provider: d.get('provider') ?? null,
                 cities: d.get('cities') ?? [],
+                industries: d.get('industries') ?? [],
                 maxSpend: d.get('maxSpend') ?? null,
                 codes: d.get('codes') ?? [],
                 signalStatus: d.get('signalStatus') ?? null,

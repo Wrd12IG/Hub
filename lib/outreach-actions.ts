@@ -20,25 +20,26 @@ import {
     type OutreachSignalItem,
 } from './outreach';
 import { isKnownPlace } from './italy-places';
+import { MAX_SECTORS, isKnownSector } from './outreach-sectors';
 
 export type ActionContext = {
     discover: OutreachDiscoverInfo | null;
     signals: OutreachSignalItem[];
     /** Per discover_run: la stima su cui si basa (un comando discover_estimate già applicato), se esiste. */
-    estimate?: { provider: string; cities: string[]; estimatedCost: number | null; ok: boolean; requestedAt: string; used: boolean } | null;
+    estimate?: { provider: string; cities: string[]; industries?: string[]; estimatedCost: number | null; ok: boolean; requestedAt: string; used: boolean } | null;
     now?: number;
 };
 
 export type ActionCommand =
-    | { action: 'discover_estimate'; provider: DiscoverProvider; cities: string[] }
-    | { action: 'discover_run'; provider: DiscoverProvider; cities: string[]; maxSpend: number; estimateId: string }
+    | { action: 'discover_estimate'; provider: DiscoverProvider; cities: string[]; industries: string[] }
+    | { action: 'discover_run'; provider: DiscoverProvider; cities: string[]; industries: string[]; maxSpend: number; estimateId: string }
     | { action: 'signals_set'; codes: string[]; status: 'confirmed' | 'rejected' };
 
 export type ActionResult = { ok: true; command: ActionCommand } | { ok: false; error: string; status: number };
 
 const bad = (error: string, status = 400): ActionResult => ({ ok: false, error, status });
 
-export function parseDiscoverParams(body: any, discover: OutreachDiscoverInfo | null): { provider: DiscoverProvider; cities: string[] } | string {
+export function parseDiscoverParams(body: any, discover: OutreachDiscoverInfo | null): { provider: DiscoverProvider; cities: string[]; industries: string[] } | string {
     if (!discover || !discover.cap) return 'Il ponte non ha ancora dichiarato cosa si può cercare: aggiornalo sul server di Sellbird.';
     const provider = DISCOVER_PROVIDERS.find((p) => p === body?.provider);
     if (!provider || !discover.providers.includes(provider)) return 'Provider non ammesso.';
@@ -47,7 +48,16 @@ export function parseDiscoverParams(body: any, discover: OutreachDiscoverInfo | 
     const unique = Array.from(new Set(cities.map(String)));
     // Le città del profilo del cliente ideale (dichiarate dal ponte) oppure una regione o un comune dell'elenco ISTAT.
     if (!unique.every((c) => discover.cities.includes(c) || isKnownPlace(c))) return 'Luogo sconosciuto: scegli una regione o un comune dall\'elenco.';
-    return { provider, cities: unique };
+
+    // Settori: dall'elenco fisso o dal profilo. Vuoto = i settori del profilo, come prima.
+    const sectors: unknown = body?.industries ?? [];
+    if (!Array.isArray(sectors) || sectors.length > MAX_SECTORS) return `Al massimo ${MAX_SECTORS} settori.`;
+    const industries = Array.from(new Set(sectors.map(String)));
+    if (!industries.every((i) => isKnownSector(i) || discover.industries.includes(i))) return 'Settore sconosciuto: scegli dall\'elenco.';
+    if (industries.length > 0 && !discover.industryOption) {
+        return 'Sellbird sul server non ha ancora l\'opzione per i settori: applica la modifica descritta nel README del ponte.';
+    }
+    return { provider, cities: unique, industries };
 }
 
 export function buildActionCommand(body: any, ctx: ActionContext): ActionResult {
@@ -65,7 +75,7 @@ export function buildActionCommand(body: any, ctx: ActionContext): ActionResult 
         if (!e.ok || e.estimatedCost === null) return bad('La stima non è riuscita: rifalla.', 409);
         if (e.used) return bad('Questa stima è già stata usata: rifai la stima.', 409);
         if ((ctx.now ?? Date.now()) - new Date(e.requestedAt).getTime() > ESTIMATE_VALID_MS) return bad('La stima è scaduta: rifalla.', 409);
-        const p = parseDiscoverParams({ provider: e.provider, cities: e.cities }, ctx.discover);
+        const p = parseDiscoverParams({ provider: e.provider, cities: e.cities, industries: e.industries ?? [] }, ctx.discover);
         if (typeof p === 'string') return bad(p);
         const cap = Math.min(ctx.discover!.cap, DISCOVER_HARD_CAP);
         if (e.estimatedCost > cap) return bad(`La stima (${e.estimatedCost.toFixed(2)} $) supera il tetto di ${cap.toFixed(2)} $: riduci le città.`, 409);
