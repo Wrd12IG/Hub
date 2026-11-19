@@ -7,7 +7,8 @@
 #   Legge HUB_URL e OUTREACH_BRIDGE_SECRET da bridge.env (permessi 600, mai su Git).
 services:
   sellbird:
-    image: sellbird-local
+    # Di norma l'immagine di Sellbird; con l'estensione Firecrawl: SELLBIRD_IMAGE=sellbird-firecrawl (scripts/sellbird-firecrawl)
+    image: ${SELLBIRD_IMAGE:-sellbird-local}
     command: ["run"]
     healthcheck:
       disable: true   # il controllo di salute guarda la porta della dashboard, che con `run` non c'è

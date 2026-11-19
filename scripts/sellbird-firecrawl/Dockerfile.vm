@@ -1,0 +1,9 @@
+# L'immagine di Sellbird con l'estensione installata. Si costruisce DOPO quella di Sellbird (sellbird-local):
+#   docker build -t sellbird-firecrawl -f firecrawl/Dockerfile.vm firecrawl/
+# Il codice di Sellbird non cambia: l'estensione è un pacchetto a parte che Sellbird trova da sé (entry point).
+FROM sellbird-local:latest
+USER root
+COPY pyproject.toml /tmp/ext/pyproject.toml
+COPY sellbird_firecrawl /tmp/ext/sellbird_firecrawl
+RUN pip install --no-cache-dir /tmp/ext && rm -rf /tmp/ext
+USER sellbird
