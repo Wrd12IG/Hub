@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { buildActionCommand, type ActionContext } from '../outreach-actions';
 import { isFreeSignal, parseDiscoverInfo } from '../outreach';
 import { REGIONS, isKnownPlace, regionData } from '../italy-places';
+import { ALL_SECTORS, MAX_SECTORS, SECTOR_GROUPS, isKnownSector } from '../outreach-sectors';
 
-const discover = { providers: ['osm', 'serper'] as ('osm' | 'serper')[], cities: ['Milano', 'Monza', 'Bergamo'], cap: 2 };
+const discover = { providers: ['osm', 'serper'] as ('osm' | 'serper')[], cities: ['Milano', 'Monza', 'Bergamo'], cap: 2, industries: ['Concessionario auto', 'Autosalone'], industryOption: true };
 const sig = (code: string, costNote: string) => ({ code, label: code, description: '', category: 'sito', status: 'proposed', costNote, companies: 0 });
 const NOW = new Date('2026-11-18T12:00:00Z').getTime();
 const base: ActionContext = {
@@ -26,7 +27,8 @@ describe('isFreeSignal', () => {
 describe('parseDiscoverInfo', () => {
     it('tiene solo provider noti e non lascia salire il tetto', () => {
         const d = parseDiscoverInfo({ providers: ['serper', 'dataforseo_serp', 3], cities: ['Milano', 'A;B', 5], cap: 50 })!;
-        expect(d).toEqual({ providers: ['serper'], cities: ['Milano'], cap: 2 });
+        expect(d).toEqual({ providers: ['serper'], cities: ['Milano'], cap: 2, industries: [], industryOption: false });
+        expect(parseDiscoverInfo({ providers: ['osm'], cities: [], cap: 1, industries: ['Officina', 'A;B', 4], industryOption: true })).toMatchObject({ industries: ['Officina'], industryOption: true });
         expect(parseDiscoverInfo({ providers: ['osm'], cities: [], cap: 0 })!.cap).toBe(0);
         expect(parseDiscoverInfo(null)).toBeNull();
     });
@@ -35,11 +37,11 @@ describe('parseDiscoverInfo', () => {
 describe('discover_estimate', () => {
     it('accetta provider e città del profilo', () => {
         const r = buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: ['Milano', 'Monza', 'Milano'] }, base);
-        expect(r).toEqual({ ok: true, command: { action: 'discover_estimate', provider: 'serper', cities: ['Milano', 'Monza'] } });
+        expect(r).toEqual({ ok: true, command: { action: 'discover_estimate', provider: 'serper', cities: ['Milano', 'Monza'], industries: [] } });
     });
     it('accetta regioni e comuni d\'Italia nel formato «Comune, SIGLA», oltre alle città del profilo', () => {
         const cities = ['Lombardia', 'Roma, RM', 'Bolzano, BZ', 'Milano'];
-        expect(buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities }, base)).toEqual({ ok: true, command: { action: 'discover_estimate', provider: 'serper', cities } });
+        expect(buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities }, base)).toEqual({ ok: true, command: { action: 'discover_estimate', provider: 'serper', cities, industries: [] } });
     });
     it('fino a 10 luoghi, non di più', () => {
         const ten = Array.from({ length: 10 }, (_, i) => ['Milano, MI', 'Monza, MB', 'Bergamo, BG', 'Brescia, BS', 'Como, CO', 'Lecco, LC', 'Varese, VA', 'Pavia, PV', 'Lodi, LO', 'Cremona, CR'][i]);
@@ -139,4 +141,42 @@ describe('elenco ISTAT dei luoghi', () => {
         expect(isKnownPlace('')).toBe(false);
     });
     it('regionData sconosciuta -> null', () => { expect(regionData('Atlantide')).toBeNull(); });
+});
+
+describe('settori', () => {
+    const est = (industries: string[]) => buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: ['Milano, MI'], industries }, base);
+
+    it('l\'elenco è fisso e senza doppioni', () => {
+        expect(SECTOR_GROUPS.map((g) => g.group)).toEqual(['Automotive', 'Altri settori']);
+        expect(new Set(ALL_SECTORS).size).toBe(ALL_SECTORS.length);
+        expect(isKnownSector('Carrozzeria')).toBe(true);
+        expect(isKnownSector('carrozzeria')).toBe(false);
+        expect(ALL_SECTORS.every((x) => /^[^;<>\n\r]{2,80}$/.test(x))).toBe(true);
+    });
+    it('accetta settori dall\'elenco o dal profilo, e nessun settore vale il profilo', () => {
+        expect(est(['Officina meccanica', 'Carrozzeria'])).toMatchObject({ ok: true, command: { industries: ['Officina meccanica', 'Carrozzeria'] } });
+        expect(est(['Autosalone'])).toMatchObject({ ok: true }); // del profilo
+        expect(est([])).toMatchObject({ ok: true, command: { industries: [] } });
+    });
+    it('rifiuta settori inventati, in eccesso o di tipo sbagliato', () => {
+        expect(est(['Settore inventato']).ok).toBe(false);
+        expect(est(['Carrozzeria; ls']).ok).toBe(false);
+        expect(est(ALL_SECTORS.slice(0, MAX_SECTORS + 1)).ok).toBe(false);
+        expect(buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: [], industries: 'Carrozzeria' }, base).ok).toBe(false);
+    });
+    it('senza l\'opzione sul server rifiuta i settori con un messaggio chiaro, ma non la ricerca normale', () => {
+        const old = { ...base, discover: { ...discover, industryOption: false } };
+        const r = buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: [], industries: ['Carrozzeria'] }, old);
+        expect(r.ok).toBe(false);
+        expect((r as any).error).toMatch(/opzione/);
+        expect(buildActionCommand({ action: 'discover_estimate', provider: 'serper', cities: [], industries: [] }, old).ok).toBe(true);
+    });
+    it('la ricerca eredita i settori dalla stima, non dal client', () => {
+        const e = { provider: 'serper', cities: ['Milano'], industries: ['Carrozzeria'], estimatedCost: 0.4, ok: true, requestedAt: '2026-11-18T11:50:00Z', used: false };
+        const r = buildActionCommand({ action: 'discover_run', estimateId: 'abc', industries: ['Ristorante'] }, { ...base, estimate: e }) as any;
+        expect(r.ok).toBe(true);
+        expect(r.command.industries).toEqual(['Carrozzeria']);
+        // e li ricontrolla: una stima con un settore ora non ammesso non diventa una ricerca
+        expect(buildActionCommand({ action: 'discover_run', estimateId: 'abc' }, { ...base, estimate: { ...e, industries: ['Inventato'] } }).ok).toBe(false);
+    });
 });

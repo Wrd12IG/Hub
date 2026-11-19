@@ -1,0 +1,24 @@
+--- a/sellbird/cli.py	2026-11-19 10:58:54
++++ b/sellbird/cli.py	2026-11-19 10:58:54
+@@ -653,6 +653,11 @@
+             raise SystemExit(1)
+ 
+         config = load_config()
++        # For this run only: the config file is not touched, so the saved ICP keeps judging
++        # every company afterwards (fit score, the automatic scouting cycles, the offer).
++        industries = [i.strip() for i in (getattr(args, "industry", "") or "").split(";") if i.strip()]
++        if industries:
++            config.icp.industries = industries
+         state = StateManager()
+         await state.init_db()
+ 
+@@ -1231,6 +1236,9 @@
+     sub.add_argument("--city", default="",
+                      help='Semicolon-separated cities, e.g. "Denver, CO;Dallas, TX" '
+                           '(default: icp.geography)')
++    sub.add_argument("--industry", default="",
++                     help='Semicolon-separated industries to search instead of icp.industries, '
++                          'for this run only, e.g. "Officina meccanica;Carrozzeria"')
+     sub.add_argument("--depth", type=int, default=30,
+                      help="SERP depth (default: 30 — depth 100 costs 10x since Sept 2025)")
+     sub.add_argument("--limit", type=int, default=100,

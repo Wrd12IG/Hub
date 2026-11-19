@@ -142,6 +142,10 @@ export interface OutreachDiscoverInfo {
     providers: DiscoverProvider[];
     cities: string[];
     cap: number;
+    /** I settori del profilo di Sellbird: si possono scegliere come gli altri, e senza scelta valgono questi. */
+    industries: string[];
+    /** Sellbird sul server ha l'opzione `--industry` (modifica locale: vedi scripts/sellbird-bridge/README.md). */
+    industryOption: boolean;
 }
 
 export interface OutreachSnapshot {
@@ -349,6 +353,7 @@ export function parseDiscoverInfo(raw: unknown): OutreachDiscoverInfo | null {
     const r = raw as Record<string, unknown>;
     const providers = (Array.isArray(r.providers) ? r.providers : []).filter((p): p is DiscoverProvider => DISCOVER_PROVIDERS.includes(p as DiscoverProvider));
     const cities = (Array.isArray(r.cities) ? r.cities : []).filter((c): c is string => typeof c === 'string' && /^[^;<>\n\r]{1,80}$/.test(c)).slice(0, 40);
+    const industries = (Array.isArray(r.industries) ? r.industries : []).filter((c): c is string => typeof c === 'string' && /^[^;<>\n\r]{1,80}$/.test(c)).slice(0, 40);
     const cap = typeof r.cap === 'number' && Number.isFinite(r.cap) && r.cap > 0 ? Math.min(r.cap, DISCOVER_HARD_CAP) : 0;
-    return { providers, cities, cap };
+    return { providers, cities, cap, industries, industryOption: r.industryOption === true };
 }

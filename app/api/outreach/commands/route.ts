@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
         // Parametri delle azioni con parametri (Discover, segnali): il ponte li ricontrolla prima di usarli.
         provider: d.get('provider') ?? null,
         cities: d.get('cities') ?? null,
+        industries: d.get('industries') ?? null,
         maxSpend: d.get('maxSpend') ?? null,
         codes: d.get('codes') ?? null,
         signalStatus: d.get('signalStatus') ?? null,

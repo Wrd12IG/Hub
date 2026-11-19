@@ -1,6 +1,6 @@
 /**
  * POST /api/outreach/actions
- *   { action: 'discover_estimate', provider, cities }       stima il costo di una ricerca (gratis)
+ *   { action: 'discover_estimate', provider, cities, industries }   stima il costo di una ricerca (gratis)
  *   { action: 'discover_run', estimateId }                  la lancia, con il tetto calcolato qui dalla stima
  *   { action: 'signals_set', codes, status }                attiva o esclude segnali GRATUITI
  *
@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
                         ? {
                               provider: String(snap.get('provider') ?? ''),
                               cities: (snap.get('cities') ?? []) as string[],
+                              industries: (snap.get('industries') ?? []) as string[],
                               estimatedCost: typeof snap.get('estimatedCost') === 'number' ? (snap.get('estimatedCost') as number) : null,
                               ok: snap.get('status') === 'applied',
                               requestedAt: String(snap.get('requestedAt') ?? ''),

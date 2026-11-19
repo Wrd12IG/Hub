@@ -70,8 +70,8 @@ export default function OutreachPage() {
       action === 'approve' ? 'Approvazione registrata: Sellbird la applica entro pochi minuti.' : 'Rifiuto registrato: Sellbird lo applica entro pochi minuti.')
 
   const act = (body: object, busyKey: string, ok: string) => send('/api/outreach/actions', body, busyKey, ok)
-  const estimate = (provider: string, cities: string[]) =>
-    act({ action: 'discover_estimate', provider, cities }, 'estimate', 'Stima richiesta: Sellbird la calcola entro un paio di minuti.')
+  const estimate = (provider: string, cities: string[], industries: string[]) =>
+    act({ action: 'discover_estimate', provider, cities, industries }, 'estimate', 'Stima richiesta: Sellbird la calcola entro un paio di minuti.')
   const runDiscover = (estimateId: string) =>
     act({ action: 'discover_run', estimateId }, 'run', 'Ricerca registrata: Sellbird la avvia entro un paio di minuti e può durare diversi minuti.')
   const setSignal = (code: string, status: 'confirmed' | 'rejected') =>

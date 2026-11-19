@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Loader2, Play, Search, X } from 'lucide-react'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { DISCOVER_HARD_CAP, ESTIMATE_VALID_MS, MAX_CITIES } from '@/lib/outreach'
+import { MAX_SECTORS, SECTOR_GROUPS } from '@/lib/outreach-sectors'
 import { btn, fmt, type ActionRecord, type Meta } from './shared'
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -28,7 +29,7 @@ type Props = {
   meta: Meta | null
   actions: ActionRecord[]
   busy: string | null
-  estimate: (provider: string, cities: string[]) => void
+  estimate: (provider: string, cities: string[], industries: string[]) => void
   run: (estimateId: string) => void
 }
 
@@ -37,6 +38,7 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
   const { authFetch } = useAuthFetch()
   const [provider, setProvider] = useState('serper')
   const [cities, setCities] = useState<string[]>([])
+  const [industries, setIndustries] = useState<string[]>([])
   const [regions, setRegions] = useState<string[]>([])
   const [region, setRegion] = useState('')
   const [province, setProvince] = useState('')
@@ -76,9 +78,9 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
       actions.find(
         (a) =>
           a.action === 'discover_estimate' && a.status === 'applied' && !a.used && a.estimatedCost !== null && a.provider === provider &&
-          sameSet(a.cities, cities) && a.requestedAt && Date.now() - new Date(a.requestedAt).getTime() < ESTIMATE_VALID_MS,
+          sameSet(a.cities, cities) && sameSet(a.industries ?? [], industries) && a.requestedAt && Date.now() - new Date(a.requestedAt).getTime() < ESTIMATE_VALID_MS,
       ),
-    [actions, provider, cities],
+    [actions, provider, cities, industries],
   )
 
   if (!discover) {
@@ -88,13 +90,15 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
     return <p className="text-sm text-muted-foreground">La ricerca di aziende dalla hub è spenta sul server (OUTREACH_MAX_DISCOVER_SPEND a 0). Resta disponibile da Sellbird.</p>
   }
 
+  const toggleSector = (x: string) => setIndustries((cur) => (cur.includes(x) ? cur.filter((y) => y !== x) : cur.length >= MAX_SECTORS ? cur : [...cur, x]))
   const toggle = (c: string) => setCities((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : cur.length >= MAX_CITIES ? cur : [...cur, c]))
   const maxSpend = usable ? Math.min(cap, Math.max(0.05, Math.round((usable.estimatedCost as number) * 1.25 * 100) / 100)) : 0
 
   const doRun = () => {
     if (!usable) return
     const where = cities.length ? cities.join(', ') : 'tutte le città del profilo'
-    if (window.confirm(`Cercare nuove aziende (${PROVIDER_LABEL[provider] ?? provider}) in: ${where}?\n\nStima ${usd(usable.estimatedCost as number)}. Sellbird si ferma comunque a ${usd(maxSpend)}.`)) run(usable.id)
+    const what = industries.length ? industries.join(', ') : 'i settori del profilo'
+    if (window.confirm(`Cercare nuove aziende (${PROVIDER_LABEL[provider] ?? provider}) per ${what} in: ${where}?\n\nStima ${usd(usable.estimatedCost as number)}. Sellbird si ferma comunque a ${usd(maxSpend)}.`)) run(usable.id)
   }
 
   return (
@@ -174,8 +178,43 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
           <p className="text-xs text-muted-foreground">Più luoghi vuol dire più ricerche e più costo: la stima te lo dice prima, e il tetto resta {usd(cap)}.</p>
         </div>
 
+        <div className="space-y-3">
+          <div className="text-sm font-medium">
+            Settori {industries.length === 0 && <span className="font-normal text-muted-foreground">(nessuna scelta: {discover.industries.length ? discover.industries.join(', ') : 'quelli del profilo di Sellbird'})</span>}
+            {industries.length > 0 && <span className="font-normal text-muted-foreground"> ({industries.length} di {MAX_SECTORS})</span>}
+          </div>
+          {!discover.industryOption ? (
+            <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+              Per scegliere i settori serve una piccola modifica a Sellbird sul server (l&apos;opzione <code>--industry</code>): è nel README del ponte. Finché non c&apos;è, la ricerca usa i settori del profilo.
+            </p>
+          ) : (
+            <>
+              {[...SECTOR_GROUPS, ...(discover.industries.some((i) => !SECTOR_GROUPS.some((g) => g.sectors.includes(i))) ? [{ group: 'Dal profilo', sectors: discover.industries.filter((i) => !SECTOR_GROUPS.some((g) => g.sectors.includes(i))) }] : [])].map((g) => (
+                <div key={g.group} className="space-y-1">
+                  <div className="text-xs text-muted-foreground">{g.group}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {g.sectors.map((x) => (
+                      <label key={x} className="flex items-center gap-1.5 rounded-lg border border-border px-2 py-1 text-sm">
+                        <input type="checkbox" checked={industries.includes(x)} disabled={!industries.includes(x) && industries.length >= MAX_SECTORS} onChange={() => toggleSector(x)} />
+                        {x}
+                        {discover.industries.includes(x) && <span className="text-xs text-muted-foreground">profilo</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {industries.some((x) => !discover.industries.includes(x)) && (
+                <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+                  Il profilo di Sellbird resta sui concessionari. Le aziende di un altro settore entrano nell&apos;elenco ma prendono meno punti, e l&apos;offerta e il testo di prodotto sono scritti per i concessionari: rileggi ogni email prima di approvarla. Nessuna email parte senza la tua approvazione.
+                </p>
+              )}
+            </>
+          )}
+          {industries.length > 0 && <button className="text-xs underline underline-offset-2" onClick={() => setIndustries([])}>Svuota i settori</button>}
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
-          <button className={btn} disabled={pending || busy === 'estimate'} onClick={() => estimate(provider, cities)}>
+          <button className={btn} disabled={pending || busy === 'estimate'} onClick={() => estimate(provider, cities, industries)}>
             {busy === 'estimate' || pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} Stima il costo
           </button>
           <button className={btn} disabled={!usable || pending || busy === 'run'} onClick={doRun}>
@@ -196,7 +235,7 @@ export function ActionsTab({ meta, actions, busy, estimate, run }: Props) {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="font-medium">
                   {ACTION_LABEL[a.action]}
-                  {a.action !== 'signals_set' && ` · ${a.provider ?? ''}${a.cities.length ? ` · ${a.cities.join(', ')}` : ''}`}
+                  {a.action !== 'signals_set' && ` · ${a.provider ?? ''}${a.industries?.length ? ` · ${a.industries.join(', ')}` : ''}${a.cities.length ? ` · ${a.cities.join(', ')}` : ''}`}
                   {a.action === 'signals_set' && ` · ${a.signalStatus === 'confirmed' ? 'attiva' : 'escludi'} ${a.codes.join(', ')}`}
                 </div>
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.cls}`}>{st.label}</span>

@@ -52,6 +52,7 @@ SENDING_COMMANDS = {"pause_sending": "pause", "resume_sending": "resume"}
 DISCOVER_PROVIDERS = ("osm", "serper")
 DISCOVER_HARD_CAP = 2.0
 MAX_CITIES = 10
+MAX_SECTORS = 5
 # Un luogo è «Comune, SIGLA» o una regione: lettere, cifre, spazi e pochi segni. Niente ';' (separa le città), niente simboli di shell.
 PLACE_RE = re.compile(r"[\w .,'’()/-]{2,80}")
 MAX_SIGNAL_CODES = 40
@@ -181,6 +182,49 @@ def config_cities(sellbird_dir):
     return []
 
 
+def config_industries(sellbird_dir):
+    """I settori del profilo del cliente ideale (icp.industries): valgono quando la hub non ne sceglie."""
+    if not sellbird_dir:
+        return []
+    try:
+        import yaml
+    except ImportError:
+        return []
+    for name in ("sellbird.local.yaml", "sellbird.yaml"):
+        path = os.path.join(sellbird_dir, name)
+        if os.path.exists(path):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    items = ((yaml.safe_load(f) or {}).get("icp") or {}).get("industries") or []
+            except (OSError, yaml.YAMLError):
+                return []
+            return [i for i in items if isinstance(i, str) and i and ";" not in i][:40]
+    return []
+
+
+_INDUSTRY_OPTION = {}
+
+
+def supports_industry(sellbird_dir):
+    """Sellbird sul server ha l'opzione `discover --industry`? Non è nella versione originale: è la modifica
+    sellbird-industry-option.patch. Si chiede a Sellbird stesso (`discover --help`) e si ricorda per 10 minuti."""
+    if not sellbird_dir:
+        return False
+    hit = _INDUSTRY_OPTION.get(sellbird_dir)
+    if hit and time.time() - hit[0] < 600:
+        return hit[1]
+    base, err = sellbird_base(sellbird_dir)
+    ok = False
+    if not err:
+        try:
+            res = subprocess.run([*base, "discover", "--help"], cwd=sellbird_dir, capture_output=True, text=True, timeout=60)
+            ok = "--industry" in (res.stdout or "")
+        except (subprocess.TimeoutExpired, OSError):
+            ok = False
+    _INDUSTRY_OPTION[sellbird_dir] = (time.time(), ok)
+    return ok
+
+
 def free_signal_codes(db_path, codes):
     """Dei codici dati, quelli che esistono e sono GRATUITI. Stessa regola di `sellbird signals --confirm free`:
     la nota di costo comincia con free o included (contenere la parola non basta)."""
@@ -209,18 +253,22 @@ def run_sellbird(sellbird_dir, args, timeout=120):
 
 
 def discover_args(sellbird_dir, cmd):
-    """(provider, luoghi) controllati, oppure (None, messaggio d'errore).
+    """(provider, luoghi, settori) controllati, oppure (None, messaggio d'errore).
 
-    La hub sceglie i luoghi dall'elenco ISTAT (regioni e comuni d'Italia) o dal profilo; qui si controlla il formato e il
-    numero, non l'elenco: la difesa sulla spesa è il tetto, che vale qualunque luogo si chieda."""
-    provider, cities = cmd.get("provider"), cmd.get("cities") or []
+    La hub sceglie i luoghi dall'elenco ISTAT (o dal profilo) e i settori dall'elenco fisso (o dal profilo); qui si
+    controlla il formato e il numero, non gli elenchi: la difesa sulla spesa è il tetto, che vale qualunque cosa si chieda."""
+    provider, cities, industries = cmd.get("provider"), cmd.get("cities") or [], cmd.get("industries") or []
     if provider not in DISCOVER_PROVIDERS:
         return None, "provider non ammesso"
     if not isinstance(cities, list) or len(cities) > MAX_CITIES or not all(isinstance(c, str) for c in cities):
         return None, "luoghi non validi"
     if not all(PLACE_RE.fullmatch(c) for c in cities):
         return None, "luogo con caratteri non ammessi"
-    return (provider, cities), None
+    if not isinstance(industries, list) or len(industries) > MAX_SECTORS or not all(isinstance(i, str) for i in industries):
+        return None, "settori non validi"
+    if not all(PLACE_RE.fullmatch(i) for i in industries):
+        return None, "settore con caratteri non ammessi"
+    return (provider, cities, industries), None
 
 
 def apply_command(sellbird_dir, cmd):
@@ -243,8 +291,12 @@ def apply_command(sellbird_dir, cmd):
         parsed, err = discover_args(sellbird_dir, cmd)
         if err:
             return False, err, {}
-        provider, cities = parsed
+        provider, cities, industries = parsed
         city = ["--city", ";".join(cities)] if cities else []
+        if industries:
+            if not supports_industry(sellbird_dir):
+                return False, "Sellbird sul server non ha l'opzione --industry: applica la modifica descritta nel README del ponte", {}
+            city += ["--industry", ";".join(industries)]
         if action == "discover_estimate":
             ok, err, out = run_sellbird(sellbird_dir, ["discover", "--provider", provider, "--estimate", "--max-spend", f"{cap:.2f}", *city], timeout=300)
             m = COST_RE.search(out)
@@ -389,7 +441,10 @@ def snapshot(db_path, sellbird_dir=None):
         "outbox": outbox, "companies": companies, "contacts": contacts, "replies": replies, "campaigns": campaigns,
         "signals": signals, "outboxCounts": outbox_counts, "stats": stats, "sendingPaused": paused or None,
         # Cosa la hub può chiedere a Discover: provider, città del profilo (scorciatoie) e tetto. Cap 0 = spento.
-        "discover": {"providers": list(DISCOVER_PROVIDERS), "cities": config_cities(sellbird_dir), "cap": discover_cap()},
+        "discover": {
+            "providers": list(DISCOVER_PROVIDERS), "cities": config_cities(sellbird_dir), "cap": discover_cap(),
+            "industries": config_industries(sellbird_dir), "industryOption": supports_industry(sellbird_dir),
+        },
     }
 
 
