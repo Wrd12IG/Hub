@@ -20,7 +20,7 @@ DEFAULTS = {
     # Almeno una di queste parole nel nome, nel dominio o nella descrizione dell'azienda: il punteggio di Sellbird non basta,
     # perché dà i punti del «settore giusto» al termine con cui ha cercato, non a quello che l'azienda fa davvero.
     # «*» spegne il controllo.
-    "FIRECRAWL_ENRICH_KEYWORDS": "auto,concession,officina,carrozz,gommist,veicol,vettur,km0,motors",
+    "FIRECRAWL_ENRICH_KEYWORDS": "auto,car,concession,officina,carrozz,gommist,veicol,vettur,km0,motors",
     "FIRECRAWL_ENRICH_EXCLUDE_DOMAINS": "",   # domini da non provare mai, separati da virgola
 }
 

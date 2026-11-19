@@ -252,15 +252,27 @@ class SectorTest(Base):
         self.assertIn("concession", self.KW)
 
     def test_on_target(self):
-        yes = [("Autostore Bergamo", "autostorebergamo.it", ""), ("AutoItalia", "autoitaliaonline.com", ""),
+        yes = [("Top Car Italia", "topcaritalia.it", ""), ("Bramocar", "bramocar.it", ""), ("Avenuecar Srl", "avenuecar.com", ""),
+               ("Car System", "carsystemsrl.it", ""),
+               ("Autostore Bergamo", "autostorebergamo.it", ""), ("AutoItalia", "autoitaliaonline.com", ""),
                ("Auto 500", "auto500.it", ""), ("Bramocar Srl", "bramocar.it", "Concessionaria multimarca di auto usate e nuove"),
                ("Gruppo Carmeli", "gruppocarmeli.com", "Concessionaria ufficiale Toyota"), ("G. Villa Monza", "gvilla.com", "Officina e vendita veicoli")]
         no = [("Band of Boats", "bandofboats.com", "Noleggio barche"), ("Rimor IT", "rimor.it", "Camper e caravan"),
-              ("Inside Project", "insideproject.it", "Sviluppo software e consulenza")]
+              ("Inside Project", "insideproject.it", "Sviluppo software e consulenza"),
+              # «car» corto: non deve prendere parole che lo contengono soltanto
+              ("Carpenteria Rossi", "carpenteriarossi.it", "Lavorazioni in ferro"), ("Cartoleria Verdi", "cartoleriaverdi.it", "Articoli per ufficio"),
+              ("Oscar Pasticceria", "oscarpasticceria.it", "Dolci"), ("Care Sanitaria", "caresanitaria.it", "Assistenza")]
         for n, d, desc in yes:
             self.assertTrue(finder.on_target(n, d, desc, self.KW), n)
         for n, d, desc in no:
             self.assertFalse(finder.on_target(n, d, desc, self.KW), n)
+
+    def test_short_words_match_whole_words_or_endings_only(self):
+        kw = ("car", "km0")
+        for name, domain in [("Top Car Italia", ""), ("", "bramocar.it"), ("", "mia-car.it"), ("Km0 Milano", ""), ("Auto km0", "")]:
+            self.assertTrue(finder.on_target(name, domain, "", kw), (name, domain))
+        for name, domain in [("Carpenteria", "carpenteria.it"), ("Scar", "scar.it"), ("Oscar", "oscar.it"), ("Cartoleria", ""), ("Care", "care.it")]:
+            self.assertFalse(finder.on_target(name, domain, "", kw), (name, domain))
 
     def test_off_means_off(self):
         self.assertTrue(finder.on_target("Band of Boats", "bandofboats.com", "", ()))

@@ -8,6 +8,7 @@ non si scrive due volte alla stessa azienda."""
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Awaitable, Callable, Optional
@@ -73,15 +74,29 @@ def clean_domain(value: str) -> str:
     return v if "." in v and " " not in v else ""
 
 
+SHORT = 3   # le parole di questa lunghezza o più corte non si cercano come pezzo di testo: troverebbero «carpenteria»
+
+
 def on_target(name: str, domain: str, description: str, keywords) -> bool:
     """L'azienda sembra del settore giusto: almeno una parola chiave nel nome, nel dominio o nella descrizione.
     Senza parole chiave (`*`) il controllo è spento. È una rete larga, non un giudizio: serve a non spendere crediti su una
     barca o su un'azienda informatica trovata per sbaglio; la parola «auto» prende anche «automazione», e va bene, perché
-    l'ultima parola resta alla persona che legge la bozza."""
+    l'ultima parola resta alla persona che legge la bozza.
+
+    Le parole lunghe si cercano come pezzo di testo («auto» in «autostore»). Le corte («car», «km0») solo come **parola intera**
+    («Top Car Italia», «Car System») o **in coda a una parola lunga** («Bramocar», «Avenuecar»): così non prendono «carpenteria»,
+    «cartoleria» o «oscar»."""
     if not keywords:
         return True
     haystack = f"{name} {domain} {description}".lower()
-    return any(k in haystack for k in keywords)
+    tokens = re.findall(r"[^\W_]+", haystack)   # il dominio si spezza sui punti e sui trattini
+    for k in keywords:
+        if len(k) > SHORT:
+            if k in haystack:
+                return True
+        elif any(t == k or (len(t) >= len(k) + 3 and t.endswith(k)) for t in tokens):
+            return True
+    return False
 
 
 def load_tried(raw: str, now: datetime, retry_days: int) -> dict:
