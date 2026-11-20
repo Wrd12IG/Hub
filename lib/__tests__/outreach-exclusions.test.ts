@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { buildExclusionCommand, cleanDomain, MAX_EXCLUSIONS, parseExclusions } from '../outreach-exclusions';
+import { buildExclusionBatch, buildExclusionCommand, cleanDomain, MAX_BATCH, MAX_EXCLUSIONS, parseExclusions } from '../outreach-exclusions';
 import { parseCompanyItem } from '../outreach';
 
 describe('cleanDomain', () => {
@@ -58,5 +58,56 @@ describe('azienda esclusa', () => {
         expect(parseCompanyItem({ id: 'c1c1', name: 'A', excluded: true })!.excluded).toBe(true);
         expect(parseCompanyItem({ id: 'c1c1', name: 'A', excluded: 'yes' })!.excluded).toBe(false);
         expect(parseCompanyItem({ id: 'c1c1', name: 'A' })!.excluded).toBe(false);
+    });
+});
+
+describe('buildExclusionBatch: più modifiche insieme', () => {
+    const ctx = { knownDomains: new Set(['a.it', 'b.it', 'c.it']), exclusions: ['gia.it', 'altra.it'] };
+    const add = (domain: string) => ({ action: 'add', domain });
+    const remove = (domain: string) => ({ action: 'remove', domain });
+
+    it('accetta escludi e riammetti insieme, normalizzando i domini', () => {
+        const r = buildExclusionBatch({ changes: [add('A.it'), add('https://www.b.it/x'), remove('gia.it')] }, ctx) as any;
+        expect(r.ok).toBe(true);
+        expect(r.changes).toEqual([{ action: 'add', domain: 'a.it' }, { action: 'add', domain: 'b.it' }, { action: 'remove', domain: 'gia.it' }]);
+        expect(r.skipped).toBe(0);
+    });
+    it('salta senza errore quello che è già a posto (un altro gruppo può averlo applicato nel frattempo)', () => {
+        const r = buildExclusionBatch({ changes: [add('gia.it'), remove('mai-stata.it'), add('a.it')] }, ctx) as any;
+        expect(r.ok).toBe(true);
+        expect(r.changes).toEqual([{ action: 'add', domain: 'a.it' }]);
+        expect(r.skipped).toBe(2);
+    });
+    it('se è tutto già a posto, risponde «niente da fare» e non crea un comando', () => {
+        const r = buildExclusionBatch({ changes: [add('gia.it'), remove('mai-stata.it')] }, ctx) as any;
+        expect([r.ok, r.status]).toEqual([false, 409]);
+    });
+    it('tutto o niente: un dominio sbagliato, sconosciuto o doppio ferma il gruppo', () => {
+        const bad = [
+            [add('a.it'), add('non un dominio')],
+            [add('a.it'), { action: 'boh', domain: 'b.it' }],
+            [add('a.it'), add('A.IT')],                       // lo stesso dominio due volte
+            [add('a.it'), add('sconosciuta.it')],             // la hub non l'ha mai visto
+            [add('a.it'), 'non un oggetto'],
+            [add('a.it'), { action: 'add' }],
+        ];
+        for (const changes of bad) expect(buildExclusionBatch({ changes }, ctx).ok).toBe(false);
+        expect((buildExclusionBatch({ changes: [add('sconosciuta.it')] }, ctx) as any).status).toBe(404);
+    });
+    it('riammettere non richiede che la hub conosca l\'azienda', () => {
+        expect(buildExclusionBatch({ changes: [remove('gia.it')] }, { knownDomains: new Set(), exclusions: ['gia.it'] }).ok).toBe(true);
+    });
+    it('rifiuta un gruppo vuoto, non valido o troppo grande', () => {
+        for (const body of [{}, { changes: [] }, { changes: 'add' }, { changes: null }, null, undefined]) expect(buildExclusionBatch(body as any, ctx).ok).toBe(false);
+        const many = Array.from({ length: MAX_BATCH + 1 }, (_, i) => add(`d${i}.it`));
+        expect(buildExclusionBatch({ changes: many }, { knownDomains: new Set(many.map((c) => c.domain)), exclusions: [] }).ok).toBe(false);
+        const maxOk = Array.from({ length: MAX_BATCH }, (_, i) => add(`d${i}.it`));
+        expect(buildExclusionBatch({ changes: maxOk }, { knownDomains: new Set(maxOk.map((c) => c.domain)), exclusions: [] }).ok).toBe(true);
+    });
+    it('non supera la lunghezza massima della lista, contando le riammissioni dello stesso gruppo', () => {
+        const full = Array.from({ length: MAX_EXCLUSIONS }, (_, i) => `d${i}.it`);
+        const c = { knownDomains: new Set(['nuovo.it']), exclusions: full };
+        expect(buildExclusionBatch({ changes: [add('nuovo.it')] }, c).ok).toBe(false);
+        expect(buildExclusionBatch({ changes: [add('nuovo.it'), remove('d0.it')] }, c).ok).toBe(true);
     });
 });

@@ -7,6 +7,7 @@ import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { btn, type Overview } from './shared'
+import { MAX_BATCH } from '@/lib/outreach-exclusions'
 import { OutboxTab } from './outbox-tab'
 import { RepliesTab } from './replies-tab'
 import { PipelineTab } from './pipeline-tab'
@@ -26,6 +27,7 @@ export default function OutreachPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [tab, setTab] = useState('email')
   const [openId, setOpenId] = useState<string | null>(null)
+  const [staged, setStaged] = useState<Record<string, 'add' | 'remove'>>({})
   const isAdmin = currentUser?.role === 'Amministratore'
 
   const load = useCallback(async (silent = false) => {
@@ -51,15 +53,17 @@ export default function OutreachPage() {
     return () => clearInterval(t)
   }, [isAdmin, hasPending, load])
 
-  const send = async (url: string, body: object, busyKey: string, ok: string) => {
+  const send = async (url: string, body: object, busyKey: string, ok: string): Promise<boolean> => {
     setBusy(busyKey)
     try {
       const res = await authFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Errore ${res.status}`)
       toast.success(ok)
       await load()
+      return true
     } catch (e: any) {
       toast.error(e.message)
+      return false
     } finally {
       setBusy(null)
     }
@@ -77,14 +81,44 @@ export default function OutreachPage() {
   const setSignal = (code: string, status: 'confirmed' | 'rejected') =>
     act({ action: 'signals_set', codes: [code], status }, 'signals', status === 'confirmed' ? 'Segnale da attivare: Sellbird lo applica entro un paio di minuti.' : 'Segnale da escludere: Sellbird lo applica entro un paio di minuti.')
 
-  const exclude = (domain: string, add: boolean) => {
-    const msg = add
-      ? `Escludere ${domain}?\n\nSellbird non scriverà più a questa azienda, nemmeno con le email già approvate, e le sue bozze in coda verranno rifiutate. Si può annullare con «Riammetti», ma le bozze rifiutate non tornano.`
-      : `Riammettere ${domain}?\n\nSellbird potrà di nuovo scrivere a questa azienda. Le bozze già rifiutate non tornano: andranno riscritte.`
+  // Le esclusioni si segnano qui, nella pagina, e si mandano tutte insieme: una richiesta sola, non una per azienda.
+  const stage = (domain: string, add: boolean) =>
+    setStaged((cur) => {
+      const want = add ? 'add' : 'remove'
+      const next = { ...cur }
+      if (next[domain] === want) delete next[domain]
+      else if (Object.keys(next).length >= MAX_BATCH) { toast.error(`Al massimo ${MAX_BATCH} modifiche per volta: applica queste e poi segna le altre.`); return cur }
+      else next[domain] = want
+      return next
+    })
+  const stageMany = (domains: string[], add: boolean) =>
+    setStaged((cur) => {
+      const next = { ...cur }
+      let skipped = 0
+      for (const d of domains) {
+        if (Object.keys(next).length >= MAX_BATCH) { skipped++; continue }
+        next[d] = add ? 'add' : 'remove'
+      }
+      if (skipped) toast.error(`Segnate le prime ${MAX_BATCH}: le altre ${skipped} dopo aver applicato.`)
+      return next
+    })
+  const applyStaged = async () => {
+    const changes = Object.entries(staged).map(([domain, action]) => ({ action, domain }))
+    const adds = changes.filter((c) => c.action === 'add').length
+    if (changes.length === 0) return
+    const msg = `Applicare ${changes.length} ${changes.length === 1 ? 'modifica' : 'modifiche'} (${adds} da escludere, ${changes.length - adds} da riammettere)?\n\n` +
+      'Le aziende escluse non riceveranno più nulla da Sellbird, nemmeno le email già approvate, e le loro bozze in coda verranno rifiutate. ' +
+      'Si può annullare con «Riammetti», ma le bozze rifiutate non tornano.'
     if (!window.confirm(msg)) return
-    send('/api/outreach/exclusions', { action: add ? 'add' : 'remove', domain }, 'exclusion',
-      add ? 'Esclusione registrata: Sellbird la applica entro pochi minuti.' : 'Riammissione registrata: Sellbird la applica entro pochi minuti.')
+    const ok = await send('/api/outreach/exclusions', { changes }, 'exclusion', `${changes.length} modifiche mandate insieme: Sellbird le applica a momenti.`)
+    if (ok) setStaged({})
   }
+  // I domini di un gruppo già mandato e non ancora applicato da Sellbird.
+  const waiting = useMemo(() => {
+    const m: Record<string, 'add' | 'remove'> = {}
+    for (const p of data?.pending ?? []) if (p.action === 'dnc_batch') for (const c of p.changes ?? []) m[c.domain] = c.action
+    return m
+  }, [data])
 
   const paused = data?.meta?.sendingPaused ?? null
   const sendingCommand = useMemo(() => data?.pending.find((p) => p.action === 'pause_sending' || p.action === 'resume_sending'), [data])
@@ -153,7 +187,8 @@ export default function OutreachPage() {
         </TabsList>
         <TabsContent value="email" className="mt-4">
           <OutboxTab outbox={data?.outbox ?? []} companies={data?.companies ?? []} pending={data?.pending ?? []} busy={busy} decide={decide} openId={openId} setOpenId={setOpenId}
-            exclude={exclude} exclusionBusy={busy === 'exclusion' || (data?.pending.some((p) => p.action === 'dnc_add' || p.action === 'dnc_remove') ?? false)} />
+            staged={staged} waiting={waiting} stage={stage} stageMany={stageMany} clearStaged={() => setStaged({})}
+            applyStaged={applyStaged} applying={busy === 'exclusion'} />
         </TabsContent>
         <TabsContent value="risposte" className="mt-4">
           <RepliesTab replies={data?.replies ?? []} outbox={data?.outbox ?? []} goToDraft={goToDraft} />

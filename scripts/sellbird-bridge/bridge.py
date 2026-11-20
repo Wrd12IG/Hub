@@ -17,7 +17,8 @@ Variabili d'ambiente:
   SELLBIRD_DIR              cartella di Sellbird (quella con data/sellbird.db e .venv)         [obbligatoria]
   HUB_URL                   indirizzo della hub, es. https://hub.wrdigital.it                  [obbligatoria]
   OUTREACH_BRIDGE_SECRET    lo stesso segreto configurato sulla hub (almeno 32 caratteri)      [obbligatoria]
-  BRIDGE_INTERVAL_SECONDS   pausa tra un giro e l'altro, default 120
+  BRIDGE_INTERVAL_SECONDS   ogni quanto manda lo stato alla hub, default 120
+  BRIDGE_COMMAND_INTERVAL_SECONDS  ogni quanto controlla le richieste (approva, escludi...), default 15, minimo 5
   OUTREACH_MAX_DISCOVER_SPEND  tetto in dollari per ogni ricerca (Discover) lanciata dalla hub: default e massimo 2; 0 la spegne
   SELLBIRD_CMD              come lanciare Sellbird; default <SELLBIRD_DIR>/.venv/bin/sellbird, in Docker "python -m sellbird"
 
@@ -58,6 +59,7 @@ MAX_SECTORS = 5
 DOMAIN_RE = re.compile(r"(?=.{4,100}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}")
 MAX_EXCLUSIONS = 500
 MAX_REJECT = 60
+MAX_BATCH = 100
 # Un luogo è «Comune, SIGLA» o una regione: lettere, cifre, spazi e pochi segni. Niente ';' (separa le città), niente simboli di shell.
 PLACE_RE = re.compile(r"[\w .,'’()/-]{2,80}")
 MAX_SIGNAL_CODES = 40
@@ -245,35 +247,45 @@ def domain_excluded(domain, entries):
     return any(e == d or d.endswith("." + e) for e in entries if "@" not in e)
 
 
-def edit_dnc(sellbird_dir, domain, add):
-    """Aggiunge o toglie un dominio da compliance.do_not_contact nel file di configurazione di Sellbird.
+def edit_dnc_many(sellbird_dir, adds, removes):
+    """Aggiunge e toglie **più** domini da compliance.do_not_contact con una sola modifica del file di Sellbird.
 
-    Con copia di sicurezza (`<file>.bak-dnc`), scrittura atomica (Sellbird rilegge il file mentre gira e non deve mai vederlo a
-    metà) e verifica: se dopo la scrittura il dominio non è come deve, si rimette la copia. Ritorna (ok, messaggio)."""
+    Una copia di sicurezza (`<file>.bak-dnc`), una scrittura atomica (Sellbird rilegge il file mentre gira e non deve mai vederlo a
+    metà) e una verifica: se dopo la scrittura anche un solo dominio non è come deve, si rimette la copia. Se non c'è nulla da cambiare
+    non si scrive niente. Ritorna (ok, messaggio, {"added": [...], "removed": [...], "skipped": n})."""
+    summary = {"added": [], "removed": [], "skipped": 0}
     path = config_path(sellbird_dir)
     if not path:
-        return False, "file di configurazione non trovato"
+        return False, "file di configurazione non trovato", summary
     try:
         import yaml
     except ImportError:
-        return False, "PyYAML non disponibile: l'esclusione dalla hub funziona nel contenitore di Sellbird"
+        return False, "PyYAML non disponibile: l'esclusione dalla hub funziona nel contenitore di Sellbird", summary
     try:
         with open(path, encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
         compliance = cfg.setdefault("compliance", {})
         items = [i for i in (compliance.get("do_not_contact") or []) if isinstance(i, str)]
-        lowered = [i.strip().lower() for i in items]
-        if add:
-            if domain in lowered:
-                return True, "già in lista"
-            if len(items) >= MAX_EXCLUSIONS:
-                return False, "lista troppo lunga"
-            items.append(domain)
-        else:
-            kept = [i for i, low in zip(items, lowered) if low != domain]
+        current = {i.strip().lower() for i in items}
+        for domain in adds:
+            if domain in current:
+                summary["skipped"] += 1
+            elif len(items) >= MAX_EXCLUSIONS:
+                return False, "lista troppo lunga", summary
+            else:
+                items.append(domain)
+                current.add(domain)
+                summary["added"].append(domain)
+        for domain in removes:
+            kept = [i for i in items if i.strip().lower() != domain]
             if len(kept) == len(items):
-                return False, "non è in lista"
-            items = kept
+                summary["skipped"] += 1
+            else:
+                items = kept
+                current.discard(domain)
+                summary["removed"].append(domain)
+        if not summary["added"] and not summary["removed"]:
+            return True, "niente da cambiare", summary
         compliance["do_not_contact"] = items
         backup = path + ".bak-dnc"
         shutil.copy2(path, backup)
@@ -281,13 +293,23 @@ def edit_dnc(sellbird_dir, domain, add):
         with open(tmp, "w", encoding="utf-8") as f:
             yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False, width=100)
         os.replace(tmp, path)
-        after = config_dnc(sellbird_dir)
-        if (domain in after) != add:
+        after = set(config_dnc(sellbird_dir))
+        if not all(d in after for d in summary["added"]) or any(d in after for d in summary["removed"]):
             shutil.copy2(backup, path)
-            return False, "verifica fallita: ripristinato il file com'era"
-        return True, "aggiunto" if add else "tolto"
+            return False, "verifica fallita: ripristinato il file com'era", {"added": [], "removed": [], "skipped": 0}
+        return True, "fatto", summary
     except (OSError, ValueError, yaml.YAMLError) as e:
-        return False, f"{type(e).__name__}: {str(e)[:120]}"
+        return False, f"{type(e).__name__}: {str(e)[:120]}", summary
+
+
+def edit_dnc(sellbird_dir, domain, add):
+    """Un solo dominio: come edit_dnc_many. Ritorna (ok, messaggio)."""
+    ok, why, summary = edit_dnc_many(sellbird_dir, [domain] if add else [], [] if add else [domain])
+    if not ok:
+        return False, why
+    if add:
+        return True, "aggiunto" if summary["added"] else "già in lista"
+    return (True, "tolto") if summary["removed"] else (False, "non è in lista")
 
 
 def pending_drafts_for_domain(db_path, domain):
@@ -303,6 +325,32 @@ def pending_drafts_for_domain(db_path, domain):
     finally:
         con.close()
     return [str(r[0]) for r in rows if ID_RE.match(str(r[0]))]
+
+
+MAX_REJECT_TOTAL = 300   # per gruppo: oltre, il resto si rifiuta rilanciando
+REJECT_WORKERS = 4
+
+
+def reject_drafts(sellbird_dir, domains):
+    """Rifiuta le bozze in coda di quei domini, **in parallelo** (ognuna è un processo di Sellbird: una dopo l'altra erano minuti).
+    Ritorna (rifiutate, non rifiutate, rimaste fuori per il tetto)."""
+    db_path = os.path.join(sellbird_dir, "data", "sellbird.db")
+    ids, over = [], 0
+    for domain in domains:
+        for outbox_id in pending_drafts_for_domain(db_path, domain):
+            if outbox_id in ids:
+                continue
+            if len(ids) < MAX_REJECT_TOTAL:
+                ids.append(outbox_id)
+            else:
+                over += 1
+    if not ids:
+        return 0, 0, over
+    from concurrent.futures import ThreadPoolExecutor
+
+    with ThreadPoolExecutor(max_workers=REJECT_WORKERS) as pool:
+        results = list(pool.map(lambda i: run_sellbird(sellbird_dir, ["outbox", "--reject", i])[0], ids))
+    return sum(1 for r in results if r), sum(1 for r in results if not r), over
 
 
 _INDUSTRY_OPTION = {}
@@ -427,22 +475,40 @@ def apply_command(sellbird_dir, cmd):
         ok, err, out = run_sellbird(sellbird_dir, ["signals", "--confirm" if status == "confirmed" else "--reject", ",".join(codes)])
         return ok, err, {"result": out}
 
-    if action in ("dnc_add", "dnc_remove"):
-        domain = cmd.get("domain")
-        if not isinstance(domain, str) or not DOMAIN_RE.fullmatch(domain):
-            return False, "dominio non valido", {}
-        add = action == "dnc_add"
-        ok, why = edit_dnc(sellbird_dir, domain, add)
+    if action in ("dnc_add", "dnc_remove", "dnc_batch"):
+        if action == "dnc_batch":
+            changes = cmd.get("changes")
+            if not isinstance(changes, list) or not 0 < len(changes) <= MAX_BATCH:
+                return False, "gruppo di modifiche non valido", {}
+            adds, removes, seen = [], [], set()
+            for c in changes:
+                domain = c.get("domain") if isinstance(c, dict) else None
+                kind = c.get("action") if isinstance(c, dict) else None
+                # Tutto o niente: un solo elemento sbagliato ferma il gruppo prima di toccare il file.
+                if kind not in ("add", "remove") or not isinstance(domain, str) or not DOMAIN_RE.fullmatch(domain) or domain in seen:
+                    return False, "gruppo di modifiche non valido", {}
+                seen.add(domain)
+                (adds if kind == "add" else removes).append(domain)
+        else:
+            domain = cmd.get("domain")
+            if not isinstance(domain, str) or not DOMAIN_RE.fullmatch(domain):
+                return False, "dominio non valido", {}
+            adds, removes = ([domain], []) if action == "dnc_add" else ([], [domain])
+        ok, why, summary = edit_dnc_many(sellbird_dir, adds, removes)
         if not ok:
             return False, why, {}
-        result = f"{domain}: {why}."
-        if add:
+        parts = []
+        if summary["added"]:
+            parts.append(f"escluse {len(summary['added'])}")
+        if summary["removed"]:
+            parts.append(f"riammesse {len(summary['removed'])}")
+        if summary["skipped"]:
+            parts.append(f"già a posto {summary['skipped']}")
+        result = (", ".join(parts) or "niente da cambiare").capitalize() + "."
+        if adds:
             # Il controllo di Sellbird blocca comunque l'invio, ma una bozza in coda resterebbe visibile e approvabile: si rifiuta.
-            rejected = failed = 0
-            for outbox_id in pending_drafts_for_domain(os.path.join(sellbird_dir, "data", "sellbird.db"), domain):
-                ok_r, _, _ = run_sellbird(sellbird_dir, ["outbox", "--reject", outbox_id])
-                rejected, failed = rejected + (1 if ok_r else 0), failed + (0 if ok_r else 1)
-            result += f" Bozze rifiutate: {rejected}" + (f" ({failed} non rifiutate)." if failed else ".")
+            rejected, failed, over = reject_drafts(sellbird_dir, adds)
+            result += f" Bozze rifiutate: {rejected}" + (f" ({failed} non rifiutate)" if failed else "") + (f"; altre {over} restano: rilancia" if over else "") + "."
         return True, None, {"result": result}
 
     return False, "comando non valido", {}
@@ -613,13 +679,21 @@ def to_delta(snap, state):
     return payload, {"runs": runs + 1, "hashes": hashes}
 
 
-def run_once(sellbird_dir, hub, secret):
-    # 1) prima le decisioni, così la fotografia che segue le riflette già
+def apply_pending(sellbird_dir, hub, secret):
+    """Ritira dalla hub le decisioni in attesa e le applica; dice alla hub com'è andata. Ritorna quante ne ha applicate.
+    È una sola richiesta HTTP leggera: si può fare spesso, così un clic nella hub non aspetta minuti."""
+    done = 0
     for cmd in hub_call(hub, secret, "GET", "/api/outreach/commands").get("commands", []):
         ok, err, extra = apply_command(sellbird_dir, cmd)
-        log(f"{cmd.get('action')} {cmd.get('outboxId') or ''}: {'ok' if ok else 'FALLITO - ' + str(err)}".replace("  ", " "))
+        label = cmd.get("outboxId") or (f"{len(cmd['changes'])} modifiche" if isinstance(cmd.get("changes"), list) else "")
+        log(f"{cmd.get('action')} {label}: {'ok' if ok else 'FALLITO - ' + str(err)}".replace("  ", " "))
         hub_call(hub, secret, "POST", "/api/outreach/commands", {"id": cmd["id"], "ok": ok, "error": err, **extra})
-    # 2) poi la fotografia
+        done += 1
+    return done
+
+
+def sync_state(sellbird_dir, hub, secret):
+    """Manda alla hub lo stato (a differenza: vedi to_delta)."""
     snap = snapshot(os.path.join(sellbird_dir, "data", "sellbird.db"), sellbird_dir)
     state_path = os.path.join(sellbird_dir, "data", "bridge-state.json")
     payload, new_state = to_delta(snap, load_state(state_path))
@@ -629,22 +703,40 @@ def run_once(sellbird_dir, hub, secret):
         f"{res.get('replies')} risposte (cambiate dall'ultima volta; tutto ogni {FULL_EVERY} giri)")
 
 
+def run_once(sellbird_dir, hub, secret):
+    # prima le decisioni, così la fotografia che segue le riflette già
+    apply_pending(sellbird_dir, hub, secret)
+    sync_state(sellbird_dir, hub, secret)
+
+
+def should_sync(now, last_sync, applied, sync_interval):
+    """Si manda lo stato se è la prima volta, se è passato l'intervallo, o subito dopo aver applicato qualcosa (così la pagina
+    mostra l'esito senza aspettare)."""
+    return last_sync is None or applied > 0 or now - last_sync >= sync_interval
+
+
 def main():
     sellbird_dir = need("SELLBIRD_DIR")
     hub = need("HUB_URL").rstrip("/")
     secret = need("OUTREACH_BRIDGE_SECRET")
-    interval = int(os.environ.get("BRIDGE_INTERVAL_SECONDS", "120"))
+    sync_interval = int(os.environ.get("BRIDGE_INTERVAL_SECONDS", "120"))
+    # Le richieste si controllano molto più spesso dello stato: costano una richiesta leggera e un clic non aspetta minuti.
+    poll = max(5, min(sync_interval, int(os.environ.get("BRIDGE_COMMAND_INTERVAL_SECONDS", "15"))))
     once = "--once" in sys.argv
+    last_sync = None
     while True:
         try:
-            run_once(sellbird_dir, hub, secret)
+            applied = apply_pending(sellbird_dir, hub, secret)
+            if should_sync(time.monotonic(), last_sync, applied, sync_interval):
+                sync_state(sellbird_dir, hub, secret)
+                last_sync = time.monotonic()
         except Exception as e:  # un giro andato male non deve fermare il ponte
             log(f"errore: {e}")
             if once:
                 sys.exit(1)
         if once:
             return
-        time.sleep(interval)
+        time.sleep(poll)
 
 
 if __name__ == "__main__":

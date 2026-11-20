@@ -190,7 +190,7 @@ class ExclusionTest(unittest.TestCase):
         with open(self.cfg + ".bak-dnc", encoding="utf-8") as f:
             self.assertEqual(f.read(), CONFIG)                              # la copia è il file di prima
         self.assertFalse(os.path.exists(self.cfg + ".tmp"))                # nessun file temporaneo rimasto
-        self.assertIn("aggiunto", extra["result"])
+        self.assertIn("Escluse 1", extra["result"])
 
     def test_add_rejects_only_the_drafts_of_that_domain(self):
         ok, err, extra = self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
@@ -214,7 +214,7 @@ class ExclusionTest(unittest.TestCase):
         ok, err, extra = self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
         self.assertTrue(ok)
         self.assertEqual(self.load()["compliance"]["do_not_contact"], ["esempio.example.com"])
-        self.assertIn("già in lista", extra["result"])
+        self.assertIn("Già a posto 1", extra["result"])
 
     def test_remove(self):
         self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
@@ -224,8 +224,11 @@ class ExclusionTest(unittest.TestCase):
         self.assertTrue(ok, err)
         self.assertEqual(self.load()["compliance"]["do_not_contact"], ["altro.example.org"])
         self.assertEqual(self.calls, [])                                    # togliere non rifiuta né invia nulla
-        ok, err, _ = self.run_cmd({"action": "dnc_remove", "domain": "mai-stata.example.com"})
-        self.assertFalse(ok)
+        before = open(self.cfg, encoding="utf-8").read()
+        ok, err, extra = self.run_cmd({"action": "dnc_remove", "domain": "mai-stata.example.com"})
+        self.assertTrue(ok)                                                 # già a posto: non è un errore, e non blocca un gruppo
+        self.assertIn("Già a posto 1", extra["result"])
+        self.assertEqual(open(self.cfg, encoding="utf-8").read(), before)  # e non riscrive il file
 
     def test_bad_domains_never_touch_the_file(self):
         for domain in ("ESEMPIO.example.com", "http://esempio.it", "a b.it", "../x", "*.it", "x", "esempio.it/", "localhost", "", None, 5,
@@ -271,12 +274,142 @@ class ExclusionTest(unittest.TestCase):
         self.assertEqual((flags["rimor.it"], flags["shop.rimor.it"], flags["notrimor.it"], flags["esempio.example.com"]), (True, True, False, False))
         self.assertEqual(snap["exclusions"], ["rimor.it", "maiuscolo.it"])  # normalizzate come fa Sellbird; niente indirizzi singoli né voci non valide
 
+    # ── gruppi di modifiche: una sola scrittura, una sola copia, bozze in parallelo ──────────────────────────────────────────
+
+    def seed_companies(self, n):
+        con = sqlite3.connect(self.db)
+        for i in range(n):
+            con.execute("INSERT INTO companies VALUES (?, ?, ?, '', 'x')", (f"g{i}", f"Az {i}", f"azienda{i}.example.org"))
+            con.execute("INSERT INTO prospects (id, company_id, email) VALUES (?, ?, ?)", (f"gp{i}", f"g{i}", f"info@azienda{i}.example.org"))
+            con.execute("INSERT INTO outbox VALUES (?, ?, 'k1', 1, 'sequence', 'x@y.it', 'S', 'B', 'pending_review', NULL, NULL, NULL, 'x')", (f"bozza-{i:03d}", f"gp{i}"))
+        con.commit()
+        con.close()
+
+    def batch(self, adds=(), removes=()):
+        changes = [{"action": "add", "domain": d} for d in adds] + [{"action": "remove", "domain": d} for d in removes]
+        return self.run_cmd({"action": "dnc_batch", "changes": changes})
+
+    def test_batch_is_one_write_one_backup_and_all_the_rejections(self):
+        self.seed_companies(5)
+        writes = []
+        real = os.replace
+        with mock.patch.object(bridge.os, "replace", lambda a, b: (writes.append(b), real(a, b))[1]):
+            ok, err, extra = self.batch(adds=[f"azienda{i}.example.org" for i in range(5)])
+        self.assertTrue(ok, err)
+        self.assertEqual(len(writes), 1)                                    # UNA sola scrittura del file per tutte e 5
+        self.assertEqual(sorted(self.load()["compliance"]["do_not_contact"]), [f"azienda{i}.example.org" for i in range(5)])
+        with open(self.cfg + ".bak-dnc", encoding="utf-8") as f:
+            self.assertEqual(f.read(), CONFIG)                              # la copia è il file di prima
+        self.assertEqual(sorted(c[-1] for c in self.calls), [f"bozza-{i:03d}" for i in range(5)])
+        self.assertIn("Escluse 5", extra["result"])
+        self.assertIn("Bozze rifiutate: 5", extra["result"])
+
+    def test_batch_mixes_adds_and_removes(self):
+        self.run_cmd({"action": "dnc_add", "domain": "vecchia.example.org"})
+        self.calls.clear()
+        ok, err, extra = self.batch(adds=["esempio.example.com"], removes=["vecchia.example.org"])
+        self.assertTrue(ok, err)
+        self.assertEqual(self.load()["compliance"]["do_not_contact"], ["esempio.example.com"])
+        self.assertIn("Escluse 1", extra["result"])
+        self.assertIn("riammesse 1", extra["result"])
+        self.assertEqual(sorted(c[-1] for c in self.calls), ["ob-o2", "ob-o4"])   # si rifiutano solo le bozze di chi è stato escluso
+
+    def test_batch_already_done_writes_nothing(self):
+        self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
+        before = open(self.cfg, encoding="utf-8").read()
+        os.remove(self.cfg + ".bak-dnc")
+        ok, err, extra = self.batch(adds=["esempio.example.com"], removes=["mai-stata.example.com"])
+        self.assertTrue(ok, err)
+        self.assertEqual(open(self.cfg, encoding="utf-8").read(), before)
+        self.assertFalse(os.path.exists(self.cfg + ".bak-dnc"))             # niente è cambiato: nessuna copia, nessuna scrittura
+        self.assertIn("Già a posto 2", extra["result"])
+
+    def test_one_bad_item_stops_the_whole_batch_before_touching_anything(self):
+        for changes in (
+            [{"action": "add", "domain": "buono.example.org"}, {"action": "add", "domain": "Non Valido"}],
+            [{"action": "add", "domain": "buono.example.org"}, {"action": "boh", "domain": "altro.example.org"}],
+            [{"action": "add", "domain": "buono.example.org"}, {"action": "add", "domain": "buono.example.org"}],   # doppione
+            [{"action": "add", "domain": "buono.example.org"}, "non un dict"], [], None, "add", [{"action": "add"}],
+            [{"action": "add", "domain": f"d{i}.example.org"} for i in range(101)],
+        ):
+            ok, err, _ = self.run_cmd({"action": "dnc_batch", "changes": changes})
+            self.assertFalse(ok, changes)
+        with open(self.cfg, encoding="utf-8") as f:
+            self.assertEqual(f.read(), CONFIG)
+        self.assertFalse(os.path.exists(self.cfg + ".bak-dnc"))
+        self.assertEqual(self.calls, [])
+
+    def test_failed_verification_restores_the_file_for_the_whole_batch(self):
+        with mock.patch.object(bridge, "config_dnc", return_value=["solo-questo.example.org"]):
+            ok, err, _ = self.batch(adds=["uno.example.org", "due.example.org"])
+        self.assertFalse(ok)
+        self.assertIn("ripristinato", err)
+        with open(self.cfg, encoding="utf-8") as f:
+            self.assertEqual(f.read(), CONFIG)
+        self.assertEqual(self.calls, [])                                    # e nessuna bozza rifiutata
+
+    def test_rejections_run_in_parallel_and_are_capped(self):
+        self.seed_companies(5)
+        started = []
+        import threading
+        barrier = threading.Barrier(2, timeout=5)
+
+        def slow_run(sellbird_dir, args, timeout=120):
+            started.append(args[-1])
+            if len(started) <= 2:
+                barrier.wait()      # se fossero in sequenza, il primo aspetterebbe per sempre
+            return True, None, ""
+
+        with mock.patch.object(bridge, "run_sellbird", slow_run):
+            rejected, failed, over = bridge.reject_drafts(self.dir.name, [f"azienda{i}.example.org" for i in range(5)])
+        self.assertEqual((rejected, failed, over), (5, 0, 0))
+        with mock.patch.object(bridge, "MAX_REJECT_TOTAL", 3), mock.patch.object(bridge, "run_sellbird", lambda *a, **k: (True, None, "")):
+            self.assertEqual(bridge.reject_drafts(self.dir.name, [f"azienda{i}.example.org" for i in range(5)]), (3, 0, 2))
+
+    def test_partial_rejection_failures_are_reported_not_hidden(self):
+        self.seed_companies(2)
+        with mock.patch.object(bridge, "run_sellbird", lambda d, a, timeout=120: (a[-1] != "bozza-001", None, "")):
+            rejected, failed, _ = bridge.reject_drafts(self.dir.name, ["azienda0.example.org", "azienda1.example.org"])
+        self.assertEqual((rejected, failed), (1, 1))
+
     def test_domain_excluded(self):
         self.assertTrue(bridge.domain_excluded("www.rimor.it", ["rimor.it"]))
         self.assertTrue(bridge.domain_excluded("shop.rimor.it", ["rimor.it"]))
         self.assertFalse(bridge.domain_excluded("notrimor.it", ["rimor.it"]))
         self.assertFalse(bridge.domain_excluded("rimor.it", ["mario@rimor.it"]))   # un indirizzo non esclude il dominio
         self.assertFalse(bridge.domain_excluded("", ["rimor.it"]))
+
+
+class LoopTest(unittest.TestCase):
+    """Le richieste si controllano spesso, lo stato di rado: un clic nella hub non aspetta minuti."""
+
+    def test_should_sync(self):
+        self.assertTrue(bridge.should_sync(100, None, 0, 120))      # la prima volta
+        self.assertFalse(bridge.should_sync(100, 90, 0, 120))       # poco fa, nulla da dire
+        self.assertTrue(bridge.should_sync(100, 90, 1, 120))        # dopo aver applicato qualcosa: subito
+        self.assertTrue(bridge.should_sync(300, 100, 0, 120))       # è passato l'intervallo
+
+    def test_apply_pending_acks_each_command_and_counts_them(self):
+        calls = []
+
+        def hub(base, secret, method, path, payload=None):
+            calls.append((method, path, payload))
+            if method == "GET":
+                return {"commands": [{"id": "c1", "action": "dnc_batch", "changes": [{"action": "add", "domain": "a.example.org"}]},
+                                     {"id": "c2", "action": "boh"}]}
+            return {}
+
+        with mock.patch.object(bridge, "hub_call", hub), mock.patch.object(bridge, "apply_command", lambda d, c: (c["action"] != "boh", None if c["action"] != "boh" else "no", {"result": "ok"} if c["action"] != "boh" else {})):
+            self.assertEqual(bridge.apply_pending("/x", "https://hub", "s"), 2)
+        acks = [c[2] for c in calls if c[0] == "POST"]
+        self.assertEqual([(a["id"], a["ok"]) for a in acks], [("c1", True), ("c2", False)])   # un fallimento non ferma i successivi
+        self.assertEqual(acks[0]["result"], "ok")
+
+    def test_no_commands_costs_one_light_request_and_logs_nothing(self):
+        calls, logs = [], []
+        with mock.patch.object(bridge, "hub_call", lambda b, s, m, p, payload=None: (calls.append(m), {"commands": []})[1]), mock.patch.object(bridge, "log", logs.append):
+            self.assertEqual(bridge.apply_pending("/x", "https://hub", "s"), 0)
+        self.assertEqual((calls, logs), (["GET"], []))              # niente rumore nel registro ogni 15 secondi
 
 
 class DeltaTest(unittest.TestCase):

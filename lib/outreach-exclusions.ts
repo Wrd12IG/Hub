@@ -59,3 +59,57 @@ export function parseExclusions(raw: unknown): string[] {
     }
     return Array.from(out);
 }
+
+// ── Modifiche raggruppate ──────────────────────────────────────────────────────────────────────────────────────────────
+// Si segnano più aziende nella pagina e si mandano insieme: un solo comando, una sola modifica del file di Sellbird, una sola
+// verifica. Una richiesta per azienda costava un giro di attesa a testa.
+
+export const MAX_BATCH = 100;
+
+export type ExclusionChange = { action: 'add' | 'remove'; domain: string };
+export type BatchContext = {
+    /** Fra i domini da aggiungere, quelli che la hub conosce come aziende trovate da Sellbird. */
+    knownDomains: Set<string>;
+    /** I domini già in «mai contattare», come li ha dichiarati il ponte. */
+    exclusions: string[];
+};
+export type BatchResult = { ok: true; changes: ExclusionChange[]; skipped: number } | { ok: false; error: string; status: number };
+
+const failBatch = (error: string, status = 400): BatchResult => ({ ok: false, error, status });
+
+/**
+ * Controlla un gruppo di modifiche. Una modifica già avvenuta (escludere chi è già escluso, riammettere chi non è in lista) si salta
+ * senza errore: succede se un altro gruppo è stato applicato nel frattempo. Un dominio non valido o sconosciuto, invece, ferma tutto:
+ * meglio rifiutare il gruppo che applicarne metà.
+ */
+export function buildExclusionBatch(body: any, ctx: BatchContext): BatchResult {
+    const raw: unknown = body?.changes;
+    if (!Array.isArray(raw) || raw.length === 0) return failBatch('Nessuna modifica da applicare.');
+    if (raw.length > MAX_BATCH) return failBatch(`Al massimo ${MAX_BATCH} modifiche per volta.`);
+
+    const listed = new Set(ctx.exclusions);
+    const seen = new Set<string>();
+    const changes: ExclusionChange[] = [];
+    let skipped = 0;
+    for (const item of raw) {
+        const action = (item as any)?.action;
+        const domain = cleanDomain((item as any)?.domain);
+        if (action !== 'add' && action !== 'remove') return failBatch('Ogni modifica deve essere add o remove.');
+        if (!domain) return failBatch('Dominio non valido in una delle modifiche.');
+        if (seen.has(domain)) return failBatch(`${domain} compare due volte.`);
+        seen.add(domain);
+
+        if (action === 'add') {
+            if (listed.has(domain)) { skipped++; continue; }
+            if (!ctx.knownDomains.has(domain)) return failBatch(`${domain}: azienda sconosciuta, si esclude solo un dominio che Sellbird ha trovato.`, 404);
+        } else if (!listed.has(domain)) {
+            skipped++;
+            continue;
+        }
+        changes.push({ action, domain });
+    }
+    if (changes.length === 0) return failBatch('Niente da fare: le modifiche risultano già applicate.', 409);
+    const after = ctx.exclusions.length + changes.filter((c) => c.action === 'add').length - changes.filter((c) => c.action === 'remove').length;
+    if (after > MAX_EXCLUSIONS) return failBatch('Lista «mai contattare» troppo lunga: pulisci quella di Sellbird.', 409);
+    return { ok: true, changes, skipped };
+}

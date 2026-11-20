@@ -62,10 +62,19 @@ L'esito di ogni richiesta (testo stampato da Sellbird, stima, errori) compare ne
 
 ### Escludere un'azienda («mai contattare») dalla hub
 
-Nella scheda Email, tabella «Aziende trovate», **Escludi** mette il dominio dell'azienda in `compliance.do_not_contact` di Sellbird;
-**Riammetti** lo toglie. Per Sellbird un dominio in lista non riceve più nulla (nemmeno le email già approvate: il controllo scatta
+Nella scheda Email, tabella «Aziende trovate», **Escludi** segna l'azienda da escludere e **Riammetti** da riammettere. **Le modifiche non
+partono una alla volta:** si segnano quante servono (c'è anche una ricerca e «Segna da escludere le visibili»), poi **Applica N** le manda
+**tutte insieme**, fino a 100 per gruppo. Escludere mette il dominio in `compliance.do_not_contact` di Sellbird; riammettere lo toglie. Per Sellbird un dominio in lista non riceve più nulla (nemmeno le email già approvate: il controllo scatta
 all'invio), il punteggio va a zero e l'estensione Firecrawl lo salta senza spendere crediti. Sellbird rilegge la lista dal file mentre
 gira: non serve riavviare. Un dominio copre anche i suoi sottodomini.
+
+**Perché un gruppo e non una richiesta per azienda:** ogni richiesta costava un giro di attesa (il ponte allora controllava solo ogni
+2 minuti), e il pulsante restava bloccato fino alla risposta, quindi si andava un'azienda alla volta. Ora un gruppo è **un solo comando**:
+una sola modifica del file, una sola copia, una sola verifica, e le bozze di tutte le aziende escluse si rifiutano **in parallelo** (4 alla
+volta, fino a 300 per gruppo: ognuna è un processo di Sellbird). Il ponte controlla le richieste **ogni 15 secondi**
+(`BRIDGE_COMMAND_INTERVAL_SECONDS`, minimo 5) e manda lo stato ogni 2 minuti (`BRIDGE_INTERVAL_SECONDS`) **oppure subito dopo aver
+applicato una richiesta**, così la pagina mostra l'esito senza aspettare. Un gruppo è **tutto o niente** nel controllo: un dominio
+non valido ferma il gruppo prima che il file venga toccato. Una modifica già a posto (escludere chi è già escluso) si salta senza errore.
 
 Il ponte modifica il **file di configurazione** di Sellbird (`sellbird.local.yaml`, o `sellbird.yaml` se non c'è): con la libreria
 `yaml` che c'è nel contenitore, **copia di sicurezza** in `<file>.bak-dnc` (una sola, si riscrive a ogni modifica), **scrittura atomica**

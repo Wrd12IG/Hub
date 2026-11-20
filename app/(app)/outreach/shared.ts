@@ -12,7 +12,9 @@ export type Meta = {
   discover?: OutreachDiscoverInfo | null
 }
 
-export type Pending = { outboxId: string | null; domain?: string | null; action: 'dnc_add' | 'dnc_remove' | 'approve' | 'reject' | 'pause_sending' | 'resume_sending' | 'discover_estimate' | 'discover_run' | 'signals_set' }
+export type ExclusionChange = { action: 'add' | 'remove'; domain: string }
+
+export type Pending = { outboxId: string | null; domain?: string | null; changes?: ExclusionChange[] | null; action: 'dnc_batch' | 'dnc_add' | 'dnc_remove' | 'approve' | 'reject' | 'pause_sending' | 'resume_sending' | 'discover_estimate' | 'discover_run' | 'signals_set' }
 
 /** Un'azione con parametri chiesta dalla hub (Discover, segnali), con il suo stato e quello che Sellbird ha risposto. */
 export type ActionRecord = {
