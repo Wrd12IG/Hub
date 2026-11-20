@@ -13,6 +13,7 @@ import { getClients, importEditorialContents } from '@/lib/actions';
 import type { Client } from '@/lib/data';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 
 type ParseResult = {
@@ -286,7 +287,7 @@ export default function ImportEditorialPage() {
                                 <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                                     <SelectTrigger id="selected-client" className="w-full md:w-1/2"><SelectValue placeholder="Seleziona un cliente..." /></SelectTrigger>
                                     <SelectContent>
-                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(client => (
+                                        {pickableClients(clients, selectedClientId).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it')).map(client => (
                                             <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                                         ))}
                                     </SelectContent>

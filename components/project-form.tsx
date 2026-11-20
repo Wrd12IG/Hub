@@ -45,6 +45,7 @@ import { addProject, updateProject, updateTask } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import TaskForm from "@/components/task-form"
 import DatePickerDialog from "@/components/ui/date-picker-dialog"
+import { pickableClients } from '@/lib/client-archive-shared';
 
 const formSchema = z.object({
     name: z.string().min(2, {
@@ -252,7 +253,7 @@ export default function ProjectForm({ project, onSuccess, onCancel, onCreateTask
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map((client) => (
+                                        {pickableClients(clients, selectedClientId).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map((client) => (
                                             <SelectItem key={client.id} value={client.id}>
                                                 {client.name}
                                             </SelectItem>

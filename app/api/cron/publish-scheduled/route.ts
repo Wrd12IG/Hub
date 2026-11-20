@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { denyUnlessCron } from '@/lib/cron-auth';
 import { adminDb } from '@/lib/firebase-admin';
+import { archivedClientIds } from '@/lib/client-archive';
 import { isDue, dueState } from '@/lib/publisher';
 import { runPublish, type Outcome } from '@/lib/publish-runner';
 import type { EditorialContent } from '@/lib/data';
@@ -30,7 +31,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const snap = await adminDb.collection('editorialContents').where('status', '==', 'Approvato').get();
-    const approved = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<EditorialContent, 'id'>) }) as EditorialContent);
+    // Clienti archiviati: i loro contenuti approvati non escono (restano nel piano, si ripubblicano riattivando il cliente).
+    const archived = await archivedClientIds(adminDb);
+    const approved = snap.docs
+      .map((d) => ({ id: d.id, ...(d.data() as Omit<EditorialContent, 'id'>) }) as EditorialContent)
+      .filter((c) => !archived.has(c.clientId));
     // Arretrato: approvati con data scaduta da troppo. Si elencano (così si vedono) ma non si pubblicano.
     const skippedLate = approved.filter((c) => dueState(c, now) === 'too-late').map((c) => ({ contentId: c.id, topic: c.topic, clientId: c.clientId, publicationDate: c.publicationDate }));
     const due = approved

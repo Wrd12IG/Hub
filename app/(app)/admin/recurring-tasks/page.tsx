@@ -58,6 +58,7 @@ import { useLayoutData } from '@/app/(app)/layout-context';
 import { format } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 
 const daysOfWeek = [
@@ -550,7 +551,7 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
                   <Label htmlFor="clientId">Cliente</Label>
                   <Select name="clientId" required value={selectedClientId} onValueChange={handleClientSelect}>
                     <SelectTrigger><SelectValue placeholder="Seleziona cliente..." /></SelectTrigger>
-                    <SelectContent>{[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{pickableClients(clients, selectedClientId).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div><Label htmlFor="projectId">Progetto (Opzionale)</Label><Select name="projectId" defaultValue={task?.projectId || undefined}><SelectTrigger><SelectValue placeholder="Nessun Progetto" /></SelectTrigger><SelectContent>{[...projects].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>

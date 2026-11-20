@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const snap = await adminDb.collection('clients').get();
-    const candidates = snap.docs.filter((d) => hasReportSources(d.data()));
+    const candidates = snap.docs.filter((d) => d.data().archived !== true && hasReportSources(d.data()));
 
     // La copia attuale di ciascuno: serve per saltare i freschi e per partire dai più vecchi
     const withAge = await Promise.all(candidates.map(async (d) => {

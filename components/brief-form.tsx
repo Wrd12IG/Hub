@@ -16,6 +16,7 @@ import { it } from 'date-fns/locale';
 import { CalendarIcon, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 interface BriefFormProps {
     clients: Client[];
@@ -140,7 +141,7 @@ export default function BriefForm({ clients, currentUser, services, categories, 
                             <SelectValue placeholder="Seleziona un cliente..." />
                         </SelectTrigger>
                         <SelectContent>
-                            {[...clients].sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                            {pickableClients(clients, formData.clientId).sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
