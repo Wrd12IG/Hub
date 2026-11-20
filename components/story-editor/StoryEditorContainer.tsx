@@ -135,7 +135,11 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
             }
         }
         const nVideo = Object.keys(videoBySlide).length;
-        if (nVideo > 0) toast.success(`Salvato: ${nVideo} ${nVideo === 1 ? 'slide esce' : 'slide escono'} come video MP4.`);
+        // Dopo il salvataggio l'editor resta aperto: l'avviso dice dove è finita la storia e porta al PED con un clic
+        toast.success(nVideo > 0 ? `Salvato nel PED: ${nVideo} ${nVideo === 1 ? 'slide esce' : 'slide escono'} come video MP4.` : 'Salvato nel PED.', {
+            duration: 15000,
+            action: { label: 'Apri il PED', onClick: () => router.push(`/clients/${clientId}/editorial-plan`) },
+        });
     };
 
     if (loading) return <div className="flex h-64 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
