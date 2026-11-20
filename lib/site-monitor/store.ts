@@ -35,6 +35,10 @@ export interface MonitorState {
     month: string;
     creditsUsed: number;
     lastScanAt?: string;
+    /** Spento = il cron lo salta. Assente = acceso. */
+    enabled?: boolean;
+    /** Utenti a cui assegnare i task (a turno). Vuoto = nessun task. */
+    assigneeIds?: string[];
 }
 
 export interface SiteMonitorStore {
@@ -52,7 +56,7 @@ export function memoryStore(): SiteMonitorStore & { scans: Map<string, ScanRecor
     return {
         states, findings, scans,
         async getState(c) { return states.get(c) ?? null; },
-        async saveState(c, s) { states.set(c, s); },
+        async saveState(c, s) { states.set(c, { ...(states.get(c) ?? { month: s.month, creditsUsed: 0 }), ...s }); },
         async getFindings(c) { return Array.from((findings.get(c) ?? new Map()).values()); },
         async saveFindings(c, list) {
             const m = findings.get(c) ?? new Map<string, FindingRecord>();
