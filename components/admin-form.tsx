@@ -140,6 +140,21 @@ export default function AdminForm({ modalOpen, editingUser, editingClient, editi
                             </SelectContent>
                         </Select>
                     </div>
+                    <div>
+                        <Label htmlFor="backupManagerId">PM di backup</Label>
+                        <Select name="backupManagerId" defaultValue={editingClient?.backupManagerId || 'none'}>
+                            <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Seleziona il PM di backup..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Nessuno</SelectItem>
+                                {[...users].filter(u => u.role !== 'Cliente' && u.status !== 'Inattivo').sort((a, b) => (a.name || "").localeCompare(b.name || "")).map(u => (
+                                    <SelectItem key={u.id} value={u.id}>{u.name} ({u.role})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground mt-1">Vede la scheda del cliente come un responsabile e riceve le email di approvazione quando i responsabili sono assenti.</p>
+                    </div>
                     <div><Label htmlFor="color">Colore</Label><Input id="color" name="color" type="color" defaultValue={editingClient?.color || "#34A853"} /></div>
                     {canViewFinancials && <div><Label htmlFor="notes">Note</Label><Textarea id="notes" name="notes" defaultValue={editingClient?.notes} /></div>}
                     <div>

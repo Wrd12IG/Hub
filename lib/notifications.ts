@@ -240,6 +240,19 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, {
         getText: (d) => `Nuovo evento: "${d.eventTitle}" il ${d.date}`,
         category: 'calendar',
         priority: 'normal'
+    },
+    // Scheda cliente: le notifiche si scrivono dal server (lib/client-scheda/service.ts); qui servono solo perché il tipo sia completo.
+    client_log_approval_requested: {
+        title: '⚠️ Richiesta da approvare',
+        getText: (d) => `${d.authorName} chiede un'approvazione su ${d.clientName}`,
+        category: 'system',
+        priority: 'high'
+    },
+    client_log_approval_decided: {
+        title: '✅ Esito della richiesta',
+        getText: (d) => `La tua richiesta su ${d.clientName} è stata ${d.decision}`,
+        category: 'system',
+        priority: 'high'
     }
 };
 

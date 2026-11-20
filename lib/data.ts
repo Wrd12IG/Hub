@@ -36,6 +36,7 @@ export interface Client {
     notes?: string;
     managedBy?: string[]; // User IDs managing this client
     socialManagerId?: string; // Social Media Manager assigned to this client
+    backupManagerId?: string | null; // PM di backup: stessi diritti di un responsabile sulla scheda cliente
     allowedActivityTypeIds?: string[]; // IDs of activity types allowed for this client
     publicToken?: string; // Token for public secure access
     publicTokenCreatedAt?: string;
@@ -382,7 +383,10 @@ export type NotificationType =
     | 'editorial_approval_requested'
     // Calendar
     | 'calendar_reminder'
-    | 'calendar_event_assigned';
+    | 'calendar_event_assigned'
+    // Scheda cliente
+    | 'client_log_approval_requested'
+    | 'client_log_approval_decided';
 
 export interface Notification {
     id: string;
