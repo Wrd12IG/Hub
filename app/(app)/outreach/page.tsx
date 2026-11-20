@@ -77,6 +77,15 @@ export default function OutreachPage() {
   const setSignal = (code: string, status: 'confirmed' | 'rejected') =>
     act({ action: 'signals_set', codes: [code], status }, 'signals', status === 'confirmed' ? 'Segnale da attivare: Sellbird lo applica entro un paio di minuti.' : 'Segnale da escludere: Sellbird lo applica entro un paio di minuti.')
 
+  const exclude = (domain: string, add: boolean) => {
+    const msg = add
+      ? `Escludere ${domain}?\n\nSellbird non scriverà più a questa azienda, nemmeno con le email già approvate, e le sue bozze in coda verranno rifiutate. Si può annullare con «Riammetti», ma le bozze rifiutate non tornano.`
+      : `Riammettere ${domain}?\n\nSellbird potrà di nuovo scrivere a questa azienda. Le bozze già rifiutate non tornano: andranno riscritte.`
+    if (!window.confirm(msg)) return
+    send('/api/outreach/exclusions', { action: add ? 'add' : 'remove', domain }, 'exclusion',
+      add ? 'Esclusione registrata: Sellbird la applica entro pochi minuti.' : 'Riammissione registrata: Sellbird la applica entro pochi minuti.')
+  }
+
   const paused = data?.meta?.sendingPaused ?? null
   const sendingCommand = useMemo(() => data?.pending.find((p) => p.action === 'pause_sending' || p.action === 'resume_sending'), [data])
 
@@ -143,7 +152,8 @@ export default function OutreachPage() {
           <TabsTrigger value="pipeline">Pipeline e uso</TabsTrigger>
         </TabsList>
         <TabsContent value="email" className="mt-4">
-          <OutboxTab outbox={data?.outbox ?? []} companies={data?.companies ?? []} pending={data?.pending ?? []} busy={busy} decide={decide} openId={openId} setOpenId={setOpenId} />
+          <OutboxTab outbox={data?.outbox ?? []} companies={data?.companies ?? []} pending={data?.pending ?? []} busy={busy} decide={decide} openId={openId} setOpenId={setOpenId}
+            exclude={exclude} exclusionBusy={busy === 'exclusion' || (data?.pending.some((p) => p.action === 'dnc_add' || p.action === 'dnc_remove') ?? false)} />
         </TabsContent>
         <TabsContent value="risposte" className="mt-4">
           <RepliesTab replies={data?.replies ?? []} outbox={data?.outbox ?? []} goToDraft={goToDraft} />

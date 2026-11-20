@@ -30,8 +30,8 @@ Il segreto non va scritto in nessun file del repository.
   Sono dati di terze persone: stanno in collezioni `outreach*` chiuse al browser (vedi `firestore.rules`) e li legge
   solo la pagina Outreach, riservata agli amministratori.
 - Applica le decisioni prese dalla hub con la CLI di Sellbird, da una lista fissa: `outbox --approve|--reject <id>`,
-  `sending pause|resume`, `discover` (stima e ricerca) e `signals --confirm|--reject` per i soli segnali gratuiti.
-  Qualunque altra azione viene rifiutata. Se Sellbird o il ponte sono spenti, la decisione resta
+  `sending pause|resume`, `discover` (stima e ricerca), `signals --confirm|--reject` per i soli segnali gratuiti, e
+  l'**esclusione di un'azienda** («mai contattare»). Qualunque altra azione viene rifiutata. Se Sellbird o il ponte sono spenti, la decisione resta
   in coda e parte quando ripartono.
 - Non scrive mai nel database di Sellbird e non invia nulla da sé: l'invio lo fa Sellbird, con i suoi limiti
   giornalieri e le sue pause.
@@ -59,6 +59,25 @@ I segnali si attivano o si escludono dalla hub solo se **gratuiti**, con la stes
 con `free` o `included` (non basta contenere la parola). Quelli a pagamento si confermano da Sellbird, dove si vede il costo.
 
 L'esito di ogni richiesta (testo stampato da Sellbird, stima, errori) compare nella scheda «Trova aziende».
+
+### Escludere un'azienda («mai contattare») dalla hub
+
+Nella scheda Email, tabella «Aziende trovate», **Escludi** mette il dominio dell'azienda in `compliance.do_not_contact` di Sellbird;
+**Riammetti** lo toglie. Per Sellbird un dominio in lista non riceve più nulla (nemmeno le email già approvate: il controllo scatta
+all'invio), il punteggio va a zero e l'estensione Firecrawl lo salta senza spendere crediti. Sellbird rilegge la lista dal file mentre
+gira: non serve riavviare. Un dominio copre anche i suoi sottodomini.
+
+Il ponte modifica il **file di configurazione** di Sellbird (`sellbird.local.yaml`, o `sellbird.yaml` se non c'è): con la libreria
+`yaml` che c'è nel contenitore, **copia di sicurezza** in `<file>.bak-dnc` (una sola, si riscrive a ogni modifica), **scrittura atomica**
+(Sellbird non vede mai il file a metà) e **verifica**: se dopo la scrittura il dominio non è come deve, rimette la copia. Dominio
+controllato con lo stesso schema della hub; solo un dominio che Sellbird ha trovato si può escludere dalla hub, e si può riammettere
+solo uno che è davvero in lista.
+
+Con **Escludi** il ponte rifiuta anche le bozze ancora in coda (da rivedere o approvate, al massimo 60) delle aziende di quel dominio e
+dei suoi sottodomini, con `sellbird outbox --reject`: non partirebbero comunque, ma resterebbero visibili e approvabili.
+**Riammetti** non le riporta: vanno riscritte.
+
+Per tornare indietro a mano: `cp ~/sellbird/sellbird.local.yaml.bak-dnc ~/sellbird/sellbird.local.yaml`.
 
 ### Scegliere i settori: una modifica a Sellbird sul server
 

@@ -7,11 +7,12 @@ export type Meta = {
   stats: OutreachStats | null
   sendingPaused: string | null
   campaigns?: OutreachCampaignItem[]
+  exclusions?: string[]
   signals?: OutreachSignalItem[]
   discover?: OutreachDiscoverInfo | null
 }
 
-export type Pending = { outboxId: string | null; action: 'approve' | 'reject' | 'pause_sending' | 'resume_sending' | 'discover_estimate' | 'discover_run' | 'signals_set' }
+export type Pending = { outboxId: string | null; domain?: string | null; action: 'dnc_add' | 'dnc_remove' | 'approve' | 'reject' | 'pause_sending' | 'resume_sending' | 'discover_estimate' | 'discover_run' | 'signals_set' }
 
 /** Un'azione con parametri chiesta dalla hub (Discover, segnali), con il suo stato e quello che Sellbird ha risposto. */
 export type ActionRecord = {

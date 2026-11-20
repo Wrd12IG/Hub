@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         companies: companies.docs.map((d) => d.data()),
         contacts: contacts.docs.map((d) => d.data()),
         replies: replies.docs.map((d) => d.data()),
-        pending: commands.docs.map((d) => ({ outboxId: d.get('outboxId') ?? null, action: d.get('action') })),
+        pending: commands.docs.map((d) => ({ outboxId: d.get('outboxId') ?? null, action: d.get('action'), domain: d.get('domain') ?? null })),
         actions: recent.docs
             .filter((d) => PARAM_ACTIONS.includes(d.get('action')))
             .slice(0, 15)

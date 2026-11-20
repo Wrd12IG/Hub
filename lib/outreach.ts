@@ -66,6 +66,8 @@ export interface OutreachCompanyItem {
     prospects: number;
     emailsSent: number;
     replied: boolean;
+    /** Il dominio è in «mai contattare» di Sellbird (lo calcola il ponte dal file di configurazione). */
+    excluded: boolean;
 }
 
 export type ReplyAuthor = 'them' | 'us';
@@ -213,6 +215,7 @@ export function parseCompanyItem(raw: unknown): OutreachCompanyItem | null {
         prospects: int(r.prospects),
         emailsSent: int(r.emailsSent),
         replied: r.replied === true,
+        excluded: r.excluded === true,
     };
 }
 
