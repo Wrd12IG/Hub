@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Loader2, Plus } from 'lucide-react'
+import { Check, Loader2, MessageSquareText, Mail, MoreHorizontal, Phone, Plus, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { btn } from '@/app/(app)/outreach/shared'
@@ -12,6 +12,7 @@ import type { SchedaClient } from '@/lib/client-scheda/whitelist'
 type Payload = { client: SchedaClient; entries: LogEntry[]; nextBefore: string | null; canDecide: boolean }
 type Sent = { entry: LogEntry; emails: { sent: number; failed: number } }
 
+const TYPE_ICON: Record<LogType, typeof Phone> = { telefonata: Phone, email: Mail, richiesta: MessageSquareText, riunione: Users, altro: MoreHorizontal }
 const MAX_TEXT = 2000
 const fmt = (iso: string) => new Date(iso).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })
 const APPROVAL: Record<string, { label: string; cls: string }> = {
@@ -131,8 +132,23 @@ export default function ClientSchedaPage() {
         {formOpen && (
           <div className="space-y-3 rounded-xl border border-border p-4">
             <p className="text-xs text-muted-foreground">La data viene registrata in automatico al salvataggio. Le righe non si possono modificare: per correggere, aggiungi una nuova riga.</p>
-            <div className="flex flex-wrap gap-2">
-              {LOG_TYPES.map((t) => <button key={t} type="button" className={btn} aria-pressed={type === t} onClick={() => setType(t)}>{LOG_TYPE_LABEL[t]}</button>)}
+            <div>
+              <p className="mb-2 text-sm font-medium">Tipo di interazione</p>
+              <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Tipo di interazione">
+                {LOG_TYPES.map((t) => {
+                  const Icon = TYPE_ICON[t]
+                  const on = type === t
+                  return (
+                    <button
+                      key={t} type="button" role="radio" aria-checked={on} onClick={() => setType(t)}
+                      className={`inline-flex h-10 items-center gap-2 rounded-lg border-2 px-4 text-sm font-semibold transition-colors ${on ? 'border-primary bg-primary text-primary-foreground shadow-sm' : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
+                    >
+                      {on ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                      {LOG_TYPE_LABEL[t]}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
             <textarea className="min-h-[100px] w-full rounded-lg border border-border bg-background p-2 text-sm" placeholder="Cosa è successo con il cliente?" maxLength={MAX_TEXT} value={text} onChange={(e) => setText(e.target.value)} />
             <div className="flex items-center justify-between gap-2">
