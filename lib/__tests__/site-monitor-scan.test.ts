@@ -56,6 +56,16 @@ function setup(pages: Record<string, string>, remaining: number | null = 5000) {
 const HOME = `<p>${WORDS} © 2026</p>`;
 const OFFERS = `<p>Offerta valida fino al 31/10/2025 ${WORDS}</p><img src="/x.jpg">`;
 
+describe('scanSite — indice di sitemap', () => {
+    it('segue le sitemap figlie', async () => {
+        const { deps, scrape } = setup({ 'https://a.it/': HOME, 'https://a.it/offerte': OFFERS });
+        deps.fetchText = async (url) => url.endsWith('/page-sitemap.xml') ? '<urlset><url><loc>https://a.it/offerte</loc></url></urlset>'
+            : url.endsWith('/sitemap.xml') ? '<sitemapindex><sitemap><loc>https://a.it/page-sitemap.xml</loc></sitemap></sitemapindex>' : null;
+        await scanSite('c1', 'https://a.it', deps);
+        expect(scrape).toHaveBeenCalledWith('https://a.it/offerte');
+    });
+});
+
 describe('scanSite', () => {
     it('trova problemi, salva e tiene il conto dei crediti', async () => {
         const { deps, store } = setup({ 'https://a.it/': HOME, 'https://a.it/offerte': OFFERS });
