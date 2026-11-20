@@ -1440,6 +1440,12 @@ export default function ClientDetailPage() {
             dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
           },
           {
+            href: `/clients/${id}/scheda`,
+            icon: FileText,
+            label: "Scheda",
+            dot: "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]",
+          },
+          {
             href: `/clients/${id}/site-monitor`,
             icon: Search,
             label: "Monitor sito",

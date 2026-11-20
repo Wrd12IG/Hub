@@ -108,6 +108,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { validateBackupManager } from '@/lib/client-scheda/access';
 import React, { useEffect, useState, useCallback, Suspense, useReducer } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import dynamic from 'next/dynamic';
@@ -396,6 +397,17 @@ function AdminPageContent() {
             return Array.from(form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`)).map(cb => cb.value);
         }
 
+        // PM di backup: staff attivo e diverso dai responsabili (il modulo scrive direttamente su Firestore, quindi il controllo sta qui).
+        let backupId: string | null = null;
+        if (modalOpen === 'client' || modalOpen === 'edit-client') {
+            backupId = data.backupManagerId && data.backupManagerId !== 'none' ? String(data.backupManagerId) : null;
+            const problem = validateBackupManager(backupId, { managedBy: getMembersFromForm(form, 'managedBy'), socialManagerId: data.socialManagerId && data.socialManagerId !== 'none' ? data.socialManagerId : undefined }, users);
+            if (problem) {
+                toast({ title: 'PM di backup non valido', description: problem, variant: 'destructive' });
+                return;
+            }
+        }
+
         try {
             switch (modalOpen) {
                 case 'user': {
@@ -458,6 +470,7 @@ function AdminPageContent() {
                         color: data.color,
                         ...(canViewFinancials ? { notes: data.notes } : {}),
                         socialManagerId: data.socialManagerId && data.socialManagerId !== 'none' ? data.socialManagerId : undefined,
+                        backupManagerId: backupId ?? undefined,
                         managedBy: getMembersFromForm(form, 'managedBy'),
                         allowedActivityTypeIds: getMembersFromForm(form, 'allowedActivityTypeIds'),
                     });
@@ -473,6 +486,7 @@ function AdminPageContent() {
                         color: data.color,
                         ...(canViewFinancials ? { notes: data.notes } : {}),
                         socialManagerId: data.socialManagerId && data.socialManagerId !== 'none' ? data.socialManagerId : undefined,
+                        backupManagerId: backupId ?? null,
                         managedBy: getMembersFromForm(form, 'managedBy'),
                         allowedActivityTypeIds: getMembersFromForm(form, 'allowedActivityTypeIds'),
                     });
@@ -570,7 +584,7 @@ function AdminPageContent() {
             console.error(`Failed to perform action for ${modalOpen}:`, error);
             toast({ title: "Errore", description: error.message || `Impossibile completare l'operazione.`, variant: 'destructive' });
         }
-    }, [modalOpen, editingUser, editingClient, editingDepartment, editingTeam, editingActivity, editingService, editingCalendarPreset, toast, handleCreateUser, fetchData]);
+    }, [modalOpen, editingUser, editingClient, editingDepartment, editingTeam, editingActivity, editingService, editingCalendarPreset, toast, handleCreateUser, fetchData, users]);
 
     const { authFetch } = useAuthFetch();
 
