@@ -23,9 +23,12 @@ type Props = {
   decide: (id: string, action: 'approve' | 'reject') => void
   openId: string | null
   setOpenId: (id: string | null) => void
+  /** Mette un'azienda in «mai contattare» (add) o la riammette (remove). */
+  exclude: (domain: string, add: boolean) => void
+  exclusionBusy: boolean
 }
 
-export function OutboxTab({ outbox, companies, pending, busy, decide, openId, setOpenId }: Props) {
+export function OutboxTab({ outbox, companies, pending, busy, decide, openId, setOpenId, exclude, exclusionBusy }: Props) {
   const wantedFor = useMemo(() => new Map(pending.filter((p) => p.outboxId).map((p) => [p.outboxId as string, p.action])), [pending])
   const [filter, setFilter] = useState<'all' | 'pending_review'>('all')
   const rows = useMemo(
@@ -83,9 +86,10 @@ export function OutboxTab({ outbox, companies, pending, busy, decide, openId, se
 
       <section className="space-y-2">
         <h2 className="text-lg font-medium">Aziende trovate ({companies.length})</h2>
+        <p className="text-xs text-muted-foreground">«Escludi» mette l&apos;azienda in «mai contattare»: Sellbird non le scrive più, nemmeno le email già approvate, e le sue bozze in coda vengono rifiutate. «Riammetti» la toglie dalla lista (le bozze rifiutate non tornano).</p>
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full text-sm">
-            <thead><tr className="text-left text-xs text-muted-foreground"><th className="p-2 font-medium">Azienda</th><th className="p-2 font-medium">Zona</th><th className="p-2 text-right font-medium">Contatti</th><th className="p-2 text-right font-medium">Inviate</th><th className="p-2 font-medium">Risposta</th></tr></thead>
+            <thead><tr className="text-left text-xs text-muted-foreground"><th className="p-2 font-medium">Azienda</th><th className="p-2 font-medium">Zona</th><th className="p-2 text-right font-medium">Contatti</th><th className="p-2 text-right font-medium">Inviate</th><th className="p-2 font-medium">Risposta</th><th className="p-2 font-medium">Contatto</th></tr></thead>
             <tbody>
               {companies.map((c) => (
                 <tr key={c.id} className="border-t border-border">
@@ -94,6 +98,16 @@ export function OutboxTab({ outbox, companies, pending, busy, decide, openId, se
                   <td className="p-2 text-right">{c.prospects}</td>
                   <td className="p-2 text-right">{c.emailsSent}</td>
                   <td className="p-2">{c.replied ? 'Sì' : '—'}</td>
+                  <td className="p-2">
+                    {c.domain && (
+                      <div className="flex items-center gap-2">
+                        {c.excluded && <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-600 dark:text-red-400">Esclusa</span>}
+                        <button className={btn} disabled={exclusionBusy} onClick={() => exclude(c.domain, !c.excluded)}>
+                          {c.excluded ? 'Riammetti' : 'Escludi'}
+                        </button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

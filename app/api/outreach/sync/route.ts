@@ -36,6 +36,7 @@ import {
     type OutreachReplyItem,
     type OutreachSignalItem,
 } from '@/lib/outreach';
+import { parseExclusions } from '@/lib/outreach-exclusions';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
         campaigns,
         signals,
         discover: parseDiscoverInfo(body?.discover),
+        exclusions: parseExclusions(body?.exclusions),
         sendingPaused: parsePaused(body?.sendingPaused),
     });
 

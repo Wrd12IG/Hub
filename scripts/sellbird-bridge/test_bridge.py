@@ -118,6 +118,167 @@ class SnapshotTest(unittest.TestCase):
         con.close()
 
 
+try:
+    import yaml
+except ImportError:  # sul Mac di sviluppo PyYAML può mancare; nel contenitore di Sellbird c'è
+    yaml = None
+
+CONFIG = """persona:
+  name: Roberto Solano
+compliance:
+  postal_address: |-
+    Roberto Solano
+    WRDigital S.R.L.
+  opt_out_line: Non ti interessa? Scrivimi.
+  precleared:
+    sender_country: IT
+channels:
+  email:
+    provider: gmail
+"""
+
+
+@unittest.skipUnless(yaml, "serve PyYAML")
+class ExclusionTest(unittest.TestCase):
+    """«Escludi» dalla hub: modifica sicura del file di configurazione e bozze rifiutate."""
+
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        os.makedirs(os.path.join(self.dir.name, "data"))
+        self.db = os.path.join(self.dir.name, "data", "sellbird.db")
+        make_db(self.db)
+        con = sqlite3.connect(self.db)
+        con.execute("INSERT INTO companies VALUES ('c2', 'Altra', 'altro.example.org', 'Roma', '2026-11-18')")
+        con.execute("INSERT INTO prospects (id, company_id, email, status) VALUES ('p3', 'c2', 'info@altro.example.org', 'new')")
+        con.execute("INSERT INTO outbox VALUES ('o3', 'p3', 'k1', 1, 'sequence', 'info@altro.example.org', 'S', 'B', 'pending_review', NULL, NULL, NULL, '2026-11-18')")
+        con.execute("INSERT INTO outbox VALUES ('o4', 'p1', 'k1', 2, 'sequence', 'info@esempio.example.com', 'S', 'B', 'approved', NULL, NULL, NULL, '2026-11-18')")
+        con.execute("UPDATE outbox SET id = 'ob-' || id")   # gli id veri di Sellbird sono lunghi (12 caratteri): il ponte scarta quelli corti
+        con.commit()
+        con.close()
+        self.cfg = os.path.join(self.dir.name, "sellbird.local.yaml")
+        self.write(CONFIG)
+        self.calls = []
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def write(self, text):
+        with open(self.cfg, "w", encoding="utf-8") as f:
+            f.write(text)
+
+    def load(self):
+        with open(self.cfg, encoding="utf-8") as f:
+            return yaml.safe_load(f)
+
+    def run_cmd(self, cmd, ok=True):
+        def fake(args, **kw):
+            self.calls.append(args)
+            return mock.Mock(returncode=0 if ok else 1, stdout="", stderr="")
+
+        with mock.patch.dict(os.environ, {"SELLBIRD_CMD": "python -m sellbird"}), mock.patch.object(bridge.subprocess, "run", fake):
+            return bridge.apply_command(self.dir.name, cmd)
+
+    def test_add_edits_only_the_list_and_keeps_a_backup(self):
+        before = self.load()
+        ok, err, extra = self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
+        self.assertTrue(ok, err)
+        after = self.load()
+        self.assertEqual(after["compliance"]["do_not_contact"], ["esempio.example.com"])
+        after["compliance"].pop("do_not_contact")
+        self.assertEqual(after, before)                                    # tutto il resto, comprese le righe multiple, intatto
+        self.assertEqual(self.load()["compliance"]["postal_address"], "Roberto Solano\nWRDigital S.R.L.")
+        with open(self.cfg + ".bak-dnc", encoding="utf-8") as f:
+            self.assertEqual(f.read(), CONFIG)                              # la copia è il file di prima
+        self.assertFalse(os.path.exists(self.cfg + ".tmp"))                # nessun file temporaneo rimasto
+        self.assertIn("aggiunto", extra["result"])
+
+    def test_add_rejects_only_the_drafts_of_that_domain(self):
+        ok, err, extra = self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
+        rejected = sorted(c[-1] for c in self.calls)
+        self.assertEqual(rejected, ["ob-o2", "ob-o4"])                      # da rivedere e approvata di quell'azienda, non ob-o3 di un'altra
+        self.assertTrue(all(c[-3:-1] == ["outbox", "--reject"] for c in self.calls))
+        self.assertIn("Bozze rifiutate: 2", extra["result"])
+
+    def test_subdomains_are_covered(self):
+        con = sqlite3.connect(self.db)
+        con.execute("INSERT INTO companies VALUES ('c3', 'Shop', 'shop.altro.example.org', 'Roma', 'x')")
+        con.execute("INSERT INTO prospects (id, company_id, email) VALUES ('p4', 'c3', 'a@shop.altro.example.org')")
+        con.execute("INSERT INTO outbox VALUES ('ob-o5', 'p4', 'k1', 1, 'sequence', 'a@shop.altro.example.org', 'S', 'B', 'pending_review', NULL, NULL, NULL, 'x')")
+        con.commit()
+        con.close()
+        self.run_cmd({"action": "dnc_add", "domain": "altro.example.org"})
+        self.assertEqual(sorted(c[-1] for c in self.calls), ["ob-o3", "ob-o5"])   # il dominio e il suo sottodominio
+
+    def test_add_twice_does_not_duplicate(self):
+        self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
+        ok, err, extra = self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
+        self.assertTrue(ok)
+        self.assertEqual(self.load()["compliance"]["do_not_contact"], ["esempio.example.com"])
+        self.assertIn("già in lista", extra["result"])
+
+    def test_remove(self):
+        self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
+        self.run_cmd({"action": "dnc_add", "domain": "altro.example.org"})
+        self.calls.clear()
+        ok, err, extra = self.run_cmd({"action": "dnc_remove", "domain": "esempio.example.com"})
+        self.assertTrue(ok, err)
+        self.assertEqual(self.load()["compliance"]["do_not_contact"], ["altro.example.org"])
+        self.assertEqual(self.calls, [])                                    # togliere non rifiuta né invia nulla
+        ok, err, _ = self.run_cmd({"action": "dnc_remove", "domain": "mai-stata.example.com"})
+        self.assertFalse(ok)
+
+    def test_bad_domains_never_touch_the_file(self):
+        for domain in ("ESEMPIO.example.com", "http://esempio.it", "a b.it", "../x", "*.it", "x", "esempio.it/", "localhost", "", None, 5,
+                       "esempio.example.com; ls", "a@b.it", "x" * 120 + ".it"):
+            ok, _, _ = self.run_cmd({"action": "dnc_add", "domain": domain})
+            self.assertFalse(ok, domain)
+        self.assertEqual(self.calls, [])
+        with open(self.cfg, encoding="utf-8") as f:
+            self.assertEqual(f.read(), CONFIG)
+        self.assertFalse(os.path.exists(self.cfg + ".bak-dnc"))             # niente è cambiato, nessuna copia
+
+    def test_failed_verification_restores_the_file(self):
+        with mock.patch.object(bridge, "config_dnc", return_value=[]):
+            ok, why = bridge.edit_dnc(self.dir.name, "esempio.example.com", True)
+        self.assertFalse(ok)
+        self.assertIn("ripristinato", why)
+        with open(self.cfg, encoding="utf-8") as f:
+            self.assertEqual(f.read(), CONFIG)
+
+    def test_unreadable_config_is_a_clean_error(self):
+        self.write("compliance: [questo: non: è: yaml")
+        ok, why = bridge.edit_dnc(self.dir.name, "esempio.example.com", True)
+        self.assertFalse(ok)
+        self.assertEqual(open(self.cfg, encoding="utf-8").read(), "compliance: [questo: non: è: yaml")
+        self.assertFalse(bridge.edit_dnc("/non/esiste", "esempio.example.com", True)[0])
+
+    def test_falls_back_to_the_base_config_file(self):
+        base = os.path.join(self.dir.name, "sellbird.yaml")
+        os.replace(self.cfg, base)
+        ok, err, _ = self.run_cmd({"action": "dnc_add", "domain": "esempio.example.com"})
+        self.assertTrue(ok, err)
+        self.assertIn("esempio.example.com", yaml.safe_load(open(base, encoding="utf-8"))["compliance"]["do_not_contact"])
+
+    def test_snapshot_flags_companies_and_lists_domains(self):
+        con = sqlite3.connect(self.db)
+        for cid, dom in (("c5", "rimor.it"), ("c6", "shop.rimor.it"), ("c7", "notrimor.it")):
+            con.execute("INSERT INTO companies VALUES (?, ?, ?, '', 'x')", (cid, cid, dom))
+        con.commit()
+        con.close()
+        self.write(CONFIG.replace("compliance:\n", "compliance:\n  do_not_contact:\n  - rimor.it\n  - mario@altro.it\n  - https://WWW.Maiuscolo.IT/pagina\n  - non un dominio\n"))
+        snap = bridge.snapshot(self.db, self.dir.name)
+        flags = {c["domain"]: c["excluded"] for c in snap["companies"]}
+        self.assertEqual((flags["rimor.it"], flags["shop.rimor.it"], flags["notrimor.it"], flags["esempio.example.com"]), (True, True, False, False))
+        self.assertEqual(snap["exclusions"], ["rimor.it", "maiuscolo.it"])  # normalizzate come fa Sellbird; niente indirizzi singoli né voci non valide
+
+    def test_domain_excluded(self):
+        self.assertTrue(bridge.domain_excluded("www.rimor.it", ["rimor.it"]))
+        self.assertTrue(bridge.domain_excluded("shop.rimor.it", ["rimor.it"]))
+        self.assertFalse(bridge.domain_excluded("notrimor.it", ["rimor.it"]))
+        self.assertFalse(bridge.domain_excluded("rimor.it", ["mario@rimor.it"]))   # un indirizzo non esclude il dominio
+        self.assertFalse(bridge.domain_excluded("", ["rimor.it"]))
+
+
 class DeltaTest(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()

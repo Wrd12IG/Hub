@@ -5,7 +5,7 @@ Ponte tra Sellbird e la hub. Gira sul computer dove gira Sellbird, accanto a lui
 Ogni giro:
   1. ritira dalla hub le decisioni prese da un amministratore (approva / rifiuta una bozza, ferma o riprendi gli invii)
      e le applica con la riga di comando di Sellbird (`sellbird outbox --approve|--reject <id>`,
-     `sellbird sending pause|resume`), poi dice alla hub com'è andata;
+     `sellbird sending pause|resume`, e le esclusioni «mai contattare»), poi dice alla hub com'è andata;
   2. manda alla hub lo stato: email in coda, aziende, contatti, risposte, campagne, segnali, contatori e pausa.
      Le liste lunghe vanno a differenza (solo le righe cambiate; tutto, una volta all'ora): scrivere ogni volta ogni
      documento su Firestore costerebbe migliaia di scritture al giorno per niente.
@@ -29,6 +29,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -53,6 +54,10 @@ DISCOVER_PROVIDERS = ("osm", "serper")
 DISCOVER_HARD_CAP = 2.0
 MAX_CITIES = 10
 MAX_SECTORS = 5
+# Un dominio da mettere in «mai contattare»: etichette di lettere, cifre e trattini, punto, estensione. Come nella hub.
+DOMAIN_RE = re.compile(r"(?=.{4,100}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}")
+MAX_EXCLUSIONS = 500
+MAX_REJECT = 60
 # Un luogo è «Comune, SIGLA» o una regione: lettere, cifre, spazi e pochi segni. Niente ';' (separa le città), niente simboli di shell.
 PLACE_RE = re.compile(r"[\w .,'’()/-]{2,80}")
 MAX_SIGNAL_CODES = 40
@@ -202,6 +207,104 @@ def config_industries(sellbird_dir):
     return []
 
 
+def config_path(sellbird_dir):
+    """Il file di configurazione che Sellbird legge davvero: quello «local» se c'è, altrimenti quello di base."""
+    for name in ("sellbird.local.yaml", "sellbird.yaml"):
+        path = os.path.join(sellbird_dir or "", name)
+        if sellbird_dir and os.path.exists(path):
+            return path
+    return None
+
+
+def norm_entry(entry):
+    """Una voce della lista come la legge Sellbird: minuscola, e per un dominio senza schema, percorso e «www.» (nel file può
+    esserci «https://www.Esempio.it/»: per Sellbird è «esempio.it»). Un indirizzo resta un indirizzo."""
+    e = entry.strip().lower()
+    if "@" in e:
+        return e
+    return e.removeprefix("http://").removeprefix("https://").split("/")[0].removeprefix("www.")
+
+
+def config_dnc(sellbird_dir):
+    """La lista «mai contattare» (compliance.do_not_contact), com'è nel file. Voci: domini o singoli indirizzi."""
+    path = config_path(sellbird_dir)
+    if not path:
+        return []
+    try:
+        import yaml
+        with open(path, encoding="utf-8") as f:
+            items = ((yaml.safe_load(f) or {}).get("compliance") or {}).get("do_not_contact") or []
+    except Exception:
+        return []
+    return [norm_entry(i) for i in items if isinstance(i, str) and i.strip()][:MAX_EXCLUSIONS]
+
+
+def domain_excluded(domain, entries):
+    """Il dominio è coperto da una voce della lista? Una voce senza «@» copre il dominio e i suoi sottodomini."""
+    d = (domain or "").lower().removeprefix("www.")
+    return any(e == d or d.endswith("." + e) for e in entries if "@" not in e)
+
+
+def edit_dnc(sellbird_dir, domain, add):
+    """Aggiunge o toglie un dominio da compliance.do_not_contact nel file di configurazione di Sellbird.
+
+    Con copia di sicurezza (`<file>.bak-dnc`), scrittura atomica (Sellbird rilegge il file mentre gira e non deve mai vederlo a
+    metà) e verifica: se dopo la scrittura il dominio non è come deve, si rimette la copia. Ritorna (ok, messaggio)."""
+    path = config_path(sellbird_dir)
+    if not path:
+        return False, "file di configurazione non trovato"
+    try:
+        import yaml
+    except ImportError:
+        return False, "PyYAML non disponibile: l'esclusione dalla hub funziona nel contenitore di Sellbird"
+    try:
+        with open(path, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        compliance = cfg.setdefault("compliance", {})
+        items = [i for i in (compliance.get("do_not_contact") or []) if isinstance(i, str)]
+        lowered = [i.strip().lower() for i in items]
+        if add:
+            if domain in lowered:
+                return True, "già in lista"
+            if len(items) >= MAX_EXCLUSIONS:
+                return False, "lista troppo lunga"
+            items.append(domain)
+        else:
+            kept = [i for i, low in zip(items, lowered) if low != domain]
+            if len(kept) == len(items):
+                return False, "non è in lista"
+            items = kept
+        compliance["do_not_contact"] = items
+        backup = path + ".bak-dnc"
+        shutil.copy2(path, backup)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False, width=100)
+        os.replace(tmp, path)
+        after = config_dnc(sellbird_dir)
+        if (domain in after) != add:
+            shutil.copy2(backup, path)
+            return False, "verifica fallita: ripristinato il file com'era"
+        return True, "aggiunto" if add else "tolto"
+    except (OSError, ValueError, yaml.YAMLError) as e:
+        return False, f"{type(e).__name__}: {str(e)[:120]}"
+
+
+def pending_drafts_for_domain(db_path, domain):
+    """Gli id delle email ancora in coda (da rivedere o approvate) per le aziende di quel dominio e dei suoi sottodomini."""
+    con = sqlite3.connect(db_path, timeout=10)
+    con.execute("PRAGMA query_only = ON")
+    try:
+        rows = con.execute(
+            "SELECT o.id FROM outbox o JOIN prospects p ON p.id = o.prospect_id JOIN companies c ON c.id = p.company_id "
+            "WHERE o.status IN ('pending_review', 'approved') AND (LOWER(c.domain) = ? OR LOWER(c.domain) LIKE ?) LIMIT ?",
+            (domain, "%." + domain, MAX_REJECT),
+        ).fetchall()
+    finally:
+        con.close()
+    return [str(r[0]) for r in rows if ID_RE.match(str(r[0]))]
+
+
 _INDUSTRY_OPTION = {}
 
 
@@ -324,6 +427,24 @@ def apply_command(sellbird_dir, cmd):
         ok, err, out = run_sellbird(sellbird_dir, ["signals", "--confirm" if status == "confirmed" else "--reject", ",".join(codes)])
         return ok, err, {"result": out}
 
+    if action in ("dnc_add", "dnc_remove"):
+        domain = cmd.get("domain")
+        if not isinstance(domain, str) or not DOMAIN_RE.fullmatch(domain):
+            return False, "dominio non valido", {}
+        add = action == "dnc_add"
+        ok, why = edit_dnc(sellbird_dir, domain, add)
+        if not ok:
+            return False, why, {}
+        result = f"{domain}: {why}."
+        if add:
+            # Il controllo di Sellbird blocca comunque l'invio, ma una bozza in coda resterebbe visibile e approvabile: si rifiuta.
+            rejected = failed = 0
+            for outbox_id in pending_drafts_for_domain(os.path.join(sellbird_dir, "data", "sellbird.db"), domain):
+                ok_r, _, _ = run_sellbird(sellbird_dir, ["outbox", "--reject", outbox_id])
+                rejected, failed = rejected + (1 if ok_r else 0), failed + (0 if ok_r else 1)
+            result += f" Bozze rifiutate: {rejected}" + (f" ({failed} non rifiutate)." if failed else ".")
+        return True, None, {"result": result}
+
     return False, "comando non valido", {}
 
 
@@ -364,6 +485,7 @@ def snapshot(db_path, sellbird_dir=None):
     con = sqlite3.connect(db_path, timeout=10)
     con.execute("PRAGMA query_only = ON")
     try:
+        dnc = config_dnc(sellbird_dir)
         outbox = [{
             "id": str(r[0]), "status": r[1], "to": r[2] or "", "subject": r[3] or "", "body": r[4] or "",
             "step": r[5] or 0, "kind": r[6] or "", "sendAt": r[7], "sentAt": r[8], "error": r[9],
@@ -372,6 +494,7 @@ def snapshot(db_path, sellbird_dir=None):
         companies = [{
             "id": str(r[0]), "name": r[1] or "", "domain": r[2] or "", "location": r[3] or "",
             "prospects": r[4], "emailsSent": r[5], "replied": r[6] > 0,
+            "excluded": domain_excluded(r[2], dnc),
         } for r in con.execute(COMPANIES_SQL, (MAX_COMPANIES,))]
 
         replies = []
@@ -440,6 +563,7 @@ def snapshot(db_path, sellbird_dir=None):
     return {
         "outbox": outbox, "companies": companies, "contacts": contacts, "replies": replies, "campaigns": campaigns,
         "signals": signals, "outboxCounts": outbox_counts, "stats": stats, "sendingPaused": paused or None,
+        "exclusions": [e for e in dnc if "@" not in e and DOMAIN_RE.fullmatch(e)],
         # Cosa la hub può chiedere a Discover: provider, città del profilo (scorciatoie) e tetto. Cap 0 = spento.
         "discover": {
             "providers": list(DISCOVER_PROVIDERS), "cities": config_cities(sellbird_dir), "cap": discover_cap(),
