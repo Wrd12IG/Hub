@@ -113,6 +113,7 @@ const adminNavItems: NavItem[] = [
   { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-500' },
   { href: '/andamento-clienti', icon: BarChart3, label: 'Andamento clienti', color: 'text-violet-400' },
   { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-sky-400' },
+  { href: '/site-monitor', icon: Search, label: 'Monitor siti', color: 'text-teal-400' },
   { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-400' },
 ];
 
