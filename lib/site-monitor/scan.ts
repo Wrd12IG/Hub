@@ -9,7 +9,7 @@ import { pagesAllowed, monthKey, type BudgetConfig } from './budget';
 import { classifyImageCheck, classifyLinkCheck } from './checks';
 import { fingerprint, canonicalUrl } from './fingerprint';
 import { isPublicHttpUrl, type FirecrawlClient } from './firecrawl';
-import { parseSitemap, staleSitemapFinding } from './sitemap';
+import { parseSitemap, staleSitemapFinding, type SitemapInfo } from './sitemap';
 import type { FindingRecord, ScanRecord, SiteMonitorStore } from './store';
 import type { Finding, ImageRef, UrlCheck } from './types';
 
@@ -28,6 +28,7 @@ export interface ScanDeps {
 
 export const MAX_LINK_CHECKS = 40;
 export const MAX_IMAGE_CHECKS = 40;
+export const MAX_CHILD_SITEMAPS = 5;
 
 export interface ScanResult { scan: ScanRecord; findings: FindingRecord[] }
 
@@ -57,7 +58,16 @@ export async function scanSite(clientId: string, siteUrl: string, deps: ScanDeps
     // 2. Quali pagine: la home e quelle della sitemap (stesso sito), nell'ordine, fino al limite
     const sitemapUrl = `${origin}/sitemap.xml`;
     const xml = await deps.fetchText(sitemapUrl);
-    const info = xml ? parseSitemap(xml) : { urls: [], sitemaps: [] };
+    const info: SitemapInfo = xml ? parseSitemap(xml) : { urls: [], sitemaps: [] };
+    // Indice di sitemap (WordPress, Rank Math…): si leggono le sitemap figlie, gratis, fino a MAX_CHILD_SITEMAPS.
+    for (const child of info.sitemaps.slice(0, MAX_CHILD_SITEMAPS)) {
+        if (!isPublicHttpUrl(child) || !sameHost(child, origin)) continue;
+        const cx = await deps.fetchText(child);
+        if (!cx) continue;
+        const ci = parseSitemap(cx);
+        info.urls.push(...ci.urls);
+        if (ci.newest && (!info.newest || ci.newest > info.newest)) info.newest = ci.newest;
+    }
     const queue: string[] = [];
     const seen = new Set<string>();
     for (const u of [origin + '/', ...info.urls.map((x) => x.loc)]) {

@@ -25,7 +25,8 @@ export async function checkUrl(start: string): Promise<UrlCheck> {
         for (let hops = 0; hops <= MAX_HOPS; hops++) {
             if (!isPublicHttpUrl(url)) return { url: start, status: 0, hops, error: 'indirizzo non consentito' };
             let res = await once(url, 'HEAD');
-            if (res.status === 405 || res.status === 501) { await res.body?.cancel().catch(() => undefined); res = await once(url, 'GET'); }
+            // Alcuni siti rispondono 404 a HEAD ma 200 a GET: prima di dire «rotto» si riprova con GET.
+            if (res.status === 404 || res.status === 410 || res.status === 405 || res.status === 501) { await res.body?.cancel().catch(() => undefined); res = await once(url, 'GET'); }
             const loc = res.headers.get('location');
             if (res.status >= 300 && res.status < 400 && loc) {
                 await res.body?.cancel().catch(() => undefined);
@@ -42,13 +43,23 @@ export async function checkUrl(start: string): Promise<UrlCheck> {
     }
 }
 
-/** Testo di un file (max 5 MB). `null` se non c'è o non è raggiungibile. */
-export async function fetchText(url: string): Promise<string | null> {
-    if (!isPublicHttpUrl(url)) return null;
+/** Testo di un file (max 5 MB), seguendo fino a 5 rimandi (molti siti rimandano /sitemap.xml a /sitemap_index.xml). `null` se non c'è o non è raggiungibile. */
+export async function fetchText(start: string): Promise<string | null> {
+    let url = start;
     try {
-        const res = await once(url, 'GET');
-        if (!res.ok) { await res.body?.cancel().catch(() => undefined); return null; }
-        const text = await res.text();
-        return text.length > 5_000_000 ? null : text;
+        for (let hops = 0; hops <= MAX_HOPS; hops++) {
+            if (!isPublicHttpUrl(url)) return null;
+            const res = await once(url, 'GET');
+            const loc = res.headers.get('location');
+            if (res.status >= 300 && res.status < 400 && loc) {
+                await res.body?.cancel().catch(() => undefined);
+                url = new URL(loc, url).toString();
+                continue;
+            }
+            if (!res.ok) { await res.body?.cancel().catch(() => undefined); return null; }
+            const text = await res.text();
+            return text.length > 5_000_000 ? null : text;
+        }
+        return null;
     } catch { return null; }
 }
