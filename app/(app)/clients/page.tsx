@@ -47,7 +47,6 @@ export default function ClientsPage() {
   )
 
   const filteredClients = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const list = (clients || []) as any[]
     return list.filter(
       (c) =>
@@ -136,7 +135,6 @@ export default function ClientsPage() {
                     <div className="flex items-center gap-3 min-w-0">
                       <Avatar className="h-10 w-10 flex-shrink-0">
                         <AvatarFallback
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           style={{ backgroundColor: (client as any)?.color || undefined }}
                           className="text-white text-sm font-semibold"
                         >
@@ -155,21 +153,17 @@ export default function ClientsPage() {
 
                   {/* Details */}
                   <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {(client as any).websiteUrl && (
                       <div className="flex items-center gap-1.5 min-w-0">
                         <Globe className="h-3.5 w-3.5 flex-shrink-0" />
                         <span className="truncate">
-                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                           {(client as any).websiteUrl.replace(/^https?:\/\//, '')}
                         </span>
                       </div>
                     )}
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {(client as any).industry && (
                       <div className="mt-1">
                         <Badge variant="secondary" className="text-xs">
-                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                           {(client as any).industry}
                         </Badge>
                       </div>

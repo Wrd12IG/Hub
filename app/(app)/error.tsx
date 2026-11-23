@@ -30,7 +30,7 @@ export default function Error({
                     Qualcosa è andato storto
                 </h1>
                 <p className="text-sm text-muted-foreground max-w-md">
-                    Si è verificato un errore inaspettato. Il team è stato notificato.
+                    Si è verificato un errore inaspettato. Riprova; se il problema continua, avvisa il team indicando cosa stavi facendo.
                     {error.digest && (
                         <span className="block mt-1 font-mono text-xs opacity-60">
                             ID: {error.digest}

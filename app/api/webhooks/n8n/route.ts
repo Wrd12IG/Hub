@@ -11,12 +11,16 @@ import { adminDb } from '@/lib/firebase-admin';
 
 export async function POST(req: Request) {
   try {
-    // 1. Verify Authorization Header (Secret Token)
-    // In production, add N8N_WEBHOOK_SECRET to Vercel env variables
+    // 1. Verifica del segreto. Chiuso se manca: prima, con N8N_WEBHOOK_SECRET non impostato, il controllo veniva saltato e chiunque
+    //    poteva scrivere nei dati dei clienti. Aggiungi N8N_WEBHOOK_SECRET alle variabili di Vercel e usa lo stesso valore in n8n.
     const authHeader = req.headers.get('authorization');
     const expectedToken = process.env.N8N_WEBHOOK_SECRET;
 
-    if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {
+    if (!expectedToken) {
+      console.error('[webhooks/n8n] N8N_WEBHOOK_SECRET non configurato: richiesta rifiutata');
+      return NextResponse.json({ error: 'Webhook non configurato' }, { status: 503 });
+    }
+    if (authHeader !== `Bearer ${expectedToken}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
