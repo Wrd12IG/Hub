@@ -1,5 +1,6 @@
 "use client"
 
+import { selectableClients } from '@/lib/client-archive';
 import * as React from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -293,8 +294,9 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
 
     // Sorted clients alphabetically
     const sortedClients = React.useMemo(() => {
-        return [...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' }));
-    }, [clients]);
+        // Gli archiviati non si scelgono più, ma un task di un cliente archiviato deve riaprirsi con il suo cliente.
+        return selectableClients(clients, watchedClientId).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' }));
+    }, [clients, watchedClientId]);
 
     // Filter activity types based on selected client
     const filteredActivityTypes = React.useMemo(() => {

@@ -10,6 +10,7 @@ import { adminDb } from '@/lib/firebase-admin';
 import { forbiddenResponse, getAppUser, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
 import { validateApply } from '@/lib/assignments/apply';
 import type { AssignClient, AssignUser } from '@/lib/assignments/model';
+import { isArchivedClient } from '@/lib/client-archive';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,7 +26,9 @@ async function load() {
     const users = us.docs
         .map((d) => ({ id: d.id, name: String(d.get('name') ?? d.id).trim(), role: d.get('role') as string | undefined, status: d.get('status') as string | undefined, backupUserId: (d.get('backupUserId') as string | undefined) ?? null }))
         .filter((u) => u.role !== 'Cliente');
+    // I clienti archiviati non si assegnano e non contano tra quelli «senza referente» (lib/client-archive.ts).
     const clients: AssignClient[] = cs.docs
+        .filter((d) => !isArchivedClient({ archived: d.get('archived') as boolean | null | undefined }))
         .map((d) => ({ id: d.id, name: String(d.get('name') ?? d.id).trim(), referenteId: (d.get('referenteId') as string | undefined) ?? null, peso: (d.get('peso') as number | undefined) ?? null, direzionale: (d.get('direzionale') as boolean | undefined) ?? null }))
         .sort((a, b) => a.name.localeCompare(b.name));
     return { users: users as Array<AssignUser & { backupUserId: string | null }>, clients };

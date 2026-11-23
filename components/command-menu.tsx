@@ -133,7 +133,7 @@ const statusColors: Record<string, string> = {
 export default function CommandMenu() {
     const { open, setOpen } = useCommandMenu()
     const router = useRouter()
-    const { currentUser, clients, users } = useLayoutData()
+    const { currentUser, clients, activeClients, users } = useLayoutData()
 
     const [searchQuery, setSearchQuery] = React.useState("")
     const [isSearching, setIsSearching] = React.useState(false)
@@ -266,7 +266,7 @@ export default function CommandMenu() {
 
                 // Search Clients (from context for speed)
                 if (type === 'all' || type === 'client') {
-                    newResults.clients = clients
+                    newResults.clients = activeClients
                         .filter(c =>
                             c.name?.toLowerCase().includes(searchLower) ||
                             c.email?.toLowerCase().includes(searchLower)
@@ -305,7 +305,7 @@ export default function CommandMenu() {
         }
 
         performSearch()
-    }, [debouncedSearch, clients, users, parseSearchQuery])
+    }, [debouncedSearch, activeClients, users, parseSearchQuery])
 
     // Navigation handler
     const handleSelect = React.useCallback((path: string, saveSearch = true) => {

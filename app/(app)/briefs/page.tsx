@@ -1,5 +1,6 @@
 'use client';
 
+import { selectableClients } from '@/lib/client-archive';
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -227,7 +228,7 @@ export default function BriefsPage() {
                                     <SelectTrigger><SelectValue placeholder="Seleziona cliente" /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="all">Tutti i clienti</SelectItem>
-                                        {[...clients].sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map(c => (
+                                        {selectableClients(clients, filters.clientId).sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map(c => (
                                             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                         ))}
                                     </SelectContent>

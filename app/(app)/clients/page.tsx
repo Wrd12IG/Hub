@@ -14,7 +14,7 @@ import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid'
 import { ClientHealthDot, type ClientHealthRow } from '@/components/ClientHealthDot'
 
 export default function ClientsPage() {
-  const { clients, isLoadingLayout } = useLayoutData()
+  const { activeClients: clients, isLoadingLayout } = useLayoutData()
   const [search, setSearch] = useState('')
 
   /* I verdetti già calcolati, in una chiamata sola. La route non calcola

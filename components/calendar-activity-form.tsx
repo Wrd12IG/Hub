@@ -1,3 +1,4 @@
+import { selectableClients } from '@/lib/client-archive';
 import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -60,7 +61,7 @@ const ClientMultiSelect = ({
     const [open, setOpen] = useState(false);
 
     // Sort clients alphabetically
-    const sortedClients = [...clients].sort((a, b) =>
+    const sortedClients = selectableClients(clients, ...(value || [])).sort((a, b) =>
         (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })
     );
 

@@ -648,6 +648,20 @@ function AdminPageContent() {
         }
     };
 
+    // Archivia o ripristina: il cliente resta nello storico (task, progetti, report), sparisce solo da elenchi e selettori.
+    const handleArchiveClient = async (client: Client, archived: boolean) => {
+        try {
+            const res = await authFetch(`/api/clients/${client.id}/archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived }) });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`);
+            toast({ title: archived ? 'Cliente archiviato' : 'Cliente ripristinato', description: archived ? `${client.name} non compare più negli elenchi. Lo storico resta.` : `${client.name} è di nuovo attivo.` });
+            fetchData();
+        } catch (error: any) {
+            console.error('Failed to archive client:', error);
+            toast({ title: 'Errore', description: error.message || 'Impossibile aggiornare il cliente.', variant: 'destructive' });
+        }
+    };
+
     const handleDeleteDepartment = async () => {
         if (!departmentToDelete) return;
         try {
@@ -913,9 +927,10 @@ function AdminPageContent() {
                                                                     {(client?.name || "").charAt(0)}
                                                                 </AvatarFallback>
                                                             </Avatar>
-                                                            <Link href={`/clients/${client.id}`} className="font-medium hover:underline">
+                                                            <Link href={`/clients/${client.id}`} className={`font-medium hover:underline ${client.archived ? 'text-muted-foreground' : ''}`}>
                                                                 {client.name}
                                                             </Link>
+                                                            {client.archived && <Badge variant="secondary">Archiviato</Badge>}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="hidden sm:table-cell">
@@ -967,6 +982,11 @@ function AdminPageContent() {
                                                                     <Link href={`/clients/${client.id}`} className="w-full">Visualizza Profilo</Link>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => openEditClientModal(client)}>Modifica</DropdownMenuItem>
+                                                                {currentUser?.role === 'Amministratore' && (
+                                                                    <DropdownMenuItem onClick={() => handleArchiveClient(client, !client.archived)}>
+                                                                        {client.archived ? 'Ripristina' : 'Archivia'}
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem className="text-red-500" onClick={() => askDeleteClient(client)}>
                                                                     Elimina

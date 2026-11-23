@@ -1,5 +1,6 @@
 "use client"
 
+import { selectableClients } from '@/lib/client-archive'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { ChevronDown, Briefcase, Building2, Search } from 'lucide-react'
@@ -42,7 +43,7 @@ export default function ClientSwitcher({ variant = 'sidebar' }: ClientSwitcherPr
     router.push(`/clients/${clientId}`)
   }
 
-  const filteredClients = [...clients]
+  const filteredClients = selectableClients(clients, activeClientId)
     .filter(c => (c.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()))
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 

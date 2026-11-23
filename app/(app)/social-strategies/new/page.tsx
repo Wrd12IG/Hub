@@ -1,5 +1,6 @@
 'use client';
 
+import { selectableClients } from '@/lib/client-archive';
 import { useState, useEffect, Suspense } from 'react';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { SocialProfile, SocialStrategy } from '@/lib/data';
@@ -424,7 +425,7 @@ Genera il JSON con questa struttura esatta:
                                         <SelectValue placeholder="Seleziona un cliente..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
+                                        {selectableClients(clients, selectedClientId).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
                                             <SelectItem key={c.id} value={c.id}>
                                                 {c.name}
                                             </SelectItem>
