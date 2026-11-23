@@ -55,7 +55,8 @@ import {
   FolderOpen,
   UserRoundX,
   TrendingUp,
-  ScanSearch
+  ScanSearch,
+  UserCog
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -116,6 +117,7 @@ const adminNavItems: NavItem[] = [
   { href: '/andamento-clienti', icon: TrendingUp, label: 'Andamento clienti', color: 'text-violet-400' },
   { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-orange-400' },
   { href: '/site-monitor', icon: ScanSearch, label: 'Monitor siti', color: 'text-orange-400' },
+  { href: '/admin/assegnazioni', icon: UserCog, label: 'Assegnazioni', color: 'text-orange-400' },
   { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-400' },
 ];
 
