@@ -34,7 +34,8 @@ import { getFirestore, collection, query, onSnapshot, orderBy, where, doc } from
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import dynamic from 'next/dynamic';
-import type { EmojiClickData } from 'emoji-picker-react';
+import type { EmojiClickData, EmojiStyle } from 'emoji-picker-react';
+import { QUICK_REACTIONS } from '@/lib/chat-reactions';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -126,7 +127,8 @@ function MessageBubble({
   // We use CheckCheck gray for Delivered, CheckCheck green for Read.
   // One Check gray (Sent) is transient in optimistic UI, but here we view DB state.
 
-  const StatusIcon = isRead ? CheckCheck : CheckCheck;
+  // `readBy` non viene scritto da nessuna parte: due spunte «lette» sarebbero false. Finché non c'è il letto vero, una sola spunta = inviato.
+  const StatusIcon = isRead ? CheckCheck : Check;
   const statusColor = isRead ? "text-[#53bdeb]" : "text-[#667781] dark:text-[#8696a0]"; // WhatsApp blue/green for read
   // Adjust: User asked for Green for read. WhatsApp uses Blue. I'll use Green as requested or Blue as standard?
   // User asked: "due spunte verdi letto". OK Green.
@@ -305,7 +307,7 @@ function MessageBubble({
 
       {/* Quick actions (visible on hover) */}
       <div className={cn(
-        "flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
+        "flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity",
         isCurrentUser ? "order-first mr-1" : "ml-1"
       )}>
         <Popover>
@@ -316,7 +318,7 @@ function MessageBubble({
           </PopoverTrigger>
           <PopoverContent className="w-auto p-1 border-0" side="top">
             <div className="flex gap-1">
-              {['', '', '', '', '', ''].map(emoji => (
+              {QUICK_REACTIONS.map(emoji => (
                 <button
                   key={emoji}
                   className="p-1.5 hover:bg-black/5 rounded-full transition text-lg"
@@ -448,7 +450,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
     router.replace(newUrl.pathname + newUrl.search, { scroll: false });
 
     const unreadNotifications = notifications.filter(
-      n => n.type === 'chat_message' && n.resourceId === conversationId && !n.readAt
+      n => n.type === 'chat_message' && n.resourceId === conversationId && !n.isRead
     );
     if (unreadNotifications.length > 0) {
       markAsReadMutation.mutate(unreadNotifications.map(n => n.id));
@@ -693,8 +695,9 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
       const replyUser = replyingTo.userId ? usersById[replyingTo.userId] : undefined;
       replyData = {
         id: replyingTo.id,
-        text: replyingTo.text,
-        senderId: replyingTo.userId || replyingTo.senderId,
+        text: replyingTo.text || (replyingTo.attachments?.[0]?.filename ? `📎 ${replyingTo.attachments[0].filename}` : ''),
+        senderId: replyingTo.userId || replyingTo.senderId || null,
+        // Se il messaggio citato è solo un allegato, si cita il nome del file invece di un testo vuoto.
         username: replyUser?.name || 'Utente'
       };
     }
@@ -846,7 +849,7 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
             .map(conv => {
               const otherUser = getOtherUser(conv);
               const unreadCount = notifications.filter(
-                n => n.type === 'chat_message' && n.resourceId === conv.id && !n.readAt
+                n => n.type === 'chat_message' && n.resourceId === conv.id && !n.isRead
               ).length;
               const isSelected = selectedConversationId === conv.id;
 
@@ -1078,7 +1081,8 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
                       </button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0 border-0" side="top" align="end">
-                      <EmojiPicker onEmojiClick={onEmojiClick} />
+                      {/* Emoji del sistema: lo stile predefinito carica le immagini da un sito esterno, che la CSP dell'app blocca (le emoji restavano vuote). */}
+                      <EmojiPicker onEmojiClick={onEmojiClick} emojiStyle={'native' as unknown as EmojiStyle} />
                     </PopoverContent>
                   </Popover>
                 </div>
