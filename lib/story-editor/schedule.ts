@@ -48,7 +48,8 @@ export function describeSchedule(args: { publicationDate: string; afterSave: Aft
     }
     // approve
     if (!at) return { tone: 'warn', text: 'Approvata ma senza data: non esce da sola. Scegli giorno e ora, oppure usa «Pubblica ora» dal PED.' };
-    const state = dueState({ status: 'Approvato', publicationDate }, now);
+    // Si descrive ciò che succederebbe DOPO l'approvazione: un contenuto con approvazione vera (vedi approvalGate).
+    const state = dueState({ status: 'Approvato', approval: { status: 'approved', requestedAt: now.toISOString() }, publicationDate }, now);
     if (state === 'not-yet') return { tone: 'ok', text: `Approvata: esce da sola ${when}.` };
     if (state === 'due') return { tone: 'warn', text: `La data (${when}) è già arrivata: esce entro pochi minuti, appena parte il controllo automatico.` };
     return { tone: 'warn', text: `La data (${when}) è passata da più di 3 giorni: non esce da sola. Scegli una data futura.` };

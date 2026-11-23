@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { contentFingerprint } from '../content-approval';
 import { requestedChannels, dueState, scheduledInstant, isDue, planChannel, extractPostRef, allAutomatedPublished } from '../publisher';
 import type { EditorialContent } from '../data';
 
@@ -24,12 +25,14 @@ describe('scheduledInstant', () => {
     });
 });
 
+const APPROVED = { status: 'Approvato', approval: { status: 'approved' as const, requestedAt: '2026-12-01T00:00:00Z' } };
+
 describe('isDue', () => {
     const now = new Date('2026-12-10T08:30:00.000Z');
-    it('approvato e scaduto', () => expect(isDue({ status: 'Approvato', publicationDate: '2026-12-10' }, now)).toBe(true));
-    it('prima delle 9 di Roma non esce', () => expect(isDue({ status: 'Approvato', publicationDate: '2026-12-10' }, new Date('2026-12-10T07:59:00Z'))).toBe(false));
+    it('approvato e scaduto', () => expect(isDue({ ...APPROVED, publicationDate: '2026-12-10' }, now)).toBe(true));
+    it('prima delle 9 di Roma non esce', () => expect(isDue({ ...APPROVED, publicationDate: '2026-12-10' }, new Date('2026-12-10T07:59:00Z'))).toBe(false));
     it('bozza non esce mai', () => expect(isDue({ status: 'Bozza', publicationDate: '2026-12-01' }, now)).toBe(false));
-    it('senza data non esce', () => expect(isDue({ status: 'Approvato' }, now)).toBe(false));
+    it('senza data non esce', () => expect(isDue({ ...APPROVED }, now)).toBe(false));
 });
 
 describe('planChannel', () => {
@@ -75,9 +78,34 @@ describe('extractPostRef / allAutomatedPublished', () => {
 
 describe('arretrato', () => {
     const now = new Date('2026-12-10T08:30:00.000Z');
-    it('scaduto da meno di 3 giorni esce', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-12-08' }, now)).toBe('due'));
-    it('scaduto da mesi non esce da solo', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-06-23' }, now)).toBe('too-late'));
-    it('futuro non ancora', () => expect(dueState({ status: 'Approvato', publicationDate: '2026-12-20' }, now)).toBe('not-yet'));
+    it('scaduto da meno di 3 giorni esce', () => expect(dueState({ ...APPROVED, publicationDate: '2026-12-08' }, now)).toBe('due'));
+    it('scaduto da mesi non esce da solo', () => expect(dueState({ ...APPROVED, publicationDate: '2026-06-23' }, now)).toBe('too-late'));
+    it('futuro non ancora', () => expect(dueState({ ...APPROVED, publicationDate: '2026-12-20' }, now)).toBe('not-yet'));
+});
+
+describe('approvazione vera prima di pubblicare', () => {
+    const now = new Date('2026-12-10T08:30:00.000Z');
+    const day = '2026-12-10';
+    it('stato «Approvato» scritto a mano, senza approvazione, NON esce', () => {
+        expect(dueState({ status: 'Approvato', publicationDate: day }, now)).toBe('no-approval');
+        expect(isDue({ status: 'Approvato', publicationDate: day }, now)).toBe(false);
+    });
+    it('approvazione in attesa o con richiesta di modifiche NON basta', () => {
+        for (const status of ['requested', 'changes'] as const) {
+            expect(dueState({ status: 'Approvato', approval: { status, requestedAt: 'x' }, publicationDate: day }, now)).toBe('no-approval');
+        }
+    });
+    it('approvazione interna (bypass) vale', () => {
+        expect(isDue({ status: 'Approvato', approval: { status: 'approved', requestedAt: 'x', bypass: true }, publicationDate: day }, now)).toBe(true);
+    });
+    it('modificato dopo l\'approvazione: non esce; senza impronta (approvazioni vecchie) esce', () => {
+        const approved = { copy: 'Testo approvato', imageUrls: ['https://x/a.jpg'], instagram: true };
+        const hash = contentFingerprint(approved);
+        const base = { status: 'Approvato', publicationDate: day, ...approved };
+        expect(dueState({ ...base, approval: { status: 'approved', requestedAt: 'x', contentHash: hash } }, now)).toBe('due');
+        expect(dueState({ ...base, copy: 'Testo cambiato', approval: { status: 'approved', requestedAt: 'x', contentHash: hash } }, now)).toBe('changed-after-approval');
+        expect(dueState({ ...base, approval: { status: 'approved', requestedAt: 'x' } }, now)).toBe('due');
+    });
 });
 
 describe('copertina del video', () => {

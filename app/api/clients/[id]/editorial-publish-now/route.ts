@@ -1,3 +1,6 @@
+import { approvalGate } from '@/lib/content-approval';
+import { failureAlerts } from '@/lib/publish-alerts';
+import { sendFailureAlerts } from '@/lib/publish-notify';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
@@ -27,10 +30,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!snap.exists || snap.data()?.clientId !== params.id) return NextResponse.json({ error: 'Contenuto non trovato' }, { status: 404 });
   const content = { id: snap.id, ...(snap.data() as Omit<EditorialContent, 'id'>) } as EditorialContent;
   if (content.status === 'Pubblicato') return NextResponse.json({ error: 'Già pubblicato' }, { status: 409 });
-  if (content.status !== 'Approvato') return NextResponse.json({ error: 'Il contenuto deve essere Approvato prima di pubblicarlo' }, { status: 409 });
+  // Stato «Approvato» e approvazione vera (cliente o amministratore), non modificata dopo: lo stato da solo lo scrive chiunque dello staff.
+  const gate = approvalGate(content);
+  if (!gate.ok) return NextResponse.json({ error: `Il contenuto non può uscire: ${gate.message}` }, { status: 409 });
 
   try {
     const outcomes = await runPublish([content], { dryRun: false, resetFailed: true }, Date.now());
+    // Tentativo a mano: se fallisce lo si dice subito a chi gestisce il cliente (oltre al messaggio sullo schermo)
+    await sendFailureAlerts(failureAlerts(outcomes, true));
     return NextResponse.json({ ok: true, outcomes });
   } catch (error: any) {
     console.error('[publish-now]', error);

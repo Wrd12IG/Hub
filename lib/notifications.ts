@@ -248,6 +248,19 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, {
         category: 'system',
         priority: 'high'
     },
+    // Pubblicazione programmata: le notifiche si scrivono dal server (app/api/cron/publish-scheduled); qui servono solo per completare il tipo.
+    editorial_publish_failed: {
+        title: '❌ Pubblicazione non riuscita',
+        getText: (d) => `Il post "${d.topic}" di ${d.clientName} non è uscito su ${d.channel}`,
+        category: 'editorial',
+        priority: 'urgent'
+    },
+    editorial_publish_blocked: {
+        title: '⏸️ Post fermo prima di uscire',
+        getText: (d) => `Il post "${d.topic}" di ${d.clientName} doveva uscire ma ${d.reason}`,
+        category: 'editorial',
+        priority: 'high'
+    },
     client_log_approval_decided: {
         title: '✅ Esito della richiesta',
         getText: (d) => `La tua richiesta su ${d.clientName} è stata ${d.decision}`,

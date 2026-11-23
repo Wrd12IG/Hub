@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canRequestApproval, requestApproval, parseDecision, applyDecision, toPublicContent, STATUS_PENDING } from '../content-approval';
+import { canRequestApproval, requestApproval, parseDecision, applyDecision, toPublicContent, STATUS_PENDING, approvalGate, contentFingerprint } from '../content-approval';
 import type { EditorialContent } from '../data';
 
 const now = new Date('2026-10-22T10:00:00Z');
@@ -67,5 +67,45 @@ describe('bypass', () => {
         const r = bypassApproval('Roberto', new Date('2026-10-22T10:00:00Z'), 'u1');
         expect(r.status).toBe('Approvato');
         expect(r.approval).toMatchObject({ status: 'approved', bypass: true, respondedBy: 'Roberto', requestedBy: 'u1' });
+    });
+});
+
+describe('impronta e controllo prima di pubblicare', () => {
+    const pending = (o: Partial<EditorialContent> = {}) => content({ copy: 'Ciao', status: STATUS_PENDING, approval: { status: 'requested', requestedAt: 'x' }, ...o });
+
+    it('l\'impronta ignora la data e i campi vuoti, non il testo né i media', () => {
+        const a = contentFingerprint(content({ copy: 'Ciao', imageUrls: ['https://x/a.jpg'] }));
+        expect(contentFingerprint(content({ copy: 'Ciao', imageUrls: ['https://x/a.jpg'], publicationDate: '2026-12-01' }))).toBe(a);
+        expect(contentFingerprint(content({ copy: 'Ciao', imageUrls: ['https://x/a.jpg'], hashtags: '' }))).toBe(a);
+        expect(contentFingerprint(content({ copy: 'Ciao!', imageUrls: ['https://x/a.jpg'] }))).not.toBe(a);
+        expect(contentFingerprint(content({ copy: 'Ciao', imageUrls: ['https://x/b.jpg'] }))).not.toBe(a);
+        expect(contentFingerprint(content({ copy: 'Ciao', imageUrls: ['https://x/a.jpg'], linkedin: true }))).not.toBe(a);
+    });
+    it('l\'approvazione del cliente salva l\'impronta; le modifiche successive bloccano l\'uscita', () => {
+        const c = pending({ imageUrls: ['https://x/a.jpg'] });
+        const next = applyDecision(c, { decision: 'approve' }, now)!;
+        const approved = { ...c, ...next };
+        expect(next.approval.contentHash).toBeTruthy();
+        expect(approvalGate(approved)).toEqual({ ok: true });
+        const edited = approvalGate({ ...approved, copy: 'Testo diverso' });
+        expect(edited.ok).toBe(false);
+        expect(!edited.ok && edited.reason).toBe('changed-after-approval');
+    });
+    it('anche l\'approvazione interna (bypass) salva l\'impronta', () => {
+        const c = content({ copy: 'Ciao' });
+        const b = bypassApproval('Admin', now, 'u1', c);
+        expect(b.approval.contentHash).toBe(contentFingerprint(c));
+        expect(approvalGate({ ...c, ...b })).toEqual({ ok: true });
+    });
+    it('«Approvato» senza approvazione, in attesa o con richiesta di modifiche non esce', () => {
+        for (const approval of [undefined, { status: 'requested' as const, requestedAt: 'x' }, { status: 'changes' as const, requestedAt: 'x' }]) {
+            const g = approvalGate(content({ status: 'Approvato', approval }));
+            expect(g.ok).toBe(false);
+            expect(!g.ok && g.reason).toBe('no-approval');
+        }
+        expect(approvalGate(content({ status: 'Bozza' })).ok).toBe(false);
+    });
+    it('approvazioni senza impronta (fatte prima di questa regola) restano valide', () => {
+        expect(approvalGate(content({ status: 'Approvato', approval: { status: 'approved', requestedAt: 'x' } }))).toEqual({ ok: true });
     });
 });

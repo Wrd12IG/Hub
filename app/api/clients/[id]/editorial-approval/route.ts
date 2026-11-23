@@ -43,7 +43,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       const can = canRequestApproval(bypass && c.approval?.status === 'requested' ? { ...c, approval: undefined } : c);
       if (!can.ok) return { reason: can.reason };
       // Con bypass si può chiudere anche una richiesta in attesa del cliente: è proprio il caso d'uso.
-      const next = bypass ? bypassApproval(bypassName, now, user.uid) : requestApproval(user.uid, now);
+      const next = bypass ? bypassApproval(bypassName, now, user.uid, c) : requestApproval(user.uid, now);
       tx.update(ref, JSON.parse(JSON.stringify({ ...next, updatedAt: now })));
       return null;
     });

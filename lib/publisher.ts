@@ -9,6 +9,7 @@
  * `list_actions` di Windsor (22/10/2026): non aggiungere un parametro che lo schema non elenca, Windsor rifiuta
  * (additionalProperties: false).
  */
+import { approvalGate } from './content-approval';
 import type { Client, EditorialContent, PublishChannel } from '@/lib/data';
 import type { WindsorConnector } from '@/lib/windsor-client';
 import { composePostText } from '@/lib/post-text';
@@ -56,10 +57,12 @@ export function scheduledInstant(publicationDate?: string): Date | null {
  */
 export const MAX_OVERDUE_MS = 3 * 24 * 60 * 60 * 1000;
 
-export type DueState = 'due' | 'not-yet' | 'too-late' | 'no-date' | 'not-approved';
+export type DueState = 'due' | 'not-yet' | 'too-late' | 'no-date' | 'not-approved' | 'no-approval' | 'changed-after-approval';
 
-export function dueState(content: Pick<EditorialContent, 'status' | 'publicationDate'>, now: Date): DueState {
-    if (content.status !== 'Approvato') return 'not-approved';
+export function dueState(content: Pick<EditorialContent, 'status' | 'publicationDate'> & Partial<EditorialContent>, now: Date): DueState {
+    // Stato «Approvato» e approvazione vera, non modificata dopo (vedi approvalGate): lo stato da solo lo scrive chiunque dello staff.
+    const gate = approvalGate(content as Pick<EditorialContent, 'status' | 'approval'> & Partial<EditorialContent>);
+    if (!gate.ok) return gate.reason;
     const at = scheduledInstant(content.publicationDate);
     if (!at) return 'no-date';
     const late = now.getTime() - at.getTime();
@@ -67,7 +70,7 @@ export function dueState(content: Pick<EditorialContent, 'status' | 'publication
     return late > MAX_OVERDUE_MS ? 'too-late' : 'due';
 }
 
-export function isDue(content: Pick<EditorialContent, 'status' | 'publicationDate'>, now: Date): boolean {
+export function isDue(content: Pick<EditorialContent, 'status' | 'publicationDate'> & Partial<EditorialContent>, now: Date): boolean {
     return dueState(content, now) === 'due';
 }
 
