@@ -901,7 +901,8 @@ function AdminPageContent() {
                                         <TableRow>
                                             <TableHead>Cliente</TableHead>
                                             <TableHead className="hidden sm:table-cell">Contatto</TableHead>
-                                            <TableHead className="hidden md:table-cell">Social Manager</TableHead>
+                                            <TableHead className="hidden md:table-cell">Referente</TableHead>
+                                            <TableHead className="hidden md:table-cell">Backup</TableHead>
                                             <TableHead className="hidden md:table-cell">N. Task</TableHead>
                                             {canViewFinancials && <TableHead className="hidden lg:table-cell">Budget</TableHead>}
                                             <TableHead className="text-right">
@@ -912,7 +913,9 @@ function AdminPageContent() {
                                     <TableBody>
                                         {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map((client) => {
                                             const stats = getClientStats(client.id);
-                                            const socialManager = client.socialManagerId ? users.find(u => u.id === client.socialManagerId) : null;
+                                            // Referente = «Social Media Manager Assegnato/a» e Backup = «PM di backup» della scheda cliente (Modifica).
+                                            const referente = client.socialManagerId ? users.find(u => u.id === client.socialManagerId) : null;
+                                            const backup = client.backupManagerId ? users.find(u => u.id === client.backupManagerId) : null;
                                             return (
                                                 <TableRow key={client.id}>
                                                     <TableCell>
@@ -942,18 +945,33 @@ function AdminPageContent() {
                                                         </p>
                                                     </TableCell>
                                                     <TableCell className="hidden md:table-cell">
-                                                        {socialManager ? (
+                                                        {referente ? (
                                                             <div className="flex items-center gap-2">
                                                                 <Avatar className="h-6 w-6">
-                                                                    <AvatarImage src={socialManager.avatar || getUserAvatar(socialManager)} />
-                                                                    <AvatarFallback style={{ backgroundColor: socialManager.color || '#4285F4' }} className="text-xs text-white font-bold">
-                                                                        {getInitials(socialManager.name)}
+                                                                    <AvatarImage src={referente.avatar || getUserAvatar(referente)} />
+                                                                    <AvatarFallback style={{ backgroundColor: referente.color || '#4285F4' }} className="text-xs text-white font-bold">
+                                                                        {getInitials(referente.name)}
                                                                     </AvatarFallback>
                                                                 </Avatar>
-                                                                <span className="text-xs font-medium">{socialManager.name}</span>
+                                                                <span className="text-xs font-medium">{referente.name}</span>
                                                             </div>
                                                         ) : (
-                                                            <span className="text-xs text-muted-foreground italic">Non assegnato</span>
+                                                            <span className="text-xs text-muted-foreground italic">Nessun referente</span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell className="hidden md:table-cell">
+                                                        {backup ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Avatar className="h-6 w-6">
+                                                                    <AvatarImage src={backup.avatar || getUserAvatar(backup)} />
+                                                                    <AvatarFallback style={{ backgroundColor: backup.color || '#4285F4' }} className="text-xs text-white font-bold">
+                                                                        {getInitials(backup.name)}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <span className="text-xs font-medium">{backup.name}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-muted-foreground italic">Nessun backup</span>
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="hidden md:table-cell">
