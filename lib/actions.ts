@@ -1,4 +1,5 @@
 // Firebase actions for CRUD operations
+import { isValidReaction, toggleReaction } from './chat-reactions';
 import { db } from './firebase';
 import {
     collection,
@@ -13,7 +14,8 @@ import {
     query,
     where,
     limit,
-    deleteField
+    deleteField,
+    runTransaction
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type {
@@ -836,7 +838,8 @@ export async function sendMessage(
         timestamp: Timestamp.now(),
         replyCount: 0,
         reactions: {},
-        replyTo: replyTo || null
+        // Firestore rifiuta i campi `undefined`: un messaggio citato senza autore o testo non deve far fallire l'invio.
+        replyTo: replyTo ? cleanData(replyTo) : null
     };
 
     const docRef = await addDoc(collection(db, 'conversations', conversationId, 'messages'), messageData);
@@ -875,40 +878,21 @@ export async function sendMessage(
     return docRef.id;
 }
 
+/** Reazione con emoji: valida (non vuota, breve) e in transazione, così due persone che reagiscono insieme non si cancellano a vicenda. */
 export async function toggleMessageReaction(
     conversationId: string,
     messageId: string,
     emoji: string,
     userId: string
 ): Promise<void> {
+    // Un nome di campo vuoto o enorme non è valido su Firestore: si rifiuta prima di scrivere.
+    if (!isValidReaction(emoji)) throw new Error('Emoji non valida');
     const messageRef = doc(db, 'conversations', conversationId, 'messages', messageId);
-    const messageSnap = await getDoc(messageRef);
-
-    if (messageSnap.exists()) {
-        const data = messageSnap.data();
-        const reactions = data.reactions || {};
-
-        // If user already reacted with this emoji, remove it (toggle)
-        // This is a naive implementation; a proper one would handle array of users per emoji
-        // Let's assume structure: { [emoji]: [userId1, userId2] }
-
-        const currentUsers = reactions[emoji] || [];
-        let newUsers: string[];
-
-        if (currentUsers.includes(userId)) {
-            newUsers = currentUsers.filter((id: string) => id !== userId);
-        } else {
-            newUsers = [...currentUsers, userId];
-        }
-
-        if (newUsers.length === 0) {
-            delete reactions[emoji];
-        } else {
-            reactions[emoji] = newUsers;
-        }
-
-        await updateDoc(messageRef, { reactions });
-    }
+    await runTransaction(db, async (tx) => {
+        const snap = await tx.get(messageRef);
+        if (!snap.exists()) return;
+        tx.update(messageRef, { reactions: toggleReaction(snap.data().reactions, emoji, userId) });
+    });
 }
 
 export async function deleteMessage(conversationId: string, messageId: string, userId: string): Promise<void> {
