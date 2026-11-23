@@ -8,6 +8,7 @@ import { SidebarNav } from "@/components/sidebar-nav";
 import { Loader2 } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { SidebarInset } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 import { Toaster } from 'sonner';
 import PomodoroWidget from '@/components/pomodoro-timer';
 import CommandMenu, { CommandMenuProvider } from '@/components/command-menu';
@@ -100,7 +101,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {/* <SidebarNav /> */}
           <SidebarInset className="relative isolate">
             <Header />
-            <main className="flex-1 overflow-auto p-4 sm:px-6 sm:py-6 w-full min-w-0">
+            {/* Pagine a tutta altezza (es. la chat): niente spazio in fondo al contenuto, quindi il margine sta qui, nel padding di <main>.
+                Senza, la barra flottante copre la casella di scrittura. */}
+            <main className={cn('flex-1 overflow-auto p-4 sm:px-6 sm:py-6 w-full min-w-0', isFullHeightPage && 'pb-24 sm:pb-24')}>
               <PageTransition key={pathname} fullHeight={isFullHeightPage}>
                 {children}
                 {/* Spazio sotto l'ultima riga, per la barra flottante. Sta DENTRO il contenitore della pagina: il padding di
