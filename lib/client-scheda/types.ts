@@ -8,6 +8,10 @@ export const LOG_TYPE_LABEL: Record<LogType, string> = {
     telefonata: 'Telefonata', email: 'Email', richiesta: 'Richiesta', riunione: 'Riunione', altro: 'Altro',
 };
 
+/** Come si scrive il tipo di una riga: «Telefonata», oppure «Altro: Sopralluogo». */
+export const typeText = (e: { type: LogType; typeLabel?: string | null }) =>
+    e.type === 'altro' && e.typeLabel ? `Altro: ${e.typeLabel}` : LOG_TYPE_LABEL[e.type];
+
 export type ApprovalStatus = 'in_attesa' | 'approvata' | 'rifiutata';
 
 export interface Approval {
@@ -26,6 +30,8 @@ export interface LogEntry {
     authorId: string;
     authorName: string;
     type: LogType;
+    /** Solo per «altro»: il tipo scritto a mano (es. «Sopralluogo»). */
+    typeLabel?: string | null;
     text: string;
     approval: Approval | null;
 }

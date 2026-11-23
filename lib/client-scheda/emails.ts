@@ -4,7 +4,7 @@
  * Testo delle email (oggetto + HTML). Pure. Tutto il testo libero viene «escaped»; nessun dato sensibile: solo ciò che sta nella riga e il nome
  * del cliente. Non partono mai verso i clienti.
  */
-import { LOG_TYPE_LABEL, type LogEntry } from './types';
+import { typeText, type LogEntry } from './types';
 
 export const escapeHtml = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -18,14 +18,14 @@ const shell = (banner: string, bannerColor: string, body: string, link: string) 
 <p style="margin:22px 0 4px"><a href="${escapeHtml(link)}" style="background:#18181b;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;display:inline-block">Apri la scheda</a></p>
 </div></div></body></html>`;
 
-type Entry = Pick<LogEntry, 'createdAt' | 'authorName' | 'type' | 'text'>;
+type Entry = Pick<LogEntry, 'createdAt' | 'authorName' | 'type' | 'typeLabel' | 'text'>;
 
 export function buildRequestEmail(p: { clientName: string; entry: Entry; link: string }): { subject: string; html: string } {
     const { clientName, entry, link } = p;
     const body = `<p style="margin:0 0 12px"><b>Serve la tua approvazione</b> su una richiesta registrata nella scheda di <b>${escapeHtml(clientName)}</b>.</p>
-<p style="margin:0 0 4px;color:#52525b">${escapeHtml(entry.authorName)} · ${escapeHtml(LOG_TYPE_LABEL[entry.type])} · ${escapeHtml(when(entry.createdAt))}</p>
+<p style="margin:0 0 4px;color:#52525b">${escapeHtml(entry.authorName)} · ${escapeHtml(typeText(entry))} · ${escapeHtml(when(entry.createdAt))}</p>
 <blockquote style="margin:8px 0;padding:10px 14px;background:#f4f4f5;border-left:4px solid #f59e0b;white-space:pre-wrap">${escapeHtml(entry.text)}</blockquote>`;
-    return { subject: `[DA APPROVARE] ${oneLine(clientName)} — ${LOG_TYPE_LABEL[entry.type]}`, html: shell('⚠️ Richiesta da approvare', '#d97706', body, link) };
+    return { subject: `[DA APPROVARE] ${oneLine(clientName)} — ${oneLine(typeText(entry))}`, html: shell('⚠️ Richiesta da approvare', '#d97706', body, link) };
 }
 
 export function buildDecisionEmail(p: { clientName: string; entry: Entry; decision: 'approvata' | 'rifiutata'; deciderName: string; comment: string | null; link: string }): { subject: string; html: string } {
@@ -35,7 +35,7 @@ export function buildDecisionEmail(p: { clientName: string; entry: Entry; decisi
 ${comment ? `<p style="margin:0 0 8px"><b>Commento:</b> ${escapeHtml(comment)}</p>` : ''}
 <blockquote style="margin:8px 0;padding:10px 14px;background:#f4f4f5;border-left:4px solid ${ok ? '#16a34a' : '#dc2626'};white-space:pre-wrap">${escapeHtml(entry.text)}</blockquote>`;
     return {
-        subject: `[${ok ? 'APPROVATA' : 'RIFIUTATA'}] ${oneLine(clientName)} — ${LOG_TYPE_LABEL[entry.type]}`,
+        subject: `[${ok ? 'APPROVATA' : 'RIFIUTATA'}] ${oneLine(clientName)} — ${oneLine(typeText(entry))}`,
         html: shell(ok ? '✅ Richiesta approvata' : '❌ Richiesta rifiutata', ok ? '#16a34a' : '#dc2626', body, link),
     };
 }

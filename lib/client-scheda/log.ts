@@ -9,8 +9,9 @@ import { LOG_TYPES, type Approval, type LogEntry, type LogType, type Role } from
 
 export const MAX_TEXT = 2000;
 export const MAX_COMMENT = 500;
+export const MAX_TYPE_LABEL = 60;
 
-export interface NewLogInput { type: LogType; text: string; requestApproval: boolean }
+export interface NewLogInput { type: LogType; typeLabel: string | null; text: string; requestApproval: boolean }
 export type Validated<T> = { ok: true; value: T } | { ok: false; error: string };
 
 export function validateNewLog(body: unknown): Validated<NewLogInput> {
@@ -19,8 +20,15 @@ export function validateNewLog(body: unknown): Validated<NewLogInput> {
     const text = typeof b.text === 'string' ? b.text.trim() : '';
     if (!text) return { ok: false, error: 'Scrivi che cosa è successo.' };
     if (text.length > MAX_TEXT) return { ok: false, error: `Testo troppo lungo (massimo ${MAX_TEXT} caratteri).` };
+    // «Altro» vuole un nome per il tipo; per gli altri tipi l'eventuale etichetta si ignora.
+    let typeLabel: string | null = null;
+    if (b.type === 'altro') {
+        typeLabel = typeof b.typeLabel === 'string' ? b.typeLabel.replace(/\s+/g, ' ').trim() : '';
+        if (!typeLabel) return { ok: false, error: 'Scrivi che tipo di interazione è.' };
+        if (typeLabel.length > MAX_TYPE_LABEL) return { ok: false, error: `Tipo troppo lungo (massimo ${MAX_TYPE_LABEL} caratteri).` };
+    }
     // createdAt, authorId, approval… eventualmente presenti nel body vengono ignorati: si costruisce solo ciò che serve.
-    return { ok: true, value: { type: b.type as LogType, text, requestApproval: b.requestApproval === true } };
+    return { ok: true, value: { type: b.type as LogType, typeLabel, text, requestApproval: b.requestApproval === true } };
 }
 
 export function buildLogEntry(
@@ -32,6 +40,7 @@ export function buildLogEntry(
         authorId: author.id,
         authorName: author.name,
         type: input.type,
+        typeLabel: input.typeLabel,
         text: input.text,
         approval: input.requestApproval ? { status: 'in_attesa', requestedAt: at, decidedBy: null, decidedByName: null, decidedAt: null, comment: null } : null,
     };

@@ -6,7 +6,7 @@ import { Check, Loader2, MessageSquareText, Mail, MoreHorizontal, Phone, Plus, U
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { btn } from '@/app/(app)/outreach/shared'
-import { LOG_TYPES, LOG_TYPE_LABEL, type LogEntry, type LogType } from '@/lib/client-scheda/types'
+import { LOG_TYPES, LOG_TYPE_LABEL, typeText, type LogEntry, type LogType } from '@/lib/client-scheda/types'
 import type { SchedaClient } from '@/lib/client-scheda/whitelist'
 
 type Payload = { client: SchedaClient; entries: LogEntry[]; nextBefore: string | null; canDecide: boolean }
@@ -14,6 +14,7 @@ type Sent = { entry: LogEntry; emails: { sent: number; failed: number } }
 
 const TYPE_ICON: Record<LogType, typeof Phone> = { telefonata: Phone, email: Mail, richiesta: MessageSquareText, riunione: Users, altro: MoreHorizontal }
 const MAX_TEXT = 2000
+const MAX_TYPE_LABEL = 60
 const fmt = (iso: string) => new Date(iso).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })
 const APPROVAL: Record<string, { label: string; cls: string }> = {
   in_attesa: { label: 'In attesa di approvazione', cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
@@ -32,6 +33,7 @@ export default function ClientSchedaPage() {
   const [pendingOnly, setPendingOnly] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [type, setType] = useState<LogType>('telefonata')
+  const [typeLabel, setTypeLabel] = useState('')
   const [text, setText] = useState('')
   const [ask, setAsk] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -65,12 +67,12 @@ export default function ClientSchedaPage() {
   const save = async () => {
     setSaving(true)
     try {
-      const res = await authFetch(`/api/clients/${id}/scheda/log`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, text, requestApproval: ask }) })
+      const res = await authFetch(`/api/clients/${id}/scheda/log`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type, typeLabel: type === 'altro' ? typeLabel : undefined, text, requestApproval: ask }) })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json?.error || `Il server ha risposto ${res.status}.`)
       toast.success(ask ? 'Riga registrata e richiesta inviata.' : 'Riga registrata.')
       reportEmails(json as Sent)
-      setText(''); setAsk(false); setFormOpen(false)
+      setText(''); setTypeLabel(''); setAsk(false); setFormOpen(false)
       await load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Errore nel salvataggio')
@@ -150,13 +152,23 @@ export default function ClientSchedaPage() {
                 })}
               </div>
             </div>
+            {type === 'altro' && (
+              <div>
+                <label htmlFor="type-label" className="mb-1 block text-sm font-medium">Che tipo di interazione?</label>
+                <input
+                  id="type-label" autoFocus maxLength={MAX_TYPE_LABEL} value={typeLabel} onChange={(e) => setTypeLabel(e.target.value)}
+                  placeholder="Es. sopralluogo, WhatsApp, incontro in fiera…"
+                  className="h-10 w-full rounded-lg border-2 border-primary/60 bg-background px-3 text-sm focus:border-primary focus:outline-none"
+                />
+              </div>
+            )}
             <textarea className="min-h-[100px] w-full rounded-lg border border-border bg-background p-2 text-sm" placeholder="Cosa è successo con il cliente?" maxLength={MAX_TEXT} value={text} onChange={(e) => setText(e.target.value)} />
             <div className="flex items-center justify-between gap-2">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={ask} onChange={(e) => setAsk(e.target.checked)} /> Richiedi approvazione (arriva una email agli amministratori)</label>
               <span className="text-xs text-muted-foreground">{text.length}/{MAX_TEXT}</span>
             </div>
             <div className="flex gap-2">
-              <button className={btn} disabled={saving || !text.trim()} onClick={save}>{saving && <Loader2 className="h-4 w-4 animate-spin" />} Registra</button>
+              <button className={btn} disabled={saving || !text.trim() || (type === 'altro' && !typeLabel.trim())} onClick={save}>{saving && <Loader2 className="h-4 w-4 animate-spin" />} Registra</button>
               <button className={btn} disabled={saving} onClick={() => setFormOpen(false)}>Annulla</button>
             </div>
           </div>
@@ -168,7 +180,7 @@ export default function ClientSchedaPage() {
           return (
             <article key={e.id} className="space-y-2 rounded-lg border border-border p-3 text-sm">
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">{LOG_TYPE_LABEL[e.type]}</span>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-foreground">{typeText(e)}</span>
                 <span>{fmt(e.createdAt)}</span><span>· {e.authorName}</span>
                 {ap && <span className={`rounded px-1.5 py-0.5 ${ap.cls}`}>{ap.label}</span>}
               </div>
