@@ -38,6 +38,8 @@ export interface Client {
     socialManagerId?: string; // Social Media Manager assigned to this client
     backupManagerId?: string | null; // PM di backup: stessi diritti di un responsabile sulla scheda cliente
     allowedActivityTypeIds?: string[]; // IDs of activity types allowed for this client
+    archived?: boolean; // Cliente archiviato: non più attivo, dati conservati (lib/client-archive.ts)
+    archivedAt?: string;
     publicToken?: string; // Token for public secure access
     publicTokenCreatedAt?: string;
     createdAt?: string;

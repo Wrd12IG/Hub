@@ -59,6 +59,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LivePreview } from '@/components/editorial-plan/live-preview';
 import Link from 'next/link';
 import { useLayoutData } from '@/app/(app)/layout-context';
+import { pickableClients } from '@/lib/client-archive-shared';
 
 const ProjectForm = dynamic(() => import('@/components/project-form'), { ssr: false });
 const TaskForm = dynamic(() => import('@/components/task-form'), { ssr: false });
@@ -2179,7 +2180,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                             <Select name="clientId" required value={selectedClientId} onValueChange={setSelectedClientId}>
                                                 <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Seleziona..." /></SelectTrigger>
                                                 <SelectContent>
-                                                    {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                                    {pickableClients(clients, selectedClientId).sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         </div>

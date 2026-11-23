@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { ChevronDown, Briefcase, Building2, Search } from 'lucide-react'
 
 import { useLayoutData } from '@/app/(app)/layout-context'
+import { pickableClients } from '@/lib/client-archive-shared';
 
 interface ClientSwitcherProps {
   variant?: 'sidebar' | 'header'
@@ -42,7 +43,7 @@ export default function ClientSwitcher({ variant = 'sidebar' }: ClientSwitcherPr
     router.push(`/clients/${clientId}`)
   }
 
-  const filteredClients = [...clients]
+  const filteredClients = pickableClients(clients)
     .filter(c => (c.name || '').toLowerCase().includes((searchQuery || '').toLowerCase()))
     .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
 

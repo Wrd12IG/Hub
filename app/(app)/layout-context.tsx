@@ -25,6 +25,8 @@ interface LayoutContextType {
   /** Vede budget, note riservate e costi dei clienti: amministratore sempre, gli altri solo con la spunta in Admin → Permessi. */
   canViewFinancials: boolean;
   clientsById: Record<string, Client>;
+  /** Solo i clienti non archiviati: per proporre un cliente quando si crea lavoro nuovo. `clients` li comprende tutti (storico, nomi, filtri). */
+  activeClients: Client[];
   allProjects: Project[];
   allTasks: Task[];
   tasksById: Record<string, Task>;
@@ -208,6 +210,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     return comp ? { ...u, salary: comp.salary, hourlyRate: comp.hourlyRate } as User : u;
   }), [users, canViewFinancials, userCompensation]);
   const usersById = useMemo(() => Object.fromEntries(usersView.map(user => [user.id, user])) as Record<string, User>, [usersView]);
+  const activeClients = useMemo(() => clients.filter(c => !c.archived), [clients]);
   const clientsById = useMemo(() => Object.fromEntries(clients.map(client => [client.id, client])) as Record<string, Client>, [clients]);
   const tasksById = useMemo(() => Object.fromEntries(allTasks.map(task => [task.id, task])) as Record<string, Task>, [allTasks]);
   const projectsById = useMemo(() => Object.fromEntries(allProjects.map(project => [project.id, project])) as Record<string, Project>, [allProjects]);
@@ -561,6 +564,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       users: usersView,
       usersById,
       clients,
+      activeClients,
       canViewFinancials,
       clientsById,
       get allProjects() { requestWorkData(); return allProjects; },
@@ -597,6 +601,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     usersView,
     usersById,
     clients,
+    activeClients,
     canViewFinancials,
     clientsById,
     allProjects,

@@ -54,10 +54,10 @@ export async function findClientByPublicToken(db: Firestore, token: string): Pro
       db.collection('clients').doc(clientId).collection('private').doc('publicLink').get(),
     ]);
     // L'indice da solo non basta: il token deve combaciare con quello attuale del cliente (revoca = niente corrispondenza).
-    if (client.exists && link.data()?.publicToken === token) return { id: client.id, data: client.data() as Record<string, any> };
+    if (client.exists && link.data()?.publicToken === token && client.data()?.archived !== true) return { id: client.id, data: client.data() as Record<string, any> };
     return null;
   }
   const legacy = await db.collection('clients').where('publicToken', '==', token).limit(1).get();
-  if (legacy.empty) return null;
+  if (legacy.empty || legacy.docs[0].data().archived === true) return null;
   return { id: legacy.docs[0].id, data: legacy.docs[0].data() as Record<string, any> };
 }
