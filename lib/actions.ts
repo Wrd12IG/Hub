@@ -934,19 +934,21 @@ export async function createOrGetDirectConversation(
     userId1: string,
     userId2: string
 ): Promise<string> {
-    // Check if conversation exists
+    // Cerca tra le chat dirette di userId1 quella con userId2. Prima si prendeva la PRIMA chat diretta di uno qualsiasi dei due
+    // (array-contains-any + limit 1) e poteva uscire la chat con un terzo. userId1 è chi ha fatto l'accesso: la regola del database
+    // consente solo ricerche limitate alle proprie conversazioni.
     const convRef = collection(db, 'conversations');
     const q = query(
         convRef,
         where('type', '==', 'direct'),
-        where('memberIds', 'array-contains-any', [userId1, userId2]),
-        limit(1)
+        where('memberIds', 'array-contains', userId1)
     );
     const existing = await getDocs(q);
-
-    if (!existing.empty) {
-        return existing.docs[0].id;
-    }
+    const found = existing.docs.find((d) => {
+        const ids = (d.data().memberIds || []) as string[];
+        return ids.length === 2 && ids.includes(userId2);
+    });
+    if (found) return found.id;
 
     const docRef = await addDoc(convRef, {
         memberIds: [userId1, userId2],
