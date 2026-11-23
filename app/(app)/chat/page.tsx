@@ -45,7 +45,6 @@ import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday, isSameDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 import { playSound } from '@/lib/sounds';
-import { VideoCallWidget } from '@/components/chat/video-call';
 
 const EmojiPicker = dynamic(() => import('emoji-picker-react').then(mod => mod.default), { ssr: false });
 
@@ -922,16 +921,12 @@ function ChatPageContent({ queryClient }: { queryClient: QueryClient }) {
                         <h3 className="font-medium text-[#111b21] dark:text-[#e9edef]">
                           {getConversationDisplayName(selectedConversation)}
                         </h3>
-                        <p className="text-xs text-[#667781] dark:text-[#8696a0]">
-                          online
-                        </p>
                       </div>
                     </>
                   );
                 })()}
               </div>
               <div className="flex items-center gap-1">
-                <VideoCallWidget onStartCall={() => toast.info('Funzione videochiamata in fase di connessione P2P...')} />
                 <Button variant="ghost" size="icon" className="rounded-full text-[#54656f]">
                   <Search className="h-5 w-5" />
                 </Button>
