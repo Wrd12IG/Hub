@@ -64,11 +64,20 @@ describe('lista bianca', () => {
 
 describe('registro', () => {
     it('valida tipo e testo', () => {
-        expect(validateNewLog({ type: 'telefonata', text: '  Chiamato  ' })).toEqual({ ok: true, value: { type: 'telefonata', text: 'Chiamato', requestApproval: false } });
+        expect(validateNewLog({ type: 'telefonata', text: '  Chiamato  ' })).toEqual({ ok: true, value: { type: 'telefonata', typeLabel: null, text: 'Chiamato', requestApproval: false } });
         expect(validateNewLog({ type: 'boh', text: 'x' }).ok).toBe(false);
         expect(validateNewLog({ type: 'email', text: '   ' }).ok).toBe(false);
         expect(validateNewLog({ type: 'email', text: 'x'.repeat(2001) }).ok).toBe(false);
         expect(validateNewLog(null).ok).toBe(false);
+    });
+    it('«altro» vuole un nome per il tipo; per gli altri tipi l\'etichetta è ignorata', () => {
+        expect(validateNewLog({ type: 'altro', text: 'x' }).ok).toBe(false);
+        expect(validateNewLog({ type: 'altro', typeLabel: '   ', text: 'x' }).ok).toBe(false);
+        expect(validateNewLog({ type: 'altro', typeLabel: 'x'.repeat(61), text: 'x' }).ok).toBe(false);
+        const ok = validateNewLog({ type: 'altro', typeLabel: '  Sopralluogo   in   sede ', text: 'x' });
+        expect(ok.ok && ok.value.typeLabel).toBe('Sopralluogo in sede');
+        const other = validateNewLog({ type: 'email', typeLabel: 'Boh', text: 'x' });
+        expect(other.ok && other.value.typeLabel).toBeNull();
     });
     it('la data la mette il server: quella del form è ignorata', () => {
         const v = validateNewLog({ type: 'email', text: 'ok', requestApproval: true, createdAt: '1999-01-01', authorId: 'hacker', approval: { status: 'approvata' } });
@@ -136,6 +145,11 @@ describe('email', () => {
         expect(m.html).toContain('&lt;script&gt;');
         expect(m.html).toContain('Pia &lt;b&gt;');
         expect(m.html).toContain('href="https://hub.wrdigital.it/clients/c1/scheda"');
+    });
+    it('«Altro» mostra il tipo scritto a mano, anche nell\'oggetto e senza HTML', () => {
+        const m = buildRequestEmail({ clientName: 'M', entry: { ...entry, type: 'altro', typeLabel: 'Sopralluogo <b>' }, link: 'https://x.it' });
+        expect(m.subject).toBe('[DA APPROVARE] M — Altro: Sopralluogo <b>');
+        expect(m.html).toContain('Altro: Sopralluogo &lt;b&gt;');
     });
     it('esito: rifiuto evidenziato con commento', () => {
         const m = buildDecisionEmail({ clientName: 'M', entry, decision: 'rifiutata', deciderName: 'Admin', comment: 'No, <ora>', link: 'https://x.it' });
