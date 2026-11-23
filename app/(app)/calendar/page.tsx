@@ -104,47 +104,13 @@ export default function CalendarPage() {
         }
     }, [searchParams, router]);
 
-    const MAX_ITEMS_PER_DAY = 3;
-
-    // Loading skeleton mentre Firebase carica
-    if (isLoadingLayout) {
-        return (
-            <div className="flex flex-col h-full gap-4 p-1 animate-pulse">
-                <div className="flex gap-3 justify-between items-center mb-2">
-                    <div className="h-8 w-40 rounded-lg bg-muted" />
-                    <div className="flex gap-2">
-                        <div className="h-8 w-20 rounded-lg bg-muted" />
-                        <div className="h-8 w-20 rounded-lg bg-muted" />
-                    </div>
-                </div>
-                <div className="grid grid-cols-7 gap-1 flex-1">
-                    {[...Array(7)].map((_, i) => (
-                        <div key={i} className="h-6 rounded bg-muted text-center" />
-                    ))}
-                    {[...Array(35)].map((_, i) => (
-                        <div key={i} className="h-24 rounded-lg bg-muted/40" />
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
+    // Tutti gli hook stanno PRIMA del ritorno anticipato dello scheletro: con gli hook dopo, quando il caricamento finisce React
+    // vede più hook del render precedente e va in errore.
     // ... (Filter states remain same)
     const [selectedUser, setSelectedUser] = useState<string>('all');
     const [selectedClient, setSelectedClient] = useState<string>('all');
     const [selectedStatus, setSelectedStatus] = useState<string>('all');
     const [selectedAbsenceType, setSelectedAbsenceType] = useState<string>('all');
-
-    // Calendar generation logic
-    const monthStart = startOfMonth(date);
-    const monthEnd = endOfMonth(monthStart);
-    const startDate = startOfWeek(monthStart, { locale: it }); // Monday start
-    const endDate = endOfWeek(monthEnd, { locale: it });
-
-    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
-
-    const weekDaysFull = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
-    const weekDaysShort = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
     // Statistics for the current month
     const monthStats = useMemo(() => {
@@ -183,6 +149,44 @@ export default function CalendarPage() {
             totalEvents: monthTasks.length + monthProjects.length + monthAbsences.length + monthActivities.length
         };
     }, [allTasks, allProjects, absences, calendarActivities, date]);
+
+    const MAX_ITEMS_PER_DAY = 3;
+
+    // Loading skeleton mentre Firebase carica
+    if (isLoadingLayout) {
+        return (
+            <div className="flex flex-col h-full gap-4 p-1 animate-pulse">
+                <div className="flex gap-3 justify-between items-center mb-2">
+                    <div className="h-8 w-40 rounded-lg bg-muted" />
+                    <div className="flex gap-2">
+                        <div className="h-8 w-20 rounded-lg bg-muted" />
+                        <div className="h-8 w-20 rounded-lg bg-muted" />
+                    </div>
+                </div>
+                <div className="grid grid-cols-7 gap-1 flex-1">
+                    {[...Array(7)].map((_, i) => (
+                        <div key={i} className="h-6 rounded bg-muted text-center" />
+                    ))}
+                    {[...Array(35)].map((_, i) => (
+                        <div key={i} className="h-24 rounded-lg bg-muted/40" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+
+    // Calendar generation logic
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = startOfWeek(monthStart, { locale: it }); // Monday start
+    const endDate = endOfWeek(monthEnd, { locale: it });
+
+    const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+
+    const weekDaysFull = ['Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'];
+    const weekDaysShort = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+
 
     // Helper to filter and get items for a specific day
     const getDayItems = (day: Date) => {

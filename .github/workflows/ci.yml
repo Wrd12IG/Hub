@@ -1,0 +1,27 @@
+# Controlli automatici su ogni pull request e su main: tipi (tsc), lint e test.
+# Il build di Next.js ignora gli errori di tipo e di lint (next.config.js), quindi senza questo workflow un errore può arrivare in produzione.
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Tipi (tsc)
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm test
