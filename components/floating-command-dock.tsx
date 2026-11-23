@@ -25,6 +25,7 @@ import {
     FolderSync,
     TrendingUp,
     ScanSearch,
+    UserCog,
     Repeat,
     Send,
 } from 'lucide-react';
@@ -81,6 +82,7 @@ const adminNavItems: DockNavItem[] = [
     { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-orange-500', group: 'admin' },
     { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-orange-500', group: 'admin' },
     { href: '/site-monitor', icon: ScanSearch, label: 'Monitor siti', color: 'text-orange-500', group: 'admin' },
+    { href: '/admin/assegnazioni', icon: UserCog, label: 'Assegnazioni', color: 'text-orange-500', group: 'admin' },
     { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500', group: 'admin' },
 ];
 
