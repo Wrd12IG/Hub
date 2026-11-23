@@ -89,7 +89,7 @@ import { Badge } from '@/components/ui/badge';
 import { AdminPermissions } from '@/components/admin-permissions';
 import { toggle as togglePermission } from '@/lib/admin-permissions-model';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon, Users, Building2, Shield, Sliders, CheckSquare, Calendar, FileText, CalendarDays } from 'lucide-react';
+import { MoreHorizontal, MoreVertical, X, Plus, Trash2, Pencil, LayoutDashboard, Mail, Volume2, Zap, Coins, Image as ImageIcon, Users, Building2, Shield, Sliders, CheckSquare, Calendar, FileText, CalendarDays, UserCog } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -648,6 +648,20 @@ function AdminPageContent() {
         }
     };
 
+    // Archivia o ripristina: il cliente resta nello storico (task, progetti, report), sparisce solo da elenchi e selettori.
+    const handleArchiveClient = async (client: Client, archived: boolean) => {
+        try {
+            const res = await authFetch(`/api/clients/${client.id}/archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ archived }) });
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`);
+            toast({ title: archived ? 'Cliente archiviato' : 'Cliente ripristinato', description: archived ? `${client.name} non compare più negli elenchi. Lo storico resta.` : `${client.name} è di nuovo attivo.` });
+            fetchData();
+        } catch (error: any) {
+            console.error('Failed to archive client:', error);
+            toast({ title: 'Errore', description: error.message || 'Impossibile aggiornare il cliente.', variant: 'destructive' });
+        }
+    };
+
     const handleDeleteDepartment = async () => {
         if (!departmentToDelete) return;
         try {
@@ -780,6 +794,11 @@ function AdminPageContent() {
                                 <TabsTrigger key={value} value={value} className="border border-input bg-background hover:bg-accent hover:text-accent-foreground data-[state=active]:border-primary data-[state=active]:border-2 data-[state=active]:shadow-md transition-all flex items-center gap-1.5"><Icon className={`h-4 w-4 ${color}`} /> {label}</TabsTrigger>
                             ))}
                             {/* Collegamento a una pagina a parte (non è una scheda): stesso aspetto, solo amministratori. */}
+                            {group.label === 'Persone e accessi' && currentUser?.role === 'Amministratore' && (
+                                <Link href="/admin/assegnazioni" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
+                                    <UserCog className="h-4 w-4 text-orange-400" /> Assegnazioni
+                                </Link>
+                            )}
                             {group.label === 'Azienda' && currentUser?.role === 'Amministratore' && (
                                 <Link href="/admin/report-mensile" className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground gap-1.5">
                                     <Mail className="h-4 w-4 text-sky-400" /> Mail mensile KPI
@@ -908,9 +927,10 @@ function AdminPageContent() {
                                                                     {(client?.name || "").charAt(0)}
                                                                 </AvatarFallback>
                                                             </Avatar>
-                                                            <Link href={`/clients/${client.id}`} className="font-medium hover:underline">
+                                                            <Link href={`/clients/${client.id}`} className={`font-medium hover:underline ${client.archived ? 'text-muted-foreground' : ''}`}>
                                                                 {client.name}
                                                             </Link>
+                                                            {client.archived && <Badge variant="secondary">Archiviato</Badge>}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell className="hidden sm:table-cell">
@@ -962,6 +982,11 @@ function AdminPageContent() {
                                                                     <Link href={`/clients/${client.id}`} className="w-full">Visualizza Profilo</Link>
                                                                 </DropdownMenuItem>
                                                                 <DropdownMenuItem onClick={() => openEditClientModal(client)}>Modifica</DropdownMenuItem>
+                                                                {currentUser?.role === 'Amministratore' && (
+                                                                    <DropdownMenuItem onClick={() => handleArchiveClient(client, !client.archived)}>
+                                                                        {client.archived ? 'Ripristina' : 'Archivia'}
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 <DropdownMenuSeparator />
                                                                 <DropdownMenuItem className="text-red-500" onClick={() => askDeleteClient(client)}>
                                                                     Elimina

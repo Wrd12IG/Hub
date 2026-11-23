@@ -23,7 +23,7 @@ import { getUserAvatar, getInitials } from '@/lib/utils';
 
 export function CommandPalette() {
     const [open, setOpen] = useState(false);
-    const { clients, users, currentUser } = useLayoutData();
+    const { activeClients: clients, users, currentUser } = useLayoutData();
     const router = useRouter();
 
     useEffect(() => {

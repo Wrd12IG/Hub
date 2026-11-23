@@ -1,5 +1,6 @@
 'use client';
 
+import { selectableClients } from '@/lib/client-archive';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { SocialStrategy } from '@/lib/data';
@@ -142,7 +143,7 @@ function SocialStrategiesList() {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Tutti i Clienti</SelectItem>
-                                {[...clients].sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                                {selectableClients(clients, clientFilter).sort((a,b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <Select value={statusFilter} onValueChange={setStatusFilter}>

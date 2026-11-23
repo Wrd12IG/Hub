@@ -122,6 +122,8 @@ export async function PUT(
 
     // Il token del link pubblico si cambia solo da /api/clients/[id]/public-link (tiene allineato l'indice).
     delete body.publicToken; delete body.publicTokenCreatedAt;
+    // Archiviare è dell'amministratore e passa da /api/clients/[id]/archive: un modulo di modifica non deve poterlo cambiare.
+    delete body.archived; delete body.archivedAt;
     // Senza il permesso finanziario budget e note si ignorano (non si sovrascrivono con i valori vuoti di un modulo che non li mostrava).
     if (!(await canViewFinancialsServer(adminDb, await getAppUser(auth.uid)))) for (const f of FINANCIAL_CLIENT_FIELDS) delete body[f];
     const { rest, privateFields } = splitPrivateFields(body);
@@ -254,6 +256,7 @@ export async function PATCH(
 
     // 2. Aggiornamento dei restanti campi pubblici (il token del link pubblico passa solo da /public-link)
     delete body.publicToken; delete body.publicTokenCreatedAt;
+    delete body.archived; delete body.archivedAt; // solo da /api/clients/[id]/archive (amministratore)
     if (!(await canViewFinancialsServer(adminDb, await getAppUser(auth.uid)))) for (const f of FINANCIAL_CLIENT_FIELDS) delete body[f];
     const { rest, privateFields } = splitPrivateFields(body);
     const updateData: Record<string, unknown> = {

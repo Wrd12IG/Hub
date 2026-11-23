@@ -1,5 +1,6 @@
 "use client"
 
+import { selectableClients } from '@/lib/client-archive'
 import * as React from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -252,7 +253,7 @@ export default function ProjectForm({ project, onSuccess, onCancel, onCreateTask
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {[...clients].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map((client) => (
+                                        {selectableClients(clients, field.value).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map((client) => (
                                             <SelectItem key={client.id} value={client.id}>
                                                 {client.name}
                                             </SelectItem>

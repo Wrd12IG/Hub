@@ -5,6 +5,7 @@ import { auth, db } from '@/lib/firebase';
 import { getDoc, doc, collection, query, where, orderBy, limit, onSnapshot, getDocs, setDoc, Timestamp, documentId, type Query } from 'firebase/firestore';
 import type { User, Client, Project, Task, ActivityType, Absence, RolePermissions, Conversation, Notification, CalendarActivity, TaskPrioritySettings, CalendarActivityPreset, BriefService, BriefServiceCategory, ServiceContract } from '@/lib/data';
 import { canSeeFinancials, withoutFinancials } from '@/lib/financial-access';
+import { activeOnly } from '@/lib/client-archive';
 import { getUsers, getClients, getProjects, getTasks, getActivityTypes, getAbsences, getRolePermissions, getTask, getProject, createNotification, addUser, getCalendarActivities, getTaskPrioritySettings, getCalendarActivityPresets, getBriefServices, getBriefServiceCategories, getServiceContracts } from '@/lib/actions';
 import { playSound, showBrowserNotification } from '@/lib/sounds';
 
@@ -21,7 +22,10 @@ interface LayoutContextType {
   currentUser: User | null;
   users: User[];
   usersById: Record<string, User>;
+  /** Tutti i clienti, archiviati compresi: serve a ritrovare il nome in task, progetti e report passati. Per elenchi e selettori usa `activeClients`. */
   clients: Client[];
+  /** Solo i clienti non archiviati (lib/client-archive.ts): per elenchi di lavoro e selettori. */
+  activeClients: Client[];
   /** Vede budget, note riservate e costi dei clienti: amministratore sempre, gli altri solo con la spunta in Admin → Permessi. */
   canViewFinancials: boolean;
   clientsById: Record<string, Client>;
@@ -208,6 +212,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     return comp ? { ...u, salary: comp.salary, hourlyRate: comp.hourlyRate } as User : u;
   }), [users, canViewFinancials, userCompensation]);
   const usersById = useMemo(() => Object.fromEntries(usersView.map(user => [user.id, user])) as Record<string, User>, [usersView]);
+  const activeClients = useMemo(() => activeOnly(clients), [clients]);
   const clientsById = useMemo(() => Object.fromEntries(clients.map(client => [client.id, client])) as Record<string, Client>, [clients]);
   const tasksById = useMemo(() => Object.fromEntries(allTasks.map(task => [task.id, task])) as Record<string, Task>, [allTasks]);
   const projectsById = useMemo(() => Object.fromEntries(allProjects.map(project => [project.id, project])) as Record<string, Project>, [allProjects]);
@@ -561,6 +566,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       users: usersView,
       usersById,
       clients,
+      activeClients,
       canViewFinancials,
       clientsById,
       get allProjects() { requestWorkData(); return allProjects; },
@@ -597,6 +603,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     usersView,
     usersById,
     clients,
+    activeClients,
     canViewFinancials,
     clientsById,
     allProjects,
