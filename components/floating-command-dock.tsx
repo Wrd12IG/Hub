@@ -10,11 +10,11 @@ import {
     LayoutGrid,
     Calendar,
     MessageSquare,
-    FileText,
+    FolderOpen,
     BarChart3,
     BookOpen,
-    CalendarX2,
-    Bot,
+    UserRoundX,
+    Compass,
     Search,
     Zap,
     FolderPlus,
@@ -22,7 +22,9 @@ import {
     Users,
     Settings,
     Upload,
-    Library,
+    FolderSync,
+    TrendingUp,
+    ScanSearch,
     Repeat,
     Send,
 } from 'lucide-react';
@@ -52,26 +54,33 @@ interface DockNavItem {
     exact?: boolean;
 }
 
+// Un colore per gruppo (si legge come un blocco) e un'icona diversa per ogni voce.
 const allNavItems: DockNavItem[] = [
+    // Lavoro quotidiano — blu
     { href: '/dashboard', icon: Gauge, label: 'Dashboard', color: 'text-blue-500', group: 'lavoro' },
-    { href: '/tasks', icon: ClipboardList, label: 'Tasks', color: 'text-sky-500', group: 'lavoro' },
-    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-amber-500', group: 'lavoro' },
-    { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-purple-500', group: 'lavoro' },
-    { href: '/admin/recurring-projects', icon: Library, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-indigo-500', group: 'lavoro' },
+    { href: '/tasks', icon: ClipboardList, label: 'Tasks', color: 'text-blue-500', group: 'lavoro' },
+    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-blue-500', group: 'lavoro' },
+    { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-blue-500', group: 'lavoro' },
+    { href: '/admin/recurring-projects', icon: FolderSync, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-blue-500', group: 'lavoro' },
+    // Clienti — azzurro
     { href: '/clients', icon: Users, label: 'Clienti', color: 'text-cyan-500', group: 'clienti' },
-    { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-amber-600', group: 'clienti' },
-    { href: '/social-strategies', icon: Bot, label: 'Strategie Social', color: 'text-rose-500', group: 'clienti' },
-    { href: '/documents', icon: FileText, label: 'Documenti e Media', color: 'text-blue-400', altHrefs: ['/assets'], group: 'clienti' },
+    { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-cyan-500', group: 'clienti' },
+    { href: '/social-strategies', icon: Compass, label: 'Strategie Social', color: 'text-cyan-500', group: 'clienti' },
+    { href: '/documents', icon: FolderOpen, label: 'Documenti e Media', color: 'text-cyan-500', altHrefs: ['/assets'], group: 'clienti' },
+    // Team — verde
     { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-500', group: 'team' },
-    { href: '/absences', icon: CalendarX2, label: 'Assenze', color: 'text-teal-500', group: 'team' },
-    { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-indigo-400', group: 'team' },
+    { href: '/absences', icon: UserRoundX, label: 'Assenze', color: 'text-emerald-500', group: 'team' },
+    { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-emerald-500', group: 'team' },
+    // Analisi — viola
     { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500', group: 'analisi' },
+    { href: '/andamento-clienti', icon: TrendingUp, label: 'Andamento clienti', color: 'text-violet-500', group: 'analisi' },
 ];
 
+// Admin — arancio
 const adminNavItems: DockNavItem[] = [
-    { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-rose-600', group: 'admin' },
-    { href: '/andamento-clienti', icon: BarChart3, label: 'Andamento clienti', color: 'text-violet-500', group: 'admin' },
-    { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-sky-500', group: 'admin' },
+    { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-orange-500', group: 'admin' },
+    { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-orange-500', group: 'admin' },
+    { href: '/site-monitor', icon: ScanSearch, label: 'Monitor siti', color: 'text-orange-500', group: 'admin' },
     { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500', group: 'admin' },
 ];
 

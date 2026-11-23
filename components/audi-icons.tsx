@@ -68,4 +68,9 @@ export const lucideToAudiMap: Record<string, string> = {
     'BarChart3': 'dashboard',
     'CalendarX2': 'calendar',
     'Image': 'default',
+    // Icone introdotte con il riordino del menu: stesso disegno delle precedenti
+    'FolderSync': 'projects',
+    'FolderOpen': 'documents',
+    'UserRoundX': 'calendar',
+    'TrendingUp': 'dashboard',
 };
