@@ -12,6 +12,7 @@
  *  - un errore chiaro si riprova al massimo MAX_ATTEMPTS volte (la cron), o a richiesta (resetFailed);
  *    un GBP multi-sede ricorda le sedi già servite.
  */
+import { approvalGate } from './content-approval';
 import { adminDb } from '@/lib/firebase-admin';
 import { executeAction } from '@/lib/windsor-client';
 import { executeWithRetry } from '@/lib/publish-retry';
@@ -27,7 +28,7 @@ export const BUDGET_MS = 230_000;
 /** Firestore rifiuta gli `undefined` (il progetto non ha ignoreUndefinedProperties): sempre il giro JSON in scrittura. */
 const clean = <T,>(v: T): T => JSON.parse(JSON.stringify(v));
 
-export type Outcome = { contentId: string; topic?: string; clientId?: string; clientName?: string; publicationDate?: string; channel: PublishChannel; result: string };
+export type Outcome = { contentId: string; topic?: string; clientId?: string; clientName?: string; publicationDate?: string; channel: PublishChannel; result: string; attempts?: number };
 
 export interface RunOptions {
   dryRun: boolean;
@@ -100,7 +101,8 @@ export async function runPublish(due: EditorialContent[], opts: RunOptions, star
       const claimed = await adminDb.runTransaction(async (tx) => {
         const fresh = (await tx.get(ref)).data() as EditorialContent | undefined;
         const cur = fresh?.publishResults?.[channel];
-        if (!fresh || fresh.status !== 'Approvato' || cur?.status === 'published' || cur?.status === 'publishing') return null;
+        // Approvato E con approvazione vera e non modificata dopo (non basta lo stato: lo scrive chiunque dello staff)
+        if (!fresh || !approvalGate(fresh).ok || cur?.status === 'published' || cur?.status === 'publishing') return null;
         const next: ChannelPublishState = clean({ ...cur, status: 'publishing', attempts: (retryable ? 0 : (cur?.attempts || 0)) + 1, lastAttemptAt: now.toISOString(), error: undefined });
         tx.update(ref, { [`publishResults.${channel}`]: next });
         return next;
@@ -138,7 +140,7 @@ export async function runPublish(due: EditorialContent[], opts: RunOptions, star
       const updated = clean(finalState);
       await ref.update({ [`publishResults.${channel}`]: updated });
       content.publishResults = { ...content.publishResults, [channel]: updated };
-      outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, clientName: client?.name, publicationDate: content.publicationDate, channel, result: failure ? `fallito: ${failure}` : 'pubblicato' });
+      outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, clientName: client?.name, publicationDate: content.publicationDate, channel, result: failure ? `fallito: ${failure}` : 'pubblicato', attempts: claimed.attempts });
     }
 
     if (!dryRun && allAutomatedPublished(content, channels)) {

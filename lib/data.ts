@@ -386,7 +386,10 @@ export type NotificationType =
     | 'calendar_event_assigned'
     // Scheda cliente
     | 'client_log_approval_requested'
-    | 'client_log_approval_decided';
+    | 'client_log_approval_decided'
+    // Pubblicazione
+    | 'editorial_publish_failed'
+    | 'editorial_publish_blocked';
 
 export interface Notification {
     id: string;
@@ -493,6 +496,8 @@ export interface ContentApproval {
     comment?: string;
     /** Approvato internamente senza passare dal cliente: chi l'ha fatto è in respondedBy. */
     bypass?: boolean;
+    /** Impronta di ciò che è stato approvato (testo, media, canali): se cambia dopo, il post non esce finché non si riapprova. */
+    contentHash?: string;
 }
 
 export interface EditorialContent {
@@ -542,6 +547,8 @@ export interface EditorialContent {
     customFields?: Record<string, string>;
     /** Esito per canale, scritto da chi pubblica (cron/Zapier). Assente = mai tentato. */
     publishResults?: PublishResults;
+    /** Ultimo avviso mandato per questo contenuto («fermo prima di uscire»): serve a non ripeterlo ad ogni giro della cron. */
+    publishAlert?: { kind: string; at: string };
     approval?: ContentApproval;
     createdAt?: string;
     updatedAt?: string;
