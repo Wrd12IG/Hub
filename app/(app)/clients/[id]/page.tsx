@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   Brain,
   Globe,
+  Gauge,
   Plus,
   FileText,
   TrendingDown,
@@ -114,6 +115,8 @@ const itNum = (v: number, decimals = 0) =>
 // Nessun dato placeholder — tutti i dati sono reali da Firebase / API collegate
 
 interface Client {
+  /** Profilo KPI: «auto» = concessionaria (compare la scheda «KPI concessionario»). */
+  kpiProfile?: string | null;
   mediaPlan?: MediaPlan | null;
   postLead?: PostLeadData | null;
   id: string;
@@ -1445,6 +1448,13 @@ export default function ClientDetailPage() {
             label: "Scheda",
             dot: "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]",
           },
+          // Solo per le concessionarie (profilo KPI «Auto e moto»): lead, appuntamenti, preventivi e vendite dallo Sheet del cliente.
+          ...(client?.kpiProfile === 'auto' ? [{
+            href: `/clients/${id}/dealer-kpi`,
+            icon: Gauge,
+            label: "KPI concessionario",
+            dot: "bg-lime-500 shadow-[0_0_8px_rgba(132,204,22,0.5)]",
+          }] : []),
           {
             href: `/clients/${id}/site-monitor`,
             icon: Search,
