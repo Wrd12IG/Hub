@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Loader2 } from 'lucide-react'
+import { FileSpreadsheet, Link2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
@@ -14,6 +14,29 @@ import { MANUAL_FIELDS, fieldsForProfile, isMonthKey, parseManualCsv, previousMo
 type Grid = Record<string, Record<string, string>>
 
 const inputCls = 'h-8 w-20 rounded-md border border-border bg-background px-2 text-right text-sm [font-variant-numeric:tabular-nums] disabled:cursor-not-allowed disabled:opacity-40'
+
+/** Pulsante dello Sheet di un cliente: un invito a collegarlo, oppure lo stato dello Sheet già collegato. Mai su due righe. */
+function SheetButton({ summary, onClick }: { summary?: SheetSummary; onClick: () => void }) {
+  const base = 'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition-colors'
+  if (!summary) {
+    return (
+      <button type="button" onClick={onClick} className={`${base} border-primary/30 bg-primary/10 text-primary hover:bg-primary/20`}>
+        <Link2 className="h-3.5 w-3.5" /> Collega
+      </button>
+    )
+  }
+  const tone = summary.lastStatus === 'errore'
+    ? 'border-red-500/40 bg-red-500/10 text-red-700 hover:bg-red-500/20 dark:text-red-400'
+    : summary.lastStatus === 'avvisi'
+      ? 'border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-400'
+      : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-400'
+  const label = summary.lastStatus === 'errore' ? 'Errore' : summary.lastStatus === 'avvisi' ? 'Da controllare' : 'Collegato'
+  return (
+    <button type="button" onClick={onClick} className={`${base} ${tone}`} title={summary.lastMessage ?? undefined}>
+      <FileSpreadsheet className="h-3.5 w-3.5" /> {label}
+    </button>
+  )
+}
 
 /**
  * Dati reali del mese: lead arrivati davvero, appuntamenti, test drive, vendite. Sostituiscono i proxy di piattaforma nella
@@ -164,7 +187,7 @@ export default function DatiRealiPage() {
               <tr>
                 <th className="px-3 py-2 text-left">Cliente</th>
                 {columns.map((f) => <th key={f.id} className="px-2 py-2 text-right">{f.label}</th>)}
-                <th className="px-3 py-2 text-right">Sheet Google</th>
+                <th className="whitespace-nowrap px-3 py-2 text-right">Sheet Google</th>
               </tr>
             </thead>
             <tbody>
@@ -182,10 +205,7 @@ export default function DatiRealiPage() {
                     ))}
                     <td className="px-3 py-1.5 text-right">
                       {isAdmin ? (
-                        <button type="button" onClick={() => setSheetFor({ id: c.id, name: c.name })}
-                          className={`inline-flex h-8 items-center rounded-lg border px-3 text-xs font-medium hover:bg-accent ${sheets[c.id] ? 'border-emerald-500/50 text-emerald-700 dark:text-emerald-400' : 'border-border'}`}>
-                          {sheets[c.id] ? (sheets[c.id].lastStatus === 'errore' ? 'Sheet: errore' : 'Sheet collegato') : 'Collega Sheet'}
-                        </button>
+                        <SheetButton summary={sheets[c.id]} onClick={() => setSheetFor({ id: c.id, name: c.name })} />
                       ) : <span className="text-xs text-muted-foreground">{sheets[c.id] ? 'collegato' : '—'}</span>}
                     </td>
                   </tr>
