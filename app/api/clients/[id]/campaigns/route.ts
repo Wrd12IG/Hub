@@ -111,7 +111,9 @@ export async function GET(
   // — not just a bigger preset. ("maximum" is not a valid Windsor preset at
   // all; the allowed forms are last_Xd/Xw/Xm/Xy, last_year, last_2years,
   // this_month, this_year.)
-  const datePreset = request.nextUrl.searchParams.get('date_preset') || 'last_90d';
+  // `T` include oggi: senza, una campagna partita oggi non compare fino a domani. Misurato il 25/11/2026 su ATEL:
+  // €12,53 spesi oggi su «Motion countdown», scheda vuota ("Nessuna campagna") perché la finestra finiva ieri.
+  const datePreset = request.nextUrl.searchParams.get('date_preset') || 'last_90dT';
 
   const snap = await adminDb.collection('clients').doc(clientId).get();
   if (!snap.exists) return NextResponse.json({ error: 'Client not found' }, { status: 404 });
