@@ -21,7 +21,7 @@ import {
     ListPlus,
     Users,
     Settings,
-    Upload,
+    CalendarDays,
     FolderSync,
     TrendingUp,
     Car,
@@ -70,6 +70,7 @@ const allNavItems: DockNavItem[] = [
     // Clienti — azzurro
     { href: '/clients', icon: Users, label: 'Clienti', color: 'text-cyan-500', group: 'clienti' },
     { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-cyan-500', group: 'clienti' },
+    { href: '/editorial-plan', icon: CalendarDays, label: 'Piano Editoriale', color: 'text-cyan-500', altHrefs: ['/import-editorial'], group: 'clienti' },
     { href: '/social-strategies', icon: Compass, label: 'Strategie Social', color: 'text-cyan-500', group: 'clienti' },
     { href: '/documents', icon: FolderOpen, label: 'Documenti e Media', color: 'text-cyan-500', altHrefs: ['/assets'], group: 'clienti' },
     // Team — verde
@@ -88,7 +89,6 @@ const adminNavItems: DockNavItem[] = [
     { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-orange-500', group: 'admin' },
     { href: '/site-monitor', icon: ScanSearch, label: 'Monitor siti', color: 'text-orange-500', group: 'admin' },
     { href: '/admin/assegnazioni', icon: UserCog, label: 'Assegnazioni', color: 'text-orange-500', group: 'admin' },
-    { href: '/import-editorial', icon: Upload, label: 'Importa Piano', color: 'text-orange-500', group: 'admin' },
 ];
 
 // ── Quick Actions ──

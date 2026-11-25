@@ -13,6 +13,7 @@ import { getClients, importEditorialContents } from '@/lib/actions';
 import type { Client } from '@/lib/data';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { EditorialSectionNav } from '@/components/editorial-section-nav';
 
 
 type ParseResult = {
@@ -226,6 +227,7 @@ export default function ImportEditorialPage() {
 
     return (
         <div className="space-y-6">
+            <EditorialSectionNav />
             <h1 className="text-3xl font-bold font-headline">Importa Piano Editoriale da File CSV</h1>
 
             {step === 1 && (

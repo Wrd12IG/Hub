@@ -17,6 +17,7 @@ import { GOAL_LABEL, type CreativeGoal } from '@/lib/creative/spec'
 import { LIMITS, POSTS_PER_PERIOD, type PlanPost, type SkeletonPost } from '@/lib/ped-plan/spec'
 import { buildPedDraft } from '@/lib/ped-plan/to-ped'
 import { PlanPostCard, type Slot } from '@/components/ped-plan/PlanPostCard'
+import { EditorialSectionNav } from '@/components/editorial-section-nav'
 
 const GOALS: CreativeGoal[] = ['leads', 'bookings', 'traffic', 'awareness', 'saves', 'shares', 'comments', 'follows']
 const CONCURRENCY = 3
@@ -106,6 +107,7 @@ export default function PedPlanPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 p-4 md:p-8">
+      <EditorialSectionNav clientId={clientId} />
       <header className="space-y-1">
         <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-amber-600"><CalendarRange className="h-3.5 w-3.5" /> Piano PED</div>
         <h1 className="text-2xl font-extrabold tracking-tight md:text-3xl">Piano dei contenuti{client ? ` · ${client.name}` : ''}</h1>
