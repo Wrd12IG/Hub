@@ -8,13 +8,14 @@
  *   Ore e team          → /reports: ore lavorate e costi (tutto lo staff)
  *   Analisi             → /analytics: produttività, margini, previsioni (chi vede i dati economici)
  *   Andamento clienti   → /andamento-clienti: come va ogni cliente sui suoi KPI (amministratori)
+ *   KPI per profilo     → /kpi-profili: i clienti dello stesso profilo affiancati, con tutti i loro KPI (amministratori)
  *   KPI concessionari   → /kpi-concessionari: lead e vendite dei concessionari (amministratori)
  *   Mail mensile KPI    → /admin/report-mensile: profili, dati reali e anteprima della mail (amministratori)
  *
  * Le schede nascoste non sono una protezione: le pagine e le API fanno il loro controllo. Qui si decide solo cosa mostrare.
  */
 
-export type ReportTabKey = 'tempo' | 'analisi' | 'andamento' | 'kpi' | 'mail';
+export type ReportTabKey = 'tempo' | 'analisi' | 'andamento' | 'profili' | 'kpi' | 'mail';
 
 export interface ReportTab { key: ReportTabKey; label: string; href: string }
 
@@ -22,6 +23,7 @@ const ALL_TABS: (ReportTab & { adminOnly?: boolean; needsFinancials?: boolean })
     { key: 'tempo', label: 'Ore e team', href: '/reports' },
     { key: 'analisi', label: 'Analisi', href: '/analytics', needsFinancials: true },
     { key: 'andamento', label: 'Andamento clienti', href: '/andamento-clienti', adminOnly: true },
+    { key: 'profili', label: 'KPI per profilo', href: '/kpi-profili', adminOnly: true },
     { key: 'kpi', label: 'KPI concessionari', href: '/kpi-concessionari', adminOnly: true },
     { key: 'mail', label: 'Mail mensile KPI', href: '/admin/report-mensile', adminOnly: true },
 ];

@@ -3,7 +3,7 @@ import { reportTabs, activeReportTab, isAdminRole, REPORT_SECTION_HREFS } from '
 
 describe('reportTabs', () => {
     it('l\'amministratore le vede tutte', () => {
-        expect(reportTabs({ isAdmin: true, canViewFinancials: true }).map((t) => t.key)).toEqual(['tempo', 'analisi', 'andamento', 'kpi', 'mail']);
+        expect(reportTabs({ isAdmin: true, canViewFinancials: true }).map((t) => t.key)).toEqual(['tempo', 'analisi', 'andamento', 'profili', 'kpi', 'mail']);
     });
     it('chi non è amministratore e non vede i dati economici ha solo «Ore e team»', () => {
         expect(reportTabs({ isAdmin: false, canViewFinancials: false }).map((t) => t.key)).toEqual(['tempo']);
@@ -18,6 +18,7 @@ describe('activeReportTab', () => {
         expect(activeReportTab('/reports')).toBe('tempo');
         expect(activeReportTab('/analytics')).toBe('analisi');
         expect(activeReportTab('/andamento-clienti/')).toBe('andamento');
+        expect(activeReportTab('/kpi-profili')).toBe('profili');
         expect(activeReportTab('/kpi-concessionari')).toBe('kpi');
         expect(activeReportTab('/admin/report-mensile')).toBe('mail');
         expect(activeReportTab('/admin/report-mensile/anteprima')).toBe('mail');
@@ -30,7 +31,8 @@ describe('activeReportTab', () => {
     });
     it('gli indirizzi della sezione coincidono con le schede', () => {
         expect(REPORT_SECTION_HREFS).toContain('/analytics');
-        expect(REPORT_SECTION_HREFS).toHaveLength(5);
+        expect(REPORT_SECTION_HREFS).toContain('/kpi-profili');
+        expect(REPORT_SECTION_HREFS).toHaveLength(6);
     });
 });
 
