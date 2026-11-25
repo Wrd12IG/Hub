@@ -1776,7 +1776,9 @@ export default function ClientDetailPage() {
                 </h3>
                 <p className="text-xs text-muted-foreground/60">
                   {allCampaigns.length === 0
-                    ? "Collega Meta Ads e/o Google Ads in Setup API per vederle qui."
+                    ? (client?.metaAdAccountId || client?.googleAdAccountId
+                        ? "Nessuna campagna con dati negli ultimi 90 giorni sugli account collegati."
+                        : "Collega Meta Ads e/o Google Ads in Setup API per vederle qui.")
                     : "Prova ad allargare l'intervallo di date o cambiare stato."}
                 </p>
               </div>
