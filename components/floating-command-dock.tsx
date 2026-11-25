@@ -23,8 +23,6 @@ import {
     Settings,
     CalendarDays,
     FolderSync,
-    TrendingUp,
-    Car,
     ScanSearch,
     UserCog,
     Repeat,
@@ -41,6 +39,7 @@ import { useLayoutData } from '@/app/(app)/layout-context';
 import { PAGES_ALWAYS_FOR_PM, isProjectManagerRole } from '@/lib/nav-permissions';
 import { RolePermissions } from '@/lib/data';
 import { useClientTodo } from '@/hooks/use-client-todo';
+import { REPORT_SECTION_HREFS } from '@/lib/report-nav';
 
 // ── Stessa struttura di allNavItems dalla sidebar ──
 interface DockNavItem {
@@ -78,9 +77,8 @@ const allNavItems: DockNavItem[] = [
     { href: '/absences', icon: UserRoundX, label: 'Assenze', color: 'text-emerald-500', group: 'team' },
     { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-emerald-500', group: 'team' },
     // Analisi — viola
-    { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500', group: 'analisi' },
-    { href: '/andamento-clienti', icon: TrendingUp, label: 'Andamento clienti', color: 'text-violet-500', group: 'analisi' },
-    { href: '/kpi-concessionari', icon: Car, label: 'KPI concessionari', color: 'text-violet-500', group: 'analisi' },
+    // Una voce sola: le altre pagine (Analisi, Andamento clienti, KPI concessionari, Mail mensile) sono schede dei Report
+    { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500', altHrefs: REPORT_SECTION_HREFS.filter(h => h !== '/reports'), group: 'analisi' },
 ];
 
 // Admin — arancio

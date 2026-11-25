@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { useLayoutData } from '@/app/(app)/layout-context';
+import { ReportSectionNav } from '@/components/report-section-nav'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -516,6 +517,7 @@ export default function ReportsPage() {
 
     return (
         <div className="space-y-6">
+            <ReportSectionNav />
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
