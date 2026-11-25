@@ -2,12 +2,13 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { Download, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { btn } from '@/app/(app)/outreach/shared'
 import { funnelRate } from '@/lib/dealer-kpi/totals'
+import { clientToCsv, type ClientCsvKpi } from '@/lib/dealer-kpi/overview'
 import { formatDelta, formatValue, type KpiResult } from '@/lib/kpi-compute'
 import { previousMonthKey, isMonthKey } from '@/lib/manual-kpis'
 import { ENTRY_TYPES, SOURCES, TYPE_LABEL, type MonthTotals } from '@/lib/dealer-kpi/types'
@@ -108,11 +109,39 @@ export default function DealerKpiPage() {
   const st = data.config?.status ?? null
   const months = [...data.months].reverse()
 
+  const downloadCsv = () => {
+    const kpis: ClientCsvKpi[] = []
+    if (kpiData && kpiData.month === kpiMonth) {
+      for (const g of kpiData.groups) {
+        for (const kid of g.ids) {
+          const k = kpiData.kpis.find((x) => x.id === kid)
+          if (!k) continue
+          kpis.push({
+            group: g.label, label: k.label, value: k.value, unit: k.unit,
+            delta: k.value !== null && k.vsPrev ? formatDelta(k.vsPrev, k.unit) : null,
+            note: k.value === null ? (k.missing ?? 'Nessun dato') : k.kind === 'proxy' ? `stima (${k.proxyOf})` : null,
+          })
+        }
+      }
+    }
+    const csv = clientToCsv({ name: data.clientName, months: data.months, month: kpiMonth, kpis })
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    const slug = data.clientName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cliente'
+    a.href = url; a.download = `kpi-${slug}-${kpiMonth}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <header>
-        <h1 className="text-xl font-semibold">KPI concessionario · {data.clientName}</h1>
-        <p className="text-sm text-muted-foreground">Lead, appuntamenti, preventivi e vendite per marca e provenienza, letti dallo Sheet Google condiviso con il cliente.</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">KPI concessionario · {data.clientName}</h1>
+          <p className="text-sm text-muted-foreground">Lead, appuntamenti, preventivi e vendite per marca e provenienza, letti dallo Sheet Google condiviso con il cliente.</p>
+        </div>
+        <button onClick={downloadCsv} disabled={data.months.length === 0} className={btn} title="Totali di tutti i mesi, marca e provenienza del mese scelto e, se già caricati, i KPI di piattaforma">
+          <Download className="h-4 w-4" /> Scarica CSV
+        </button>
       </header>
 
       <section className="space-y-3 rounded-xl border border-border p-4">

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildOverview, overviewToCsv } from '../dealer-kpi/overview';
+import { buildOverview, clientToCsv, overviewToCsv } from '../dealer-kpi/overview';
 import type { MonthTotals } from '../dealer-kpi/types';
 
 const mk = (month: string, lead: number, app: number, prev: number, sale: number, brand = 'Renault', source = 'Meta'): MonthTotals => ({
@@ -36,6 +36,31 @@ describe('buildOverview', () => {
     it('ripartisce per marca e provenienza', () => {
         expect(o.byBrand.map((b) => [b.key, b.byType.lead])).toEqual([['Renault', 50], ['Dacia', 30]]);
         expect(o.bySource.map((b) => [b.key, b.byType.vendita])).toEqual([['Meta', 5], ['Google', 1]]);
+    });
+});
+
+describe('clientToCsv', () => {
+    it('mesi con imbuto, marca e provenienza del mese scelto, KPI', () => {
+        const csv = clientToCsv({
+            name: 'Alfa Auto',
+            months: [mk('2026-09', 10, 5, 2, 1), mk('2026-10', 50, 20, 10, 5)],
+            month: '2026-10',
+            kpis: [
+                { group: 'Meta Ads', label: 'Spesa Meta', value: 1234.5, unit: 'eur', delta: '+5%', note: null },
+                { group: 'Sito', label: 'Utenti', value: null, unit: 'n', delta: null, note: 'Nessun dato' },
+            ],
+        });
+        expect(csv.startsWith('﻿Cliente;Alfa Auto')).toBe(true);
+        expect(csv).toContain('2026-09;10;5;2;1;50;40;10');
+        expect(csv).toContain('Marca (2026-10);Lead');
+        expect(csv).toContain('Renault;50;20;10;5');
+        expect(csv).toContain('Meta Ads;Spesa Meta;1234,5;eur;+5%;');
+        expect(csv).toContain('Sito;Utenti;;n;;Nessun dato');
+    });
+    it('senza mese scelto o senza KPI non inventa sezioni', () => {
+        const csv = clientToCsv({ name: 'X', months: [mk('2026-10', 1, 0, 0, 0)], month: null });
+        expect(csv).not.toContain('Marca');
+        expect(csv).not.toContain('KPI del mese');
     });
 });
 

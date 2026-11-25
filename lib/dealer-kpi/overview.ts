@@ -78,7 +78,9 @@ type Cell = string | number | null;
 const cell = (v: Cell): string => {
     if (v === null) return '';
     // Un testo che inizia con = + - @ verrebbe letto da Excel come formula: lo si neutralizza.
-    const s = typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? `'${v}` : String(v);
+    // Fanno eccezione i numeri col segno («+5%», «-12,3»): sono variazioni, non formule.
+    const isSignedNumber = typeof v === 'string' && /^[+-]\d[\d.,]*\s?%?$/.test(v);
+    const s = typeof v === 'string' && !isSignedNumber && /^[=+\-@\t\r]/.test(v) ? `'${v}` : String(v);
     return /[;"\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 const pct = (v: number | null): string => (v === null ? '' : String(v).replace('.', ','));
@@ -101,6 +103,46 @@ export function overviewToCsv(o: Overview): string {
         out.push(line([title, ...ENTRY_TYPES.map((t) => TYPE_LABEL[t])]));
         for (const b of list) out.push(line([b.key, ...ENTRY_TYPES.map((t) => b.byType[t])]));
         out.push('');
+    }
+    return '﻿' + out.join('\r\n');
+}
+
+/* ───────────── CSV di un solo concessionario ───────────── */
+
+export interface ClientCsvKpi { group: string; label: string; value: number | null; unit: string; delta: string | null; note: string | null }
+
+const numCell = (n: number | null): Cell => (n === null ? '' : String(Math.round(n * 100) / 100).replace('.', ','));
+
+/**
+ * Il CSV della pagina di un concessionario: i totali di tutti i mesi con l'imbuto, la ripartizione per marca e provenienza del
+ * mese scelto e, se già lette, le cifre di Analytics, Meta Ads e Google Ads dello stesso mese.
+ */
+export function clientToCsv(input: { name: string; months: MonthTotals[]; month: string | null; kpis?: ClientCsvKpi[] }): string {
+    const out: string[] = [];
+    out.push(line(['Cliente', input.name]));
+    out.push('');
+    out.push(line(['Mese', ...ENTRY_TYPES.map((t) => TYPE_LABEL[t]), '% appuntamenti su lead', '% preventivi su appuntamenti', '% vendite su lead']));
+    for (const m of input.months) {
+        const r = ratesOf({ ...zero(), ...m.byType });
+        out.push(line([m.month, ...ENTRY_TYPES.map((t) => m.byType[t] ?? 0), pct(r.appointmentRate), pct(r.quoteRate), pct(r.saleRate)]));
+    }
+    const sel = input.months.find((m) => m.month === input.month);
+    out.push('');
+    if (sel) {
+        const brands = new Map<string, Record<EntryType, number>>();
+        const sources = new Map<string, Record<EntryType, number>>();
+        addInto(brands, sel.byBrand);
+        addInto(sources, sel.bySource);
+        const sections: Array<[string, Breakdown[]]> = [['Marca (' + sel.month + ')', toBreakdown(brands)], ['Provenienza (' + sel.month + ')', toBreakdown(sources)]];
+        for (const [title, list] of sections) {
+            out.push(line([title, ...ENTRY_TYPES.map((t) => TYPE_LABEL[t])]));
+            for (const b of list) out.push(line([b.key, ...ENTRY_TYPES.map((t) => b.byType[t])]));
+            out.push('');
+        }
+    }
+    if (input.kpis && input.kpis.length) {
+        out.push(line(['KPI del mese' + (input.month ? ' (' + input.month + ')' : ''), 'KPI', 'Valore', 'Unità', 'Variazione sul mese prima', 'Nota']));
+        for (const k of input.kpis) out.push(line([k.group, k.label, numCell(k.value), k.unit, k.delta ?? '', k.note ?? '']));
     }
     return '﻿' + out.join('\r\n');
 }
