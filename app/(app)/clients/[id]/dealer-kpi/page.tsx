@@ -8,8 +8,12 @@ import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { btn } from '@/app/(app)/outreach/shared'
 import { funnelRate } from '@/lib/dealer-kpi/totals'
+import { formatDelta, formatValue, type KpiResult } from '@/lib/kpi-compute'
+import { previousMonthKey, isMonthKey } from '@/lib/manual-kpis'
 import { ENTRY_TYPES, SOURCES, TYPE_LABEL, type MonthTotals } from '@/lib/dealer-kpi/types'
 import type { SyncStatus } from '@/lib/dealer-kpi/sync'
+
+type KpiPayload = { month: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null }
 
 type Payload = {
   clientName: string
@@ -35,6 +39,10 @@ export default function DealerKpiPage() {
   const [url, setUrl] = useState('')
   const [tab, setTab] = useState('Dati')
   const [busy, setBusy] = useState<string | null>(null)
+  const [kpiMonth, setKpiMonth] = useState<string>(previousMonthKey())
+  const [kpiData, setKpiData] = useState<KpiPayload | null>(null)
+  const [kpiLoading, setKpiLoading] = useState(false)
+  const [kpiError, setKpiError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -48,6 +56,29 @@ export default function DealerKpiPage() {
     } finally { setLoading(false) }
   }, [authFetch, id])
   useEffect(() => { load() }, [load])
+
+  // Di partenza il mese più recente con dati nello Sheet (se c'è), altrimenti il mese scorso
+  const defaultedMonth = React.useRef(false)
+  useEffect(() => {
+    if (defaultedMonth.current || !data) return
+    defaultedMonth.current = true
+    const latest = data.months.length ? data.months[data.months.length - 1].month : null
+    if (latest && isMonthKey(latest)) setKpiMonth(latest)
+  }, [data])
+
+  const loadKpis = useCallback(async (month: string) => {
+    if (!isMonthKey(month)) return
+    setKpiLoading(true); setKpiError(null)
+    try {
+      const res = await authFetch(`/api/clients/${id}/dealer-kpi/kpis?month=${month}`)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || `Il server ha risposto ${res.status}.`)
+      setKpiData(json)
+    } catch (e) {
+      setKpiData(null); setKpiError(e instanceof Error ? e.message : 'Errore')
+    } finally { setKpiLoading(false) }
+  }, [authFetch, id])
+  useEffect(() => { if (data) loadKpis(kpiMonth) }, [data === null, kpiMonth, loadKpis]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async () => {
     setBusy('save')
@@ -119,6 +150,44 @@ export default function DealerKpiPage() {
           {st.issuesTotal > st.issues.length && <p className="text-xs text-muted-foreground">… e altri {st.issuesTotal - st.issues.length}.</p>}
         </section>
       )}
+
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 className="text-sm font-medium">KPI del mese</h2>
+          <label className="text-xs text-muted-foreground">Mese
+            <input type="month" value={kpiMonth} onChange={(e) => e.target.value && setKpiMonth(e.target.value)} className="ml-2 h-8 rounded-lg border border-border bg-background px-2 text-sm text-foreground" />
+          </label>
+        </div>
+        {kpiLoading && <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Leggo Analytics, Meta Ads e Google Ads: può richiedere qualche secondo…</p>}
+        {kpiError && <p className="text-sm text-red-600 dark:text-red-400">{kpiError}</p>}
+        {kpiData && !kpiLoading && (
+          <div className="space-y-4">
+            {kpiData.partial && <p className="text-xs text-amber-600 dark:text-amber-400">Mese in corso: i numeri sono dei primi {kpiData.partial.days} giorni.</p>}
+            {kpiData.groups.map((g) => (
+              <div key={g.label} className="space-y-1.5">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</h3>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                  {g.ids.map((kid) => {
+                    const k = kpiData.kpis.find((x) => x.id === kid)
+                    if (!k) return null
+                    const tone = k.vsPrev?.tone === 'good' ? 'text-emerald-600 dark:text-emerald-400' : k.vsPrev?.tone === 'bad' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
+                    return (
+                      <div key={kid} className="rounded-xl border border-border p-3">
+                        <p className="text-xs text-muted-foreground">{k.label}</p>
+                        <p className="mt-1 text-xl font-semibold [font-variant-numeric:tabular-nums]">{k.value === null ? '—' : formatValue(k.value, k.unit)}</p>
+                        {k.value === null
+                          ? <p className="text-[11px] text-muted-foreground">{k.missing ?? 'Nessun dato'}</p>
+                          : <p className={`text-[11px] ${tone}`}>{k.vsPrev ? `${formatDelta(k.vsPrev, k.unit)} sul mese prima` : 'nessun confronto'}{k.kind === 'proxy' ? ` · stima (${k.proxyOf})` : ''}</p>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+            <p className="text-[11px] text-muted-foreground">Il costo per lead è la spesa di Google e Meta divisa per i lead di quei due canali dichiarati nello Sheet. Impression e copertura sono di Meta Ads; il numero di utenti è quello di Analytics («utenti attivi»).</p>
+          </div>
+        )}
+      </section>
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium">Totali per mese</h2>

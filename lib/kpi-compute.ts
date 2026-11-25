@@ -97,9 +97,11 @@ interface Raw { value: number | null; kind: 'real' | 'proxy' | null; proxyOf?: s
 export function platformsNeeded(kpiIds: string[]): Set<Platform> {
     const need = new Set<Platform>();
     const has = (id: string) => kpiIds.includes(id);
-    if (has('leads_real') || has('leads_meta') || has('cost_per_lead') || has('ads_spend') || has('roas') || has('cpa')) need.add('facebook');
-    if (has('ads_spend') || has('roas') || has('cpa')) need.add('google_ads');
-    if (has('sessions') || has('revenue') || has('orders') || has('conversion_rate') || has('roas') || has('cpa')) need.add('ga4');
+    if (has('leads_real') || has('leads_meta') || has('cost_per_lead') || has('ads_spend') || has('roas') || has('cpa')
+        || has('meta_impressions') || has('meta_reach') || has('meta_spend') || has('cost_per_lead_total') || has('cpl_meta_real')) need.add('facebook');
+    if (has('ads_spend') || has('roas') || has('cpa') || has('gads_impressions') || has('gads_clicks') || has('gads_spend') || has('gads_conversions')
+        || has('cost_per_lead_total') || has('cpl_google')) need.add('google_ads');
+    if (has('sessions') || has('users') || has('revenue') || has('orders') || has('conversion_rate') || has('roas') || has('cpa')) need.add('ga4');
     if (has('revenue') || has('orders')) { need.add('awin'); need.add('klaviyo'); }
     if (has('email_revenue')) need.add('klaviyo');
     if (has('search_clicks')) need.add('searchconsole');
@@ -154,6 +156,21 @@ export function rawKpi(id: string, platforms: PlatformReport[], which: Which, ma
         case 'roas': return real(div(readSum(platforms, 'ga4', 'purchase_revenue', which), adsSpend(platforms, which)));
         case 'cpa': return real(div(adsSpend(platforms, which), readSum(platforms, 'ga4', 'transactions', which)));
         case 'sessions': return real(readSum(platforms, 'ga4', 'sessions', which));
+        case 'users': return real(readSum(platforms, 'ga4', 'active_users', which));
+        // Meta Ads e Google Ads, canale per canale. La copertura Meta è quella aggregata sul periodo (non la somma dei giorni).
+        case 'meta_impressions': return real(readSum(platforms, 'facebook', 'impressions', which));
+        case 'meta_reach': return real(readSum(platforms, 'facebook', 'reach', which));
+        case 'meta_spend': return real(readSum(platforms, 'facebook', 'spend', which));
+        case 'gads_impressions': return real(readSum(platforms, 'google_ads', 'impressions', which));
+        case 'gads_clicks': return real(readSum(platforms, 'google_ads', 'clicks', which));
+        case 'gads_spend': return real(readSum(platforms, 'google_ads', 'cost', which));
+        case 'gads_conversions': return real(readSum(platforms, 'google_ads', 'conversions', which));
+        case 'quotes': return real(m('quotes'));
+        // Costo per lead calcolato: la spesa si divide per i lead ARRIVATI DAI CANALI A PAGAMENTO (Google e Meta, dallo Sheet del cliente),
+        // non per tutti i lead (telefono e showroom non costano pubblicità). Senza Sheet non c'è: meglio vuoto di un numero gonfiato.
+        case 'cost_per_lead_total': return real(div(adsSpend(platforms, which), m('leads_paid')));
+        case 'cpl_google': return real(div(readSum(platforms, 'google_ads', 'cost', which), m('leads_sheet_google')));
+        case 'cpl_meta_real': return real(div(readSum(platforms, 'facebook', 'spend', which), m('leads_sheet_meta')));
         case 'revenue': return real(revenue(platforms, which));
         case 'orders': { const v = m('orders'); return v !== null ? { value: v, kind: 'real' } : real(orders(platforms, which)); }
         case 'conversion_rate': {
@@ -289,7 +306,7 @@ export interface ComputeInput {
     failedSources?: string[];
 }
 
-const MANUAL_IDS = ['leads_real', 'appointments', 'test_drives', 'sales'];
+const MANUAL_IDS = ['leads_real', 'appointments', 'test_drives', 'sales', 'quotes'];
 export const SOURCE_NAMES: Partial<Record<Platform, string>> = {
     facebook: 'Meta Ads', google_ads: 'Google Ads', ga4: 'sito (GA4)', gbp: 'Google Maps', instagram: 'Instagram', facebook_page: 'Facebook',
     linkedin_organic: 'LinkedIn', klaviyo: 'Klaviyo', searchconsole: 'Search Console', awin: 'Awin', tiktok: 'TikTok',

@@ -28,7 +28,17 @@ export type MonthlyOutcome =
     | { ok: true; result: ClientMonthly }
     | { ok: false; reason: 'not_found' | 'no_profile' | 'bad_month'; message: string };
 
-export async function computeClientMonth(clientId: string, month: string): Promise<MonthlyOutcome> {
+export interface MonthOptions {
+    /** Elenco di KPI al posto di quello del cliente (la pagina «KPI concessionario» ne mostra più di 5). */
+    kpiIds?: string[];
+    /** Settimana su settimana (di default sì: serve alla mail). */
+    weeks?: boolean;
+    /** Salva la fotografia per la mail (di default sì). Chi guarda soltanto non deve sovrascriverla. */
+    snapshot?: boolean;
+}
+
+export async function computeClientMonth(clientId: string, month: string, opts: MonthOptions = {}): Promise<MonthlyOutcome> {
+    const { weeks: withWeeks = true, snapshot = true } = opts;
     if (!isMonthKey(month)) return { ok: false, reason: 'bad_month', message: 'Mese non valido.' };
     const today = romeDateKey(new Date());
     const windows = monthWindows(month, today);
@@ -40,7 +50,7 @@ export async function computeClientMonth(clientId: string, month: string): Promi
     if (!isKpiProfile(client.kpiProfile)) return { ok: false, reason: 'no_profile', message: 'Il cliente non ha un profilo KPI.' };
 
     const overrides = await readKpiOverrides();
-    const kpiIds = kpiIdsForClient(client, overrides) ?? [];
+    const kpiIds = opts.kpiIds ?? kpiIdsForClient(client, overrides) ?? [];
     const need = platformsNeeded(kpiIds);
 
     // Klaviyo sta cifrato a parte: si chiede solo se serve
@@ -92,7 +102,7 @@ export async function computeClientMonth(clientId: string, month: string): Promi
 
     // Settimana su settimana: una lettura per ogni settimana chiusa, con la stessa settimana del mese prima. Una settimana che
     // non si legge non ferma il mese: resta «non disponibile» e il resto si vede.
-    const blocks = completedBlocks(month, today);
+    const blocks = withWeeks ? completedBlocks(month, today) : [];
     const weekInputs: WeekInput[] = new Array(blocks.length);
     let next = 0;
     const worker = async () => {
@@ -107,9 +117,9 @@ export async function computeClientMonth(clientId: string, month: string): Promi
         }
     };
     await Promise.all(Array.from({ length: Math.min(WEEK_CONCURRENCY, blocks.length) }, worker));
-    result.weeks = computeWeeks(kpiIds, weekInputs);
+    if (withWeeks) result.weeks = computeWeeks(kpiIds, weekInputs);
     if (windows.partial) result.partial = { days: windows.days };
 
-    await writeSnapshot(month, result);
+    if (snapshot) await writeSnapshot(month, result);
     return { ok: true, result };
 }

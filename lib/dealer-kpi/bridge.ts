@@ -4,14 +4,14 @@
  * Il ponte tra lo Sheet del cliente e i «dati reali» del mese (pagina Dati reali e mail mensile KPI).
  *
  * Regole:
- *  - dallo Sheet arrivano i tipi che hanno un campo corrispondente: Lead → lead ricevuti, Appuntamento → appuntamenti, Vendita → vendite.
- *    I preventivi non hanno ancora un campo tra i dati reali: restano nello Sheet e nella pagina KPI concessionario;
+ *  - dallo Sheet arrivano i tipi che hanno un campo corrispondente: Lead → lead ricevuti, Appuntamento → appuntamenti, Preventivo → preventivi
+ *    (solo KPI, non una colonna della pagina Dati reali), Vendita → vendite; in più i lead di Google e di Meta per il costo per lead;
  *  - un valore scritto a mano ha SEMPRE la precedenza (è una correzione dello staff); se lo si toglie, torna quello dello Sheet;
  *  - un tipo che nello Sheet non compare per quel mese resta «dato mancante»: non diventa zero.
  */
 import type { MonthTotals } from './types';
 
-export const SHEET_TO_MANUAL = { lead: 'leads_real', appuntamento: 'appointments', vendita: 'sales' } as const;
+export const SHEET_TO_MANUAL = { lead: 'leads_real', appuntamento: 'appointments', preventivo: 'quotes', vendita: 'sales' } as const;
 
 export type ManualMonthValues = Record<string, number>;
 
@@ -23,6 +23,13 @@ export function sheetToManual(totals: MonthTotals | null | undefined, presentTyp
         // Il totale di un tipo mai scritto è 0, ma «0 perché assente» non è «0 inserito»: si usa solo ciò che c'è davvero nello Sheet.
         if (presentTypes && !presentTypes.has(type)) continue;
         out[field] = totals.byType[type as keyof typeof totals.byType] ?? 0;
+    }
+    // Lead per provenienza, per il costo per lead: solo i canali a pagamento (Google e Meta) hanno una spesa da dividere.
+    if ((!presentTypes || presentTypes.has('lead'))) {
+        const src = totals.bySource.lead ?? {};
+        out.leads_sheet_google = src.Google ?? 0;
+        out.leads_sheet_meta = src.Meta ?? 0;
+        out.leads_paid = out.leads_sheet_google + out.leads_sheet_meta;
     }
     return out;
 }
