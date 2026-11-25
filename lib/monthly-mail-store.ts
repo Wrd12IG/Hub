@@ -2,6 +2,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
 import type { ClientMonthly } from '@/lib/kpi-compute';
 import { cleanManualValues, isMonthKey, type ManualValues } from '@/lib/manual-kpis';
+import { mergeManualWithSheet, sheetToManual, typesPresent } from '@/lib/dealer-kpi/bridge'
 import { settingsOrDefault, validateMailSettings, type MailSettings } from '@/lib/monthly-mail-settings';
 
 const settingsRef = () => adminDb.collection('settings').doc('monthlyKpiMail');
@@ -25,16 +26,35 @@ export async function writeMailSettings(raw: unknown): Promise<MailSettings> {
  * documenti (getAll), non una per cliente. Un cliente senza documento non compare nel risultato.
  */
 export async function readManualKpis(clientIds: string[], month: string): Promise<Record<string, Record<string, number>>> {
+    const detailed = await readManualKpisDetailed(clientIds, month);
+    const out: Record<string, Record<string, number>> = {};
+    for (const [id, d] of Object.entries(detailed)) out[id] = d.values;
+    return out;
+}
+
+/**
+ * Come readManualKpis, ma dice anche quali valori vengono dallo Sheet Google del cliente (clients/{id}/dealerKpi/{AAAA-MM}).
+ * Un valore scritto a mano ha la precedenza su quello dello Sheet. Un cliente senza dati né a mano né nello Sheet non compare.
+ */
+export async function readManualKpisDetailed(clientIds: string[], month: string): Promise<Record<string, { values: Record<string, number>; fromSheet: Record<string, boolean> }>> {
     if (!isMonthKey(month)) throw new Error('Mese non valido.');
     if (clientIds.length === 0) return {};
-    const snaps = await adminDb.getAll(...clientIds.map((id) => manualRef(id, month)));
-    const out: Record<string, Record<string, number>> = {};
-    snaps.forEach((s, i) => {
-        if (!s.exists) return;
-        const d = s.data() as Record<string, unknown>;
-        const values: Record<string, number> = {};
-        for (const [k, v] of Object.entries(d)) if (typeof v === 'number') values[k] = v;
-        out[clientIds[i]] = values;
+    const dealerRef = (id: string) => adminDb.collection('clients').doc(id).collection('dealerKpi').doc(month);
+    const [manualSnaps, sheetSnaps] = await Promise.all([
+        adminDb.getAll(...clientIds.map((id) => manualRef(id, month))),
+        adminDb.getAll(...clientIds.map((id) => dealerRef(id))),
+    ]);
+    const out: Record<string, { values: Record<string, number>; fromSheet: Record<string, boolean> }> = {};
+    clientIds.forEach((id, i) => {
+        const manual: Record<string, number> = {};
+        if (manualSnaps[i].exists) for (const [k, v] of Object.entries(manualSnaps[i].data() as Record<string, unknown>)) if (typeof v === 'number') manual[k] = v;
+        let sheet: Record<string, number> = {};
+        if (sheetSnaps[i].exists) {
+            const d = sheetSnaps[i].data() as { totals?: Parameters<typeof sheetToManual>[0]; entries?: Array<{ type: string }> };
+            sheet = sheetToManual(d.totals, typesPresent(d.entries));
+        }
+        const merged = mergeManualWithSheet(manual, sheet);
+        if (Object.keys(merged.values).length > 0) out[id] = merged;
     });
     return out;
 }
