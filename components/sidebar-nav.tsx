@@ -55,6 +55,7 @@ import {
   FolderOpen,
   UserRoundX,
   TrendingUp,
+  Car,
   ScanSearch,
   UserCog
 } from 'lucide-react';
@@ -115,6 +116,7 @@ export const allNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-orange-400' },
   { href: '/andamento-clienti', icon: TrendingUp, label: 'Andamento clienti', color: 'text-violet-400' },
+  { href: '/kpi-concessionari', icon: Car, label: 'KPI concessionari', color: 'text-violet-400' },
   { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-orange-400' },
   { href: '/site-monitor', icon: ScanSearch, label: 'Monitor siti', color: 'text-orange-400' },
   { href: '/admin/assegnazioni', icon: UserCog, label: 'Assegnazioni', color: 'text-orange-400' },
