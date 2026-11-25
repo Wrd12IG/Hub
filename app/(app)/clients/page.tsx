@@ -120,14 +120,17 @@ export default function ClientsPage() {
         <AnimatedGrid className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredClients.map((client) => (
             <AnimatedGridItem key={client.id}>
-              <Link
-                href={`/clients/${client.id}`}
-                className="group block h-full"
-              >
+              <div className="group relative h-full">
+                {/* Tutta la scheda apre la panoramica; le scorciatoie sotto stanno sopra al link, senza link dentro link. */}
+                <Link
+                  href={`/clients/${client.id}`}
+                  aria-label={`Apri ${client?.name || 'cliente'}`}
+                  className="absolute inset-0 z-0 rounded-xl"
+                />
                 <div
                   className={cn(
-                    'relative h-full rounded-xl p-5 flex flex-col gap-3 glass-card glass-card-shine',
-                    'hover:border-primary/30'
+                    'pointer-events-none relative h-full rounded-xl p-5 flex flex-col gap-3 glass-card glass-card-shine',
+                    'group-hover:border-primary/30'
                   )}
                 >
                   {/* Avatar + Name */}
@@ -145,7 +148,7 @@ export default function ClientsPage() {
                         {client?.name || 'Cliente'}
                       </h2>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="pointer-events-auto relative z-10 flex items-center gap-2 flex-shrink-0">
                       <ClientHealthDot row={health[client.id]} />
                       <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
@@ -169,8 +172,26 @@ export default function ClientsPage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Scorciatoie: saltano la panoramica */}
+                  <div className="pointer-events-auto relative z-10 mt-auto flex flex-wrap gap-1.5 pt-1">
+                    {[
+                      ...((client as any).kpiProfile === 'auto' ? [{ slug: 'dealer-kpi', label: 'KPI' }] : []),
+                      { slug: 'scheda', label: 'Scheda' },
+                      { slug: 'editorial-plan', label: 'Piano editoriale' },
+                      { slug: 'tasks', label: 'Task' },
+                    ].map((l) => (
+                      <Link
+                        key={l.slug}
+                        href={`/clients/${client.id}/${l.slug}`}
+                        className="rounded-full border border-border/70 bg-background/60 px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+                      >
+                        {l.label}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
-              </Link>
+              </div>
             </AnimatedGridItem>
           ))}
         </AnimatedGrid>
