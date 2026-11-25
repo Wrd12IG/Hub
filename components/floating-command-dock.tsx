@@ -24,6 +24,7 @@ import {
     Upload,
     FolderSync,
     TrendingUp,
+    Car,
     ScanSearch,
     UserCog,
     Repeat,
@@ -75,6 +76,7 @@ const allNavItems: DockNavItem[] = [
     // Analisi — viola
     { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500', group: 'analisi' },
     { href: '/andamento-clienti', icon: TrendingUp, label: 'Andamento clienti', color: 'text-violet-500', group: 'analisi' },
+    { href: '/kpi-concessionari', icon: Car, label: 'KPI concessionari', color: 'text-violet-500', group: 'analisi' },
 ];
 
 // Admin — arancio
