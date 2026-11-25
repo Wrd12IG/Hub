@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
   const me = await getAppUser(user.uid);
   const linked = !!(me as any)?.telegramChatId;
   const isAdmin = me?.role === 'Amministratore';
-  if (!isTelegramConfigured()) return NextResponse.json({ configured: false, linked, isAdmin });
+  const companyLinked = isAdmin ? !!(await adminDb.collection('config').doc('telegram').get()).data()?.companyChatId : undefined;
+  if (!isTelegramConfigured()) return NextResponse.json({ configured: false, linked, isAdmin, companyLinked });
 
   let botUsername: string | null = null;
   let webhookReady: boolean | null = null;
@@ -27,12 +28,12 @@ export async function GET(request: NextRequest) {
     botUsername = (await getMe()).username;
     if (isAdmin) webhookReady = (await getWebhookInfo()).url === webhookUrl();
   } catch (e) {
-    return NextResponse.json({ configured: true, linked, isAdmin, error: (e as Error).message });
+    return NextResponse.json({ configured: true, linked, isAdmin, companyLinked, error: (e as Error).message });
   }
-  return NextResponse.json({ configured: true, linked, isAdmin, botUsername, webhookReady });
+  return NextResponse.json({ configured: true, linked, isAdmin, companyLinked, botUsername, webhookReady });
 }
 
-/** POST /api/telegram { action: 'link' | 'test' | 'unlink' | 'setup' } */
+/** POST /api/telegram { action: 'link' | 'test' | 'unlink' | 'setup' | 'link_company' | 'test_company' | 'unlink_company' } — le ultime tre e 'setup' solo per gli amministratori */
 export async function POST(request: NextRequest) {
   const user = await verifyAuth(request);
   if (!user) return unauthorizedResponse();
@@ -49,6 +50,24 @@ export async function POST(request: NextRequest) {
       if (me?.role !== 'Amministratore') return forbiddenResponse();
       await setWebhook(webhookUrl(), webhookSecret(telegramToken()!));
       return NextResponse.json({ ok: true, botUsername: (await getMe()).username });
+    }
+    if (action === 'link_company' || action === 'test_company' || action === 'unlink_company') {
+      const me = await getAppUser(user.uid);
+      if (me?.role !== 'Amministratore') return forbiddenResponse();
+      const cfgRef = adminDb.collection('config').doc('telegram');
+      if (action === 'link_company') {
+        const code = newLinkCode();
+        await cfgRef.set({ companyLink: { code, expiresAt: Date.now() + LINK_TTL_MS } }, { merge: true });
+        return NextResponse.json({ url: deepLink((await getMe()).username, code), expiresInMinutes: Math.round(LINK_TTL_MS / 60000) });
+      }
+      if (action === 'unlink_company') {
+        await cfgRef.set({ companyChatId: FieldValue.delete(), companyLink: FieldValue.delete() }, { merge: true });
+        return NextResponse.json({ ok: true });
+      }
+      const companyChat = (await cfgRef.get()).data()?.companyChatId;
+      if (!companyChat) return NextResponse.json({ error: 'Il telefono aziendale non è collegato.' }, { status: 409 });
+      await sendMessage(companyChat, '✅ <b>Prova riuscita sul telefono aziendale.</b> Gli avvisi comuni del Hub arriveranno qui.');
+      return NextResponse.json({ ok: true });
     }
     if (action === 'link') {
       const code = newLinkCode();
