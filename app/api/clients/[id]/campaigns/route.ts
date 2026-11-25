@@ -7,12 +7,13 @@ import { getData } from '@/lib/windsor-client';
 // (~4s a 90 giorni, oltre vanno in timeout): serve un tetto esplicito.
 export const maxDuration = 60;
 
-// Come /reporting: 6 ore, ma solo 15 minuti se una piattaforma è in errore.
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+// 1 ora (era 6, come /reporting): una campagna appena pubblicata deve comparire in giornata, non a fine pomeriggio.
+// 15 minuti se una piattaforma è in errore.
+const CACHE_TTL_MS = 60 * 60 * 1000;
 const ERROR_TTL_MS = 15 * 60 * 1000;
 
 
-export type CampaignStatus = 'active' | 'paused' | 'ended';
+export type CampaignStatus = 'active' | 'scheduled' | 'paused' | 'ended';
 
 export interface UnifiedCampaign {
   id: string;
@@ -45,8 +46,35 @@ function todayRome(): string {
  * misurato il 25/11/2026 su City Motors, 50+ campagne dal 2024 ancora ACTIVE. Una campagna attiva con la fine
  * già passata è finita.
  */
-function withEndDate(status: CampaignStatus, endDate?: string): CampaignStatus {
-  return status === 'active' && endDate && endDate < todayRome() ? 'ended' : status;
+function withEndDate(status: CampaignStatus, endDate?: string, startDate?: string): CampaignStatus {
+  if (status !== 'active') return status;
+  const today = todayRome();
+  if (endDate && endDate < today) return 'ended';
+  // Attiva ma con l'inizio nel futuro: programmata (ATEL, 25/11/2026: «Carosello promo» parte il 26, «Ultime ore» il 29).
+  if (startDate && startDate > today) return 'scheduled';
+  return status;
+}
+
+/**
+ * Google Ads lascia ENABLED anche le campagne finite o non ancora partite: lo dice `campaign_primary_status`
+ * (ENDED / PENDING). Gli altri valori (ELIGIBLE, LIMITED, LEARNING, …) non cambiano lo stato.
+ */
+function withGooglePrimaryStatus(status: CampaignStatus, primary: unknown): CampaignStatus {
+  if (status !== 'active') return status;
+  const p = String(primary || '').toUpperCase();
+  if (p === 'ENDED') return 'ended';
+  if (p === 'PENDING') return 'scheduled';
+  return status;
+}
+
+/**
+ * Con `include_objects_without_insights` Meta restituisce TUTTE le campagne dell'account, anche quelle del 2024 mai
+ * toccate nei 90 giorni. Una campagna senza nessun dato nel periodo resta solo se è ancora attiva o programmata:
+ * serve a vedere quelle appena create o in partenza, non l'archivio.
+ */
+function isWorthShowing(c: UnifiedCampaign): boolean {
+  const hasData = c.spend > 0 || c.impressions > 0 || c.clicks > 0;
+  return hasData || c.status === 'active' || c.status === 'scheduled';
 }
 
 function num(v: unknown): number {
@@ -71,13 +99,17 @@ const PLATFORMS = {
     fields: ['campaign', 'campaign_id', 'campaign_status', 'campaign_start_time', 'campaign_stop_time',
       'spend', 'clicks', 'impressions', 'actions_lead', 'actions_purchase'],
     conversionsFields: ['actions_lead', 'actions_purchase'],
+    // Meta restituisce solo le campagne con impression/spesa nel periodo: senza questa opzione una campagna appena
+    // creata o programmata non compare finché non spende (ATEL, 25/11/2026: 2 campagne su 3 invisibili).
+    options: { include_objects_without_insights: 'true' } as Record<string, string> | undefined,
   },
   google_ads: {
     connector: 'google_ads' as const,
     // Google Ads on Windsor exposes no campaign start/end date. Its
     // `conversions` is already whatever conversion actions the account counts.
-    fields: ['campaign', 'campaign_id', 'campaign_status', 'cost', 'clicks', 'impressions', 'conversions'],
+    fields: ['campaign', 'campaign_id', 'campaign_status', 'campaign_primary_status', 'cost', 'clicks', 'impressions', 'conversions'],
     conversionsFields: ['conversions'],
+    options: undefined as Record<string, string> | undefined,
   },
 };
 
@@ -127,13 +159,13 @@ export async function GET(
   const refresh = request.nextUrl.searchParams.get('refresh') === '1';
   const cacheRef = adminDb.collection('clients').doc(clientId)
     // v2: scarta le copie scritte con dati vecchi e senza il controllo sulla data di fine.
-    .collection('cache').doc(`campaigns_v2_${datePreset}`);
+    .collection('cache').doc(`campaigns_v3_${datePreset}`);
   if (!refresh) {
     const cached = await cacheRef.get().catch(() => null);
     const hit = cached?.exists ? (cached.data() as any) : null;
     if (hit && Date.now() - hit.computedAtMs < (hit.hasErrors ? ERROR_TTL_MS : CACHE_TTL_MS)) {
       // Lo stato si ricalcola anche dalla cache: una campagna può finire mentre la copia è ancora valida.
-      const fromCache = (hit.campaigns as UnifiedCampaign[]).map((c) => ({ ...c, status: withEndDate(c.status, c.endDate) }));
+      const fromCache = (hit.campaigns as UnifiedCampaign[]).map((c) => ({ ...c, status: withEndDate(c.status, c.endDate, c.startDate) }));
       return NextResponse.json({ campaigns: fromCache, errors: hit.errors, cached: true });
     }
   }
@@ -145,22 +177,29 @@ export async function GET(
     (Object.keys(PLATFORMS) as (keyof typeof PLATFORMS)[]).map(async (platform) => {
       const accountId = accounts[platform];
       if (!accountId) return;
-      const { connector, fields, conversionsFields } = PLATFORMS[platform];
+      const { connector, fields, conversionsFields, options } = PLATFORMS[platform];
       const sumConversions = (row: Record<string, unknown>) =>
         conversionsFields.reduce((t, f) => t + num(row[f]), 0);
 
       try {
-        const rows = await getData({
+        const read = (withOptions: boolean) => getData({
           connector,
           accountId,
           fields: [...fields, 'account_id'],
           datePreset,
+          ...(withOptions && options ? { options } : {}),
           // Sempre lettura diretta: questa rotta ha già la sua cache di 6 ore su Firestore. Passando anche dalla
           // cache dati di Next (revalidate 300, stale-while-revalidate) il 25/11/2026 City Motors mostrava ancora i
           // numeri di inizio novembre: Federico Costa €563,68 «Attiva» contro €639,64 in pausa su Meta, e nessuna
           // delle 4 campagne partite il 23-24/11, che Windsor invece restituiva già.
           fresh: true,
           ...(platform === 'meta' && client?.metaCampaignFilter ? { campaignPrefix: client.metaCampaignFilter } : {}),
+        });
+        // Se Windsor rifiutasse l'opzione, si torna alla lettura di prima: meglio le sole campagne con dati che nessuna.
+        const rows = await read(true).catch((err) => {
+          if (!options) throw err;
+          console.warn(`[campaigns] ${platform}: lettura con opzioni fallita (${err.message}), riprovo senza`);
+          return read(false);
         });
 
         // Group by campaign id (falling back to the name when Windsor has no
@@ -184,7 +223,9 @@ export async function GET(
               id: key,
               platform,
               name: String(row.campaign || key),
-              status: normalizeStatus(row.campaign_status),
+              status: platform === 'google_ads'
+                ? withGooglePrimaryStatus(normalizeStatus(row.campaign_status), row.campaign_primary_status)
+                : normalizeStatus(row.campaign_status),
               startDate: toDay(row.campaign_start_time),
               endDate: toDay(row.campaign_stop_time),
               spend,
@@ -194,8 +235,8 @@ export async function GET(
             });
           }
         }
-        for (const c of Array.from(byCampaign.values())) c.status = withEndDate(c.status, c.endDate);
-        campaigns.push(...Array.from(byCampaign.values()));
+        for (const c of Array.from(byCampaign.values())) c.status = withEndDate(c.status, c.endDate, c.startDate);
+        campaigns.push(...Array.from(byCampaign.values()).filter(isWorthShowing));
       } catch (err: any) {
         console.error(`[campaigns] ${platform} fetch failed for client ${clientId}:`, err.message);
         errors[platform] = err.message;

@@ -10,7 +10,7 @@ export interface CampaignListRow {
   id: string
   platform: 'meta' | 'google_ads'
   name: string
-  status: 'active' | 'paused' | 'ended'
+  status: 'active' | 'scheduled' | 'paused' | 'ended'
   objective?: string
   startDate?: string
   endDate?: string
@@ -22,6 +22,7 @@ export interface CampaignListRow {
 
 const STATUS: Record<CampaignListRow['status'], { label: string; className: string }> = {
   active: { label: 'Attiva', className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' },
+  scheduled: { label: 'Programmata', className: 'bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300' },
   paused: { label: 'In pausa', className: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' },
   ended: { label: 'Finita', className: 'bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300' },
 }
