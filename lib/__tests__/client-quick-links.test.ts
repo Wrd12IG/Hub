@@ -6,10 +6,17 @@ describe('clientQuickLinks', () => {
         const links = clientQuickLinks('abc');
         for (const l of links) expect(l.href).toContain('abc');
     });
-    it('i KPI concessionario compaiono solo per il profilo «auto»', () => {
-        expect(clientQuickLinks('a', 'auto').some((l) => l.key === 'kpi')).toBe(true);
-        expect(clientQuickLinks('a', 'locale').some((l) => l.key === 'kpi')).toBe(false);
-        expect(clientQuickLinks('a').some((l) => l.key === 'kpi')).toBe(false);
+    it('i KPI ci sono per ogni cliente, qualunque profilo (o nessuno): non solo per le concessionarie', () => {
+        for (const profile of ['auto', 'ecommerce', 'locale', 'b2b', 'social', null, undefined]) {
+            expect(clientQuickLinks('a', profile).some((l) => l.key === 'kpi'), String(profile)).toBe(true);
+        }
+    });
+    it('il pulsante dice «KPI concessionario» solo per «auto», «KPI» per gli altri; l\'indirizzo è lo stesso', () => {
+        const label = (p?: string | null) => clientQuickLinks('a', p).find((l) => l.key === 'kpi')!;
+        expect(label('auto').label).toBe('KPI concessionario');
+        expect(label('ecommerce').label).toBe('KPI');
+        expect(label(null).label).toBe('KPI');
+        expect(label('locale').href).toBe('/clients/a/dealer-kpi');
     });
     it('«Piano PED» non c\'è più: è una scheda del Piano editoriale', () => {
         expect(clientQuickLinks('a', 'auto').some((l) => l.href.endsWith('/ped-plan'))).toBe(false);

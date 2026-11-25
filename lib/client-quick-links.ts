@@ -27,10 +27,9 @@ export function clientQuickLinks(clientId: string, kpiProfile?: string | null): 
         { key: 'progetti', label: 'Progetti', href: `/clients/${id}/projects`, dot: 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]', group: 'lavoro' },
         { key: 'creative', label: 'Creative Lab', href: `/clients/${id}/creative`, dot: 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]', group: 'cliente' },
         { key: 'scheda', label: 'Scheda', href: `/clients/${id}/scheda`, dot: 'bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]', group: 'cliente' },
-        // Solo per le concessionarie (profilo KPI «Auto e moto»): lead, appuntamenti, preventivi e vendite dallo Sheet del cliente.
-        ...(kpiProfile === 'auto'
-            ? [{ key: 'kpi' as const, label: 'KPI concessionario', href: `/clients/${id}/dealer-kpi`, dot: 'bg-lime-500 shadow-[0_0_8px_rgba(132,204,22,0.5)]', group: 'cliente' as const }]
-            : []),
+        // I KPI del cliente: per tutti. Ognuno vede quelli del suo profilo; le concessionarie (profilo «Auto e moto») hanno in più
+        // lead, appuntamenti, preventivi e vendite dallo Sheet. Il percorso resta «dealer-kpi» per non rompere i vecchi indirizzi.
+        { key: 'kpi', label: kpiProfile === 'auto' ? 'KPI concessionario' : 'KPI', href: `/clients/${id}/dealer-kpi`, dot: 'bg-lime-500 shadow-[0_0_8px_rgba(132,204,22,0.5)]', group: 'cliente' },
         { key: 'monitor', label: 'Monitor sito', href: `/clients/${id}/site-monitor`, dot: 'bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.5)]', group: 'cliente' },
         // Pagina globale: il cliente viaggia nell'URL, così si apre già filtrata invece di partire da «tutti».
         { key: 'board', label: 'Creative Board', href: `/documents?tab=media&client=${id}`, dot: 'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]', group: 'cliente' },

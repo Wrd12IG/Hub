@@ -1,13 +1,15 @@
 /**
  * GET /api/clients/[id]/dealer-kpi/kpis?month=AAAA-MM  (staff)
  *
- * I KPI del concessionario per un mese: sito (sessioni, utenti), Meta Ads, Google Ads, Google Maps, dati dello Sheet del cliente e
- * costo per lead calcolato, ognuno con il confronto sul mese prima e sullo stesso mese dell'anno scorso.
+ * I KPI di un cliente per un mese, quelli del SUO profilo (lib/kpi-profiles.ts, PROFILE_KPI_GROUPS): per un concessionario
+ * sito, Meta Ads, Google Ads, Google Maps, Sheet e costo per lead; per gli altri i canali che di solito usano. Ognuno con il
+ * confronto sul mese prima e sullo stesso mese dell'anno scorso. Il percorso resta «dealer-kpi» per non rompere i vecchi indirizzi.
  * Legge le piattaforme (può richiedere qualche secondo) e NON salva nulla: la fotografia della mail mensile non viene toccata.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { denyUnlessStaff, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
-import { DEALER_KPI_GROUPS, DEALER_KPI_IDS } from '@/lib/kpi-profiles';
+import { adminDb } from '@/lib/firebase-admin';
+import { PROFILE_DEFS, isKpiProfile, kpiGroupsFor, kpiIdsOfGroups } from '@/lib/kpi-profiles';
 import { computeClientMonth } from '@/lib/kpi-monthly';
 import { isMonthKey } from '@/lib/manual-kpis';
 
@@ -23,10 +25,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const month = request.nextUrl.searchParams.get('month');
     if (!isMonthKey(month)) return NextResponse.json({ error: 'Mese non valido (AAAA-MM).' }, { status: 400 });
     try {
-        const out = await computeClientMonth(params.id, month, { kpiIds: DEALER_KPI_IDS, weeks: false, snapshot: false });
+        const client = await adminDb.collection('clients').doc(params.id).get();
+        if (!client.exists) return NextResponse.json({ error: 'Cliente non trovato.' }, { status: 404 });
+        const profile = client.get('kpiProfile');
+        // Senza profilo non si sa quali KPI mostrare: lo si dice, con il modo per sceglierlo
+        if (!isKpiProfile(profile)) return NextResponse.json({ error: 'Questo cliente non ha un profilo KPI: scegli il tipo di attività da «Mail mensile KPI».', noProfile: true }, { status: 422 });
+        const groups = kpiGroupsFor(profile);
+        const out = await computeClientMonth(params.id, month, { kpiIds: kpiIdsOfGroups(groups), weeks: false, snapshot: false });
         if (!out.ok) return NextResponse.json({ error: out.message }, { status: out.reason === 'not_found' ? 404 : 422 });
         const { kpis, alerts, partial } = out.result;
-        return NextResponse.json({ month, groups: DEALER_KPI_GROUPS, kpis, alerts, partial: partial ?? null });
+        return NextResponse.json({ month, profile, profileLabel: PROFILE_DEFS[profile].label, groups, kpis, alerts, partial: partial ?? null });
     } catch (e) {
         console.error('[dealer-kpi kpis]', e);
         return NextResponse.json({ error: 'Errore nella lettura dei dati' }, { status: 500 });

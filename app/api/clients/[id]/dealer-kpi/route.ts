@@ -27,6 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const config = await firestoreDealerStore.getConfig(params.id);
     return NextResponse.json({
         clientName: String(client.get('name') ?? params.id),
+        kpiProfile: client.get('kpiProfile') ?? null,
         config, serviceAccountEmail: serviceAccountEmail(),
         months: config ? await loadMonthTotals(params.id) : [],
     });
