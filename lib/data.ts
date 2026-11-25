@@ -174,6 +174,8 @@ export interface Task {
     rejectionReason?: string;
     reworkCount?: number;  // Numero di volte che il task è stato rifiutato e rimandato in lavorazione
     cancelledAt?: string;  // Data di annullamento del task
+    /** Da quando il task è nello stato attuale (si scrive a ogni cambio di stato). Serve a sapere da quanto aspetta il cliente. */
+    statusChangedAt?: string;
     createdAt?: string;
     updatedAt?: string;
     spentBudget?: number;
@@ -629,6 +631,8 @@ export interface RecurringTask {
     isActive: boolean;
     lastRun?: string;      // aggiornato dal cron dopo ogni esecuzione
     nextRunDate?: string;  // calcolato dal cron
+    /** Scade dopo N giorni lavorativi dalla creazione (0 o assente = il giorno stesso). */
+    dueOffsetDays?: number;
     createdAt?: string;
 }
 

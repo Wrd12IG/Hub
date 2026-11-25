@@ -1,5 +1,6 @@
 'use client';
 
+import { statusLabel } from '@/lib/task-model';
 import { memo, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -180,7 +181,7 @@ export const TaskCard = memo(function TaskCard({
                 </div>
             );
         }
-        return <p>{task.status}</p>;
+        return <p>{statusLabel(task.status)}</p>;
     };
 
     return (
@@ -238,7 +239,7 @@ export const TaskCard = memo(function TaskCard({
                                         }}
                                         className="mb-2"
                                     >
-                                        {task.status}
+                                        {statusLabel(task.status)}
                                     </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>{renderApprovalTooltip()}</TooltipContent>

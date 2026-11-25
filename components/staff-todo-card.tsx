@@ -2,11 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, BookOpen, CalendarCheck } from 'lucide-react';
+import { AlertTriangle, BookOpen, CalendarCheck, Flame, Hourglass } from 'lucide-react';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { getBriefs, getEditorialContentsNeedingAttention } from '@/lib/actions';
 import { staffTodo } from '@/lib/staff-todo';
-import type { Brief, EditorialContent } from '@/lib/data';
+import type { Brief, EditorialContent, Task } from '@/lib/data';
+import { taskSince } from '@/lib/staff-todo';
 
 const MAX_PER_GROUP = 4;
 
@@ -17,7 +18,7 @@ interface Row { key: string; href: string; client: string; text: string; urgent?
  * non c'è nulla: un riquadro sempre pieno finirebbe per non essere letto.
  */
 export function StaffTodoCard() {
-    const { activeClients, clientsById } = useLayoutData();
+    const { activeClients, clientsById, allTasks } = useLayoutData();
     const [briefs, setBriefs] = useState<Brief[] | null>(null);
     const [contents, setContents] = useState<EditorialContent[] | null>(null);
 
@@ -33,21 +34,31 @@ export function StaffTodoCard() {
         if (!briefs || !contents) return null;
         // Solo i clienti che l'utente vede e che non sono archiviati
         const visible = new Set(activeClients.map((c) => c.id));
-        const todo = staffTodo({ briefs: briefs.filter((b) => visible.has(b.clientId)), contents: contents.filter((c) => visible.has(c.clientId)), now: new Date() });
+        const now = new Date();
+        const todo = staffTodo({
+            briefs: briefs.filter((b) => visible.has(b.clientId)),
+            contents: contents.filter((c) => visible.has(c.clientId)),
+            tasks: (allTasks || []).filter((t) => visible.has(t.clientId)),
+            now,
+        });
         const name = (id: string) => clientsById[id]?.name || 'Cliente';
         const overdueIds = new Set(todo.briefs.overdue.map((b) => b.id));
         const briefRow = (b: Brief, text: string): Row => ({ key: `b-${b.id}`, href: '/briefs', client: name(b.clientId), text: `${b.title || b.projectName} — ${text}`, urgent: overdueIds.has(b.id) });
+        const taskRow = (t: Task, text: string): Row => ({ key: `t-${t.id}`, href: `/tasks?taskId=${t.id}`, client: name(t.clientId), text: `${t.title} — ${text}`, urgent: t.priority === 'Critica' });
+        const daysOf = (iso?: string) => (iso ? Math.max(0, Math.floor((now.getTime() - Date.parse(iso)) / 86_400_000)) : 0);
         const pedRow = (c: EditorialContent, text: string): Row => ({ key: `c-${c.id}`, href: `/clients/${c.clientId}/editorial-plan`, client: name(c.clientId), text: `${c.topic || 'Contenuto'} — ${text}` });
         return {
             total: todo.total,
             list: [
+                { icon: Flame, title: 'Task critici in ritardo', rows: todo.tasks.criticalOverdue.map((t) => taskRow(t, `scaduto il ${new Date(t.dueDate as string).toLocaleDateString('it-IT')}`)) },
                 { icon: BookOpen, title: 'Brief da valutare', rows: todo.briefs.toEvaluate.map((b) => briefRow(b, 'nuova richiesta')) },
                 { icon: CalendarCheck, title: 'Il cliente ha chiesto modifiche', rows: todo.ped.changesRequested.map((c) => pedRow(c, 'da correggere')) },
                 { icon: BookOpen, title: 'Brief da portare a termine', rows: todo.briefs.inProgress.map((b) => briefRow(b, b.deadline ? `consegna ${new Date(b.deadline).toLocaleDateString('it-IT')}` : 'in corso')) },
                 { icon: CalendarCheck, title: 'Approvazioni ferme da giorni', rows: todo.ped.waitingClient.map((c) => pedRow(c, 'nessuna risposta')) },
+                { icon: Hourglass, title: 'Task fermi dal cliente', rows: todo.tasks.waitingClient.map((t) => taskRow(t, `in attesa da ${daysOf(taskSince(t))} giorni`)) },
             ].filter((g) => g.rows.length > 0),
         };
-    }, [briefs, contents, activeClients, clientsById]);
+    }, [briefs, contents, activeClients, clientsById, allTasks]);
 
     if (!groups || groups.total === 0) return null;
 

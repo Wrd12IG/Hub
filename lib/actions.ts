@@ -308,6 +308,11 @@ export async function updateTask(
         updateData.approvals = approvals;
     }
 
+    // Da quando il task è in questo stato (es. da quanto aspetta il cliente)
+    if (data.status && currentTask && data.status !== currentTask.status) {
+        updateData.statusChangedAt = new Date().toISOString();
+    }
+
     // Salva la data di annullamento quando il task viene annullato
     if (data.status === 'Annullato' && currentTask?.status !== 'Annullato') {
         updateData.cancelledAt = new Date().toISOString();

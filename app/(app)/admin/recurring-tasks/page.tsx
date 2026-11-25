@@ -9,6 +9,9 @@ import {
 } from '@/lib/actions';
 import type { RecurringTask, User, Client, Project, ActivityType, Task } from '@/lib/data';
 import { allTaskPriorities } from '@/lib/data';
+import { expandTitleTokens, sanitizeDueOffset, MAX_DUE_OFFSET_DAYS } from '@/lib/recurring-task';
+
+const TITLE_TOKEN_HELP = 'Nel titolo puoi usare {mese} {periodo} {anno} {trimestre} {settimana}. Con uno scarto: {periodo-1} è il mese scorso, {periodo+1} il prossimo (un report si scrive dopo il mese).';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -130,6 +133,7 @@ export default function RecurringTasksPage() {
       projectId: (formData.get('projectId') as string) || undefined,
       activityType: (formData.get('activityType') as string) || undefined,
       estimatedDuration: Number(formData.get('estimatedDuration')),
+      dueOffsetDays: sanitizeDueOffset(formData.get('dueOffsetDays')),
       assignedUserId: (formData.get('assignedUserId') as string) || undefined,
       isActive: isActiveForm, // use React state — shadcn Switch doesn't submit via FormData
       recurrence: {
@@ -248,8 +252,9 @@ export default function RecurringTasksPage() {
       }
 
       const newTask: Omit<Task, 'id'> = {
-        title: taskForDatePicker.title,
-        description: taskForDatePicker.description || '',
+        // I segnaposto del titolo si risolvono con il giorno scelto
+        title: expandTitleTokens(taskForDatePicker.title, selectedDate),
+        description: expandTitleTokens(taskForDatePicker.description || '', selectedDate),
         priority: taskForDatePicker.priority,
         clientId: taskForDatePicker.clientId,
         projectId: taskForDatePicker.projectId,
@@ -539,11 +544,18 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
           <Card>
             <CardHeader><CardTitle>Dettagli Task</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div><Label htmlFor="title">Titolo Task</Label><Input id="title" name="title" required defaultValue={task?.title} /></div>
+              <div><Label htmlFor="title">Titolo Task</Label><Input id="title" name="title" required defaultValue={task?.title} /><p className="mt-1 text-xs text-muted-foreground">{TITLE_TOKEN_HELP}</p></div>
               <div><Label htmlFor="description">Descrizione</Label><Textarea id="description" name="description" defaultValue={task?.description} /></div>
               <div className="grid grid-cols-2 gap-4">
                 <div><Label htmlFor="priority">Priorità</Label><Select name="priority" required defaultValue={task?.priority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{allTaskPriorities.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent></Select></div>
                 <div><Label htmlFor="estimatedDuration">Durata Stimata (min)</Label><Input id="estimatedDuration" name="estimatedDuration" type="number" required defaultValue={task?.estimatedDuration} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="dueOffsetDays">Scade dopo (giorni lavorativi)</Label>
+                  <Input id="dueOffsetDays" name="dueOffsetDays" type="number" min={0} max={MAX_DUE_OFFSET_DAYS} step={1} defaultValue={task?.dueOffsetDays ?? 0} />
+                </div>
+                <p className="self-end pb-2 text-xs text-muted-foreground">0 = scade il giorno in cui nasce. Con 2, nato lunedì scade mercoledì (sabato e domenica non contano).</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
