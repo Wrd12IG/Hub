@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff, denyUnlessCan } from '@/lib/api-auth';
 import { askClaudeJson, isClaudeConfigured } from '@/lib/claude';
 import { loadClientContext } from '@/lib/creative/context';
 import { buildDetailPrompt, buildSkeletonPrompt } from '@/lib/ped-plan/playbook';
@@ -21,6 +21,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!user) return unauthorizedResponse();
   const denied = await denyUnlessStaff(user.uid);
   if (denied) return denied;
+  // Capacità del ruolo e cliente assegnato: per ora solo osservazione (lib/roles-guard.ts), non blocca
+  const roleCheck = await denyUnlessCan(user.uid, 'editorial.generate', params.id);
+  if (roleCheck) return roleCheck;
   if (!isClaudeConfigured()) return NextResponse.json({ error: 'Generatore non attivo: manca ANTHROPIC_API_KEY su Vercel.' }, { status: 503 });
 
   const body = await request.json().catch(() => null);

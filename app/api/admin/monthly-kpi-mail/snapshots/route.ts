@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { adminDb } from '@/lib/firebase-admin';
 import { isKpiProfile } from '@/lib/kpi-profiles';
 import { isMonthKey } from '@/lib/manual-kpis';
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
-  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse();
+  if (!isAdminUser(await getAppUser(auth.uid))) return forbiddenResponse();
 
   const month = request.nextUrl.searchParams.get('month');
   if (!isMonthKey(month)) return NextResponse.json({ error: 'Mese non valido (AAAA-MM).' }, { status: 400 });

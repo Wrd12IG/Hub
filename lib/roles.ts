@@ -124,6 +124,9 @@ const NOT_CLIENT_SCOPED: ReadonlySet<Capability> = new Set<Capability>([
     'workspace.basic', 'reports.ownHours', 'tasks.viewOwn', 'tasks.createOwn', 'admin.manage',
 ]);
 
+/** La capacità vale su un cliente in particolare (quindi `can` vuole sapere quale)? */
+export const isClientScoped = (capability: Capability): boolean => !NOT_CLIENT_SCOPED.has(capability);
+
 // ─── Utenti ──────────────────────────────────────────────────────────────────
 
 export interface RoleUser {

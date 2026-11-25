@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { readAllCompensation } from '@/lib/user-compensation';
 import { adminDb } from '@/lib/firebase-admin';
 import { computeLabourCost, hourlyOverheadOf, type AllocateMode, type LabourActivity, type LabourTask } from '@/lib/labour-cost';
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
   const me = await getAppUser(auth.uid);
-  if (me?.role !== 'Amministratore') return forbiddenResponse();
+  if (!isAdminUser(me)) return forbiddenResponse();
 
   const allocateRaw = request.nextUrl.searchParams.get('allocate');
   const allocate: AllocateMode = allocateRaw === 'proportional' || allocateRaw === 'equal' ? allocateRaw : 'none';

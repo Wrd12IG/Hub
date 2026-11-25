@@ -7,6 +7,8 @@ vi.mock('@/lib/api-auth', () => ({
     verifyAuth: async () => state.user,
     unauthorizedResponse: () => new Response('{"error":"Unauthorized"}', { status: 401 }),
     denyUnlessStaff: async () => state.denied,
+    // Controllo per capacità: in osservazione non blocca mai (lib/roles-guard.ts)
+    denyUnlessCan: async () => null,
 }));
 vi.mock('@/lib/creative/context', () => ({
     loadClientContext: async () => (state.loaded ? { usedProfile: true, ctx: { name: 'City Motors', sector: 'Automotive', toneOfVoice: 'diretto', recentTopics: ['Promo estate'] } } : null),

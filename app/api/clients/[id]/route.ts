@@ -6,6 +6,7 @@ import { splitPrivateFields, savePrivateFields, readPrivateFields } from '@/lib/
 import { hasLegacyPrivateFields, migrateClientDoc } from '@/lib/client-private-migrate';
 import { validateKpiFields } from '@/lib/kpi-profiles';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource, saveClientToken } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 
 export async function GET(
   request: Request,
@@ -156,7 +157,7 @@ export async function DELETE(
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
   // Cancella anche budget, token delle integrazioni, link pubblico e tutto il lavoro collegato: solo un amministratore.
-  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse("Solo un amministratore puo' eliminare un cliente.");
+  if (!isAdminUser(await getAppUser(auth.uid))) return forbiddenResponse("Solo un amministratore puo' eliminare un cliente.");
 
   try {
     const id = params.id;

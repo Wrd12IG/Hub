@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { denyUnlessStaff, forbiddenResponse, getAppUser, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { firestoreDealerStore, loadMonthTotals, removeSheetConfig, saveSheetConfig } from '@/lib/dealer-kpi/firestore-store';
 import { serviceAccountEmail } from '@/lib/dealer-kpi/sheets';
 import { extractSpreadsheetId, validTabName } from '@/lib/dealer-kpi/sheet-url';
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
     const user = await verifyAuth(request);
     if (!user) return unauthorizedResponse();
-    if ((await getAppUser(user.uid))?.role !== 'Amministratore') return forbiddenResponse();
+    if (!isAdminUser(await getAppUser(user.uid))) return forbiddenResponse();
     if (!ID_RE.test(params.id)) return NextResponse.json({ error: 'Cliente non valido' }, { status: 400 });
     const client = await adminDb.collection('clients').doc(params.id).get();
     if (!client.exists) return NextResponse.json({ error: 'Cliente non trovato' }, { status: 404 });

@@ -3,7 +3,7 @@ import { failureAlerts } from '@/lib/publish-alerts';
 import { sendFailureAlerts } from '@/lib/publish-notify';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAuth, unauthorizedResponse, denyUnlessStaff } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, denyUnlessStaff, denyUnlessCan } from '@/lib/api-auth';
 import { runPublish } from '@/lib/publish-runner';
 import type { EditorialContent } from '@/lib/data';
 
@@ -21,6 +21,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!user) return unauthorizedResponse();
   const denied = await denyUnlessStaff(user.uid);
   if (denied) return denied;
+  // Capacità del ruolo e cliente assegnato: per ora solo osservazione (lib/roles-guard.ts), non blocca
+  const roleCheck = await denyUnlessCan(user.uid, 'social.publish', params.id);
+  if (roleCheck) return roleCheck;
 
   const body = await request.json().catch(() => null);
   const contentId = typeof body?.contentId === 'string' ? body.contentId : '';

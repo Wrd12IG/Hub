@@ -96,10 +96,54 @@ Gli utenti cliente già esistenti diventano **referenti**, così oggi non cambia
 | Passo | Cosa | Rischio |
 |---|---|---|
 | R1 ✅ | Modello dei ruoli in un solo file, `can(utente, capacità, cliente)`, con test. Un ruolo sconosciuto **non ha accesso** — fatto: `lib/roles.ts`, con un test che confronta il codice con la tabella qui sopra | Basso |
-| R2 | Verifica in sola lettura degli utenti esistenti: chi ha un ruolo fuori dall'elenco, chi non ha ruolo | Basso, ma serve il tuo permesso: sono dati personali |
-| R3 | Le API usano `can()` al posto di «chiunque non sia Cliente» | Medio |
+| R2 ✅ | Verifica in sola lettura degli utenti esistenti: chi ha un ruolo fuori dall'elenco, chi non ha ruolo. Fatta il 25/11/2026, vedi «Esito R2» | Basso |
+| R3 ✅ | Le API usano il modello al posto di «chiunque non sia Cliente». Fatto in parte: il controllo «è staff» e «è amministratore» è rigoroso; quello per capacità e per cliente assegnato è in **osservazione** (vedi «Esito R3») | Medio |
 | R4 | Regole del database: il cliente non legge più task, progetti e contratti da browser; l'elenco utenti non è più leggibile da tutti. Va fatto insieme al caricamento dati del layout | **Alto**: va provato con un account per ruolo |
 | R5 | Schermata Admin → Ruoli e scelta del ruolo nel form utente, con clienti assegnati | Medio |
 | R6 | Prova con un account per ogni ruolo, seguendo la tabella qui sopra | — |
 
 R1 e R2 non cambiano nulla per nessuno e si possono fare subito. R3 e R4 vanno rilasciati solo dopo R6.
+
+## Esito R2 (25 novembre 2026)
+
+Letti in sola lettura: nome, ruolo, stato e cliente collegato degli utenti (senza email né compensi), i nomi dei clienti e i permessi dei ruoli. Non è stato scritto nulla.
+
+**Utenti: 16.** 4 Amministratore, 5 Project Manager, 2 Collaboratore, 5 Cliente.
+
+- Tutti i ruoli sono tra quelli noti e scritti esattamente, tutti gli utenti sono attivi. Con la regola nuova (ruolo sconosciuto = nessun accesso) **nessuno perde l'accesso**.
+- I 5 utenti Cliente hanno un cliente collegato che esiste e non è archiviato. Ogni cliente ha un solo utente: diventano tutti «referente».
+- Nessuno ha ancora una mansione o ruoli aggiuntivi: i 7 dello staff non amministratore vanno assegnati a mano.
+- Due nomi hanno uno spazio o una tabulazione in coda. Può rompere gli abbinamenti per nome (pagina Assegnazioni); si sistema con una modifica ai due documenti.
+
+**Permessi per ruolo oggi (`rolePermissions`) a confronto con `lib/roles.ts`:**
+
+| Cosa | Oggi | Nel modello | Da decidere |
+|---|---|---|---|
+| Collaboratore crea task | No (manca `_create-task`) | Sì (`tasks.createOwn` a tutto lo staff) | Si allarga davvero ai Collaboratori? |
+| PM e budget | Nessuna `_view-financials` | Solo Amministratore, più la spunta | Coerente: nessun cambio |
+| Ruoli nuovi nel menu | Nessuna riga in `rolePermissions` | — | Finché il menu legge da lì, non vedrebbero nulla (R5) |
+| Documenti e media, Strategie social | Il PM le ha | Nessuna capacità | Aggiungerle al modello (R3) |
+| Dashboard | Il Collaboratore non l'ha | — | Serve per «Da chiudere» e i task (R5) |
+
+## Esito R3
+
+**Rigoroso da subito** (R2 ha mostrato che non toglie accesso a nessuno):
+- `isStaffUser` (e quindi `denyUnlessStaff` e `denyUnlessClientAllowed`) vale solo per chi ha un ruolo dello staff che esiste ed è attivo. Prima bastava non essere «Cliente»: un ruolo mancante, scritto male o un utente inattivo passava per staff.
+- I 26 controlli «solo amministratore» nelle API (admin, outreach, monitor siti, utenti, KPI, telegram…) ora usano `isAdminUser`: un amministratore inattivo non passa più.
+- «Salta l'approvazione del cliente» (`canBypassApproval`) vale solo per ruoli che esistono e utenti attivi.
+
+**In osservazione** (non blocca, scrive nel log): il controllo per capacità e per cliente assegnato, `denyUnlessCan` in `lib/api-auth.ts`. Oggi è collegato a tre route:
+
+| Route | Capacità |
+|---|---|
+| `editorial-publish-now` | `social.publish` |
+| `editorial-approval` | `editorial.requestApproval` |
+| `ped-plan` | `editorial.generate` |
+
+Perché solo osservazione: oggi tutto lo staff apre qualunque cliente, e ci sono clienti senza referente assegnato (vedi `clienti-senza-referente.tsv`). Bloccare adesso fermerebbe persone che lavorano.
+
+**Come si usa**
+1. Lascia `ROLES_ENFORCEMENT` non impostata (modalità «observe»). Dopo qualche giorno di lavoro, cerca nei log di Vercel le righe `[roles] sarebbe negato (solo osservazione)`: dicono ruolo, capacità e cliente, senza nomi.
+2. Ogni riga è un caso da risolvere: assegnare la persona al cliente, o correggere il ruolo.
+3. Quando il log è pulito e hai provato un account per ruolo (R6), imposta `ROLES_ENFORCEMENT=enforce` su Vercel. Per tornare indietro basta toglierla.
+

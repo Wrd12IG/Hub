@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { isKpiProfile, validateKpiSelection } from '@/lib/kpi-profiles';
 import { readKpiOverrides, writeKpiOverride } from '@/lib/kpi-profiles-store';
 
@@ -9,7 +10,7 @@ async function requireAdmin(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth) return { res: unauthorizedResponse() };
   const me = await getAppUser(auth.uid);
-  if (me?.role !== 'Amministratore') return { res: forbiddenResponse() };
+  if (!isAdminUser(me)) return { res: forbiddenResponse() };
   return { res: null };
 }
 

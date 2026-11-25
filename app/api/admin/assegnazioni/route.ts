@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { forbiddenResponse, getAppUser, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { validateApply } from '@/lib/assignments/apply';
 import type { AssignClient, AssignUser } from '@/lib/assignments/model';
 import { isArchivedClient } from '@/lib/client-archive';
@@ -17,7 +18,7 @@ export const dynamic = 'force-dynamic';
 async function admin(request: NextRequest) {
     const user = await verifyAuth(request);
     if (!user) return { error: unauthorizedResponse() };
-    if ((await getAppUser(user.uid))?.role !== 'Amministratore') return { error: forbiddenResponse() };
+    if (!isAdminUser(await getAppUser(user.uid))) return { error: forbiddenResponse() };
     return { uid: user.uid };
 }
 
