@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { PROFILE_DEFS, isKpiProfile, monthlyMailState } from '@/lib/kpi-profiles'
+import { DealerSheetDialog, type SheetSummary } from '@/components/dealer-sheet-dialog'
 import { MANUAL_FIELDS, fieldsForProfile, isMonthKey, parseManualCsv, previousMonthKey } from '@/lib/manual-kpis'
 
 /** Cella = testo digitato; '' = vuota. Solo le celle toccate (edits) vengono salvate. */
@@ -28,6 +29,11 @@ export default function DatiRealiPage() {
   const [saving, setSaving] = useState(false)
   const [csvNote, setCsvNote] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Sheet Google dei clienti: riepilogo per cliente, e il cliente il cui collegamento è aperto
+  const [sheets, setSheets] = useState<Record<string, SheetSummary>>({})
+  const [serviceEmail, setServiceEmail] = useState<string | null>(null)
+  const [sheetFor, setSheetFor] = useState<{ id: string; name: string } | null>(null)
+  const isAdmin = currentUser?.role === 'Amministratore'
 
   const included = useMemo(
     () => [...clients].filter((c: any) => monthlyMailState(c) === 'included' && fieldsForProfile(isKpiProfile(c.kpiProfile) ? c.kpiProfile : null).length > 0)
@@ -50,6 +56,15 @@ export default function DatiRealiPage() {
   }, [authFetch, month])
 
   useEffect(() => { if (currentUser && currentUser.role !== 'Cliente') load() }, [load, currentUser])
+
+  const loadSheets = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/admin/dealer-sheets')
+      const j = await res.json().catch(() => ({}))
+      if (res.ok) { setSheets(j.sheets ?? {}); setServiceEmail(j.serviceAccountEmail ?? null) }
+    } catch { /* il resto della pagina funziona anche senza */ }
+  }, [authFetch])
+  useEffect(() => { if (isAdmin) loadSheets() }, [isAdmin, loadSheets])
 
   const cell = (id: string, f: string) => edits[id]?.[f] ?? server[id]?.[f] ?? ''
   const setCell = (id: string, f: string, v: string) => setEdits((e) => ({ ...e, [id]: { ...e[id], [f]: v } }))
@@ -149,6 +164,7 @@ export default function DatiRealiPage() {
               <tr>
                 <th className="px-3 py-2 text-left">Cliente</th>
                 {columns.map((f) => <th key={f.id} className="px-2 py-2 text-right">{f.label}</th>)}
+                <th className="px-3 py-2 text-right">Sheet Google</th>
               </tr>
             </thead>
             <tbody>
@@ -164,13 +180,27 @@ export default function DatiRealiPage() {
                           : <span className="text-muted-foreground">—</span>}
                       </td>
                     ))}
+                    <td className="px-3 py-1.5 text-right">
+                      {isAdmin ? (
+                        <button type="button" onClick={() => setSheetFor({ id: c.id, name: c.name })}
+                          className={`inline-flex h-8 items-center rounded-lg border px-3 text-xs font-medium hover:bg-accent ${sheets[c.id] ? 'border-emerald-500/50 text-emerald-700 dark:text-emerald-400' : 'border-border'}`}>
+                          {sheets[c.id] ? (sheets[c.id].lastStatus === 'errore' ? 'Sheet: errore' : 'Sheet collegato') : 'Collega Sheet'}
+                        </button>
+                      ) : <span className="text-xs text-muted-foreground">{sheets[c.id] ? 'collegato' : '—'}</span>}
+                    </td>
                   </tr>
                 )
               })}
-              {included.length === 0 && <tr><td colSpan={columns.length + 1} className="px-3 py-6 text-center text-muted-foreground">Nessun cliente nella mail con dati da inserire a mano.</td></tr>}
+              {included.length === 0 && <tr><td colSpan={columns.length + 2} className="px-3 py-6 text-center text-muted-foreground">Nessun cliente nella mail con dati da inserire a mano.</td></tr>}
             </tbody>
           </table>
         </div>
+      )}
+      {sheetFor && (
+        <DealerSheetDialog
+          key={sheetFor.id} clientId={sheetFor.id} clientName={sheetFor.name} summary={sheets[sheetFor.id] ?? null} serviceEmail={serviceEmail}
+          open onOpenChange={(v) => { if (!v) setSheetFor(null) }} onChanged={loadSheets}
+        />
       )}
     </div>
   )
