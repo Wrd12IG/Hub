@@ -25,6 +25,13 @@ function SheetButton({ summary, onClick }: { summary?: SheetSummary; onClick: ()
       </button>
     )
   }
+  if (!summary.lastSyncAt) {
+    return (
+      <button type="button" onClick={onClick} className={`${base} border-sky-500/40 bg-sky-500/10 text-sky-700 hover:bg-sky-500/20 dark:text-sky-400`} title="Collegato ma non ancora letto: apri e premi «Sincronizza ora»">
+        <FileSpreadsheet className="h-3.5 w-3.5" /> Da leggere
+      </button>
+    )
+  }
   const tone = summary.lastStatus === 'errore'
     ? 'border-red-500/40 bg-red-500/10 text-red-700 hover:bg-red-500/20 dark:text-red-400'
     : summary.lastStatus === 'avvisi'
@@ -60,6 +67,8 @@ export default function DatiRealiPage() {
   const [serviceEmail, setServiceEmail] = useState<string | null>(null)
   const [sheetFor, setSheetFor] = useState<{ id: string; name: string } | null>(null)
   const isAdmin = currentUser?.role === 'Amministratore'
+  // I mesi per cui almeno uno Sheet collegato ha dati (dal più recente): serve a non cercare nel mese sbagliato
+  const availableMonths = useMemo(() => Array.from(new Set(Object.values(sheets).flatMap((x) => x.monthList ?? []))).sort().reverse().slice(0, 12), [sheets])
 
   const included = useMemo(
     () => [...clients].filter((c: any) => monthlyMailState(c) === 'included' && fieldsForProfile(isKpiProfile(c.kpiProfile) ? c.kpiProfile : null).length > 0)
@@ -204,6 +213,17 @@ export default function DatiRealiPage() {
       </div>
       {changed > 0 && <p className="text-xs text-muted-foreground">Hai modifiche non salvate: per cambiare mese salva o ricarica la pagina.</p>}
       {csvNote && <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs">{csvNote}</p>}
+      {availableMonths.length > 0 && (
+        <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          Mesi con dati negli Sheet:
+          {availableMonths.map((m) => (
+            <button key={m} type="button" disabled={changed > 0} onClick={() => setMonth(m)}
+              className={`rounded-full border px-2.5 py-0.5 font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${m === month ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-accent'}`}>
+              {new Date(`${m}-01T12:00:00Z`).toLocaleDateString('it-IT', { month: 'short', year: 'numeric' })}
+            </button>
+          ))}
+        </p>
+      )}
       {Object.keys(fromSheet).length > 0 && (
         <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs">
           I numeri su sfondo verde arrivano dallo <b>Sheet Google</b> del cliente (lead, appuntamenti, vendite). Se scrivi un altro numero vale il tuo; se lo cancelli torna quello dello Sheet.
