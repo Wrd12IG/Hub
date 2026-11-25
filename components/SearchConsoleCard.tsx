@@ -55,7 +55,13 @@ function Table({ title, firstCol, rows, render }: { title: string; firstCol: str
  * Ricerca organica nella Panoramica: le query che portano traffico e le pagine che lo ricevono, sullo stesso periodo del
  * resto della pagina. Il dettaglio completo (100 righe, dispositivi, paesi) sta nella pagina Search Console.
  */
-export function SearchConsoleCard({ clientId, days, range }: { clientId: string; days: number; range: { from: string; to: string } | null }) {
+export function SearchConsoleCard({ clientId, days, range, siteId, siteLabel }: {
+  clientId: string; days: number; range: { from: string; to: string } | null
+  /** Con più siti: quale (la Search Console è per sito). Senza, il primo. */
+  siteId?: string
+  /** Con più siti: come si chiama («Renault · www.esempio.it»), per distinguere le schede. */
+  siteLabel?: string
+}) {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -67,7 +73,7 @@ export function SearchConsoleCard({ clientId, days, range }: { clientId: string;
     let cancelled = false
     setLoading(true); setError(null)
     const period = range ? `from=${range.from}&to=${range.to}` : `days=${days <= 7 ? 7 : days >= 90 ? 90 : 30}`
-    fetch(`${API_URL}/api/clients/${clientId}/search-console?${period}&compact=1`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+    fetch(`${API_URL}/api/clients/${clientId}/search-console?${period}&compact=1${siteId ? `&site=${encodeURIComponent(siteId)}` : ''}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
       .then(async (res) => {
         const json = await res.json()
         if (!res.ok) throw new Error(json?.error || `Il server ha risposto ${res.status}.`)
@@ -76,17 +82,17 @@ export function SearchConsoleCard({ clientId, days, range }: { clientId: string;
       .catch((e) => { if (!cancelled) { setData(null); setError(e.message) } })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [wanted, clientId, days, range?.from, range?.to])
+  }, [wanted, clientId, siteId, days, range?.from, range?.to])
 
   return (
     <div onClickCapture={() => setWanted(true)}>
       <CollapsibleCard
         defaultOpen
         icon={Search}
-        title="Ricerca organica"
+        title={siteLabel ? `Ricerca organica · ${siteLabel}` : "Ricerca organica"}
         description="Query che portano traffico e pagine più viste su Google, per il periodo selezionato."
         summary={data ? <span className="text-sm font-semibold text-foreground">{intFmt.format(data.totals.clicks)} click</span> : undefined}
-        actions={<Link href={`/clients/${clientId}/search-console`} className="text-xs font-medium text-primary hover:underline" onClickCapture={(e) => e.stopPropagation()}>Dettaglio completo</Link>}
+        actions={<Link href={`/clients/${clientId}/search-console${siteId ? `?site=${encodeURIComponent(siteId)}` : ''}`} className="text-xs font-medium text-primary hover:underline" onClickCapture={(e) => e.stopPropagation()}>Dettaglio completo</Link>}
       >
         {loading && !data && <Skeleton className="h-40 rounded-xl" />}
         {error && <p className="rounded-xl border border-border bg-muted/40 p-4 text-sm text-muted-foreground">Dati non disponibili: {error}</p>}

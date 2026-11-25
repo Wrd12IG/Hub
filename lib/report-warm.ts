@@ -23,9 +23,11 @@ export function sourcesSignature(client: any): string {
     const w = client?.windsorAccounts ?? {};
     const gbp = Array.isArray(w.gbp) ? [...w.gbp].map(String).sort() : [];
     const rest = Object.fromEntries(Object.entries(w).filter(([k]) => k !== 'gbp').sort(([a], [b]) => a.localeCompare(b)));
+    // Più siti: aggiungerne o cambiarne uno (Analytics, Search Console) rende vecchia la copia in cache. `null` se non ce ne sono, così l'impronta dei clienti con un sito solo non cambia.
+    const sites = Array.isArray(client?.sites) && client.sites.length > 1 ? client.sites.map((s: any) => [s?.id ?? null, s?.ga4PropertyId ?? null, s?.searchConsole ?? null]) : null;
     return JSON.stringify({
         meta: client?.metaAdAccountId ?? null, metaFilter: client?.metaCampaignFilter ?? null, google: client?.googleAdAccountId ?? null, ga4: client?.ga4PropertyId ?? null,
-        awin: client?.awinAdvertiserId ?? null, gbp, w: rest, v: REPORT_FORMAT_VERSION,
+        awin: client?.awinAdvertiserId ?? null, gbp, w: rest, ...(sites ? { sites } : {}), v: REPORT_FORMAT_VERSION,
     });
 }
 

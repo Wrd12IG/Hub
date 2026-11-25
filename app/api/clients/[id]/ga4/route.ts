@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { findSite } from '@/lib/client-sites';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getGA4Totals, getGA4Breakdown, getGA4EcommerceEvents } from '@/lib/ga4-client';
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   if (denied) return denied;
 
   const snap = await adminDb.collection('clients').doc(params.id).get();
-  const propertyId = snap.exists ? (snap.data() as any)?.ga4PropertyId : null;
+  // ?site=<id>: più siti, ognuno con il suo GA4. Senza, il primo (= il GA4 di sempre).
+  const propertyId = snap.exists ? (findSite(snap.data() as Record<string, unknown>, request.nextUrl.searchParams.get('site'))?.ga4PropertyId ?? null) : null;
   if (!propertyId) {
     return NextResponse.json(
       { error: 'Questo cliente non ha un GA4 Property ID: inseriscilo in Setup API.' },

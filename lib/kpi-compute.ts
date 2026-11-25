@@ -156,7 +156,8 @@ export function rawKpi(id: string, platforms: PlatformReport[], which: Which, ma
         case 'roas': return real(div(readSum(platforms, 'ga4', 'purchase_revenue', which), adsSpend(platforms, which)));
         case 'cpa': return real(div(adsSpend(platforms, which), readSum(platforms, 'ga4', 'transactions', which)));
         case 'sessions': return real(readSum(platforms, 'ga4', 'sessions', which));
-        case 'users': return real(readSum(platforms, 'ga4', 'active_users', which));
+        // Utenti unici: con più siti la stessa persona può comparire in ciascuno, quindi non si sommano (le sessioni sì)
+        case 'users': return entries(platforms, 'ga4').length > 1 ? real(null) : real(readSum(platforms, 'ga4', 'active_users', which));
         // Meta Ads e Google Ads, canale per canale. La copertura Meta è quella aggregata sul periodo (non la somma dei giorni).
         case 'meta_impressions': return real(readSum(platforms, 'facebook', 'impressions', which));
         case 'meta_reach': return real(readSum(platforms, 'facebook', 'reach', which));
@@ -307,6 +308,8 @@ export interface ComputeInput {
 }
 
 const MANUAL_IDS = ['leads_real', 'appointments', 'test_drives', 'sales', 'quotes'];
+/** Perché «Utenti sito» manca quando il cliente ha più siti. */
+export const USERS_MULTI_SITE_NOTE = 'Non si somma tra più siti: la stessa persona conta due volte';
 export const SOURCE_NAMES: Partial<Record<Platform, string>> = {
     facebook: 'Meta Ads', google_ads: 'Google Ads', ga4: 'sito (GA4)', gbp: 'Google Maps', instagram: 'Instagram', facebook_page: 'Facebook',
     linkedin_organic: 'LinkedIn', klaviyo: 'Klaviyo', searchconsole: 'Search Console', awin: 'Awin', tiktok: 'TikTok',
@@ -332,6 +335,7 @@ export function computeClientMonthly(input: ComputeInput): ClientMonthly {
         };
         if (cur.value === null) {
             result.missing = MANUAL_IDS.includes(id) ? 'Dato non inserito' : 'Nessun dato nel mese';
+            if (id === 'users' && entries(main, 'ga4').length > 1) result.missing = USERS_MULTI_SITE_NOTE;
         }
         return result;
     });

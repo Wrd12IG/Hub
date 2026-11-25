@@ -15,6 +15,7 @@ import { getClientToken } from './api-auth';
 import { getClientMarketingReport } from './reporting';
 import { computeClientMonthly, platformsNeeded, shiftMonth, SOURCE_NAMES, type ClientMonthly } from './kpi-compute';
 import { isKpiProfile, kpiIdsForClient } from './kpi-profiles';
+import { sitesOf } from './client-sites';
 import { isMonthKey } from './manual-kpis';
 import { readKpiOverrides } from './kpi-profiles-store';
 import { readManualKpis, writeSnapshot } from './monthly-mail-store';
@@ -66,6 +67,8 @@ export async function computeClientMonth(clientId: string, month: string, opts: 
         metaCampaignFilter: need.has('facebook') ? client.metaCampaignFilter : undefined,
         googleAdAccountId: need.has('google_ads') ? client.googleAdAccountId : undefined,
         ga4PropertyId: need.has('ga4') ? client.ga4PropertyId : undefined,
+        // Più siti: Analytics e Search Console di ciascuno, ma solo se i KPI scelti ne hanno bisogno
+        sites: sitesOf(client).map((s) => ({ ...s, ga4PropertyId: need.has('ga4') ? s.ga4PropertyId : undefined, searchConsole: need.has('searchconsole') ? s.searchConsole : undefined })),
         awinAdvertiserId: need.has('awin') ? client.awinAdvertiserId : undefined,
         klaviyo,
         windsorAccounts: {

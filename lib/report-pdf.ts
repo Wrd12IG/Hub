@@ -72,7 +72,7 @@ export function buildPdfSections(platforms: PlatformReport[]): PdfSection[] {
             }];
         });
         if (rows.length === 0 || rows.every((r) => r.value === '0' || r.value === '€0,00')) return [];
-        return [{ id: `${p.platform}-${i}`, title: def.label + (p.accountLabel && p.platform === 'gbp' ? ` · ${p.accountLabel}` : ''), rows, chart: pickChart(p) }];
+        return [{ id: `${p.platform}-${i}`, title: def.label + (p.accountLabel && (p.platform === 'gbp' || p.platform === 'ga4' || p.platform === 'searchconsole') ? ` · ${p.accountLabel}` : ''), rows, chart: pickChart(p) }];
     });
 }
 

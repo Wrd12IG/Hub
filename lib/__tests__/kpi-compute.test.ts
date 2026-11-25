@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { PlatformReport } from '../reporting';
-import { compareDelta, computeClientMonthly, formatDelta, formatValue, monthLabel, monthRange, platformsNeeded, rawKpi, shiftMonth, verdictOf } from '../kpi-compute';
+import { compareDelta, computeClientMonthly, formatDelta, formatValue, monthLabel, monthRange, platformsNeeded, rawKpi, shiftMonth, verdictOf, USERS_MULTI_SITE_NOTE } from '../kpi-compute';
 
 const rep = (platform: PlatformReport['platform'], rows: Record<string, number>, previousRows: Record<string, number> = {}, connected = true): PlatformReport =>
     ({ platform, connected, rows: [rows], previousRows: Object.keys(previousRows).length ? [previousRows] : [] });
@@ -198,5 +198,42 @@ describe('kpi-compute: piattaforme necessarie', () => {
         expect(platformsNeeded(['leads_real']).has('facebook')).toBe(true);
         expect(platformsNeeded(['appointments']).size).toBe(0);
         expect(platformsNeeded(['email_revenue']).has('klaviyo')).toBe(true);
+    });
+});
+
+describe('kpi-compute: più siti dello stesso cliente', () => {
+    // Due siti (due proprietà GA4 e due Search Console): una voce per sito, come le sedi di Google Maps
+    const multi = [
+        rep('ga4', { sessions: 3000, active_users: 2000, purchase_revenue: 5000, transactions: 50 }, { sessions: 2000, active_users: 1500, purchase_revenue: 3000, transactions: 30 }),
+        rep('ga4', { sessions: 2000, active_users: 1500, purchase_revenue: 3000, transactions: 30 }, { sessions: 2000, active_users: 1400, purchase_revenue: 3000, transactions: 30 }),
+        rep('searchconsole', { clicks: 700 }, { clicks: 500 }),
+        rep('searchconsole', { clicks: 300 }, { clicks: 400 }),
+    ];
+    it('sessioni, fatturato e ordini si sommano tra i siti', () => {
+        expect(rawKpi('sessions', multi, 'current', undefined).value).toBe(5000);
+        expect(rawKpi('revenue', multi, 'current', undefined).value).toBe(8000);
+        expect(rawKpi('orders', multi, 'current', undefined).value).toBe(80);
+        expect(rawKpi('search_clicks', multi, 'current', undefined).value).toBe(1000);
+        expect(rawKpi('sessions', multi, 'previous', undefined).value).toBe(4000);
+    });
+    it('il tasso di conversione è pesato sulle sessioni (ordini totali / sessioni totali), non la media dei due', () => {
+        expect(rawKpi('conversion_rate', multi, 'current', undefined).value).toBe(1.6);
+    });
+    it('gli utenti unici NON si sommano: con più siti il valore manca', () => {
+        expect(rawKpi('users', multi, 'current', undefined).value).toBeNull();
+    });
+    it('con un sito solo gli utenti ci sono, come prima', () => {
+        expect(rawKpi('users', [multi[0]], 'current', undefined).value).toBe(2000);
+    });
+    it('un sito non letto (errore) non conta come «più siti»: gli utenti dell\'altro restano', () => {
+        const oneFailed = [multi[0], rep('ga4', {}, {}, false)];
+        expect(rawKpi('users', oneFailed, 'current', undefined).value).toBe(2000);
+    });
+    it('il KPI «Utenti sito» spiega perché manca', () => {
+        const r = computeClientMonthly({ clientId: 'c', name: 'C', profile: 'auto', kpiIds: ['users', 'sessions'], month: '2026-10', main: multi, yoy: [], manual: {} });
+        const users = r.kpis.find((k) => k.id === 'users')!;
+        expect(users.value).toBeNull();
+        expect(users.missing).toBe(USERS_MULTI_SITE_NOTE);
+        expect(r.kpis.find((k) => k.id === 'sessions')!.value).toBe(5000);
     });
 });

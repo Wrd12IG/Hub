@@ -34,7 +34,9 @@ export default function Ga4DetailPage() {
       setLoading(true); setError(null)
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch(`/api/clients/${id}/ga4?days=${days}`, {
+        // ?site=<id>: il sito scelto nella Panoramica (un cliente può averne più d'uno). Senza, il primo.
+        const site = new URLSearchParams(window.location.search).get('site')
+        const res = await fetch(`/api/clients/${id}/ga4?days=${days}${site ? `&site=${encodeURIComponent(site)}` : ''}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         const json = await res.json()
