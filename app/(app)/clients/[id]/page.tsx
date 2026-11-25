@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Brain,
   Globe,
-  Gauge,
   Plus,
   FileText,
   TrendingDown,
@@ -17,7 +16,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
-  TrendingUp,
   Image as ImageIcon,
   Trash2,
   BarChart2,
@@ -38,7 +36,6 @@ import {
   MapPin,
   Calendar,
   Sparkles,
-  CalendarRange,
   Heart,
   MousePointerClick,
   ExternalLink,
@@ -51,8 +48,6 @@ import {
   MonitorPlay,
   MousePointer2,
   PieChart,
-  LayoutGrid,
-  CalendarDays,
   Settings,
   FileBarChart,
   BarChart3,
@@ -71,6 +66,7 @@ import { PeriodPicker } from "@/components/PeriodPicker";
 import { MonthlyCommentEditor } from "@/components/MonthlyCommentEditor";
 import { ClientCommentCard } from "@/components/ClientCommentCard";
 import { ClientTodoCard } from "@/components/client-todo-card";
+import { ClientQuickLinks } from "@/components/client-quick-links";
 import { SeoAuditHighlights } from "@/components/SeoAuditHighlights";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
@@ -1403,105 +1399,8 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* ── QUICK LINKS ──────────────────────────────────────────────────
-          Raggruppati per intenzione: prima il lavoro sul cliente, poi la
-          creatività, poi l'analisi. Otto pill tutte uguali mescolavano cose
-          che non si fanno nello stesso momento.
-
-          Due sono state tolte perché portavano dove si era già:
-          • "Calendario" apriva la stessa pagina di "Piano Editoriale", solo
-            con la vista calendario preselezionata — vista che quella pagina
-            offre già con un click al suo interno.
-          • "Maps & GBP" duplicava la scheda GBP che ora sta nella Overview,
-            da cui si raggiunge il dettaglio per sede.
-      ── */}
-      {!isClient && (
-      <div className="relative z-20 flex flex-wrap items-center gap-2.5 bg-muted/40 border border-border p-4 rounded-2xl shadow-sm">
-        {[
-          {
-            href: `/clients/${id}/editorial-plan`,
-            icon: CalendarDays,
-            label: "Piano Editoriale",
-            dot: "bg-pink-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]",
-          },
-          {
-            href: `/clients/${id}/tasks`,
-            icon: CheckCircle2,
-            label: "Tasks",
-            dot: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]",
-          },
-          {
-            href: `/clients/${id}/projects`,
-            icon: LayoutGrid,
-            label: "Progetti",
-            dot: "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]",
-          },
-          { separator: true },
-          {
-            href: `/clients/${id}/creative`,
-            icon: Sparkles,
-            label: "Creative Lab",
-            dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
-          },
-          {
-            href: `/clients/${id}/scheda`,
-            icon: FileText,
-            label: "Scheda",
-            dot: "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]",
-          },
-          // Solo per le concessionarie (profilo KPI «Auto e moto»): lead, appuntamenti, preventivi e vendite dallo Sheet del cliente.
-          ...(client?.kpiProfile === 'auto' ? [{
-            href: `/clients/${id}/dealer-kpi`,
-            icon: Gauge,
-            label: "KPI concessionario",
-            dot: "bg-lime-500 shadow-[0_0_8px_rgba(132,204,22,0.5)]",
-          }] : []),
-          {
-            href: `/clients/${id}/site-monitor`,
-            icon: Search,
-            label: "Monitor sito",
-            dot: "bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.5)]",
-          },
-          {
-            href: `/clients/${id}/ped-plan`,
-            icon: CalendarRange,
-            label: "Piano PED",
-            dot: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]",
-          },
-          {
-            // Pagina globale: il cliente viaggia nell'URL, così si apre già
-            // filtrata invece di partire da "tutti".
-            href: `/documents?tab=media&client=${id}`,
-            icon: ImageIcon,
-            label: "Creative Board",
-            dot: "bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]",
-          },
-          { separator: true },
-          {
-            href: `/reports?client=${id}`,
-            icon: TrendingUp,
-            label: "Growth Report",
-            dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-          },
-        ].map((item, i) => {
-          if ('separator' in item) {
-            return <span key={`sep-${i}`} aria-hidden className="h-6 w-px bg-muted mx-1" />;
-          }
-          const { href, icon: Icon, label, dot } = item;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className="relative z-10 cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-border bg-muted/40 hover:bg-muted hover:border-foreground/30 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-foreground"
-            >
-              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />
-              <Icon className="h-3.5 w-3.5 text-muted-foreground/80" />
-              {label}
-            </Link>
-          );
-        })}
-      </div>
-      )}
+      {/* Collegamenti rapidi (solo staff): l'elenco sta in lib/client-quick-links.ts */}
+      {!isClient && <ClientQuickLinks clientId={id as string} kpiProfile={client?.kpiProfile} />}
 
       {/* ── TAB BAR ── */}
       {!isClient && (

@@ -120,12 +120,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               onClose={() => setPomodoroTask(null)}
             />
           )}
-          <MotivationalQuote />
-          <LoveHeartAnimation />
           <DynamicIcons />
-          <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
-          <BukowskiConfetti />
-          <BirthdayCelebration users={users} />
+          {/* Le frasi motivazionali, il Konami, i cuori e i compleanni dei colleghi sono del team: il cliente vede solo i suoi
+              risultati e non deve ricevere popup pensati per chi lavora nell'agenzia. */}
+          {currentUser.role !== 'Cliente' && (
+            <>
+              <MotivationalQuote />
+              <LoveHeartAnimation />
+              <BukowskiMode active={bukowskiMode} onClose={toggleBukowskiMode} />
+              <BukowskiConfetti />
+              <BirthdayCelebration users={users} />
+            </>
+          )}
 
         </div>
       </CommandMenuProvider>
