@@ -293,10 +293,15 @@ export interface Brief {
     deliveryMethods?: string; // Modalità di consegna preferita
 
     // Metadata
-    status: 'Bozza' | 'Inviato' | 'In Revisione' | 'Approvato';
+    /** Percorso: Inviato → In Revisione → Approvato (preso in carico) → In Lavorazione → Consegnato. Vedi lib/brief-status.ts. */
+    status: 'Bozza' | 'Inviato' | 'In Revisione' | 'Approvato' | 'In Lavorazione' | 'Consegnato';
     createdAt: string;
     updatedAt?: string;
     createdBy?: string;
+    /** Progetto creato da questo brief (se c'è): collega la richiesta al lavoro. */
+    projectId?: string;
+    /** Quando è stato segnato «Consegnato». */
+    deliveredAt?: string;
 
     // Legacy/Optional
     description?: string;
@@ -378,6 +383,7 @@ export type NotificationType =
     | 'brief_assigned'
     | 'brief_approved'
     | 'brief_revision'
+    | 'brief_delivered'
     // Editorial
     | 'editorial_due_soon'
     | 'editorial_publish_today'

@@ -60,6 +60,7 @@ const NOTIFICATION_TYPES: { category: string; types: { value: NotificationType; 
             { value: 'brief_assigned', label: 'Brief Assegnato' },
             { value: 'brief_approved', label: 'Brief Approvato' },
             { value: 'brief_revision', label: 'Brief in Revisione' },
+            { value: 'brief_delivered', label: 'Brief Consegnato' },
         ]
     },
     {
