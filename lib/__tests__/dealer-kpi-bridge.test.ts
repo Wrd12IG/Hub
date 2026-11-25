@@ -20,13 +20,13 @@ const month = (rows: string[][]) => {
 };
 
 describe('ponte Sheet → dati reali', () => {
-    it('lead, appuntamenti e vendite diventano i campi dei dati reali; i preventivi no (non hanno un campo)', () => {
+    it('lead, appuntamenti, preventivi e vendite diventano campi; i lead di Google e Meta anche a parte (per il costo per lead)', () => {
         const { totals, entries } = month([['2026-11', 'Lead', 'Fiat', 'Google', '10'], ['2026-11', 'Appuntamento', 'Fiat', 'Google', '4'], ['2026-11', 'Preventivo', 'Fiat', 'Google', '3'], ['2026-11', 'Vendita', 'Fiat', 'Google', '1']]);
-        expect(sheetToManual(totals, typesPresent(entries))).toEqual({ leads_real: 10, appointments: 4, sales: 1 });
+        expect(sheetToManual(totals, typesPresent(entries))).toEqual({ leads_real: 10, appointments: 4, quotes: 3, sales: 1, leads_sheet_google: 10, leads_sheet_meta: 0, leads_paid: 10 });
     });
     it('un tipo che nello Sheet non c\'è resta «dato mancante»: non diventa zero', () => {
         const { totals, entries } = month([['2026-11', 'Lead', 'Fiat', 'Google', '10']]);
-        expect(sheetToManual(totals, typesPresent(entries))).toEqual({ leads_real: 10 });
+        expect(sheetToManual(totals, typesPresent(entries))).toEqual({ leads_real: 10, leads_sheet_google: 10, leads_sheet_meta: 0, leads_paid: 10 });
     });
     it('uno zero scritto nello Sheet è uno zero vero', () => {
         const { totals, entries } = month([['2026-11', 'Vendita', 'Fiat', 'Showroom', '0']]);
@@ -52,17 +52,17 @@ describe('lettura dei dati reali con lo Sheet (readManualKpis)', () => {
         store['clients/c1/dealerKpi/2026-11'] = dealerDoc([['2026-11', 'Lead', 'Fiat', 'Google', '10'], ['2026-11', 'Vendita', 'Fiat', 'Showroom', '2']]);
         const { readManualKpisDetailed, readManualKpis } = await import('@/lib/monthly-mail-store');
         const d = await readManualKpisDetailed(['c1'], '2026-11');
-        expect(d.c1.values).toEqual({ leads_real: 12, sales: 2 });
-        expect(d.c1.fromSheet).toEqual({ sales: true });
+        expect(d.c1.values).toEqual({ leads_real: 12, sales: 2, leads_sheet_google: 10, leads_sheet_meta: 0, leads_paid: 10 });
+        expect(d.c1.fromSheet).toEqual({ sales: true, leads_sheet_google: true, leads_sheet_meta: true, leads_paid: true });
         // la mail mensile usa la stessa lettura
-        expect(await readManualKpis(['c1'], '2026-11')).toEqual({ c1: { leads_real: 12, sales: 2 } });
+        expect((await readManualKpis(['c1'], '2026-11')).c1).toMatchObject({ leads_real: 12, sales: 2 });
     });
     it('un cliente solo con lo Sheet compare; uno senza niente no; un mese diverso non si mischia', async () => {
         store['clients/c2/dealerKpi/2026-11'] = dealerDoc([['2026-11', 'Lead', 'Fiat', 'Meta', '7']]);
         const { readManualKpisDetailed } = await import('@/lib/monthly-mail-store');
         const nov = await readManualKpisDetailed(['c2', 'c3'], '2026-11');
         expect(Object.keys(nov)).toEqual(['c2']);
-        expect(nov.c2.values).toEqual({ leads_real: 7 });
+        expect(nov.c2.values).toMatchObject({ leads_real: 7, leads_sheet_meta: 7, leads_paid: 7 });
         expect(await readManualKpisDetailed(['c2'], '2026-10')).toEqual({});
     });
 });

@@ -23,11 +23,11 @@ export const MAX_KPIS = 5;
 export type KpiUnit = 'int' | 'eur' | 'pct' | 'ratio' | 'rating';
 export type KpiSource =
     | 'meta' | 'google_ads' | 'ga4' | 'gbp' | 'instagram' | 'facebook_page' | 'linkedin' | 'tiktok'
-    | 'searchconsole' | 'klaviyo' | 'awin' | 'manual';
+    | 'searchconsole' | 'klaviyo' | 'awin' | 'manual' | 'calculated';
 
 export const SOURCE_LABELS: Record<KpiSource, string> = {
     meta: 'Meta', google_ads: 'Google Ads', ga4: 'Sito (GA4)', gbp: 'Google Maps', instagram: 'Instagram', facebook_page: 'Facebook',
-    linkedin: 'LinkedIn', tiktok: 'TikTok', searchconsole: 'Ricerca Google', klaviyo: 'Email (Klaviyo)', awin: 'Awin', manual: 'Dato inserito a mano',
+    linkedin: 'LinkedIn', tiktok: 'TikTok', searchconsole: 'Ricerca Google', klaviyo: 'Email (Klaviyo)', awin: 'Awin', manual: 'Dato inserito a mano', calculated: 'Calcolato (spesa Google + Meta)',
 };
 
 export interface KpiDef {
@@ -65,6 +65,19 @@ export const KPI_CATALOG: Record<string, KpiDef> = {
     gbp_directions:  { id: 'gbp_directions',  label: 'Indicazioni stradali',        unit: 'int',    better: 'up',   source: 'gbp' },
     review_rating:   { id: 'review_rating',   label: 'Valutazione media recensioni', unit: 'rating', better: 'up',  source: 'gbp' },
     review_count:    { id: 'review_count',    label: 'Nuove recensioni',            unit: 'int',    better: 'up',   source: 'gbp' },
+    // Concessionari (pagina «KPI concessionario»): sito, Meta Ads, Google Ads, preventivi e costo per lead calcolato
+    users:           { id: 'users',           label: 'Utenti sito',                 unit: 'int',    better: 'up',   source: 'ga4' },
+    meta_impressions: { id: 'meta_impressions', label: 'Impression Meta Ads',       unit: 'int',    better: 'up',   source: 'meta' },
+    meta_reach:      { id: 'meta_reach',      label: 'Copertura Meta Ads',          unit: 'int',    better: 'up',   source: 'meta' },
+    meta_spend:      { id: 'meta_spend',      label: 'Spesa Meta Ads',              unit: 'eur',    better: 'down', source: 'meta' },
+    gads_impressions: { id: 'gads_impressions', label: 'Impression Google Ads',     unit: 'int',    better: 'up',   source: 'google_ads' },
+    gads_clicks:     { id: 'gads_clicks',     label: 'Click Google Ads',            unit: 'int',    better: 'up',   source: 'google_ads' },
+    gads_spend:      { id: 'gads_spend',      label: 'Spesa Google Ads',            unit: 'eur',    better: 'down', source: 'google_ads' },
+    gads_conversions: { id: 'gads_conversions', label: 'Conversioni Google Ads',    unit: 'int',    better: 'up',   source: 'google_ads' },
+    quotes:          { id: 'quotes',          label: 'Preventivi',                  unit: 'int',    better: 'up',   source: 'manual' },
+    cost_per_lead_total: { id: 'cost_per_lead_total', label: 'Costo per lead (Google + Meta)', unit: 'eur', better: 'down', source: 'calculated' },
+    cpl_google:      { id: 'cpl_google',      label: 'Costo per lead Google',       unit: 'eur',    better: 'down', source: 'calculated' },
+    cpl_meta_real:   { id: 'cpl_meta_real',   label: 'Costo per lead Meta',         unit: 'eur',    better: 'down', source: 'calculated' },
     // Social
     social_reach:    { id: 'social_reach',    label: 'Copertura social',            unit: 'int',    better: 'up',   source: 'instagram' },
     followers:       { id: 'followers',       label: 'Follower',                    unit: 'int',    better: 'up',   source: 'instagram' },
@@ -241,3 +254,15 @@ export const SUGGESTED = new Map<string, Suggestion>([
 export function suggestionFor(name: string): Suggestion | undefined {
     return SUGGESTED.get(normalizeName(name));
 }
+
+
+/** I KPI della pagina «KPI concessionario», raggruppati nell'ordine in cui si mostrano. */
+export const DEALER_KPI_GROUPS: { label: string; ids: string[] }[] = [
+    { label: 'Sito (Analytics)', ids: ['sessions', 'users'] },
+    { label: 'Meta Ads', ids: ['meta_impressions', 'meta_reach', 'meta_spend'] },
+    { label: 'Google Ads', ids: ['gads_impressions', 'gads_clicks', 'gads_spend', 'gads_conversions'] },
+    { label: 'Google Maps', ids: ['gbp_calls', 'gbp_directions'] },
+    { label: 'Dallo Sheet del cliente', ids: ['leads_real', 'appointments', 'quotes', 'sales'] },
+    { label: 'Costo per lead', ids: ['cost_per_lead_total', 'cpl_google', 'cpl_meta_real'] },
+];
+export const DEALER_KPI_IDS: string[] = DEALER_KPI_GROUPS.flatMap((g) => g.ids);
