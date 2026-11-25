@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 
-export interface SheetSummary { tab: string; lastStatus: string | null; lastSyncAt: string | null; lastMessage: string | null; issuesTotal: number; months: number }
+export interface SheetSummary { tab: string; lastStatus: string | null; lastSyncAt: string | null; lastMessage: string | null; issuesTotal: number; months: number; monthList?: string[] }
 
 const STATUS_CLS: Record<string, string> = { ok: 'text-emerald-600 dark:text-emerald-400', avvisi: 'text-amber-600 dark:text-amber-400', errore: 'text-red-600 dark:text-red-400' }
 const btn = 'inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50'

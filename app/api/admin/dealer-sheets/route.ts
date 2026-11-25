@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
     if ((await getAppUser(user.uid))?.role !== 'Amministratore') return forbiddenResponse();
 
     const clients = await adminDb.collection('clients').get();
-    const sheets: Record<string, { tab: string; lastStatus: string | null; lastSyncAt: string | null; lastMessage: string | null; issuesTotal: number; months: number }> = {};
+    const sheets: Record<string, { tab: string; lastStatus: string | null; lastSyncAt: string | null; lastMessage: string | null; issuesTotal: number; months: number; monthList: string[] }> = {};
     await Promise.all(clients.docs.map(async (c) => {
         const s = await c.ref.collection('private').doc('dealerSheet').get();
         if (!s.exists) return;
         const d = s.data() as { tab?: string; status?: { lastStatus?: string; lastSyncAt?: string; lastMessage?: string; issuesTotal?: number; months?: string[] } | null };
         sheets[c.id] = {
             tab: d.tab || 'Dati', lastStatus: d.status?.lastStatus ?? null, lastSyncAt: d.status?.lastSyncAt ?? null,
-            lastMessage: d.status?.lastMessage ?? null, issuesTotal: d.status?.issuesTotal ?? 0, months: d.status?.months?.length ?? 0,
+            lastMessage: d.status?.lastMessage ?? null, issuesTotal: d.status?.issuesTotal ?? 0, months: d.status?.months?.length ?? 0, monthList: d.status?.months ?? [],
         };
     }));
     return NextResponse.json({ sheets, serviceAccountEmail: serviceAccountEmail() });
