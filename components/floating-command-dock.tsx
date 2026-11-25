@@ -40,6 +40,7 @@ import { useCommandMenu } from '@/components/command-menu';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { PAGES_ALWAYS_FOR_PM, isProjectManagerRole } from '@/lib/nav-permissions';
 import { RolePermissions } from '@/lib/data';
+import { useClientTodo } from '@/hooks/use-client-todo';
 
 // ── Stessa struttura di allNavItems dalla sidebar ──
 interface DockNavItem {
@@ -54,6 +55,8 @@ interface DockNavItem {
     altHrefs?: string[];
     /** Attiva solo sull'indirizzo esatto: serve quando altre voci stanno sotto lo stesso percorso (accesso Cliente). */
     exact?: boolean;
+    /** Numero in un pallino sull'icona (es. contenuti da approvare). Assente o 0 = niente pallino. */
+    badge?: number;
 }
 
 // Un colore per gruppo (si legge come un blocco) e un'icona diversa per ogni voce.
@@ -150,18 +153,20 @@ export function FloatingCommandDock() {
     const pathname = usePathname();
     const { setOpen: setCommandOpen } = useCommandMenu();
     const { currentUser, permissions } = useLayoutData();
+    // Solo per l'accesso Cliente: quanti contenuti aspettano la sua approvazione
+    const { toApprove } = useClientTodo(currentUser?.role === 'Cliente' ? currentUser.clientId : null, pathname);
 
     // ── Filtra link navigazione in base ai permessi (identico alla sidebar) ──
     const visibleNavItems = useMemo(() => {
         if (!currentUser) return [];
 
-        // L'accesso «Cliente» ha una sola pagina: i risultati del proprio cliente (Overview e Audit)
+        // L'accesso «Cliente» ha tre pagine, tutte del proprio cliente: risultati, piano editoriale (PED) e brief
         if (currentUser.role === 'Cliente') {
             if (!currentUser.clientId) return [];
             const home = `/clients/${currentUser.clientId}`;
             return [
                 { href: home, icon: BarChart3, label: 'I miei risultati', color: 'text-amber-500', exact: true },
-                { href: `${home}/editorial-plan`, icon: Calendar, label: 'Piano editoriale', color: 'text-pink-500' },
+                { href: `${home}/editorial-plan`, icon: Calendar, label: 'Piano editoriale', color: 'text-pink-500', badge: toApprove ?? 0 },
                 { href: `${home}/briefs`, icon: BookOpen, label: 'Brief', color: 'text-indigo-500' },
             ] as DockNavItem[];
         }
@@ -199,7 +204,7 @@ export function FloatingCommandDock() {
         });
 
         return [...mainItems, ...adminItems];
-    }, [currentUser, permissions]);
+    }, [currentUser, permissions, toApprove]);
 
     // ── Filtra azioni rapide: mostra solo se l'utente ha accesso alla pagina relativa ──
     const visibleQuickActions = useMemo(() => {
@@ -274,6 +279,14 @@ export function FloatingCommandDock() {
                                             <Icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive ? "text-primary" : item.color || "text-muted-foreground")} />
                                             {/* La pagina corrente dice il suo nome: le altre icone restano compatte con tooltip */}
                                             {isActive && <span className="hidden md:inline text-xs font-semibold whitespace-nowrap pr-1">{item.label}</span>}
+                                            {!!item.badge && item.badge > 0 && (
+                                                <span
+                                                    aria-label={`${item.badge} da approvare`}
+                                                    className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground"
+                                                >
+                                                    {item.badge > 9 ? '9+' : item.badge}
+                                                </span>
+                                            )}
                                         </Link>
                                     </TooltipTrigger>
                                     {/* La voce attiva ha già il nome scritto accanto all'icona: il suggerimento lo ripeterebbe */}

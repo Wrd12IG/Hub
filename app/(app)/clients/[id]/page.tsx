@@ -70,6 +70,7 @@ import { validateRange, rangeLabel } from "@/lib/date-range";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { MonthlyCommentEditor } from "@/components/MonthlyCommentEditor";
 import { ClientCommentCard } from "@/components/ClientCommentCard";
+import { ClientTodoCard } from "@/components/client-todo-card";
 import { SeoAuditHighlights } from "@/components/SeoAuditHighlights";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
@@ -1597,6 +1598,7 @@ export default function ClientDetailPage() {
             </div>
           </div>
 
+          {isClient && <ClientTodoCard clientId={id as string} />}
           {isClient && <h2 className="text-xl font-extrabold tracking-tight text-foreground">Risultati del periodo</h2>}
           {/* RIEPILOGO: spesa, risultato, costo per risultato, anomalie */}
           <ReportSummaryStrip

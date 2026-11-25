@@ -27,12 +27,8 @@ import GlassSkinToggle from '@/components/glass-skin-toggle';
 
 
 import { TranslationProvider } from '@/hooks/useTranslation';
+import { isClientAreaPath } from '@/lib/client-area';
 
-/** L'accesso «Cliente» ha tre pagine, tutte del proprio cliente: risultati, piano editoriale (PED) e brief. */
-function isClientAreaPath(pathname: string, clientId: string): boolean {
-  const home = `/clients/${clientId}`;
-  return pathname === home || ['/editorial-plan', '/briefs'].some((p) => pathname === `${home}${p}` || pathname.startsWith(`${home}${p}/`));
-}
 
 /** Pagine che riempiono lo schermo da sole: uno spazio in fondo le farebbe scorrere senza motivo. */
 const FULL_HEIGHT_PAGES = ['/chat', '/focus'];
@@ -64,10 +60,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [currentUser, isLoadingLayout, router, isMounted, pathname]);
 
 
-  // Accesso «Cliente»: una sola pagina, i risultati del proprio cliente. Qualunque altro indirizzo riporta lì (e intanto
-  // non si mostra niente). Le API fanno comunque il loro controllo: questa è la parte di navigazione.
-  const clientHome = currentUser?.role === 'Cliente' && currentUser.clientId ? `/clients/${currentUser.clientId}` : null;
-  const redirectingClient = !!clientHome && pathname !== clientHome;
+  // Accesso «Cliente»: tre pagine del proprio cliente (risultati, PED, brief). Qualunque altro indirizzo riporta ai risultati
+  // (e intanto non si mostra niente). Le API fanno comunque il loro controllo: questa è la parte di navigazione.
+  // Lo spinner va solo mentre si reindirizza: prima valeva per ogni pagina diversa dai risultati, anche per PED e Brief.
+  const redirectingClient = currentUser?.role === 'Cliente' && !!currentUser.clientId && !isClientAreaPath(pathname, currentUser.clientId);
 
   if (!isMounted || isLoadingLayout || !currentUser || redirectingClient) {
     return (
