@@ -40,7 +40,7 @@ export interface PlatformHealth {
 
 interface CampaignLike {
     platform: 'meta' | 'google_ads';
-    status: 'active' | 'paused' | 'ended';
+    status: 'active' | 'scheduled' | 'paused' | 'ended';
     spend: number;
     impressions: number;
     clicks: number;

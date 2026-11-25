@@ -83,6 +83,7 @@ export async function getData({
     dateTo,
     fresh = false,
     campaignPrefix,
+    options,
 }: {
     connector: WindsorConnector;
     accountId?: string;
@@ -106,6 +107,8 @@ export async function getData({
      * ("Parafarmacia - …", "Medical - …", "Dalla Longa - …"). Aggiunge `campaign` ai campi letti.
      */
     campaignPrefix?: string;
+    /** Opzioni del connector (vedi GET /{connector}/options), passate come parametri della richiesta. */
+    options?: Record<string, string>;
 }): Promise<WindsorRow[]> {
     // Windsor identifica gli account Meta Ads con il solo numero (es. 1083559196248959), mentre
     // Business Manager e il form di Setup API li mostrano come `act_1083559196248959`. Con il
@@ -134,6 +137,7 @@ export async function getData({
     if (accountId) {
         params.set('account_id', accountId);
     }
+    for (const [key, value] of Object.entries(options || {})) params.set(key, value);
     // Un singolo `accountId` passa dallo stesso filtro lato Windsor delle liste: il parametro semplice `account_id`
     // viene ignorato dal server, che restituisce TUTTI gli account del connector e il Hub ne teneva uno.
     // Misurato il 18/10/2026 su City Motors: Meta 27,2 s → 0,9 s, Instagram 6,5 s → 1,6 s (e GBP 19,5 s → 3 s).
@@ -169,7 +173,7 @@ export async function getData({
     if (rows.length === 0 && dateFrom && dateTo) {
         const yesterday = previousDay(dateTo);
         if (yesterday && dateTo >= todayIso() && yesterday >= dateFrom) {
-            return getData({ connector, accountId, accountIds, fields, dateFrom, dateTo: yesterday, fresh, campaignPrefix });
+            return getData({ connector, accountId, accountIds, fields, dateFrom, dateTo: yesterday, fresh, campaignPrefix, options });
         }
     }
 

@@ -258,12 +258,12 @@ export default function ClientDetailPage() {
   // app/api/clients/[id]/campaigns/route.ts).
   const [allCampaigns, setAllCampaigns] = useState<{
     id: string; platform: 'meta' | 'google_ads'; name: string;
-    status: 'active' | 'paused' | 'ended'; objective?: string;
+    status: 'active' | 'scheduled' | 'paused' | 'ended'; objective?: string;
     startDate?: string; endDate?: string;
     spend: number; impressions: number; clicks: number; conversions: number;
   }[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(false);
-  const [campaignStatusFilter, setCampaignStatusFilter] = useState<'all' | 'active' | 'paused' | 'ended'>('all');
+  const [campaignStatusFilter, setCampaignStatusFilter] = useState<'all' | 'active' | 'scheduled' | 'paused' | 'ended'>('all');
   // Same DateRange + MetricoolDatePicker the Instagram/Facebook/LinkedIn pages
   // use, rather than native <input type="date"> which looked foreign here.
   const [campaignRange, setCampaignRange] = useState<DateRange | undefined>(undefined);
@@ -1750,6 +1750,7 @@ export default function ClientDetailPage() {
                 <SelectContent>
                   <SelectItem value="all">Tutti gli stati</SelectItem>
                   <SelectItem value="active">Attive</SelectItem>
+                  <SelectItem value="scheduled">Programmate</SelectItem>
                   <SelectItem value="paused">In pausa</SelectItem>
                   <SelectItem value="ended">Finite</SelectItem>
                 </SelectContent>
