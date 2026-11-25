@@ -35,6 +35,20 @@ function normalizeStatus(raw: unknown): CampaignStatus {
   return 'ended';
 }
 
+/** Oggi a Roma in yyyy-MM-dd: le date di fine Meta sono nel fuso dell'account (Italia). */
+function todayRome(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Rome' }).format(new Date());
+}
+
+/**
+ * Meta lascia `ACTIVE` anche le campagne con la data di fine passata (la consegna è "completata", lo stato no):
+ * misurato il 25/11/2026 su City Motors, 50+ campagne dal 2024 ancora ACTIVE. Una campagna attiva con la fine
+ * già passata è finita.
+ */
+function withEndDate(status: CampaignStatus, endDate?: string): CampaignStatus {
+  return status === 'active' && endDate && endDate < todayRome() ? 'ended' : status;
+}
+
 function num(v: unknown): number {
   return typeof v === 'number' ? v : 0;
 }
@@ -110,12 +124,15 @@ export async function GET(
 
   const refresh = request.nextUrl.searchParams.get('refresh') === '1';
   const cacheRef = adminDb.collection('clients').doc(clientId)
-    .collection('cache').doc(`campaigns_${datePreset}`);
+    // v2: scarta le copie scritte con dati vecchi e senza il controllo sulla data di fine.
+    .collection('cache').doc(`campaigns_v2_${datePreset}`);
   if (!refresh) {
     const cached = await cacheRef.get().catch(() => null);
     const hit = cached?.exists ? (cached.data() as any) : null;
     if (hit && Date.now() - hit.computedAtMs < (hit.hasErrors ? ERROR_TTL_MS : CACHE_TTL_MS)) {
-      return NextResponse.json({ campaigns: hit.campaigns, errors: hit.errors, cached: true });
+      // Lo stato si ricalcola anche dalla cache: una campagna può finire mentre la copia è ancora valida.
+      const fromCache = (hit.campaigns as UnifiedCampaign[]).map((c) => ({ ...c, status: withEndDate(c.status, c.endDate) }));
+      return NextResponse.json({ campaigns: fromCache, errors: hit.errors, cached: true });
     }
   }
 
@@ -136,6 +153,11 @@ export async function GET(
           accountId,
           fields: [...fields, 'account_id'],
           datePreset,
+          // Sempre lettura diretta: questa rotta ha già la sua cache di 6 ore su Firestore. Passando anche dalla
+          // cache dati di Next (revalidate 300, stale-while-revalidate) il 25/11/2026 City Motors mostrava ancora i
+          // numeri di inizio novembre: Federico Costa €563,68 «Attiva» contro €639,64 in pausa su Meta, e nessuna
+          // delle 4 campagne partite il 23-24/11, che Windsor invece restituiva già.
+          fresh: true,
           ...(platform === 'meta' && client?.metaCampaignFilter ? { campaignPrefix: client.metaCampaignFilter } : {}),
         });
 
@@ -170,6 +192,7 @@ export async function GET(
             });
           }
         }
+        for (const c of Array.from(byCampaign.values())) c.status = withEndDate(c.status, c.endDate);
         campaigns.push(...Array.from(byCampaign.values()));
       } catch (err: any) {
         console.error(`[campaigns] ${platform} fetch failed for client ${clientId}:`, err.message);
