@@ -10,14 +10,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Filter, ChevronUp, ChevronDown, PlusCircle, BookOpen, Search, Eraser, Loader2, MoreHorizontal, FolderPlus, ListTodo, Eye, Trash2 } from 'lucide-react';
+import { Filter, ChevronUp, ChevronDown, PlusCircle, BookOpen, Search, Eraser, Loader2, MoreHorizontal, FolderPlus, ListTodo, Eye, Trash2, ArrowRightCircle } from 'lucide-react';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 
 import { Brief, Project, Task } from '@/lib/data';
-import { getBriefs, deleteBrief } from '@/lib/actions';
+import { getBriefs, deleteBrief, updateBrief } from '@/lib/actions';
+import { STAFF_BRIEF_MOVES, type BriefStatus } from '@/lib/brief-status';
 import BriefForm from '@/components/brief-form';
 import BriefToProjectForm from '@/components/brief-to-project-form';
 import dynamic from 'next/dynamic';
@@ -117,6 +118,20 @@ export default function BriefsPage() {
         } catch (error) {
             console.error('Failed to delete brief:', error);
             toast.error('Errore durante l\'eliminazione del brief');
+        }
+    };
+
+    // ----------------------
+    // CAMBIO STATO (valutazione → preso in carico → in lavorazione → consegnato)
+    // ----------------------
+    const handleMove = async (brief: Brief, to: BriefStatus, label: string) => {
+        try {
+            await updateBrief(brief.id, { status: to });
+            toast.success(to === 'Consegnato' && brief.createdBy ? `${label}: il cliente è stato avvisato` : label);
+            fetchData();
+        } catch (error) {
+            console.error('Failed to update brief status:', error);
+            toast.error('Non sono riuscito a cambiare lo stato del brief');
         }
     };
 
@@ -243,7 +258,9 @@ export default function BriefsPage() {
                                         <SelectItem value="Bozza">Bozza</SelectItem>
                                         <SelectItem value="Inviato">Inviato</SelectItem>
                                         <SelectItem value="In Revisione">In Revisione</SelectItem>
-                                        <SelectItem value="Approvato">Approvato</SelectItem>
+                                        <SelectItem value="Approvato">Approvato (preso in carico)</SelectItem>
+                                        <SelectItem value="In Lavorazione">In Lavorazione</SelectItem>
+                                        <SelectItem value="Consegnato">Consegnato</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -294,7 +311,7 @@ export default function BriefsPage() {
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant={
-                                                brief.status === 'Approvato' ? 'default' :
+                                                brief.status === 'Approvato' || brief.status === 'In Lavorazione' || brief.status === 'Consegnato' ? 'default' :
                                                     brief.status === 'Inviato' ? 'secondary' :
                                                         'outline'
                                             }>
@@ -314,6 +331,13 @@ export default function BriefsPage() {
                                                         <Eye className="mr-2 h-4 w-4" />
                                                         Visualizza/Modifica
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    {STAFF_BRIEF_MOVES.filter(m => m.to !== brief.status).map(m => (
+                                                        <DropdownMenuItem key={m.to} onClick={() => handleMove(brief, m.to, m.label)}>
+                                                            <ArrowRightCircle className="mr-2 h-4 w-4" />
+                                                            {m.label}
+                                                        </DropdownMenuItem>
+                                                    ))}
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem onClick={() => openProjectFormFromBrief(brief)}>
                                                         <FolderPlus className="mr-2 h-4 w-4" />

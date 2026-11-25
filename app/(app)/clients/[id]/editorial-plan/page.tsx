@@ -4,6 +4,7 @@ import React, { Suspense } from 'react'
 import { CalendarDays, Sparkles } from 'lucide-react'
 import { EditorialPlanPageContent } from '../../../editorial-plan/client'
 import { ClientPedView } from '@/components/client-ped-view'
+import { EditorialSectionNav } from '@/components/editorial-section-nav'
 import { useLayoutData } from '@/app/(app)/layout-context'
 
 /**
@@ -20,6 +21,9 @@ export default function ClientEditorialPlanPage({ params }: { params: { id: stri
 function StaffEditorialPlan({ params }: { params: { id: string } }) {
   return (
     <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '0 2.5rem', maxWidth: '1400px', margin: '0 auto 1rem', width: '100%' }}>
+        <EditorialSectionNav clientId={params.id} />
+      </div>
       <div style={{ 
         padding: '2.5rem 2.5rem 2rem', 
         maxWidth: '1400px', 

@@ -130,13 +130,14 @@ export async function GET(request: NextRequest) {
     - Scadono oggi: ${digest.dueTodayPending.length}
     - Scaduti: ${digest.overdue.length}
     - In approvazione: ${digest.inApproval.length}
+    - Fermi dal cliente: ${digest.waitingClient.length}
   `);
 
   // ── Step 3: Costruisce l'HTML dell'email ─────────────────────────────────
   const htmlContent = buildDigestEmailHtml(digest);
 
   // Costruiamo anche il subject con i dati reali
-  const totalProblems = digest.overdue.length + digest.inApproval.length;
+  const totalProblems = digest.overdue.length + digest.inApproval.length + digest.waitingClient.length;
   const subject = totalProblems > 0
     ? ` ${totalProblems} azioni richieste — Daily Digest ${digest.date}`
     : ` Tutto in ordine — Daily Digest ${digest.date}`;
@@ -154,6 +155,7 @@ export async function GET(request: NextRequest) {
       dueTodayPending: digest.dueTodayPending.length,
       overdue: digest.overdue.length,
       inApproval: digest.inApproval.length,
+      waitingClient: digest.waitingClient.length,
     },
     email: {
       sent: emailResult.success,

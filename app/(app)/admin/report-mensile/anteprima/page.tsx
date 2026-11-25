@@ -6,6 +6,7 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
+import { ReportSectionNav } from '@/components/report-section-nav'
 import { isMonthKey, previousMonthKey } from '@/lib/manual-kpis'
 import { buildMonthlyMail } from '@/lib/monthly-mail-html'
 import type { ClientMonthly } from '@/lib/kpi-compute'
@@ -102,6 +103,7 @@ export default function AnteprimaPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-8">
+      <ReportSectionNav />
       <div>
         <Link href="/admin/report-mensile" className="text-xs text-muted-foreground hover:underline">← Mail mensile KPI</Link>
         <h1 className="mt-1 text-2xl font-bold tracking-tight">Anteprima della mail</h1>

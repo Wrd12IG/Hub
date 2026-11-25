@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { isMonthKey } from '@/lib/manual-kpis';
 import { computeClientMonth } from '@/lib/kpi-monthly';
 
@@ -14,7 +15,7 @@ export const maxDuration = 300;
 export async function POST(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
-  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse();
+  if (!isAdminUser(await getAppUser(auth.uid))) return forbiddenResponse();
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body.clientId !== 'string' || !body.clientId || !isMonthKey(body.month)) {

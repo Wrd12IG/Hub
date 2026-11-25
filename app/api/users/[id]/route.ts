@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, getAppUser, forbiddenResponse } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 
 /**
  * Disattivare ed eliminare un utente, lato server (solo amministratori).
@@ -20,7 +21,7 @@ async function guard(request: Request, targetId: string) {
   const caller = await verifyAuth(request);
   if (!caller) return { error: NextResponse.json({ error: 'Non autenticato.' }, { status: 401 }) };
   const me = await getAppUser(caller.uid);
-  if (me?.role !== 'Amministratore') return { error: forbiddenResponse("Solo un amministratore puo' farlo.") };
+  if (!isAdminUser(me)) return { error: forbiddenResponse("Solo un amministratore puo' farlo.") };
   if (caller.uid === targetId) return { error: NextResponse.json({ error: 'Non puoi farlo su te stesso.' }, { status: 400 }) };
   const snap = await adminDb.collection('users').doc(targetId).get();
   if (!snap.exists) return { error: NextResponse.json({ error: 'Utente non trovato.' }, { status: 404 }) };

@@ -7,6 +7,7 @@ import { DEFAULT_SEND_DAY, splitRecipients } from '@/lib/monthly-mail-settings'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
+import { ReportSectionNav } from '@/components/report-section-nav'
 import { hasReportSources } from '@/lib/report-warm'
 import {
   KPI_CATALOG, KPI_PROFILES, MAX_KPIS, PROFILE_DEFS, SOURCE_LABELS, kpiIdsFor, kpiIdsForClient, monthlyMailState, suggestionFor, isKpiProfile,
@@ -89,6 +90,7 @@ export default function ReportMensilePage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8">
+      <ReportSectionNav />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mail mensile dei KPI</h1>

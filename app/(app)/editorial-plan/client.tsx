@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { getEditorialContents, addEditorialContent, updateEditorialContent, deleteEditorialContent, getEditorialFormats, getEditorialColumns, getEditorialStatuses, addTask, addProject, uploadFilesAndGetAttachments } from '@/lib/actions';
 import type { EditorialContent, ChannelPublishState, Client, EditorialFormat, EditorialColumn, EditorialStatus, User, Task, Project, ActivityType } from '@/lib/data';
-import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, Upload, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send, Wand2 } from 'lucide-react';
+import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -55,6 +55,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import dynamic from 'next/dynamic';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { EditorialSectionNav } from '@/components/editorial-section-nav';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LivePreview } from '@/components/editorial-plan/live-preview';
 import Link from 'next/link';
@@ -1192,6 +1193,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
 
     return (
         <div className="space-y-6">
+            {!forcedClientId && <EditorialSectionNav />}
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 {!forcedClientId && (
                     <div>
@@ -1210,12 +1212,6 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                         <Download className="mr-2 h-4 w-4" />
                         Esporta CSV
                     </Button>
-                    <Link href="/import-editorial">
-                        <Button variant="outline">
-                            <Upload className="mr-2 h-4 w-4" />
-                            Importa
-                        </Button>
-                    </Link>
                     <Button onClick={() => handleOpenCreateModal()}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Nuovo Contenuto

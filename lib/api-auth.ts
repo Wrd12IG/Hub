@@ -10,6 +10,9 @@
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
+import { isStaffUser as hasStaffRole, isPortalUser, isClientScoped, type Capability, type ClientRef } from '@/lib/roles';
+import { decideAccess, describeDenial, enforcementMode, shouldBlock } from '@/lib/roles-guard';
+import { canViewFinancialsServer } from '@/lib/financial-access';
 
 // ─── Auth Verification ────────────────────────────────────────────────────────
 
@@ -83,8 +86,12 @@ export function forbiddenResponse(message = 'Forbidden') {
 
 export interface AppUser {
   id: string;
-  role?: 'Amministratore' | 'Project Manager' | 'Collaboratore' | 'Cliente';
+  /** Il valore salvato: può essere anche uno dei ruoli per mansione (lib/roles.ts) o, per dati vecchi, qualcosa di inatteso. */
+  role?: string;
   clientId?: string;
+  status?: string;
+  extraRoles?: string[];
+  portalLevel?: string;
 }
 
 /** Look up the Firestore profile (role, clientId) for an authenticated caller. */
@@ -124,14 +131,47 @@ export async function getAppUser(uid: string): Promise<AppUser | null> {
   return { id: snap.id, ...(snap.data() as Omit<AppUser, 'id'>) };
 }
 
-/** True for every role except "Cliente" (Amministratore/Project Manager/Collaboratore). */
+/**
+ * True per chi ha un ruolo dello staff che esiste (Amministratore, Project Manager, le mansioni, Collaboratore) ed è attivo.
+ * Prima valeva «chiunque non sia Cliente»: un utente senza ruolo, con un ruolo scritto male o inattivo passava per staff.
+ * Ora si nega (docs/ruoli.md): un ruolo sconosciuto non ha accesso.
+ */
 export function isStaffUser(user: AppUser | null): boolean {
-  return !!user && user.role !== 'Cliente';
+  return hasStaffRole(user);
 }
 
-/** True when a "Cliente"-role user's own clientId matches the resource's client id. */
+/** True when an active "Cliente"-role user's own clientId matches the resource's client id. */
 export function ownsClientResource(user: AppUser | null, clientId: string): boolean {
-  return !!user && user.role === 'Cliente' && user.clientId === clientId;
+  return isPortalUser(user) && user!.clientId === clientId;
+}
+
+/**
+ * Controllo per CAPACITÀ (lib/roles.ts) e, per quelle legate a un cliente, per CLIENTE ASSEGNATO.
+ * Restituisce la Response da ritornare se l'accesso va negato, oppure `null`.
+ *
+ * Per ora vale la modalità «observe» (ROLES_ENFORCEMENT non impostata): non blocca, scrive nel log «sarebbe negato»
+ * e lascia passare. Si passa a «enforce» solo dopo la prova con un account per ruolo (lib/roles-guard.ts).
+ * Va chiamata DOPO denyUnlessStaff / denyUnlessClientAllowed, che restano il controllo di base.
+ */
+export async function denyUnlessCan(uid: string, capability: Capability, clientId?: string): Promise<NextResponse | null> {
+  const user = await getAppUser(uid);
+
+  let client: ClientRef | null = null;
+  if (clientId && isClientScoped(capability)) {
+    const snap = await adminDb.collection('clients').doc(clientId).get();
+    if (snap.exists) {
+      const d = snap.data() as { managedBy?: string[]; socialManagerId?: string; backupManagerId?: string };
+      client = { id: clientId, managedBy: d.managedBy, socialManagerId: d.socialManagerId, backupManagerId: d.backupManagerId };
+    }
+  }
+  const financialsGranted = capability === 'economics.view' ? await canViewFinancialsServer(adminDb, user) : false;
+
+  const decision = decideAccess({ user, capability, client, financialsGranted });
+  if (decision.allowed) return null;
+
+  const mode = enforcementMode(process.env.ROLES_ENFORCEMENT);
+  console.warn(describeDenial(mode, uid, user?.role, capability, clientId, decision.reason!));
+  return shouldBlock(decision, mode) ? forbiddenResponse() : null;
 }
 
 // ─── Token Store (AES-256-CBC) ────────────────────────────────────────────────

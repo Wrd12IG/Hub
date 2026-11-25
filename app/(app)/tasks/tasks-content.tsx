@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { getTask, addTask, updateTask, deleteTask, uploadFilesAndGetAttachments, getAbsences, getClients, getProjects, getUsers, getActivityTypes, getEditorialContent } from '@/lib/actions';
 import type { Task, Client, User, Project, ActivityType, Attachment, Absence, TaskApproval, TaskComment, EditorialContent } from '@/lib/data';
 import { allTaskStatuses } from '@/lib/data';
+import { FLOW_STATUSES, ARCHIVED_STATUS, statusLabel } from '@/lib/task-model';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Calendar, X, Play, Square, Pencil, LayoutGrid, List, Paperclip, FileText, Download, Trash2, Filter, Check, ThumbsUp, ThumbsDown, MessageSquare, AlertTriangle, ListTodo, Timer, CheckSquare, AlertOctagon, Eye, Loader2, Send, UserSquare, ListChecks, MoreVertical, Target, Link as LinkIcon, User as UserIcon, Search, ChevronDown, FolderKanban, CheckCircle, Clock, Share2 } from 'lucide-react';
@@ -287,7 +288,7 @@ const TaskCard = ({
                 </div>
             );
         }
-        return <p>{task.status}</p>;
+        return <p>{statusLabel(task.status)}</p>;
     };
 
     return (
@@ -397,7 +398,7 @@ const TaskCard = ({
                             color: statusColors[task.status]?.bg ?? '#6b7280',
                         }}
                     >
-                        {task.status}
+                        {statusLabel(task.status)}
                     </span>
                     <span
                         className="text-xs font-semibold px-2 py-0.5 rounded-full border"
@@ -1342,14 +1343,15 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     const visibleStatuses = useMemo(() => {
         if (filters.status === 'all') {
-            return allTaskStatuses;
+            // Le colonne sono i cinque stati del flusso; l'archivio compare solo se c'è qualcosa da ritrovare
+            return filteredTasks.some(t => t.status === ARCHIVED_STATUS) ? [...FLOW_STATUSES, ARCHIVED_STATUS] : [...FLOW_STATUSES];
         }
         if (filters.status === 'completed') {
             return ['Approvato'];
         }
         // active
         return allTaskStatuses.filter(s => s !== 'Annullato' && s !== 'Approvato');
-    }, [filters.status]);
+    }, [filters.status, filteredTasks]);
 
     const activeFiltersForDisplay = useMemo(() => {
         const active: { label: string, value: string }[] = [];
@@ -1467,7 +1469,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                             <div className="flex justify-between items-center mb-4">
                                 <div className="flex items-center gap-2">
                                     <span className={`w-3 h-3 rounded-full ${statusColors[status as Task['status']].bg.replace('100', '500')}`}></span>
-                                    <h2 className="font-semibold text-lg">{status}</h2>
+                                    <h2 className="font-semibold text-lg">{statusLabel(status)}</h2>
                                 </div>
                                 <Badge variant="secondary" className="px-3 py-1 text-sm">{tasksForColumn.length}</Badge>
                             </div>
@@ -1574,7 +1576,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col gap-1 items-start">
-                                                    <Badge variant="outline" className={`${statusColors[task.status].bg} ${statusColors[task.status].text}`}>{task.status}</Badge>
+                                                    <Badge variant="outline" className={`${statusColors[task.status].bg} ${statusColors[task.status].text}`}>{statusLabel(task.status)}</Badge>
                                                     {task.rejectionReason && (
                                                         <button
                                                             type="button"
@@ -1679,7 +1681,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             color: statusColors[status as keyof typeof statusColors]?.text || 'black'
                                         }}
                                     >
-                                        {status}: {count}
+                                        {statusLabel(status)}: {count}
                                     </Badge>
                                 ))}
                             {overdueTasks.length > 0 && (
@@ -2230,7 +2232,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                                         color: statusColors[previewTask.status]?.text || '#ffffff'
                                                     }}
                                                 >
-                                                    {previewTask.status}
+                                                    {statusLabel(previewTask.status)}
                                                 </Badge>
                                             </div>
                                             <Separator />

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { validateMailSettings } from '@/lib/monthly-mail-settings';
 import { readMailSettings, writeMailSettings } from '@/lib/monthly-mail-store';
 
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 async function requireAdmin(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
-  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse();
+  if (!isAdminUser(await getAppUser(auth.uid))) return forbiddenResponse();
   return null;
 }
 

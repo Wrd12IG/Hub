@@ -174,6 +174,8 @@ export interface Task {
     rejectionReason?: string;
     reworkCount?: number;  // Numero di volte che il task è stato rifiutato e rimandato in lavorazione
     cancelledAt?: string;  // Data di annullamento del task
+    /** Da quando il task è nello stato attuale (si scrive a ogni cambio di stato). Serve a sapere da quanto aspetta il cliente. */
+    statusChangedAt?: string;
     createdAt?: string;
     updatedAt?: string;
     spentBudget?: number;
@@ -293,10 +295,15 @@ export interface Brief {
     deliveryMethods?: string; // Modalità di consegna preferita
 
     // Metadata
-    status: 'Bozza' | 'Inviato' | 'In Revisione' | 'Approvato';
+    /** Percorso: Inviato → In Revisione → Approvato (preso in carico) → In Lavorazione → Consegnato. Vedi lib/brief-status.ts. */
+    status: 'Bozza' | 'Inviato' | 'In Revisione' | 'Approvato' | 'In Lavorazione' | 'Consegnato';
     createdAt: string;
     updatedAt?: string;
     createdBy?: string;
+    /** Progetto creato da questo brief (se c'è): collega la richiesta al lavoro. */
+    projectId?: string;
+    /** Quando è stato segnato «Consegnato». */
+    deliveredAt?: string;
 
     // Legacy/Optional
     description?: string;
@@ -378,6 +385,7 @@ export type NotificationType =
     | 'brief_assigned'
     | 'brief_approved'
     | 'brief_revision'
+    | 'brief_delivered'
     // Editorial
     | 'editorial_due_soon'
     | 'editorial_publish_today'
@@ -623,6 +631,8 @@ export interface RecurringTask {
     isActive: boolean;
     lastRun?: string;      // aggiornato dal cron dopo ogni esecuzione
     nextRunDate?: string;  // calcolato dal cron
+    /** Scade dopo N giorni lavorativi dalla creazione (0 o assente = il giorno stesso). */
+    dueOffsetDays?: number;
     createdAt?: string;
 }
 

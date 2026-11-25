@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, unauthorizedResponse, denyUnlessStaff, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { getMe, getWebhookInfo, isTelegramConfigured, sendMessage, setWebhook, telegramToken } from '@/lib/telegram';
 import { APP_PUBLIC_URL, LINK_TTL_MS, deepLink, newLinkCode, webhookSecret } from '@/lib/telegram-link';
 
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   const me = await getAppUser(user.uid);
   const linked = !!(me as any)?.telegramChatId;
-  const isAdmin = me?.role === 'Amministratore';
+  const isAdmin = isAdminUser(me);
   if (!isTelegramConfigured()) return NextResponse.json({ configured: false, linked, isAdmin });
 
   let botUsername: string | null = null;
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     if (action === 'setup') {
       const me = await getAppUser(user.uid);
-      if (me?.role !== 'Amministratore') return forbiddenResponse();
+      if (!isAdminUser(me)) return forbiddenResponse();
       await setWebhook(webhookUrl(), webhookSecret(telegramToken()!));
       return NextResponse.json({ ok: true, botUsername: (await getMe()).username });
     }

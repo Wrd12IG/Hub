@@ -132,7 +132,7 @@ export function computeAlerts(platforms: PlatformReport[]): ReportAlert[] {
             if (!hasEnoughBase(m.key, prev)) return [];
             const value = Math.round(((c - pv) / pv) * 1000) / 10;
             if (Math.abs(value) < ALERT_THRESHOLD_PCT) return [];
-            return [{ platform: def.label + (p.accountLabel && p.platform === 'gbp' ? ` · ${p.accountLabel}` : ''), key: m.key, label: m.label, value, good: COST_KEYS.has(m.key) ? value < 0 : value > 0, from: pv, to: c }];
+            return [{ platform: def.label + (p.accountLabel && (p.platform === 'gbp' || p.platform === 'ga4' || p.platform === 'searchconsole') ? ` · ${p.accountLabel}` : ''), key: m.key, label: m.label, value, good: COST_KEYS.has(m.key) ? value < 0 : value > 0, from: pv, to: c }];
         });
     });
 }

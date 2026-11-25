@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { adminDb } from '@/lib/firebase-admin';
 import { isKpiProfile } from '@/lib/kpi-profiles';
 import { isMonthKey } from '@/lib/manual-kpis';
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
   const me = await getAppUser(auth.uid);
-  if (me?.role !== 'Amministratore') return forbiddenResponse();
+  if (!isAdminUser(me)) return forbiddenResponse();
   // L'indirizzo è quello verificato nel token di chi chiede, non uno passato nel corpo: la prova non può andare altrove
   const to = auth.email;
   if (!to) return NextResponse.json({ error: 'Il tuo accesso non ha un indirizzo mail.' }, { status: 400 });

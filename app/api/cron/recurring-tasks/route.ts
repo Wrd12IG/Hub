@@ -11,6 +11,7 @@ import { denyUnlessCron } from '@/lib/cron-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { Timestamp } from 'firebase-admin/firestore';
 import { format, addDays, addWeeks, addMonths } from 'date-fns';
+import { expandTitleTokens, addWorkingDays, sanitizeDueOffset } from '@/lib/recurring-task';
 
 // Questa route legge gli header a ogni richiesta, quindi non può essere
 // prerenderizzata. Senza questa riga Next.js ci prova comunque in build, il
@@ -45,6 +46,8 @@ interface RecurringTaskDoc {
     isActive: boolean;
     lastRun?: string;
     nextRunDate?: string;
+    /** La scadenza è dopo N giorni lavorativi dalla creazione. Assente o 0 = il giorno stesso, come prima. */
+    dueOffsetDays?: number;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -190,13 +193,20 @@ export async function GET(request: NextRequest) {
             continue;
         }
 
-        // Deduplicazione: cerca task già creato oggi per questo template
+        // Deduplicazione: cerca task già creato oggi per questo template. Si guarda il GIORNO DI GENERAZIONE (recurringRunDate):
+        // con l'anticipo la scadenza non coincide più con oggi. Il controllo per scadenza resta per i task nati prima di questo campo.
         try {
-            const dupSnap = await adminDb.collection('tasks')
+            let dupSnap = await adminDb.collection('tasks')
                 .where('recurringTaskId', '==', template.id)
-                .where('dueDate', '>=', `${todayStr}T00:00:00.000Z`)
-                .where('dueDate', '<=', `${todayStr}T23:59:59.999Z`)
+                .where('recurringRunDate', '==', todayStr)
                 .limit(1).get();
+            if (dupSnap.empty) {
+                dupSnap = await adminDb.collection('tasks')
+                    .where('recurringTaskId', '==', template.id)
+                    .where('dueDate', '>=', `${todayStr}T00:00:00.000Z`)
+                    .where('dueDate', '<=', `${todayStr}T23:59:59.999Z`)
+                    .limit(1).get();
+            }
 
             if (!dupSnap.empty) {
                 results.push({ templateId: template.id, title: template.title, action: 'skipped_duplicate', reason: `Già creato: ${dupSnap.docs[0].id}` });
@@ -208,10 +218,13 @@ export async function GET(request: NextRequest) {
 
         // Crea il task
         try {
-            const dueDate = new Date(`${todayStr}T${recurrence.time || '09:00'}:00.000`);
+            // Scadenza: il giorno stesso (anticipo 0, come prima) oppure N giorni lavorativi dopo
+            const dueDay = format(addWorkingDays(today, sanitizeDueOffset(template.dueOffsetDays)), 'yyyy-MM-dd');
+            const dueDate = new Date(`${dueDay}T${recurrence.time || '09:00'}:00.000`);
             const newTask = {
-                title: template.title,
-                description: template.description || '',
+                // Segnaposto come {periodo-1} o {settimana}: lib/recurring-task.ts
+                title: expandTitleTokens(template.title, today),
+                description: expandTitleTokens(template.description || '', today),
                 priority: template.priority,
                 clientId: template.clientId,
                 projectId: template.projectId || null,
@@ -228,6 +241,7 @@ export async function GET(request: NextRequest) {
                 updatedAt: Timestamp.now(),
                 createdBy: 'cron',
                 recurringTaskId: template.id,
+                recurringRunDate: todayStr,
             };
 
             const taskRef = await adminDb.collection('tasks').add(newTask);

@@ -6,6 +6,7 @@
  * considera pubblicabile, quindi la risposta del cliente è ciò che "sblocca" l'uscita del post.
  */
 import type { ContentApproval, EditorialContent } from './data';
+import { isStaffUser } from './roles';
 
 export const STATUS_PENDING = 'In Approvazione Cliente';
 /** Il cliente chiede modifiche: il contenuto torna in bozza (lo stato che il Piano Editoriale già usa), col suo commento. */
@@ -53,8 +54,9 @@ export function applyDecision(
 }
 
 /** Chi può saltare il cliente: gli Amministratori e chi ha il permesso esplicito sul proprio profilo. */
-export function canBypassApproval(user: { role?: string; canSkipClientApproval?: boolean } | null): boolean {
-    return !!user && user.role !== 'Cliente' && (user.role === 'Amministratore' || user.canSkipClientApproval === true);
+export function canBypassApproval(user: { id?: string; role?: string; status?: string; canSkipClientApproval?: boolean } | null): boolean {
+    // Solo chi ha un ruolo dello staff che esiste ed è attivo: un ruolo mancante o sconosciuto non salta l'approvazione
+    return !!user && isStaffUser({ id: user.id ?? '', role: user.role, status: user.status }) && (user.role === 'Amministratore' || user.canSkipClientApproval === true);
 }
 
 /** Approvazione interna: lascia traccia di chi l'ha data, così non si confonde con una risposta del cliente. */

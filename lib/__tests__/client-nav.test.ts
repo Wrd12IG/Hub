@@ -14,9 +14,9 @@ describe('clientHref', () => {
         expect(clientHref('/clients/a/meta-ads/xyz/preview', { id: 'b' })).toBe('/clients/b');
         expect(clientHref('/clients/a/meta-ads', { id: 'b' })).toBe('/clients/b');
     });
-    it('i KPI concessionario solo se il cliente di arrivo è «auto»', () => {
-        expect(clientHref('/clients/a/dealer-kpi', { id: 'b', kpiProfile: 'auto' })).toBe('/clients/b/dealer-kpi');
-        expect(clientHref('/clients/a/dealer-kpi', { id: 'b', kpiProfile: 'locale' })).toBe('/clients/b');
-        expect(clientHref('/clients/a/dealer-kpi', { id: 'b' })).toBe('/clients/b');
+    it('i KPI restano nella sezione con qualunque profilo del cliente di arrivo (la pagina vale per tutti)', () => {
+        for (const kpiProfile of ['auto', 'locale', 'ecommerce', null, undefined]) {
+            expect(clientHref('/clients/a/dealer-kpi', { id: 'b', kpiProfile }), String(kpiProfile)).toBe('/clients/b/dealer-kpi');
+        }
     });
 });

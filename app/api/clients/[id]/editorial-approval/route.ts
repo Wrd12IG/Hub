@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
-import { verifyAuth, unauthorizedResponse, forbiddenResponse, denyUnlessStaff, getAppUser } from '@/lib/api-auth';
+import { verifyAuth, unauthorizedResponse, forbiddenResponse, denyUnlessStaff, denyUnlessCan, getAppUser } from '@/lib/api-auth';
 import { clientUserIds, notifyUsers } from '@/lib/server-notify';
 import { canRequestApproval, requestApproval, bypassApproval, canBypassApproval } from '@/lib/content-approval';
 import type { EditorialContent } from '@/lib/data';
@@ -18,6 +18,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if (!user) return unauthorizedResponse();
   const denied = await denyUnlessStaff(user.uid);
   if (denied) return denied;
+  // Capacità del ruolo e cliente assegnato: per ora solo osservazione (lib/roles-guard.ts), non blocca
+  const roleCheck = await denyUnlessCan(user.uid, 'editorial.requestApproval', params.id);
+  if (roleCheck) return roleCheck;
 
   const body = await request.json().catch(() => null);
   const ids: string[] = Array.isArray(body?.contentIds) ? body.contentIds.filter((x: unknown) => typeof x === 'string').slice(0, 100) : [];

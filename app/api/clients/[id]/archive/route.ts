@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { archivePatch } from '@/lib/client-archive';
 
 /**
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
-  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse("Solo un amministratore puo' archiviare un cliente.");
+  if (!isAdminUser(await getAppUser(auth.uid))) return forbiddenResponse("Solo un amministratore puo' archiviare un cliente.");
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body.archived !== 'boolean') {

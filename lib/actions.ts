@@ -40,6 +40,7 @@ import {
     notifyChatMessage,
     notifyBriefAssigned,
     notifyBriefApproved,
+    notifyBriefDelivered,
     notifyCalendarEvent,
     notifyEditorialDueSoon,
     notifyEditorialPublishToday
@@ -305,6 +306,11 @@ export async function updateTask(
             timestamp: new Date().toISOString(),
         });
         updateData.approvals = approvals;
+    }
+
+    // Da quando il task è in questo stato (es. da quanto aspetta il cliente)
+    if (data.status && currentTask && data.status !== currentTask.status) {
+        updateData.statusChangedAt = new Date().toISOString();
     }
 
     // Salva la data di annullamento quando il task viene annullato
@@ -693,6 +699,12 @@ export async function deleteNotification(userId: string, notificationId: string)
 // Editorial Content
 export async function getEditorialContents(): Promise<EditorialContent[]> {
     return fetchCollection<EditorialContent>('editorialContents');
+}
+
+/** Solo i contenuti con una richiesta di approvazione aperta o tornata con modifiche: per il riquadro «Da chiudere oggi». */
+export async function getEditorialContentsNeedingAttention(): Promise<EditorialContent[]> {
+    const snapshot = await getDocs(query(collection(db, 'editorialContents'), where('approval.status', 'in', ['requested', 'changes'])));
+    return snapshot.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) })) as EditorialContent[];
 }
 
 export async function getEditorialContent(contentId: string): Promise<EditorialContent | null> {
@@ -1133,11 +1145,23 @@ export async function updateBrief(id: string, data: Partial<Brief>): Promise<voi
     const briefSnap = await getDoc(briefRef);
     const currentBrief = briefSnap.exists() ? { id, ...briefSnap.data() } as Brief : null;
 
+    const justDelivered = !!currentBrief && data.status === 'Consegnato' && currentBrief.status !== 'Consegnato';
     const updateData = {
         ...cleanData(data),
+        // Quando è stato chiuso: serve a dire «consegnato il…» e a non riscrivere la data se si riapre e richiude
+        ...(justDelivered && !currentBrief?.deliveredAt ? { deliveredAt: new Date().toISOString() } : {}),
         updatedAt: Timestamp.now()
     };
     await updateDoc(briefRef, updateData);
+
+    // Chi ha inviato la richiesta (il cliente) viene avvisato quando è consegnata
+    if (currentBrief && justDelivered) {
+        try {
+            await notifyBriefDelivered({ ...currentBrief, ...data } as Brief);
+        } catch (error) {
+            console.error('Error sending brief delivered notification:', error);
+        }
+    }
 
     // Send notification if status changed to approved
     if (currentBrief && data.status === 'Approvato' && currentBrief.status !== 'Approvato') {

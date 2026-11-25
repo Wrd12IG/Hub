@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { findSite } from '@/lib/client-sites';
 import { verifyAuth, unauthorizedResponse, denyUnlessClientAllowed } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { getSearchConsoleTotals, getSearchConsoleBreakdown } from '@/lib/search-console-client';
@@ -38,7 +39,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   const compact = sp.get('compact') === '1';
 
   const snap = await adminDb.collection('clients').doc(params.id).get();
-  const siteUrl = snap.exists ? (snap.data() as any)?.windsorAccounts?.searchconsole : null;
+  // ?site=<id>: più siti, ognuno con la sua Search Console. Senza, il primo (= quella di sempre).
+  const siteUrl = snap.exists ? (findSite(snap.data() as Record<string, unknown>, sp.get('site'))?.searchConsole ?? null) : null;
   if (!siteUrl) {
     return NextResponse.json(
       { error: 'Questo cliente non ha una proprietà Search Console configurata: inseriscila in Setup API.' },

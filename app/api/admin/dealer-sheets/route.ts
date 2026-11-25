@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { forbiddenResponse, getAppUser, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { serviceAccountEmail } from '@/lib/dealer-kpi/sheets';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
     const user = await verifyAuth(request);
     if (!user) return unauthorizedResponse();
-    if ((await getAppUser(user.uid))?.role !== 'Amministratore') return forbiddenResponse();
+    if (!isAdminUser(await getAppUser(user.uid))) return forbiddenResponse();
 
     const clients = await adminDb.collection('clients').get();
     const sheets: Record<string, { tab: string; lastStatus: string | null; lastSyncAt: string | null; lastMessage: string | null; issuesTotal: number; months: number; monthList: string[] }> = {};

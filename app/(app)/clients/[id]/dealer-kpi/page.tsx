@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { Download, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
@@ -14,10 +15,11 @@ import { previousMonthKey, isMonthKey } from '@/lib/manual-kpis'
 import { ENTRY_TYPES, SOURCES, TYPE_LABEL, type MonthTotals } from '@/lib/dealer-kpi/types'
 import type { SyncStatus } from '@/lib/dealer-kpi/sync'
 
-type KpiPayload = { month: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null }
+type KpiPayload = { month: string; profile?: string; profileLabel?: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null }
 
 type Payload = {
   clientName: string
+  kpiProfile?: string | null
   config: { spreadsheetId: string; tab: string; status?: SyncStatus | null } | null
   serviceAccountEmail: string | null
   months: MonthTotals[]
@@ -44,6 +46,7 @@ export default function DealerKpiPage() {
   const [kpiData, setKpiData] = useState<KpiPayload | null>(null)
   const [kpiLoading, setKpiLoading] = useState(false)
   const [kpiError, setKpiError] = useState<string | null>(null)
+  const [noProfile, setNoProfile] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -69,11 +72,11 @@ export default function DealerKpiPage() {
 
   const loadKpis = useCallback(async (month: string) => {
     if (!isMonthKey(month)) return
-    setKpiLoading(true); setKpiError(null)
+    setKpiLoading(true); setKpiError(null); setNoProfile(false)
     try {
       const res = await authFetch(`/api/clients/${id}/dealer-kpi/kpis?month=${month}`)
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || `Il server ha risposto ${res.status}.`)
+      if (!res.ok) { setNoProfile(!!json?.noProfile); throw new Error(json?.error || `Il server ha risposto ${res.status}.`) }
       setKpiData(json)
     } catch (e) {
       setKpiData(null); setKpiError(e instanceof Error ? e.message : 'Errore')
@@ -107,6 +110,8 @@ export default function DealerKpiPage() {
   if (loading) return <div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
   if (!data) return <p className="p-6 text-sm text-muted-foreground">Non riesco a caricare i dati del cliente.</p>
   const st = data.config?.status ?? null
+  // Lo Sheet dei lead, marca e provenienza è dei concessionari (e di chi ne ha già collegato uno): gli altri vedono solo i KPI
+  const isDealer = data.kpiProfile === 'auto' || !!data.config
   const months = [...data.months].reverse()
 
   const downloadCsv = () => {
@@ -136,14 +141,22 @@ export default function DealerKpiPage() {
     <div className="space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">KPI concessionario · {data.clientName}</h1>
-          <p className="text-sm text-muted-foreground">Lead, appuntamenti, preventivi e vendite per marca e provenienza, letti dallo Sheet Google condiviso con il cliente.</p>
+          <h1 className="text-xl font-semibold">{data.kpiProfile === 'auto' ? 'KPI concessionario' : 'KPI'} · {data.clientName}</h1>
+          <p className="text-sm text-muted-foreground">
+            {isDealer
+              ? 'Lead, appuntamenti, preventivi e vendite per marca e provenienza, letti dallo Sheet Google condiviso con il cliente, più i KPI delle piattaforme.'
+              : `I KPI di un cliente «${kpiData?.profileLabel ?? 'del suo profilo'}»: sito, campagne e canali collegati, con il confronto sul mese prima e sull'anno scorso.`}
+          </p>
         </div>
-        <button onClick={downloadCsv} disabled={data.months.length === 0} className={btn} title="Totali di tutti i mesi, marca e provenienza del mese scelto e, se già caricati, i KPI di piattaforma">
-          <Download className="h-4 w-4" /> Scarica CSV
-        </button>
+        {isDealer && (
+          <button onClick={downloadCsv} disabled={data.months.length === 0} className={btn} title="Totali di tutti i mesi, marca e provenienza del mese scelto e, se già caricati, i KPI di piattaforma">
+            <Download className="h-4 w-4" /> Scarica CSV
+          </button>
+        )}
       </header>
 
+      {isDealer && (
+        <>
       <section className="space-y-3 rounded-xl border border-border p-4">
         <h2 className="text-sm font-medium">Sheet del cliente</h2>
         {data.config ? (
@@ -180,6 +193,9 @@ export default function DealerKpiPage() {
         </section>
       )}
 
+        </>
+      )}
+
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <h2 className="text-sm font-medium">KPI del mese</h2>
@@ -187,8 +203,13 @@ export default function DealerKpiPage() {
             <input type="month" value={kpiMonth} onChange={(e) => e.target.value && setKpiMonth(e.target.value)} className="ml-2 h-8 rounded-lg border border-border bg-background px-2 text-sm text-foreground" />
           </label>
         </div>
-        {kpiLoading && <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Leggo Analytics, Meta Ads e Google Ads: può richiedere qualche secondo…</p>}
-        {kpiError && <p className="text-sm text-red-600 dark:text-red-400">{kpiError}</p>}
+        {kpiLoading && <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Leggo le piattaforme collegate: può richiedere qualche secondo…</p>}
+        {kpiError && noProfile && (
+          <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+            {kpiError} <Link href="/admin/report-mensile" className="underline">Apri Mail mensile KPI</Link>.
+          </p>
+        )}
+        {kpiError && !noProfile && <p className="text-sm text-red-600 dark:text-red-400">{kpiError}</p>}
         {kpiData && !kpiLoading && (
           <div className="space-y-4">
             {kpiData.partial && <p className="text-xs text-amber-600 dark:text-amber-400">Mese in corso: i numeri sono dei primi {kpiData.partial.days} giorni.</p>}
@@ -213,11 +234,16 @@ export default function DealerKpiPage() {
                 </div>
               </div>
             ))}
-            <p className="text-[11px] text-muted-foreground">Il costo per lead è la spesa di Google e Meta divisa per i lead di quei due canali dichiarati nello Sheet. Impression e copertura sono di Meta Ads; il numero di utenti è quello di Analytics («utenti attivi»).</p>
+            <p className="text-[11px] text-muted-foreground">
+              {isDealer ? 'Il costo per lead è la spesa di Google e Meta divisa per i lead di quei due canali dichiarati nello Sheet. ' : ''}
+              Impression e copertura sono di Meta Ads; il numero di utenti è quello di Analytics («utenti attivi»). Con più siti gli utenti non si sommano: la stessa persona conterebbe due volte.
+            </p>
           </div>
         )}
       </section>
 
+      {isDealer && (
+        <>
       <section className="space-y-2">
         <h2 className="text-sm font-medium">Totali per mese</h2>
         {months.length === 0 ? <p className="text-sm text-muted-foreground">Nessun dato: collega lo Sheet e sincronizza. Un mese non compilato non compare (non è zero).</p> : (
@@ -254,6 +280,8 @@ export default function DealerKpiPage() {
           <li><b>Quantità</b>: numero intero</li>
         </ul>
       </section>
+        </>
+      )}
     </div>
   )
 }

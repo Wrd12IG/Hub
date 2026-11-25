@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, getAppUser, forbiddenResponse } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { splitCompensation, saveCompensation } from '@/lib/user-compensation';
 
 /**
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
   if (!caller) return NextResponse.json({ error: 'Non autenticato.' }, { status: 401 });
 
   const me = await getAppUser(caller.uid);
-  if (me?.role !== 'Amministratore') return forbiddenResponse('Solo un amministratore puo\' creare utenti.');
+  if (!isAdminUser(me)) return forbiddenResponse('Solo un amministratore puo\' creare utenti.');
 
   let body: any;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'Richiesta non valida.' }, { status: 400 }); }

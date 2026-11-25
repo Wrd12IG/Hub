@@ -8,12 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { CLIENT_STATUS_LABEL } from '@/lib/brief-status';
 
 interface BriefItem { id: string; title: string; status: string; deadline: string | null; createdAt: string | null; request: string }
 
-const STATUS_LABEL: Record<string, string> = {
-    Bozza: 'In preparazione', Inviato: 'Inviato', 'In Revisione': 'Il team lo sta valutando', Approvato: 'Preso in carico',
-};
+const STATUS_LABEL: Record<string, string> = CLIENT_STATUS_LABEL;
 
 /** I brief del cliente: richiesta di una nuova lavorazione e stato di quelle già inviate. */
 export function ClientBriefsView({ clientId }: { clientId: string }) {
@@ -99,7 +98,7 @@ export function ClientBriefsView({ clientId }: { clientId: string }) {
                     <article key={b.id} className="rounded-xl border bg-card p-4">
                         <div className="flex flex-wrap items-start justify-between gap-2">
                             <h3 className="font-semibold text-foreground">{b.title}</h3>
-                            <Badge variant="secondary">{STATUS_LABEL[b.status] || b.status}</Badge>
+                            <Badge variant={b.status === 'Consegnato' ? 'default' : 'secondary'}>{STATUS_LABEL[b.status] || b.status}</Badge>
                         </div>
                         <p className="mt-1 text-xs text-muted-foreground">
                             {b.createdAt ? `Inviata il ${new Date(b.createdAt).toLocaleDateString('it-IT')}` : ''}

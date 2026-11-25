@@ -79,6 +79,7 @@ const SEGMENT_LABELS: Record<string, string> = {
     chat: 'Chat',
     'editorial-plan': 'Piano Editoriale',
     'import-editorial': 'Importa Piano',
+    approvazioni: 'Approvazioni',
     focus: 'Focus',
 };
 

@@ -13,6 +13,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { forbiddenResponse, getAppUser, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { buildActionCommand, type ActionCommand, type ActionContext } from '@/lib/outreach-actions';
 import { parseDiscoverInfo, parseSignalItem, type OutreachSignalItem } from '@/lib/outreach';
 
@@ -23,7 +24,7 @@ const DISCOVER = ['discover_estimate', 'discover_run'];
 export async function POST(request: NextRequest) {
     const user = await verifyAuth(request);
     if (!user) return unauthorizedResponse();
-    if ((await getAppUser(user.uid))?.role !== 'Amministratore') return forbiddenResponse();
+    if (!isAdminUser(await getAppUser(user.uid))) return forbiddenResponse();
 
     let body: any;
     try {

@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { forbiddenResponse, getAppUser, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { firestoreStore } from '@/lib/site-monitor/store';
 import { createTasksNow, MonitorConfigError, runClientScan } from '@/lib/site-monitor/service';
 
@@ -19,7 +20,7 @@ const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 async function guard(request: NextRequest, clientId: string): Promise<NextResponse | null> {
     const user = await verifyAuth(request);
     if (!user) return unauthorizedResponse();
-    if ((await getAppUser(user.uid))?.role !== 'Amministratore') return forbiddenResponse();
+    if (!isAdminUser(await getAppUser(user.uid))) return forbiddenResponse();
     if (!ID_RE.test(clientId)) return NextResponse.json({ error: 'cliente non valido' }, { status: 400 });
     return null;
 }

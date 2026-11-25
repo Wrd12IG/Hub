@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { adminDb } from '@/lib/firebase-admin';
 import { migrateClientPrivate } from '@/lib/client-private-migrate';
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
   const user = await getAppUser(auth.uid);
-  if (user?.role !== 'Amministratore') return forbiddenResponse();
+  if (!isAdminUser(user)) return forbiddenResponse();
 
   const body = await request.json().catch(() => ({}));
   const mode = body?.mode;

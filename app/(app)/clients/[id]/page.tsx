@@ -1,14 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
   Brain,
   Globe,
-  Gauge,
   Plus,
   FileText,
   TrendingDown,
@@ -17,7 +16,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   Download,
-  TrendingUp,
   Image as ImageIcon,
   Trash2,
   BarChart2,
@@ -38,7 +36,6 @@ import {
   MapPin,
   Calendar,
   Sparkles,
-  CalendarRange,
   Heart,
   MousePointerClick,
   ExternalLink,
@@ -51,8 +48,6 @@ import {
   MonitorPlay,
   MousePointer2,
   PieChart,
-  LayoutGrid,
-  CalendarDays,
   Settings,
   FileBarChart,
   BarChart3,
@@ -70,6 +65,10 @@ import { validateRange, rangeLabel } from "@/lib/date-range";
 import { PeriodPicker } from "@/components/PeriodPicker";
 import { MonthlyCommentEditor } from "@/components/MonthlyCommentEditor";
 import { ClientCommentCard } from "@/components/ClientCommentCard";
+import { ClientTodoCard } from "@/components/client-todo-card";
+import { ClientQuickLinks } from "@/components/client-quick-links";
+import { ClientSitesSection } from "@/components/client-sites-section";
+import { brandsOf, filterByBrand, sitesOf, type ClientSite } from "@/lib/client-sites";
 import { SeoAuditHighlights } from "@/components/SeoAuditHighlights";
 import { useMarketingReport } from "@/hooks/use-marketing-report";
 import { CollapsibleCard } from "@/components/CollapsibleCard";
@@ -122,6 +121,8 @@ interface Client {
   id: string;
   name: string;
   websiteUrl: string;
+  /** I siti del cliente (uno per marca, di solito): lib/client-sites.ts. Sempre un elenco, anche per chi non li ha mai salvati. */
+  sites?: ClientSite[];
   socialManagerId?: string | null;
   creativeMode: string;
   targetCPA: number | null;
@@ -283,38 +284,14 @@ export default function ClientDetailPage() {
   const [campaignFilter, setCampaignFilter] = useState("");
   const [ga4Data, setGa4Data] = useState<any | null>(null);
   const [loadingGa4, setLoadingGa4] = useState(false);
-  const [editingDomain, setEditingDomain] = useState(false);
-  const [domainDraft, setDomainDraft] = useState("");
-  const [savingDomain, setSavingDomain] = useState(false);
-
-  const saveDomain = async () => {
-    const raw = domainDraft.trim();
-    // vuoto = rimuove il dominio; altrimenti normalizza con https://
-    const websiteUrl = raw ? (/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).replace(/\/+$/, "") : "";
-    if (websiteUrl && !/^https?:\/\/[^\s/]+\.[^\s/]+/i.test(websiteUrl)) {
-      toast.error("Dominio non valido (es. www.esempio.it)");
-      return;
-    }
-    setSavingDomain(true);
-    try {
-      const res = await fetch(`${API_URL}/api/clients/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({ websiteUrl }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setClient((c) => (c ? { ...c, websiteUrl } : c));
-      setEditingDomain(false);
-      toast.success(websiteUrl ? "Dominio salvato" : "Dominio rimosso");
-    } catch (e) {
-      console.error("[domain] save failed:", e);
-      toast.error("Impossibile salvare il dominio. Riprova.");
-    } finally {
-      setSavingDomain(false);
-    }
+  // Siti del cliente e filtro per marca (lib/client-sites.ts). Il filtro sceglie quali schede mostrare, non somma nulla.
+  const [brandFilter, setBrandFilter] = useState<string | null>(null);
+  const sites = useMemo<ClientSite[]>(() => sitesOf((client as any) ?? {}), [client]);
+  const handleSitesSaved = (saved: ClientSite[]) => {
+    const first = saved[0];
+    // Il primo sito è anche nei campi vecchi: si aggiornano insieme, così le altre schede della pagina restano coerenti
+    setClient((c) => (c ? ({ ...c, sites: saved, websiteUrl: first?.url ?? "", ga4PropertyId: first?.ga4PropertyId ?? null, windsorAccounts: { ...(c as any).windsorAccounts, searchconsole: first?.searchConsole } } as any) : c));
+    if (brandFilter && !brandsOf(saved).some((b) => b.toLowerCase() === brandFilter.toLowerCase())) setBrandFilter(null);
   };
   const [overviewDaysBack, setOverviewDaysBack] = useState(30);
   // Periodo scelto a mano: due date. Vale solo se è valido; finché non lo è, resta l'ultimo periodo buono.
@@ -806,9 +783,16 @@ export default function ClientDetailPage() {
   // Blocchi della Overview: definiti una volta sola e messi in ordine diverso per lo staff e per il Cliente
   const searchBlock = (
     <>
-          {client?.windsorAccounts?.searchconsole && (
-            <SearchConsoleCard clientId={id as string} days={effectiveDays} range={activeRange ?? null} />
-          )}
+          {filterByBrand(sites, brandFilter).filter((site) => !!site.searchConsole).map((site) => (
+            <SearchConsoleCard
+              key={site.id}
+              clientId={id as string}
+              siteId={sites.length > 1 ? site.id : undefined}
+              siteLabel={sites.length > 1 ? [site.brand, site.url.replace(/^https?:\/\//, "")].filter(Boolean).join(" · ") : undefined}
+              days={effectiveDays}
+              range={activeRange ?? null}
+            />
+          ))}
     </>
   );
   const perfBlock = (
@@ -839,298 +823,20 @@ export default function ClientDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Due colonne indipendenti: chiudere una scheda non lascia buchi sotto l'altra */}
             <div className={cn("flex min-w-0 flex-col gap-6", isClient ? "lg:col-span-3" : "lg:col-span-2")}>
-            {/* CARD 1: Domain Performance (GA4) - Spans 2 cols on lg */}
-            <CollapsibleCard
-              defaultOpen
-              icon={Globe}
-              title="Performance dominio"
-              description={client.websiteUrl?.replace("https://", "") || "Nessun dominio"}
-              actions={
-                isClient ? undefined : editingDomain ? (
-                  <form
-                    className="flex items-center gap-2"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      saveDomain();
-                    }}
-                  >
-                    <Input
-                      autoFocus
-                      value={domainDraft}
-                      onChange={(e) => setDomainDraft(e.target.value)}
-                      placeholder="www.esempio.it"
-                      className="h-8 w-56"
-                    />
-                    <Button type="submit" size="sm" disabled={savingDomain}>
-                      {savingDomain ? "Salvo…" : "Salva"}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditingDomain(false)}
-                    >
-                      Annulla
-                    </Button>
-                  </form>
-                ) : (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setDomainDraft(client.websiteUrl || "");
-                      setEditingDomain(true);
-                    }}
-                  >
-                    {client.websiteUrl ? "Modifica" : "Imposta dominio"}
-                  </Button>
-                )
-              }
-            >
-              {/* WEB ANALYTICS COMPLETO */}
-              {loadingGa4 ? (
-                <div className="bg-muted/40 p-8 rounded-xl text-center flex flex-col items-center justify-center min-h-[120px] gap-2 border border-dashed border-border">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground animate-pulse">
-                    Elaborazione Report Godmode GA4 e calcolo deltas storici...
-                  </span>
-                </div>
-              ) : !client.ga4PropertyId ? (
-                <div className="bg-primary/5 border border-dashed border-primary/20 p-6 rounded-xl text-center space-y-3">
-                  <div className="text-sm font-semibold text-primary">
-                    Google Analytics Non Collegato
-                  </div>
-                  <div className="text-xs text-muted-foreground max-w-md mx-auto">
-                    {isClient
-                      ? "I dati di traffico del sito non sono ancora disponibili: li collega il tuo referente W[r]Digital."
-                      : "Collega il Property ID di GA4 in \"Setup API\" per sbloccare l'intelligenza contestuale avanzata sul traffico."}
-                  </div>
-                  {!isClient && (
-                    <Button onClick={() => setActiveTab("settings")} size="sm">
-                      Configura Analytics
-                    </Button>
-                  )}
-                </div>
-              ) : ga4Data ? (
-                <div className="space-y-6">
-                  {/* Traffic Category */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      Traffico & Acquisizione
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        {
-                          label: "Visite al sito",
-                          hint: "Quante volte il sito è stato visitato",
-                          metric: ga4Data.traffic?.sessions,
-                          format: (v: number) => itNum(v),
-                        },
-                        {
-                          label: "Visitatori unici",
-                          hint: "Ogni persona è contata una volta sola",
-                          metric: ga4Data.traffic?.users,
-                          format: (v: number) => itNum(v),
-                        },
-                        {
-                          label: "Nuovi visitatori",
-                          hint: "Al loro primo accesso al sito",
-                          metric: ga4Data.traffic?.newUsers,
-                          format: (v: number) => itNum(v),
-                        },
-                        {
-                          label: "Visitatori che tornano",
-                          hint: "Persone già venute in passato",
-                          metric: ga4Data.traffic?.returningUsers,
-                          format: (v: number) => itNum(v),
-                        },
-                      ].map((item, i) => (
-                        <div
-                          key={i}
-                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-                        >
-                          <div>
-                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider leading-tight">
-                              {item.label}
-                            </div>
-                            {item.hint && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground/70">{item.hint}</div>}
-                          </div>
-                          <div className="flex items-baseline justify-between mt-2">
-                            <span className="text-xl font-extrabold tracking-tight text-foreground">
-                              {item.metric ? item.format(item.metric.val) : "0"}
-                            </span>
-                            {item.metric && (
-                              <span
-                                className={cn(
-                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
-                                  item.metric.chg > 0
-                                    ? "bg-emerald-500/10 text-emerald-400"
-                                    : item.metric.chg < 0
-                                      ? "bg-rose-500/10 text-rose-400"
-                                      : "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                {item.metric.chg > 0 ? "+" : ""}
-                                {item.metric.chg}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Behavior Category */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      Comportamento On-Site
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        {
-                          label: "Abbandono immediato",
-                          hint: "Visite chiuse senza interagire: più è basso, meglio è",
-                          metric: ga4Data.behavior?.bounceRate,
-                          format: (v: number) => `${itNum(v, 1)}%`,
-                        },
-                        {
-                          label: "Visite coinvolte",
-                          hint: "Visite con interazioni o oltre 10 secondi",
-                          metric: ga4Data.behavior?.engagementRate,
-                          format: (v: number) => `${itNum(v, 1)}%`,
-                        },
-                        {
-                          label: "Pagine per visita",
-                          hint: "Quante pagine guarda ogni visitatore",
-                          metric: ga4Data.behavior?.pagesPerSession,
-                          format: (v: number) => itNum(v, 2),
-                        },
-                        {
-                          label: "Durata media visita",
-                          hint: "Tempo medio passato sul sito",
-                          metric: ga4Data.behavior?.avgSessionDuration,
-                          format: (v: number) => { const t = Math.round(v); return t >= 60 ? `${Math.floor(t / 60)} min ${t % 60} s` : `${t} s` },
-                        },
-                      ].map((item, i) => (
-                        <div
-                          key={i}
-                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-                        >
-                          <div>
-                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider leading-tight">
-                              {item.label}
-                            </div>
-                            {item.hint && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground/70">{item.hint}</div>}
-                          </div>
-                          <div className="flex items-baseline justify-between mt-2">
-                            <span className="text-xl font-extrabold tracking-tight text-foreground">
-                              {item.metric ? item.format(item.metric.val) : "0"}
-                            </span>
-                            {item.metric && (
-                              <span
-                                className={cn(
-                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
-                                  item.metric.chg > 0
-                                    ? "bg-rose-500/10 text-rose-400"
-                                    : item.metric.chg < 0
-                                      ? "bg-emerald-500/10 text-emerald-400"
-                                      : "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                {item.metric.chg > 0 ? "+" : ""}
-                                {item.metric.chg}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Conversions Category (al Cliente non si mostra se il sito non registra azioni: uno «0» non dice niente) */}
-                  <div className={cn("space-y-3", isClient && !ga4Data.conversions?.totalConversions?.val && "hidden")}>
-                    <h4 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
-                      Conversioni ({activeRange ? rangeLabel(activeRange.from, activeRange.to) : `ultimi ${overviewDaysBack}gg`} vs prec.)
-                    </h4>
-                    {(["transactions", "revenue"] as const).every(
-                      (k) => ga4Data.conversions?.[k]?.val === 0 && ga4Data.conversions?.[k]?.chg === 0,
-                    ) && (
-                      <p className="text-xs text-muted-foreground">
-                        Nessun acquisto online tracciato: acquisti e revenue non vengono mostrati. Per questo cliente il risultato
-                        sono i lead (vedi il riepilogo in alto).
-                      </p>
-                    )}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        {
-                          label: "Azioni completate",
-                          hint: "Contatti, richieste ed eventi chiave del sito",
-                          metric: ga4Data.conversions?.totalConversions,
-                          format: (v: number) => itNum(v),
-                        },
-                        {
-                          label: "Visite con azione",
-                          hint: "Quota di visite con almeno un'azione completata",
-                          metric: ga4Data.conversions?.conversionRate,
-                          format: (v: number) => `${itNum(v, 2)}%`,
-                        },
-                        {
-                          label: "Acquisti online",
-                          hint: "Ordini completati sul sito",
-                          metric: ga4Data.conversions?.transactions,
-                          format: (v: number) => itNum(v),
-                          hideIfZero: true,
-                        },
-                        {
-                          label: "Incasso online",
-                          hint: "Valore degli ordini del sito",
-                          metric: ga4Data.conversions?.revenue,
-                          format: (v: number) => `€${v.toLocaleString()}`,
-                          hideIfZero: true,
-                        },
-                      ]
-                        // Acquisti e revenue a zero in entrambi i periodi (val 0 e variazione 0): il cliente non vende online,
-                        // quei riquadri sono solo rumore. Il suo risultato sono i lead (vedi il riepilogo in alto).
-                        .filter((item: any) => !(item.hideIfZero && item.metric && item.metric.val === 0 && item.metric.chg === 0))
-                        .map((item, i) => (
-                        <div
-                          key={i}
-                          className="hover:bg-muted hover:border-foreground/30 p-4 rounded-xl border border-border bg-muted/40 flex flex-col justify-between min-h-[95px] shadow-sm transition-all duration-300 hover:-translate-y-0.5"
-                        >
-                          <div>
-                            <div className="text-xs font-bold text-muted-foreground/75 uppercase tracking-wider leading-tight">
-                              {item.label}
-                            </div>
-                            {item.hint && <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground/70">{item.hint}</div>}
-                          </div>
-                          <div className="flex items-baseline justify-between mt-2">
-                            <span className="text-xl font-extrabold tracking-tight text-foreground">
-                              {item.metric ? item.format(item.metric.val) : "0"}
-                            </span>
-                            {item.metric && (
-                              <span
-                                className={cn(
-                                  "text-xs font-extrabold px-1.5 py-0.5 rounded shadow-sm",
-                                  item.metric.chg > 0
-                                    ? "bg-emerald-500/10 text-emerald-400"
-                                    : item.metric.chg < 0
-                                      ? "bg-rose-500/10 text-rose-400"
-                                      : "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                {item.metric.chg > 0 ? "+" : ""}
-                                {item.metric.chg}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </CollapsibleCard>
+            {/* CARD 1: Performance dominio, una per sito (di solito uno per marca) */}
+            <ClientSitesSection
+              clientId={id as string}
+              sites={sites}
+              isClient={isClient}
+              brand={brandFilter}
+              onBrandChange={setBrandFilter}
+              range={activeRange}
+              daysBack={overviewDaysBack}
+              compareMode={compareMode}
+              periodLabel={activeRange ? rangeLabel(activeRange.from, activeRange.to) : `ultimi ${overviewDaysBack}gg`}
+              firstSite={{ data: ga4Data, loading: loadingGa4 }}
+              onSitesSaved={handleSitesSaved}
+            />
             {/* CARD 3: SEO Godmode Generator - Spans 2 cols on lg */}
             <CollapsibleCard
               defaultOpen
@@ -1402,105 +1108,8 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {/* ── QUICK LINKS ──────────────────────────────────────────────────
-          Raggruppati per intenzione: prima il lavoro sul cliente, poi la
-          creatività, poi l'analisi. Otto pill tutte uguali mescolavano cose
-          che non si fanno nello stesso momento.
-
-          Due sono state tolte perché portavano dove si era già:
-          • "Calendario" apriva la stessa pagina di "Piano Editoriale", solo
-            con la vista calendario preselezionata — vista che quella pagina
-            offre già con un click al suo interno.
-          • "Maps & GBP" duplicava la scheda GBP che ora sta nella Overview,
-            da cui si raggiunge il dettaglio per sede.
-      ── */}
-      {!isClient && (
-      <div className="relative z-20 flex flex-wrap items-center gap-2.5 bg-muted/40 border border-border p-4 rounded-2xl shadow-sm">
-        {[
-          {
-            href: `/clients/${id}/editorial-plan`,
-            icon: CalendarDays,
-            label: "Piano Editoriale",
-            dot: "bg-pink-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]",
-          },
-          {
-            href: `/clients/${id}/tasks`,
-            icon: CheckCircle2,
-            label: "Tasks",
-            dot: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]",
-          },
-          {
-            href: `/clients/${id}/projects`,
-            icon: LayoutGrid,
-            label: "Progetti",
-            dot: "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]",
-          },
-          { separator: true },
-          {
-            href: `/clients/${id}/creative`,
-            icon: Sparkles,
-            label: "Creative Lab",
-            dot: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]",
-          },
-          {
-            href: `/clients/${id}/scheda`,
-            icon: FileText,
-            label: "Scheda",
-            dot: "bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]",
-          },
-          // Solo per le concessionarie (profilo KPI «Auto e moto»): lead, appuntamenti, preventivi e vendite dallo Sheet del cliente.
-          ...(client?.kpiProfile === 'auto' ? [{
-            href: `/clients/${id}/dealer-kpi`,
-            icon: Gauge,
-            label: "KPI concessionario",
-            dot: "bg-lime-500 shadow-[0_0_8px_rgba(132,204,22,0.5)]",
-          }] : []),
-          {
-            href: `/clients/${id}/site-monitor`,
-            icon: Search,
-            label: "Monitor sito",
-            dot: "bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.5)]",
-          },
-          {
-            href: `/clients/${id}/ped-plan`,
-            icon: CalendarRange,
-            label: "Piano PED",
-            dot: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]",
-          },
-          {
-            // Pagina globale: il cliente viaggia nell'URL, così si apre già
-            // filtrata invece di partire da "tutti".
-            href: `/documents?tab=media&client=${id}`,
-            icon: ImageIcon,
-            label: "Creative Board",
-            dot: "bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]",
-          },
-          { separator: true },
-          {
-            href: `/reports?client=${id}`,
-            icon: TrendingUp,
-            label: "Growth Report",
-            dot: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]",
-          },
-        ].map((item, i) => {
-          if ('separator' in item) {
-            return <span key={`sep-${i}`} aria-hidden className="h-6 w-px bg-muted mx-1" />;
-          }
-          const { href, icon: Icon, label, dot } = item;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className="relative z-10 cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border border-border bg-muted/40 hover:bg-muted hover:border-foreground/30 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:scale-95 text-foreground"
-            >
-              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />
-              <Icon className="h-3.5 w-3.5 text-muted-foreground/80" />
-              {label}
-            </Link>
-          );
-        })}
-      </div>
-      )}
+      {/* Collegamenti rapidi (solo staff): l'elenco sta in lib/client-quick-links.ts */}
+      {!isClient && <ClientQuickLinks clientId={id as string} kpiProfile={client?.kpiProfile} />}
 
       {/* ── TAB BAR ── */}
       {!isClient && (
@@ -1597,6 +1206,7 @@ export default function ClientDetailPage() {
             </div>
           </div>
 
+          {isClient && <ClientTodoCard clientId={id as string} />}
           {isClient && <h2 className="text-xl font-extrabold tracking-tight text-foreground">Risultati del periodo</h2>}
           {/* RIEPILOGO: spesa, risultato, costo per risultato, anomalie */}
           <ReportSummaryStrip

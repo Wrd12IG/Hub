@@ -198,6 +198,12 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, {
         category: 'brief',
         priority: 'normal'
     },
+    brief_delivered: {
+        title: '📦 Richiesta consegnata',
+        getText: (d) => `La tua richiesta "${d.briefTitle}" è stata consegnata`,
+        category: 'brief',
+        priority: 'normal'
+    },
 
     // Editorial
     editorial_due_soon: {
@@ -1396,6 +1402,22 @@ export async function notifyBriefApproved(
             resourceType: 'brief'
         });
     }
+}
+
+/**
+ * Notify the author of a brief (the client, for requests sent from the client area) that it has been delivered.
+ */
+export async function notifyBriefDelivered(brief: Brief): Promise<void> {
+    if (!brief.createdBy) return;
+    // Il cliente non ha /briefs (pagina dello staff): il link porta alla sua pagina Brief, dove c'è lo stato.
+    await createNotification(brief.createdBy, 'brief_delivered', {
+        briefTitle: brief.title || brief.projectName,
+        briefId: brief.id
+    }, {
+        link: brief.clientId ? `/clients/${brief.clientId}/briefs` : `/briefs?briefId=${brief.id}`,
+        resourceId: brief.id,
+        resourceType: 'brief'
+    });
 }
 
 /**

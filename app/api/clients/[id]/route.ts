@@ -6,6 +6,8 @@ import { splitPrivateFields, savePrivateFields, readPrivateFields } from '@/lib/
 import { hasLegacyPrivateFields, migrateClientDoc } from '@/lib/client-private-migrate';
 import { validateKpiFields } from '@/lib/kpi-profiles';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource, saveClientToken } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
+import { sitesAfterLegacyEdit, sitesOf } from '@/lib/client-sites';
 
 export async function GET(
   request: Request,
@@ -67,6 +69,8 @@ export async function GET(
         metaCampaignFilter: d.metaCampaignFilter,
         googleAdAccountId: d.googleAdAccountId,
         windsorAccounts: d.windsorAccounts,
+        // I siti del cliente (anche quello ricavato dai campi vecchi): la Overview mostra una scheda per sito
+        sites: sitesOf(d),
         lastSeoScore: d.lastSeoScore,
       });
     }
@@ -82,6 +86,8 @@ export async function GET(
       id: doc.id,
       ...baseDoc,
       ...privateFields,
+      // I siti del cliente, sempre come elenco (per chi non li ha mai salvati, quello ricavato dai campi vecchi)
+      sites: sitesOf(baseDoc as Record<string, unknown>),
       // Social organico — solo flag di presenza e nome visibile, mai token cifrati
       hasYoutubeToken:    !!youtubeData?.accessToken,
       youtubeChannelName: youtubeData?.extra?.channelName ?? null,
@@ -120,6 +126,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // Se il cliente ha già i siti salvati, una modifica a sito, GA4 o Search Console li aggiorna insieme (il primo sito = i campi vecchi)
+    const patchedSites = sitesAfterLegacyEdit(doc.data() as Record<string, unknown>, body);
+    if (patchedSites) body.sites = patchedSites;
     // Il token del link pubblico si cambia solo da /api/clients/[id]/public-link (tiene allineato l'indice).
     delete body.publicToken; delete body.publicTokenCreatedAt;
     // Archiviare è dell'amministratore e passa da /api/clients/[id]/archive: un modulo di modifica non deve poterlo cambiare.
@@ -156,7 +165,7 @@ export async function DELETE(
   const auth = await verifyAuth(request as import('next/server').NextRequest);
   if (!auth) return unauthorizedResponse();
   // Cancella anche budget, token delle integrazioni, link pubblico e tutto il lavoro collegato: solo un amministratore.
-  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse("Solo un amministratore puo' eliminare un cliente.");
+  if (!isAdminUser(await getAppUser(auth.uid))) return forbiddenResponse("Solo un amministratore puo' eliminare un cliente.");
 
   try {
     const id = params.id;
@@ -255,6 +264,9 @@ export async function PATCH(
     }
 
     // 2. Aggiornamento dei restanti campi pubblici (il token del link pubblico passa solo da /public-link)
+    // Se il cliente ha già i siti salvati, una modifica a sito, GA4 o Search Console li aggiorna insieme (il primo sito = i campi vecchi)
+    const patchedSites = sitesAfterLegacyEdit(doc.data() as Record<string, unknown>, body);
+    if (patchedSites) body.sites = patchedSites;
     delete body.publicToken; delete body.publicTokenCreatedAt;
     delete body.archived; delete body.archivedAt; // solo da /api/clients/[id]/archive (amministratore)
     if (!(await canViewFinancialsServer(adminDb, await getAppUser(auth.uid)))) for (const f of FINANCIAL_CLIENT_FIELDS) delete body[f];

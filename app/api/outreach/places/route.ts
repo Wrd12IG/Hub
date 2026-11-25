@@ -6,6 +6,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { forbiddenResponse, getAppUser, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { REGIONS, placeLabel, regionData } from '@/lib/italy-places';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
     const user = await verifyAuth(request);
     if (!user) return unauthorizedResponse();
-    if ((await getAppUser(user.uid))?.role !== 'Amministratore') return forbiddenResponse();
+    if (!isAdminUser(await getAppUser(user.uid))) return forbiddenResponse();
 
     const name = request.nextUrl.searchParams.get('region');
     if (!name) return NextResponse.json({ regions: REGIONS });

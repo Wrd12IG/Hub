@@ -22,6 +22,7 @@ import { getTasks, getClients, getProjects } from '@/lib/actions'
 import type { Task, User, Client, Project } from '@/lib/data'
 import { rateOf } from '@/lib/cost-model'
 import { useLayoutData } from '@/app/(app)/layout-context'
+import { ReportSectionNav } from '@/components/report-section-nav'
 
 // ─── Period options ────────────────────────────────────────────────────────────
 type Period = '7d' | '30d' | '90d'
@@ -365,6 +366,7 @@ export default function AnalyticsPage() {
         }
       `}</style>
 
+      <ReportSectionNav className="mb-6" />
       {/* Header */}
       <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>

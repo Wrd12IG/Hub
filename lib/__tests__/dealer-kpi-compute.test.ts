@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { computeClientMonthly, platformsNeeded } from '@/lib/kpi-compute';
-import { DEALER_KPI_IDS, DEALER_KPI_GROUPS, KPI_CATALOG } from '@/lib/kpi-profiles';
+import { DEALER_KPI_IDS, DEALER_KPI_GROUPS, KPI_CATALOG, KPI_PROFILES, PROFILE_KPI_GROUPS, kpiGroupsFor, kpiIdsOfGroups } from '@/lib/kpi-profiles';
 import type { PlatformReport } from '@/lib/reporting';
 
 const rep = (platform: PlatformReport['platform'], cur: Record<string, number>, prev: Record<string, number> = {}): PlatformReport =>
@@ -78,3 +78,29 @@ describe('KPI del concessionario', () => {
         expect(Array.from(platformsNeeded(['quotes'])).length).toBe(0);
     });
 });
+
+describe('KPI per profilo (la pagina KPI di un cliente)', () => {
+    it('ogni profilo ha i suoi gruppi, e «auto» ha quelli dei concessionari', () => {
+        for (const p of KPI_PROFILES) expect(kpiGroupsFor(p).length, p).toBeGreaterThanOrEqual(4);
+        expect(PROFILE_KPI_GROUPS.auto).toBe(DEALER_KPI_GROUPS);
+    });
+    it('ogni KPI dei gruppi esiste nel catalogo e non si ripete dentro un profilo', () => {
+        for (const p of KPI_PROFILES) {
+            const ids = kpiGroupsFor(p).flatMap((g) => g.ids);
+            for (const id of ids) expect(KPI_CATALOG[id], `${p}: ${id}`).toBeTruthy();
+            expect(new Set(ids).size, p).toBe(ids.length);
+        }
+    });
+    it('nessun gruppo è vuoto e ognuno ha un nome', () => {
+        for (const p of KPI_PROFILES) for (const g of kpiGroupsFor(p)) { expect(g.label).toBeTruthy(); expect(g.ids.length).toBeGreaterThan(0); }
+    });
+    it('i KPI di un negozio online comprendono vendite e ROAS, quelli di un locale le chiamate da Maps, quelli di un B2B i lead', () => {
+        expect(kpiIdsOfGroups(kpiGroupsFor('ecommerce'))).toEqual(expect.arrayContaining(['revenue', 'orders', 'roas']));
+        expect(kpiIdsOfGroups(kpiGroupsFor('locale'))).toEqual(expect.arrayContaining(['gbp_calls', 'review_rating']));
+        expect(kpiIdsOfGroups(kpiGroupsFor('b2b'))).toEqual(expect.arrayContaining(['leads_real', 'linkedin_impr']));
+    });
+    it('kpiIdsOfGroups non ripete gli id e rispetta l\'ordine', () => {
+        expect(kpiIdsOfGroups([{ label: 'A', ids: ['x', 'y'] }, { label: 'B', ids: ['y', 'z'] }])).toEqual(['x', 'y', 'z']);
+    });
+});
+

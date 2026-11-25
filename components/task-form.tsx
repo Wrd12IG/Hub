@@ -26,6 +26,7 @@ import {
     Select,
     SelectContent,
     SelectItem,
+    SelectSeparator,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
@@ -50,7 +51,8 @@ import { useFormDraft } from "@/hooks/use-form-draft"
 import { useDebounce } from "@/hooks/use-debounce"
 import { useLayoutData } from "@/app/(app)/layout-context"
 import DatePickerDialog from "@/components/ui/date-picker-dialog"
-import { Task, User, allTaskStatuses, allTaskPriorities } from "@/lib/data"
+import { Task, User, allTaskPriorities } from "@/lib/data"
+import { FLOW_STATUSES, ARCHIVED_STATUS, ARCHIVE_ACTION_LABEL, PRIORITY_RULES, statusLabel } from "@/lib/task-model"
 import { addTask, updateTask, uploadFilesAndGetAttachments } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
 import { WorkloadSphere } from "@/components/WorkloadSphere"
@@ -691,6 +693,8 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {/* Quando usare ogni priorità: la regola della priorità scelta, in una riga */}
+                                <p className="text-xs text-muted-foreground">{PRIORITY_RULES[field.value as keyof typeof PRIORITY_RULES]}</p>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -709,11 +713,16 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {allTaskStatuses.map((status) => (
+                                        {FLOW_STATUSES.map((status) => (
                                             <SelectItem key={status} value={status}>
-                                                {status}
+                                                {statusLabel(status)}
                                             </SelectItem>
                                         ))}
+                                        {/* L'archivio non è uno dei cinque stati: sta a parte, come azione */}
+                                        <SelectSeparator />
+                                        <SelectItem value={ARCHIVED_STATUS}>
+                                            {field.value === ARCHIVED_STATUS ? statusLabel(ARCHIVED_STATUS) : ARCHIVE_ACTION_LABEL}
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
@@ -977,7 +986,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                                     </FormControl>
                                                     <FormLabel className="font-normal flex items-center justify-between w-full">
                                                         <span>{depTask.title}</span>
-                                                        <Badge variant="secondary" className="text-xs">{depTask.status}</Badge>
+                                                        <Badge variant="secondary" className="text-xs">{statusLabel(depTask.status)}</Badge>
                                                     </FormLabel>
                                                 </FormItem>
                                             )

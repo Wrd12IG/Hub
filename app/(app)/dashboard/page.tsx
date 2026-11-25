@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import dynamic from 'next/dynamic';
+import { StaffTodoCard } from '@/components/staff-todo-card';
 
 // Skeleton condiviso per il caricamento del dashboard
 function DashboardSkeleton() {
@@ -56,9 +57,11 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  if (currentUser.role === 'Amministratore') {
-    return <AdminDashboard />;
-  }
-  
-  return <UserDashboard />;
+  // «Da chiudere» sta sopra a entrambe le dashboard: brief e contenuti che aspettano lo staff
+  return (
+    <>
+      <StaffTodoCard />
+      {currentUser.role === 'Amministratore' ? <AdminDashboard /> : <UserDashboard />}
+    </>
+  );
 }

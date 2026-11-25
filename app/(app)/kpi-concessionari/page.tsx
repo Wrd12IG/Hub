@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Download, Loader2 } from 'lucide-react'
+import { ReportSectionNav } from '@/components/report-section-nav'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { monthLabel } from '@/lib/kpi-compute'
 import { overviewToCsv, type Breakdown, type Overview } from '@/lib/dealer-kpi/overview'
@@ -99,6 +100,7 @@ export default function KpiConcessionariPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-4 md:p-6">
+      <ReportSectionNav />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">KPI concessionari</h1>

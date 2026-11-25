@@ -17,6 +17,7 @@
 
 import { adminDb } from '@/lib/firebase-admin';
 import type { Task } from '@/lib/data';
+import { CLIENT_WAIT_REMINDER_DAYS } from '@/lib/task-model';
 
 // ─── Tipi utili per il digest ─────────────────────────────────────────────────
 
@@ -27,6 +28,8 @@ export interface DigestTask {
   priority: string;
   dueDate?: string;
   status: string;
+  /** Da quando il task è nello stato attuale (ISO). */
+  since?: string;
 }
 
 export interface DigestSummary {
@@ -35,6 +38,7 @@ export interface DigestSummary {
   dueTodayPending: DigestTask[];   // Task in scadenza oggi, non ancora approvati
   overdue: DigestTask[];           // Task scaduti e non approvati
   inApproval: DigestTask[];        // Task in attesa di approvazione
+  waitingClient: DigestTask[];     // Task «In attesa cliente» da più di CLIENT_WAIT_REMINDER_DAYS giorni: da sollecitare
 }
 
 // ─── Funzioni di utilità per le date ─────────────────────────────────────────
@@ -205,6 +209,48 @@ async function getInApprovalTasks(): Promise<DigestTask[]> {
   }
 }
 
+/** Un valore data di Firestore (Timestamp, stringa o Date) come stringa ISO. */
+function toIso(v: unknown): string | undefined {
+  if (!v) return undefined;
+  if (typeof v === 'string') return v;
+  if (v instanceof Date) return v.toISOString();
+  const ts = v as { toDate?: () => Date };
+  return typeof ts.toDate === 'function' ? ts.toDate().toISOString() : undefined;
+}
+
+/**
+ * QUERY 5: Task IN ATTESA DEL CLIENTE da troppo tempo.
+ *
+ * La palla è del cliente (approvazione o materiali): nessun ritardo nostro, ma qualcuno deve sollecitarlo.
+ * Si guarda da quando il task è in quello stato (statusChangedAt); per i task nati prima di quel campo,
+ * dall'ultimo aggiornamento. Il filtro sui giorni è in JavaScript: la query è un'uguaglianza semplice, senza indici nuovi.
+ */
+async function getWaitingClientTasks(): Promise<DigestTask[]> {
+  try {
+    const snapshot = await adminDb
+      .collection('tasks')
+      .where('status', '==', 'In Approvazione Cliente')
+      .limit(200)
+      .get();
+
+    const before = new Date(Date.now() - CLIENT_WAIT_REMINDER_DAYS * 86_400_000).toISOString();
+    return snapshot.docs
+      .map((doc) => {
+        const data = doc.data() as Record<string, unknown>;
+        const since = toIso(data.statusChangedAt) ?? toIso(data.updatedAt) ?? toIso(data.createdAt);
+        return { id: doc.id, ...(data as Omit<DigestTask, 'id' | 'since'>), since } as DigestTask;
+      })
+      .filter((t) => !!t.since && (t.since as string) < before)
+      .sort((a, b) => String(a.since).localeCompare(String(b.since)))
+      .slice(0, 30);
+  } catch (error) {
+    console.warn('[daily-digest] getWaitingClientTasks error:', error);
+    return [];
+  }
+}
+
+const PRIORITY_RANK: Record<string, number> = { Critica: 0, Alta: 1, Media: 2, Bassa: 3 };
+
 // ─── Funzione principale ───────────────────────────────────────────────────────
 
 /**
@@ -219,12 +265,17 @@ export async function buildDailyDigest(): Promise<DigestSummary> {
     dueTodayPending,
     overdue,
     inApproval,
+    waitingClient,
   ] = await Promise.all([
     getCompletedYesterday(),
     getDueTodayPending(),
     getOverdueTasks(),
     getInApprovalTasks(),
+    getWaitingClientTasks(),
   ]);
+
+  // Tra gli scaduti, prima i critici (a parità resta l'ordine di prima: il sort è stabile)
+  overdue.sort((a, b) => (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9));
   
   return {
     date: new Date().toLocaleDateString('it-IT', {
@@ -237,6 +288,7 @@ export async function buildDailyDigest(): Promise<DigestSummary> {
     dueTodayPending,
     overdue,
     inApproval,
+    waitingClient,
   };
 }
 
@@ -310,7 +362,7 @@ function taskSection(title: string, emoji: string, tasks: DigestTask[], emptyMsg
 export function buildDigestEmailHtml(digest: DigestSummary): string {
   const appUrl = process.env.APP_BASE_URL || 'http://localhost:9002';
   
-  const totalProblems = digest.overdue.length + digest.inApproval.length;
+  const totalProblems = digest.overdue.length + digest.inApproval.length + digest.waitingClient.length;
   const subject = totalProblems > 0
     ? `⚠️ ${totalProblems} azioni richieste — Daily Digest ${digest.date}`
     : `✅ Tutto in ordine — Daily Digest ${digest.date}`;
@@ -367,6 +419,7 @@ export function buildDigestEmailHtml(digest: DigestSummary): string {
         ${taskSection('Scadono oggi', '⏰', digest.dueTodayPending, 'Nessun task in scadenza oggi.')}
         ${taskSection('Scaduti — Azione richiesta', '🚨', digest.overdue, 'Nessun task scaduto. Ottimo lavoro!')}
         ${taskSection('In attesa di approvazione', '🔄', digest.inApproval, 'Nessun task in attesa.')}
+        ${taskSection(`Fermi dal cliente da più di ${CLIENT_WAIT_REMINDER_DAYS} giorni — da sollecitare`, '⏳', digest.waitingClient, 'Nessun task fermo dal cliente.')}
         
       </div>
       

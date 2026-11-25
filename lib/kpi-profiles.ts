@@ -266,3 +266,53 @@ export const DEALER_KPI_GROUPS: { label: string; ids: string[] }[] = [
     { label: 'Costo per lead', ids: ['cost_per_lead_total', 'cpl_google', 'cpl_meta_real'] },
 ];
 export const DEALER_KPI_IDS: string[] = DEALER_KPI_GROUPS.flatMap((g) => g.ids);
+
+/**
+ * I KPI della pagina «KPI» di un cliente, per profilo, raggruppati nell'ordine in cui si mostrano. Sono più dei 5 della mail:
+ * la pagina legge le piattaforme per un cliente solo, quindi può mostrare tutto ciò che serve a quel tipo di attività.
+ * «Auto e moto» ha il suo elenco (con lo Sheet dei lead); gli altri profili hanno i KPI delle piattaforme che di solito usano.
+ */
+export type KpiGroup = { label: string; ids: string[] };
+
+const ADS_GROUPS: KpiGroup[] = [
+    { label: 'Meta Ads', ids: ['meta_impressions', 'meta_reach', 'meta_spend'] },
+    { label: 'Google Ads', ids: ['gads_impressions', 'gads_clicks', 'gads_spend', 'gads_conversions'] },
+];
+
+export const PROFILE_KPI_GROUPS: Record<KpiProfile, KpiGroup[]> = {
+    auto: DEALER_KPI_GROUPS,
+    ecommerce: [
+        { label: 'Vendite online', ids: ['revenue', 'orders', 'roas', 'cpa'] },
+        { label: 'Sito (Analytics)', ids: ['sessions', 'users', 'conversion_rate'] },
+        ...ADS_GROUPS,
+        { label: 'Email', ids: ['email_revenue'] },
+        { label: 'Ricerca su Google', ids: ['search_clicks'] },
+    ],
+    locale: [
+        { label: 'Google Maps', ids: ['gbp_calls', 'gbp_directions', 'review_rating', 'review_count'] },
+        { label: 'Contatti', ids: ['leads_real'] },
+        { label: 'Sito (Analytics)', ids: ['sessions', 'users'] },
+        { label: 'Ricerca su Google', ids: ['search_clicks'] },
+        ...ADS_GROUPS,
+        { label: 'Social', ids: ['social_reach', 'followers', 'profile_views'] },
+    ],
+    b2b: [
+        { label: 'Lead', ids: ['leads_real', 'appointments', 'cost_per_lead'] },
+        { label: 'Sito (Analytics)', ids: ['sessions', 'users'] },
+        { label: 'Ricerca su Google', ids: ['search_clicks'] },
+        ...ADS_GROUPS,
+        { label: 'LinkedIn', ids: ['linkedin_impr', 'linkedin_follow'] },
+    ],
+    social: [
+        { label: 'Social', ids: ['social_reach', 'followers', 'profile_views'] },
+        { label: 'LinkedIn', ids: ['linkedin_impr', 'linkedin_follow'] },
+        { label: 'Meta Ads', ids: ['meta_impressions', 'meta_reach', 'meta_spend'] },
+        { label: 'Sito (Analytics)', ids: ['sessions', 'users'] },
+        { label: 'Lead', ids: ['leads_real', 'cost_per_lead'] },
+    ],
+};
+
+export const kpiGroupsFor = (profile: KpiProfile): KpiGroup[] => PROFILE_KPI_GROUPS[profile];
+
+/** Tutti gli id dei gruppi, una volta sola e nell'ordine in cui compaiono. */
+export const kpiIdsOfGroups = (groups: KpiGroup[]): string[] => Array.from(new Set(groups.flatMap((g) => g.ids)));

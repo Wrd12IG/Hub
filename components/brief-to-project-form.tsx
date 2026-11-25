@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { Brief, Project, BriefService, BriefServiceCategory } from '@/lib/data';
-import { addProject, addTask } from '@/lib/actions';
+import { addProject, addTask, updateBrief } from '@/lib/actions';
+import { statusAfterProjectCreated } from '@/lib/brief-status';
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -131,6 +132,16 @@ export default function BriefToProjectForm({
                     await addTask(taskData as any, creatorId);
                     tasksCreated++;
                 }
+            }
+
+            // 2b. Il brief ricorda il progetto e, se nessuno ci stava ancora lavorando, passa «In Lavorazione»:
+            // così la richiesta del cliente non resta ferma su «Inviato» dopo che il lavoro è partito.
+            // Se questo salvataggio fallisce il progetto esiste comunque: non si segnala come errore di creazione.
+            try {
+                await updateBrief(brief.id, { projectId, status: statusAfterProjectCreated(brief.status) });
+            } catch (linkError) {
+                console.error('Brief non collegato al progetto:', linkError);
+                toast.warning('Progetto creato, ma il brief non è stato aggiornato: cambia lo stato a mano.');
             }
 
             // 3. Refresh data

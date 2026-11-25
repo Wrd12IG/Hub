@@ -34,6 +34,7 @@ const getGoogleAdsAccountTotals = (customerId: string, from: string, to: string)
         ? getGoogleAdsAccountTotalsViaComposio(customerId, from, to)
         : getGoogleAdsAccountTotalsDirect(customerId, from, to);
 import type { Client } from './data';
+import { reportTargets } from './client-sites';
 
 // metaAdAccountId/googleAdAccountId/ga4PropertyId are set by the existing "Setup
 // API" tab (components/PlatformConnections.tsx) and stored on the client's
@@ -47,6 +48,11 @@ type ClientReportSource = Pick<Client, 'windsorAccounts'> & {
     metaCampaignFilter?: string;
     googleAdAccountId?: string;
     ga4PropertyId?: string;
+    /**
+     * I siti del cliente (lib/client-sites.ts), se ne ha più d'uno: il report legge l'Analytics e la Search Console di ciascuno,
+     * una voce per sito. Senza, valgono `ga4PropertyId` e `windsorAccounts.searchconsole` come sempre.
+     */
+    sites?: unknown;
     /**
      * Klaviyo non sta sul documento del cliente come gli altri: la chiave è
      * cifrata nella sottocollection `integrations`. La risolve la route e la
@@ -424,7 +430,8 @@ export async function getClientMarketingReport(
     // sede becomes its own entry, labelled with the name Windsor returns.
     const gbpAccountIds = (client.windsorAccounts?.gbp || []).filter(Boolean);
 
-    const searchConsoleSite = client.windsorAccounts?.searchconsole;
+    // Analytics e Search Console di TUTTI i siti del cliente (di solito uno per marca). Con un sito solo è quello di sempre.
+    const targets = reportTargets({ ga4PropertyId: client.ga4PropertyId, windsorAccounts: client.windsorAccounts, sites: client.sites });
 
     // ⚠️ Questa guardia deve contare TUTTE le piattaforme native, non solo
     // quelle Windsor: un cliente che ha soltanto fonti native usciva di qui
@@ -438,7 +445,7 @@ export async function getClientMarketingReport(
     //
     // Chi aggiunge una piattaforma nativa la aggiunga anche qui.
     if (platforms.length === 0 && gbpAccountIds.length === 0
-        && !client.ga4PropertyId && !searchConsoleSite && !client.klaviyo
+        && targets.ga4.length === 0 && targets.searchConsole.length === 0 && !client.klaviyo
         && !client.awinAdvertiserId && !client.googleAdAccountId && !client.youtube) {
         return [];
     }
@@ -552,7 +559,7 @@ export async function getClientMarketingReport(
     // GA4 is read natively from Google (service account), not through Windsor:
     // free, no per-client OAuth, and it doesn't consume a Windsor account slot.
     // It still emits the same keys the UI reads, so nothing downstream changes.
-    const fetchGa4 = async (propertyId: string): Promise<PlatformReport> => {
+    const fetchGa4 = async (propertyId: string, label?: string): Promise<PlatformReport> => {
         try {
             const [cur, prev, daily] = await withTimeout('GA4', Promise.all([
                 windows
@@ -569,6 +576,7 @@ export async function getClientMarketingReport(
             ]));
             return {
                 platform: 'ga4',
+                ...(label ? { accountLabel: label } : {}),
                 connected: true,
                 rows: [cur],
                 previousRows: prev ? [prev] : [],
@@ -576,14 +584,14 @@ export async function getClientMarketingReport(
             };
         } catch (err: any) {
             console.error(`[reporting] ga4 failed for property ${propertyId}:`, err.message);
-            return { platform: 'ga4', connected: false, error: err.message, rows: [], previousRows: [] };
+            return { platform: 'ga4', ...(label ? { accountLabel: label } : {}), connected: false, error: err.message, rows: [], previousRows: [] };
         }
     };
 
     // Search Console: stessa storia di GA4 — API ufficiale di Google col service
     // account dell'agenzia. L'id salvato è già l'URL della proprietà, quindi
     // vale tale e quale sia per Windsor sia per l'API nativa.
-    const fetchSearchConsole = async (siteUrl: string): Promise<PlatformReport> => {
+    const fetchSearchConsole = async (siteUrl: string, label?: string): Promise<PlatformReport> => {
         try {
             const [cur, prev, daily] = await withTimeout('Search Console', Promise.all([
                 windows
@@ -598,10 +606,10 @@ export async function getClientMarketingReport(
                     : getSearchConsoleDaily(siteUrl, isoDaysAgo(presetToDays(datePreset)), isoDaysAgo(0)))
                     .catch((e) => { console.error('[reporting] serie giornaliera Search Console non disponibile:', e.message); return [] as { date: string }[]; }),
             ]));
-            return { platform: 'searchconsole', connected: true, rows: [cur], previousRows: prev ? [prev] : [], ...(daily.length > 0 ? { daily: daily as MetricRow[] } : {}) };
+            return { platform: 'searchconsole', ...(label ? { accountLabel: label } : {}), connected: true, rows: [cur], previousRows: prev ? [prev] : [], ...(daily.length > 0 ? { daily: daily as MetricRow[] } : {}) };
         } catch (err: any) {
             console.error(`[reporting] searchconsole failed for ${siteUrl}:`, err.message);
-            return { platform: 'searchconsole', connected: false, error: err.message, rows: [], previousRows: [] };
+            return { platform: 'searchconsole', ...(label ? { accountLabel: label } : {}), connected: false, error: err.message, rows: [], previousRows: [] };
         }
     };
 
@@ -788,8 +796,9 @@ function mergeKlaviyo(campaigns: KlaviyoLike, flows: KlaviyoLike | null): Klaviy
     const jobs: { label: string; promise: Promise<PlatformReport | PlatformReport[]> }[] = [
         ...platforms.map((platform) => ({ label: PLATFORM_DEFS[platform].label, promise: fetchOne(platform, mapping[platform]!) })),
         ...(client.googleAdAccountId ? [{ label: PLATFORM_DEFS.google_ads.label, promise: fetchGoogleAds(client.googleAdAccountId) }] : []),
-        ...(client.ga4PropertyId ? [{ label: PLATFORM_DEFS.ga4.label, promise: fetchGa4(client.ga4PropertyId) }] : []),
-        ...(searchConsoleSite ? [{ label: PLATFORM_DEFS.searchconsole.label, promise: fetchSearchConsole(searchConsoleSite) }] : []),
+        // Un'unica voce per ogni sito: con più siti il report le mostra una per una e i KPI le sommano (dove ha senso)
+        ...targets.ga4.map((t) => ({ label: PLATFORM_DEFS.ga4.label + (t.label ? ` · ${t.label}` : ''), promise: fetchGa4(t.id, t.label) })),
+        ...targets.searchConsole.map((t) => ({ label: PLATFORM_DEFS.searchconsole.label + (t.label ? ` · ${t.label}` : ''), promise: fetchSearchConsole(t.id, t.label) })),
         ...(client.klaviyo ? [{ label: PLATFORM_DEFS.klaviyo.label, promise: fetchKlaviyo(client.klaviyo) }] : []),
         ...(client.awinAdvertiserId ? [{ label: PLATFORM_DEFS.awin.label, promise: fetchAwin(client.awinAdvertiserId) }] : []),
         ...(client.youtube ? [{ label: PLATFORM_DEFS.youtube.label, promise: fetchYoutube(client.youtube.channelId) }] : []),

@@ -10,6 +10,7 @@
  *
  * No GA4 Property ID → 503 with notConfigured:true (never invented data).
  */
+import { findSite } from '@/lib/client-sites';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser, ownsClientResource } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
@@ -38,7 +39,9 @@ export async function GET(
 
   try {
     const snap = await adminDb.collection('clients').doc(clientId).get();
-    const propertyId = snap.exists ? (snap.data() as any)?.ga4PropertyId : null;
+    // ?site=<id>: lo stesso cliente può avere più siti, ognuno con il suo GA4. Senza, il primo (= il GA4 di sempre).
+    const site = snap.exists ? findSite(snap.data() as Record<string, unknown>, sp.get('site')) : null;
+    const propertyId = site?.ga4PropertyId ?? null;
 
     if (!propertyId) {
       return NextResponse.json(

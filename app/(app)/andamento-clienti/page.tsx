@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, HelpCircle, Lo
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
+import { ReportSectionNav } from '@/components/report-section-nav'
 import { isMonthKey, previousMonthKey } from '@/lib/manual-kpis'
 import { KPI_CATALOG, KPI_PROFILES, PROFILE_DEFS, isKpiProfile, type KpiProfile } from '@/lib/kpi-profiles'
 import type { WeekResult } from '@/lib/kpi-weekly'
@@ -212,6 +213,7 @@ export default function AndamentoClientiPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 p-4 md:p-8">
+      <ReportSectionNav />
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Andamento clienti</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">

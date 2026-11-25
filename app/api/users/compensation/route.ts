@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { verifyAuth, getAppUser, forbiddenResponse, unauthorizedResponse } from '@/lib/api-auth';
+import { isAdminUser } from '@/lib/roles';
 import { canViewFinancialsServer } from '@/lib/financial-access';
 import { readAllCompensation, saveCompensation, splitCompensation } from '@/lib/user-compensation';
 
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   const auth = await verifyAuth(request);
   if (!auth) return unauthorizedResponse();
-  if ((await getAppUser(auth.uid))?.role !== 'Amministratore') return forbiddenResponse("Solo un amministratore puo' modificare stipendi e costi orari.");
+  if (!isAdminUser(await getAppUser(auth.uid))) return forbiddenResponse("Solo un amministratore puo' modificare stipendi e costi orari.");
   let body: any;
   try { body = await request.json(); } catch { return NextResponse.json({ error: 'Richiesta non valida.' }, { status: 400 }); }
   const userId = String(body?.userId || '');
