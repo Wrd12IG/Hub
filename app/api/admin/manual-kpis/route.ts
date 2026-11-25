@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth, unauthorizedResponse, forbiddenResponse, getAppUser, isStaffUser } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { isMonthKey } from '@/lib/manual-kpis';
-import { readManualKpis, writeManualKpis } from '@/lib/monthly-mail-store';
+import { readManualKpisDetailed, writeManualKpis } from '@/lib/monthly-mail-store';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,8 @@ async function requireStaff(request: NextRequest) {
 }
 
 /**
- * GET /api/admin/manual-kpis?month=AAAA-MM → { values: { [clientId]: { leads_real, … } } }
+ * GET /api/admin/manual-kpis?month=AAAA-MM → { values: { [clientId]: { leads_real, … } }, fromSheet: { [clientId]: { leads_real: true } } }
+ * `fromSheet` dice quali valori arrivano dallo Sheet Google del cliente (un valore scritto a mano ha la precedenza).
  * I dati reali del mese per i clienti che entrano nella mail mensile. Solo staff.
  */
 export async function GET(request: NextRequest) {
@@ -24,7 +25,11 @@ export async function GET(request: NextRequest) {
   if (!isMonthKey(month)) return NextResponse.json({ error: 'Mese non valido (AAAA-MM).' }, { status: 400 });
   try {
     const clients = await adminDb.collection('clients').where('monthlyKpiMail', '==', true).select().get();
-    return NextResponse.json({ values: await readManualKpis(clients.docs.map((d) => d.id), month) });
+    const detailed = await readManualKpisDetailed(clients.docs.map((d) => d.id), month);
+    const values: Record<string, Record<string, number>> = {};
+    const fromSheet: Record<string, Record<string, boolean>> = {};
+    for (const [id, d] of Object.entries(detailed)) { values[id] = d.values; if (Object.keys(d.fromSheet).length) fromSheet[id] = d.fromSheet; }
+    return NextResponse.json({ values, fromSheet });
   } catch (e: any) {
     console.error('[admin/manual-kpis] GET:', e?.message);
     return NextResponse.json({ error: 'Impossibile leggere i dati' }, { status: 500 });

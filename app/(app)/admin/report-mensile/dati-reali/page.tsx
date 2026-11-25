@@ -47,6 +47,9 @@ export default function DatiRealiPage() {
   const { currentUser, clients } = useLayoutData()
   const [month, setMonth] = useState(previousMonthKey())
   const [server, setServer] = useState<Grid>({})
+  // Quali celle vengono dallo Sheet Google del cliente (clientId → campo → true)
+  const [fromSheet, setFromSheet] = useState<Record<string, Record<string, boolean>>>({})
+  const [syncingAll, setSyncingAll] = useState(false)
   const [edits, setEdits] = useState<Grid>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -73,7 +76,7 @@ export default function DatiRealiPage() {
       if (!res.ok) throw new Error(j?.error || `Errore ${res.status}`)
       const g: Grid = {}
       for (const [id, vals] of Object.entries(j.values ?? {})) g[id] = Object.fromEntries(Object.entries(vals as Record<string, number>).map(([k, v]) => [k, String(v)]))
-      setServer(g); setEdits({})
+      setServer(g); setEdits({}); setFromSheet(j.fromSheet ?? {})
     } catch (e: any) { toast.error(e.message || 'Impossibile leggere i dati') }
     finally { setLoading(false) }
   }, [authFetch, month])
@@ -88,6 +91,25 @@ export default function DatiRealiPage() {
     } catch { /* il resto della pagina funziona anche senza */ }
   }, [authFetch])
   useEffect(() => { if (isAdmin) loadSheets() }, [isAdmin, loadSheets])
+
+  // Rilegge subito tutti gli Sheet collegati (di notte lo fa la cron) e ricarica i numeri del mese.
+  const syncAllSheets = async () => {
+    const ids = Object.keys(sheets)
+    if (ids.length === 0) return
+    setSyncingAll(true)
+    let failed = 0
+    for (const id of ids) {
+      try {
+        const res = await authFetch(`/api/clients/${id}/dealer-kpi/sync`, { method: 'POST' })
+        const j = await res.json().catch(() => ({}))
+        if (!res.ok || j?.status?.lastStatus === 'errore') failed++
+      } catch { failed++ }
+    }
+    setSyncingAll(false)
+    if (failed > 0) toast.error(`${failed} ${failed === 1 ? 'Sheet non letto' : 'Sheet non letti'}: apri il pulsante del cliente per vedere il motivo.`)
+    else toast.success(`Letti ${ids.length} Sheet.`)
+    await Promise.all([loadSheets(), load()])
+  }
 
   const cell = (id: string, f: string) => edits[id]?.[f] ?? server[id]?.[f] ?? ''
   const setCell = (id: string, f: string, v: string) => setEdits((e) => ({ ...e, [id]: { ...e[id], [f]: v } }))
@@ -169,6 +191,12 @@ export default function DatiRealiPage() {
           Importa da CSV
           <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
         </label>
+        {isAdmin && Object.keys(sheets).length > 0 && (
+          <button type="button" onClick={syncAllSheets} disabled={syncingAll || changed > 0}
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50">
+            {syncingAll && <Loader2 size={14} className="animate-spin" />} Rileggi gli Sheet
+          </button>
+        )}
         <button type="button" onClick={save} disabled={changed === 0 || saving}
           className="ml-auto inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40">
           {saving && <Loader2 size={14} className="animate-spin" />} Salva{changed > 0 ? ` (${changed})` : ''}
@@ -176,6 +204,11 @@ export default function DatiRealiPage() {
       </div>
       {changed > 0 && <p className="text-xs text-muted-foreground">Hai modifiche non salvate: per cambiare mese salva o ricarica la pagina.</p>}
       {csvNote && <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs">{csvNote}</p>}
+      {Object.keys(fromSheet).length > 0 && (
+        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs">
+          I numeri su sfondo verde arrivano dallo <b>Sheet Google</b> del cliente (lead, appuntamenti, vendite). Se scrivi un altro numero vale il tuo; se lo cancelli torna quello dello Sheet.
+        </p>
+      )}
       <p className="text-[11px] text-muted-foreground">
         CSV: una riga per cliente, intestazione «Cliente;Lead;Appuntamenti;Test drive;Vendite» (separatore «;», tab o «,»). Una cella vuota non cambia il valore.
       </p>
@@ -199,7 +232,7 @@ export default function DatiRealiPage() {
                     {columns.map((f) => (
                       <td key={f.id} className="px-2 py-1.5 text-right">
                         {allowed.includes(f.id)
-                          ? <input inputMode="numeric" aria-label={`${f.label} di ${c.name}`} className={inputCls} value={cell(c.id, f.id)} onChange={(e) => setCell(c.id, f.id, e.target.value)} />
+                          ? <input inputMode="numeric" aria-label={`${f.label} di ${c.name}`} className={`${inputCls} ${fromSheet[c.id]?.[f.id] && edits[c.id]?.[f.id] === undefined ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300' : ''}`} title={fromSheet[c.id]?.[f.id] && edits[c.id]?.[f.id] === undefined ? 'Dallo Sheet Google del cliente. Se scrivi un altro numero vale il tuo.' : undefined} value={cell(c.id, f.id)} onChange={(e) => setCell(c.id, f.id, e.target.value)} />
                           : <span className="text-muted-foreground">—</span>}
                       </td>
                     ))}
