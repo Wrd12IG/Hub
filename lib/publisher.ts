@@ -13,10 +13,24 @@ import { approvalGate } from './content-approval';
 import type { Client, EditorialContent, PublishChannel } from '@/lib/data';
 import type { WindsorConnector } from '@/lib/windsor-client';
 import { composePostText } from '@/lib/post-text';
+import { needsBusinessSuite } from '@/lib/story-editor/business-suite';
 
 /** Canali che sappiamo pubblicare. TikTok e YouTube no: Windsor non li supporta, servono le API dirette. */
 export const AUTOMATED_CHANNELS: PublishChannel[] = ['facebook', 'instagram', 'igStories', 'linkedin', 'gbp'];
 export const UNSUPPORTED_CHANNELS: PublishChannel[] = ['tiktok', 'youtube', 'fbStories'];
+
+export const MANUAL_UNSUPPORTED = 'Da pubblicare a mano: canale non ancora automatizzato';
+export const MANUAL_BUSINESS_SUITE = 'Ha il link sticker: va programmata da Meta Business Suite (Kit Business Suite nel PED)';
+
+/**
+ * Perché un canale richiesto NON si pubblica da solo, o null se si pubblica. Oltre ai canali non automatizzati, le storie
+ * Instagram con un link: l'API pubblicherebbe la storia senza lo sticker, quindi si programmano da Business Suite.
+ */
+export function manualChannelReason(content: EditorialContent, channel: PublishChannel): string | null {
+    if (UNSUPPORTED_CHANNELS.includes(channel)) return MANUAL_UNSUPPORTED;
+    if (channel === 'igStories' && needsBusinessSuite(content)) return MANUAL_BUSINESS_SUITE;
+    return null;
+}
 
 /** Un contenuto con la sola data (senza orario) esce a quest'ora, fuso Europe/Rome. */
 export const DEFAULT_PUBLISH_HOUR = 9;

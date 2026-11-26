@@ -4,8 +4,8 @@ import { adminDb } from '@/lib/firebase-admin';
 import { isDue, dueState } from '@/lib/publisher';
 import { runPublish, type Outcome } from '@/lib/publish-runner';
 import type { EditorialContent } from '@/lib/data';
-import { blockedByApproval, failureAlerts } from '@/lib/publish-alerts';
-import { sendBlockedAlerts, sendFailureAlerts } from '@/lib/publish-notify';
+import { blockedByApproval, businessSuiteReminders, failureAlerts } from '@/lib/publish-alerts';
+import { sendBlockedAlerts, sendBusinessSuiteReminders, sendFailureAlerts } from '@/lib/publish-notify';
 
 // Come le altre cron: legge gli header a ogni richiesta, quindi mai prerenderizzata.
 export const dynamic = 'force-dynamic';
@@ -41,14 +41,16 @@ export async function GET(request: NextRequest) {
 
     // Data arrivata ma senza approvazione vera (o modificato dopo): non esce, e si avvisa una volta sola.
     const blocked = blockedByApproval(approved, now);
+    // Storie con link sticker: non escono da sole, si ricorda di programmarle in Business Suite (una volta)
+    const suite = businessSuiteReminders(approved, now);
 
     outcomes = await runPublish(due, { dryRun }, started);
 
     let alertsSent = 0;
     if (!dryRun) {
-      alertsSent = (await sendFailureAlerts(failureAlerts(outcomes))) + (await sendBlockedAlerts(blocked, now));
+      alertsSent = (await sendFailureAlerts(failureAlerts(outcomes))) + (await sendBlockedAlerts(blocked, now)) + (await sendBusinessSuiteReminders(suite, now));
     }
-    return NextResponse.json({ ok: true, dryRun, due: due.length, blocked, alertsSent, skippedTooLate: skippedLate, outcomes, elapsedMs: Date.now() - started });
+    return NextResponse.json({ ok: true, dryRun, due: due.length, blocked, businessSuite: suite.map((s) => s.contentId), alertsSent, skippedTooLate: skippedLate, outcomes, elapsedMs: Date.now() - started });
   } catch (error: any) {
     console.error('[cron/publish-scheduled]', error);
     return NextResponse.json({ ok: false, error: error?.message || 'Errore', outcomes }, { status: 500 });

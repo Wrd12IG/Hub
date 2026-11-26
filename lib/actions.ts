@@ -732,6 +732,19 @@ export async function updateEditorialContent(contentId: string, data: Partial<Om
     });
 }
 
+/**
+ * Storia Instagram con link sticker programmata a mano in Meta Business Suite (vedi lib/story-editor/business-suite.ts):
+ * il canale risulta fatto e la pubblicazione automatica non lo tocca più. `done=false` annulla il segno.
+ */
+export async function markStoryInBusinessSuite(contentId: string, done: boolean, byName?: string): Promise<void> {
+    await updateDoc(doc(db, 'editorialContents', contentId), {
+        'publishResults.igStories': done
+            ? cleanData({ status: 'published', via: 'business-suite', markedBy: byName, publishedAt: new Date().toISOString() })
+            : deleteField(),
+        updatedAt: Timestamp.now(),
+    });
+}
+
 export async function deleteEditorialContent(contentIds: string | string[]): Promise<void> {
     const ids = Array.isArray(contentIds) ? contentIds : [contentIds];
     await Promise.all(ids.map(id => deleteDoc(doc(db, 'editorialContents', id))));
