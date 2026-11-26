@@ -582,7 +582,7 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
                     <SelectTrigger><SelectValue placeholder="Nessun utente assegnato" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">Nessun utente assegnato</SelectItem>
-                      {[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                      {[...users].filter(u => u.role !== 'Cliente' || u.id === selectedAssignedUserId).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

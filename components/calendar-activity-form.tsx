@@ -333,7 +333,7 @@ export function CalendarActivityForm({ activity, initialDate, onSuccess, onCance
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            {[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map((user) => (
+                                            {[...users].filter(u => u.role !== 'Cliente' || u.id === field.value).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map((user) => (
                                                 <SelectItem key={user.id} value={user.id}>
                                                     {user.name || `${user.id}`}
                                                 </SelectItem>

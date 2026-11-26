@@ -119,7 +119,7 @@ export function ProductionTasksDialog({ content, client, users, currentUserId, o
                                     className={`rounded-md border bg-background p-1.5 text-sm ${p.late ? 'border-red-400' : ''}`} title={p.late ? 'La scadenza ideale era già passata' : undefined} />
                                 <select value={p.assignee} onChange={(e) => edit(p.type, { assignee: e.target.value })} className="rounded-md border bg-background p-1.5 text-sm">
                                     <option value="">Da assegnare</option>
-                                    {users.map((u) => <option key={u.id} value={u.id}>{u.name}{u.id === suggested ? ' (proposto)' : ''}</option>)}
+                                    {users.filter((u) => u.role !== 'Cliente' || u.id === p.assignee).map((u) => <option key={u.id} value={u.id}>{u.name}{u.id === suggested ? ' (proposto)' : ''}</option>)}
                                 </select>
                             </div>
                         ))}

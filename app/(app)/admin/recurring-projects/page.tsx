@@ -601,7 +601,7 @@ function RecurringProjectForm({ isOpen, onClose, onSubmit, projectTemplate, user
                 <div><Label htmlFor="description">Descrizione Progetto</Label><Textarea id="description" name="description" defaultValue={projectTemplate?.projectDetails.description} /></div>
                 <div className="grid grid-cols-2 gap-4">
                   <div><Label htmlFor="clientId">Cliente</Label><Select name="clientId" required defaultValue={projectTemplate?.projectDetails.clientId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{clients.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-                  <div><Label htmlFor="teamLeaderId">Team Leader</Label><Select name="teamLeaderId" required defaultValue={projectTemplate?.projectDetails.teamLeaderId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{users.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+                  <div><Label htmlFor="teamLeaderId">Team Leader</Label><Select name="teamLeaderId" required defaultValue={projectTemplate?.projectDetails.teamLeaderId}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{[...users].filter(u => u.role !== 'Cliente' || u.id === projectTemplate?.projectDetails.teamLeaderId).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -714,7 +714,7 @@ function TaskTemplateForm({ isOpen, onClose, onSubmit, task, users, activityType
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><Label htmlFor="activityType">Tipo Attività</Label><Select name="activityType" required defaultValue={task?.activityType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{activityTypes.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(at => <SelectItem key={at.id} value={at.name}>{at.name}</SelectItem>)}</SelectContent></Select></div>
-            <div><Label htmlFor="assignedUserId">Assegna a</Label><Select name="assignedUserId" defaultValue={task?.assignedUserId || undefined}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{users.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label htmlFor="assignedUserId">Assegna a</Label><Select name="assignedUserId" defaultValue={task?.assignedUserId || undefined}><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger><SelectContent>{[...users].filter(u => u.role !== 'Cliente' || u.id === task?.assignedUserId).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div className="space-y-2 pt-4 border-t">
             <Label className="text-base font-medium">Scadenza Task</Label>

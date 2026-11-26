@@ -1781,7 +1781,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                         <SelectTrigger id="user-filter"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">Tutti gli Utenti</SelectItem>
-                                            {[...users].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                            {[...users].filter(u => u.role !== 'Cliente').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'it', { sensitivity: 'base' })).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 </div>
