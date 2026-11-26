@@ -71,6 +71,11 @@ export function bypassApproval(byName: string, now: Date, requestedBy?: string, 
 /** Ciò che il cliente approva: testo, media e canali. Non la data (spostare un post approvato non lo rende un altro post). */
 const FINGERPRINT_FIELDS = ['copy', 'hashtags', 'mentions', 'storyLink', 'imageUrls', 'videoUrl', 'coverUrl', 'storyMedia',
     'facebook', 'instagram', 'igStories', 'fbStories', 'linkedin', 'tiktok', 'youtube', 'gbp'] as const;
+/**
+ * Campi aggiunti dopo: entrano nell'impronta SOLO se valorizzati, così l'impronta dei contenuti già approvati non cambia
+ * (altrimenti risulterebbero tutti «modificati dopo l'approvazione» e non uscirebbero più).
+ */
+const OPTIONAL_FINGERPRINT_FIELDS = ['storyLinkStickers'] as const;
 
 /** Impronta stabile (cyrb53) dei campi approvati. Non è crittografica: serve solo a notare che qualcosa è cambiato. */
 export function contentFingerprint(c: Partial<EditorialContent>): string {
@@ -79,6 +84,10 @@ export function contentFingerprint(c: Partial<EditorialContent>): string {
         const v = (c as Record<string, unknown>)[f];
         // vuoto, assente e falso sono la stessa cosa: un campo che si svuota non deve cambiare l'impronta per sbaglio
         o[f] = v === undefined || v === null || v === false || v === '' || (Array.isArray(v) && v.length === 0) ? null : v;
+    }
+    for (const f of OPTIONAL_FINGERPRINT_FIELDS) {
+        const v = (c as Record<string, unknown>)[f];
+        if (!(v === undefined || v === null || v === false || v === '' || (Array.isArray(v) && v.length === 0))) o[f] = v;
     }
     const str = JSON.stringify(o);
     let h1 = 0xdeadbeef, h2 = 0x41c6ce57;

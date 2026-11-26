@@ -9,6 +9,7 @@ import { MAX_ATTEMPTS } from './publisher';
 import { approvalGate } from './content-approval';
 import { scheduledInstant, MAX_OVERDUE_MS } from './publisher';
 import type { EditorialContent } from './data';
+import { needsBusinessSuite } from './story-editor/business-suite';
 
 export interface OutcomeLike {
     contentId: string; topic?: string; clientId?: string; clientName?: string; channel: string; result: string; attempts?: number;
@@ -41,6 +42,31 @@ export function blockedByApproval(contents: EditorialContent[], now: Date): Bloc
         // già avvisato per lo stesso motivo: non si ripete ogni 10 minuti
         if (c.publishAlert?.kind === gate.reason) continue;
         out.push({ contentId: c.id, clientId: c.clientId, topic: c.topic || 'post', reason: gate.reason, message: gate.message });
+    }
+    return out;
+}
+
+export interface SuiteAlert { contentId: string; clientId: string; topic: string; publicationDate?: string }
+
+/** Promemoria in anticipo: oltre questa distanza dalla data non si avvisa ancora (la storia si programma più avanti). */
+export const SUITE_REMINDER_AHEAD_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Storie Instagram con link sticker approvate davvero e non ancora programmate: non escono da sole (vedi
+ * lib/story-editor/business-suite.ts), quindi si ricorda una volta a chi segue il cliente di programmarle in Business Suite,
+ * a partire da una settimana prima della data e fino a quando il contenuto smette di essere pubblicabile.
+ */
+export function businessSuiteReminders(contents: EditorialContent[], now: Date): SuiteAlert[] {
+    const out: SuiteAlert[] = [];
+    for (const c of contents) {
+        if (!needsBusinessSuite(c) || c.publishResults?.igStories?.status === 'published') continue;
+        if (!approvalGate(c).ok) continue;
+        const at = scheduledInstant(c.publicationDate);
+        if (!at) continue;
+        const delta = at.getTime() - now.getTime();
+        if (delta > SUITE_REMINDER_AHEAD_MS || -delta > MAX_OVERDUE_MS) continue;
+        if (c.publishAlert?.kind === 'business-suite') continue;
+        out.push({ contentId: c.id, clientId: c.clientId, topic: c.topic || 'storia', publicationDate: c.publicationDate });
     }
     return out;
 }

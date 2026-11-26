@@ -105,7 +105,7 @@ export function PropertiesPanel({ slide, layer, onSelect, onUpdate, onDuplicate,
                                     <input className={inputCls} value={o} onChange={(e) => set({ options: layer.options.map((x, j) => (j === i ? e.target.value : x)) } as Partial<Layer>, `opt:${layer.id}:${i}`)} />
                                 </Field>
                             ))}
-                            <p className="text-[11px] text-amber-300">{layer.sticker === 'countdown' ? 'La storia è un\'immagine ferma: qui si scrive la data. Il conto alla rovescia che scorre si aggiunge dall\'app di Instagram, con la stessa data.' : 'Disegnato nella storia, non cliccabile: aggiungi lo sticker vero dall\'app prima di pubblicare.'}</p>
+                            <p className="text-[11px] text-amber-300">{layer.sticker === 'countdown' ? 'La storia è un\'immagine ferma: qui si scrive la data. Il conto alla rovescia che scorre si aggiunge dall\'app di Instagram, con la stessa data.' : layer.sticker === 'link' ? 'Segnaposto del link vero: nell\'immagine finale non viene disegnato. La storia si programma dal «Kit Business Suite» nel PED, dove aggiungi lo sticker link cliccabile in questa zona.' : 'Disegnato nella storia, non cliccabile: aggiungi lo sticker vero dall\'app prima di pubblicare.'}</p>
                         </div>
                     )}
                     {layer.type === 'image' && (

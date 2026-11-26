@@ -10,6 +10,7 @@ import type { StoryDesign } from '@/lib/story-editor/types';
 import { buildStoryMedia, isVideoSlide, type StoryMediaItem } from '@/lib/story-editor/animation';
 import { renderSlideToJpeg } from './export';
 import { renderSlideToMp4, videoExportSupported } from './export-video';
+import { withoutLinkStickers } from '@/lib/story-editor/business-suite';
 
 export interface StoryFiles {
     imageUrls: string[];
@@ -24,7 +25,9 @@ export async function buildStoryFiles(args: {
     upload: (files: File[], folder: string) => Promise<string[]>;
     onProgress: (message: string) => void;
 }): Promise<StoryFiles> {
-    const { design, upload, onProgress } = args;
+    const { upload, onProgress } = args;
+    // Lo sticker link non si disegna: al suo posto va lo sticker vero, aggiunto in Business Suite
+    const design = withoutLinkStickers(args.design);
     const slides = design.slides;
     const total = slides.length;
     const stamp = Date.now();

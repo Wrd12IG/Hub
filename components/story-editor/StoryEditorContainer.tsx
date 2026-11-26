@@ -23,6 +23,7 @@ import { runAfterSave } from './after-save';
 import { authFetch } from '@/lib/client-api-auth';
 import { canBypassApproval } from '@/lib/content-approval';
 import { rememberLocalFile } from './local-media';
+import { linkStickersOf, normalizeLink } from '@/lib/story-editor/business-suite';
 import type { UploadedMedia } from './panels';
 
 function imageSize(file: File): Promise<{ width: number; height: number }> {
@@ -107,19 +108,22 @@ export default function StoryEditorContainer({ clientId }: { clientId: string })
             upload: async (files, folder) => (await uploadFilesAndGetAttachments(files, folder, userId)).map((a) => a.url),
         });
         const storyData = serializeDesign(d);
+        const storyLinkStickers = linkStickersOf(d, storyLink);
+        // Il link generale: quello scritto, altrimenti il primo sticker (serve al PED e all'anteprima per il cliente)
+        const mainLink = normalizeLink(storyLink) || storyLinkStickers[0]?.url || '';
 
         onProgress('Salvo nel PED…');
         let savedId = contentId;
         if (contentId) {
             await updateEditorialContent(contentId, {
-                topic: title, igStories, fbStories, imageUrls, storyMedia, storyData, storyLink, publicationDate,
+                topic: title, igStories, fbStories, imageUrls, storyMedia, storyData, storyLink: mainLink, storyLinkStickers, publicationDate,
                 ...(wasSent ? { status: 'Bozza', approval: null as any } : {}),
             });
         } else {
             const id = await addEditorialContent({
                 topic: title, clientId, format: 'Storia', status: 'Bozza',
                 facebook: false, instagram: false, linkedin: false, tiktok: false, youtube: false, gbp: false,
-                igStories, fbStories, imageUrls, storyMedia, storyData, storyLink, publicationDate, copy: '',
+                igStories, fbStories, imageUrls, storyMedia, storyData, storyLink: mainLink, storyLinkStickers, publicationDate, copy: '',
             });
             savedId = id;
             setContentId(id);

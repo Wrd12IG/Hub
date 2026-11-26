@@ -331,7 +331,7 @@ export function StoryEditor({ clientId, clientName, backHref, initialDesign, ini
                                         <span className="text-xs font-semibold text-slate-300">Link della storia</span>
                                         <input type="url" value={storyLink} onChange={(e) => setStoryLink(e.target.value)} placeholder="https://…"
                                             className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm outline-none focus:border-sky-500" />
-                                        <span className="block text-[11px] text-slate-400">Resta salvato nel contenuto. Lo sticker Link vero lo aggiungi dall&apos;app di Instagram: l&apos;adesivo disegnato non è cliccabile.</span>
+                                        <span className="block text-[11px] text-slate-400">Con un link la storia non esce da sola: dal PED apri il «Kit Business Suite» e la programmi lì con lo sticker link vero (l&apos;API di Meta non lo pubblica). Per scegliere la slide e la zona, metti lo sticker Link sulla slide: nell&apos;immagine finale non viene disegnato.</span>
                                     </label>
                                     <button type="button" onClick={save} disabled={!!busy} className="w-full rounded-md bg-sky-500 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-sky-400 disabled:opacity-60">
                                         {busy || (afterSave === 'approve' ? 'Salva, approva e programma' : afterSave === 'request' ? 'Salva e chiedi approvazione' : 'Salva bozza')}

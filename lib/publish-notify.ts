@@ -7,7 +7,8 @@
 import { adminDb } from '@/lib/firebase-admin';
 import { notifyUsers } from '@/lib/server-notify';
 import { CHANNEL_LABEL } from '@/lib/content-approval';
-import type { BlockedAlert, FailureAlert } from '@/lib/publish-alerts';
+import type { BlockedAlert, FailureAlert, SuiteAlert } from '@/lib/publish-alerts';
+import { scheduledInstant } from '@/lib/publisher';
 
 async function recipients(clientId?: string): Promise<string[]> {
     const ids = new Set<string>();
@@ -52,6 +53,27 @@ export async function sendBlockedAlerts(alerts: BlockedAlert[], now: Date): Prom
             });
             // Si ricorda il motivo: lo stesso avviso non si ripete ad ogni giro della cron
             await adminDb.collection('editorialContents').doc(a.contentId).update({ publishAlert: { kind: a.reason, at: now.toISOString() } });
+            sent++;
+        } catch (e) { console.error('[publish-notify] errore', e); }
+    }
+    return sent;
+}
+
+/** Storie con link sticker da programmare in Meta Business Suite: un promemoria per contenuto. */
+export async function sendBusinessSuiteReminders(alerts: SuiteAlert[], now: Date): Promise<number> {
+    let sent = 0;
+    for (const a of alerts) {
+        try {
+            const client = await adminDb.collection('clients').doc(a.clientId).get();
+            const at = scheduledInstant(a.publicationDate);
+            const when = at ? new Intl.DateTimeFormat('it-IT', { timeZone: 'Europe/Rome', weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }).format(at) : 'la data prevista';
+            await notifyUsers(await recipients(a.clientId), {
+                title: '🔗 Storia da programmare in Business Suite',
+                text: `La storia "${a.topic}" di ${String(client.get('name') ?? 'cliente')} ha il link sticker e non esce da sola: programmala in Meta Business Suite per ${when} (PED → Kit Business Suite).`,
+                type: 'editorial_publish_blocked', category: 'editorial', priority: 'high',
+                link: `/clients/${a.clientId}/editorial-plan`, resourceId: a.contentId, resourceType: 'editorial_content',
+            });
+            await adminDb.collection('editorialContents').doc(a.contentId).update({ publishAlert: { kind: 'business-suite', at: now.toISOString() } });
             sent++;
         } catch (e) { console.error('[publish-notify] errore', e); }
     }

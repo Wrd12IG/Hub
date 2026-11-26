@@ -18,7 +18,7 @@ import { executeAction } from '@/lib/windsor-client';
 import { executeWithRetry } from '@/lib/publish-retry';
 import {
   requestedChannels, planChannel, extractPostRef, allAutomatedPublished,
-  MAX_ATTEMPTS, STALE_PUBLISHING_MS, UNSUPPORTED_CHANNELS,
+  MAX_ATTEMPTS, STALE_PUBLISHING_MS, MANUAL_BUSINESS_SUITE, manualChannelReason,
 } from '@/lib/publisher';
 import type { ChannelPublishState, EditorialContent, PublishChannel } from '@/lib/data';
 
@@ -59,10 +59,11 @@ export async function runPublish(due: EditorialContent[], opts: RunOptions, star
       const prev = content.publishResults?.[channel];
       if (prev?.status === 'published') continue;
 
-      if (UNSUPPORTED_CHANNELS.includes(channel)) {
-        if (prev?.status !== 'unsupported') {
-          outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, clientName: client?.name, publicationDate: content.publicationDate, channel, result: 'non automatizzato' });
-          if (!dryRun) await ref.update({ [`publishResults.${channel}`]: clean<ChannelPublishState>({ status: 'unsupported', error: 'Da pubblicare a mano: canale non ancora automatizzato' }) });
+      const manual = manualChannelReason(content, channel);
+      if (manual) {
+        if (prev?.status !== 'unsupported' || prev.error !== manual) {
+          outcomes.push({ contentId: content.id, topic: content.topic, clientId: content.clientId, clientName: client?.name, publicationDate: content.publicationDate, channel, result: manual === MANUAL_BUSINESS_SUITE ? 'da Business Suite (link sticker)' : 'non automatizzato' });
+          if (!dryRun) await ref.update({ [`publishResults.${channel}`]: clean<ChannelPublishState>({ status: 'unsupported', error: manual }) });
         }
         continue;
       }

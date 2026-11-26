@@ -491,6 +491,9 @@ export interface ChannelPublishState {
     doneAccounts?: string[];
     lastAttemptAt?: string;
     publishedAt?: string;
+    /** Programmato a mano fuori dal Hub (storie con link sticker in Meta Business Suite): chi e quando. */
+    via?: 'business-suite';
+    markedBy?: string;
 }
 
 export type PublishResults = Partial<Record<PublishChannel, ChannelPublishState>>;
@@ -532,8 +535,10 @@ export interface EditorialContent {
     tags?: string;
     /** Menzioni (@): idem. */
     mentions?: string;
-    /** Link delle storie. Windsor non pubblica l'adesivo link: va aggiunto a mano sulla storia. */
+    /** Link delle storie. L'API di Meta non pubblica il link sticker: una storia con link si programma da Business Suite (lib/story-editor/business-suite.ts). */
     storyLink?: string;
+    /** Link sticker per slide (dagli sticker «link» dell'editor): slide da 0, indirizzo e zona dove metterlo in Business Suite. */
+    storyLinkStickers?: { slide: number; url: string; area?: 'alto' | 'centro' | 'basso' }[];
     /** Progetto dell'editor delle storie (testo JSON: lib/story-editor/serialize.ts), per riaprirlo e modificarlo. */
     storyData?: string;
     /**

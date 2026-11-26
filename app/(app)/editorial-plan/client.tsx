@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/card';
 import { getEditorialContents, addEditorialContent, updateEditorialContent, deleteEditorialContent, getEditorialFormats, getEditorialColumns, getEditorialStatuses, addTask, addProject, uploadFilesAndGetAttachments } from '@/lib/actions';
 import type { EditorialContent, ChannelPublishState, Client, EditorialFormat, EditorialColumn, EditorialStatus, User, Task, Project, ActivityType } from '@/lib/data';
-import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send, Wand2 } from 'lucide-react';
+import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send, Wand2, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -45,6 +45,8 @@ import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react'
 import { FileUploader } from '@/components/file-uploader';
 import { extractVideoFrame } from '@/lib/video-frame';
 import { ProductionTasksDialog } from '@/components/ProductionTasksDialog';
+import { BusinessSuiteKitDialog } from '@/components/BusinessSuiteKitDialog';
+import { needsBusinessSuite } from '@/lib/story-editor/business-suite';
 import { ProposalDialog } from '@/components/ped-plan/ProposalDialog';
 import { parseProposal } from '@/lib/ped-plan/to-ped';
 import { ImportTaskMediaDialog } from '@/components/ImportTaskMediaDialog';
@@ -266,8 +268,9 @@ const PUBLISH_DOT: Record<string, { color: string; label: string }> = {
 /** Puntino dell'esito di pubblicazione per canale; nessun puntino se non è mai stato tentato. */
 const PublishStateDot = ({ state }: { state?: ChannelPublishState }) => {
     if (!state) return null;
-    const dot = PUBLISH_DOT[state.status];
-    const detail = state.status === 'failed' && state.error ? `: ${state.error}` : '';
+    const viaSuite = state.status === 'published' && state.via === 'business-suite';
+    const dot = viaSuite ? { color: 'bg-sky-500', label: `Programmata in Business Suite${state.markedBy ? ` (${state.markedBy})` : ''}` } : PUBLISH_DOT[state.status];
+    const detail = (state.status === 'failed' || state.status === 'unsupported') && state.error ? `: ${state.error}` : '';
     return (
         <span className="mb-1 flex justify-center" title={`${dot.label}${detail}`}>
             {state.postUrl
@@ -277,7 +280,7 @@ const PublishStateDot = ({ state }: { state?: ChannelPublishState }) => {
     );
 };
 
-const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishNow, onOpenProduction, onViewProposal, onImportMedia, isPublishing }: {
+const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, onDelete, onAddContent, tasksById, projectsById, editorialColumns, onPublishNow, onOpenProduction, onViewProposal, onImportMedia, onOpenKit, isPublishing }: {
     contents: EditorialContent[],
     clientsById: Record<string, Client>,
     statuses: EditorialStatus[],
@@ -292,6 +295,7 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
     onOpenProduction: (content: EditorialContent) => void,
     onViewProposal: (content: EditorialContent) => void,
     onImportMedia: (content: EditorialContent) => void,
+    onOpenKit: (content: EditorialContent) => void,
     isPublishing: Record<string, boolean>,
 }) => {
     const contentsByStatus = useMemo(() => {
@@ -390,6 +394,11 @@ const KanbanView = ({ contents, clientsById, statuses, onStatusChange, onEdit, o
                                                         <DropdownMenuItem disabled={linkedTaskIds(content).length === 0} onClick={() => onImportMedia(content)}>
                                                             <ImageIcon className="mr-2 h-4 w-4" /> Importa media dai task
                                                         </DropdownMenuItem>
+                                                        {needsBusinessSuite(content) && (
+                                                            <DropdownMenuItem onClick={() => onOpenKit(content)}>
+                                                                <Link2 className="mr-2 h-4 w-4" /> Kit Business Suite (storia con link)
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         <DropdownMenuSeparator />
                                                         <DropdownMenuItem onClick={() => onEdit(content)}>
                                                             <Edit className="mr-2 h-4 w-4" /> Modifica
@@ -753,6 +762,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
     const [nestedModal, setNestedModal] = useState<NestedModalState>(null);
     const [formDataForNested, setFormDataForNested] = useState<ContentFormData | null>(null);
     const [productionContent, setProductionContent] = useState<EditorialContent | null>(null);
+    const [kitContent, setKitContent] = useState<EditorialContent | null>(null);
     const [proposalContent, setProposalContent] = useState<EditorialContent | null>(null);
     const [importContent, setImportContent] = useState<EditorialContent | null>(null);
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
@@ -1551,6 +1561,11 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                                                                 <DropdownMenuItem disabled={linkedTaskIds(content).length === 0} onClick={() => setImportContent(content)}>
                                                                     <ImageIcon className="mr-2 h-4 w-4" /> Importa media dai task
                                                                 </DropdownMenuItem>
+                                                                {needsBusinessSuite(content) && (
+                                                                    <DropdownMenuItem onClick={() => setKitContent(content)}>
+                                                                        <Link2 className="mr-2 h-4 w-4" /> Kit Business Suite (storia con link)
+                                                                    </DropdownMenuItem>
+                                                                )}
                                                                 {content.storyData && (
                                                                     <DropdownMenuItem onClick={() => router.push(`/clients/${content.clientId}/stories/new?draftId=${content.id}`)}>
                                                                         <Wand2 className="mr-2 h-4 w-4" /> Apri nell'editor storie
@@ -1596,12 +1611,13 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                 </Card>
             )}
 
-            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishNow={handlePublishNow} onOpenProduction={setProductionContent} onViewProposal={setProposalContent} onImportMedia={setImportContent} isPublishing={isPublishing} />}
+            {view === 'kanban' && <KanbanView contents={filteredContents} clientsById={clientsById} statuses={editorialStatuses} onStatusChange={handleStatusChange} onEdit={handleOpenEditModal} onDelete={(content) => setContentToDelete(content)} onAddContent={handleOpenCreateModal} tasksById={tasksById} projectsById={projectsById} editorialColumns={editorialColumns} onPublishNow={handlePublishNow} onOpenProduction={setProductionContent} onViewProposal={setProposalContent} onImportMedia={setImportContent} onOpenKit={setKitContent} isPublishing={isPublishing} />}
 
             {view === 'calendar' && <CalendarView contents={filteredContents} clientsById={clientsById} onEdit={handleOpenEditModal} onReschedule={handleReschedule} />}
 
             {view === 'gantt' && <GanttView contents={filteredContents} clients={clients} users={users} onEdit={handleOpenEditModal} />}
             <ProposalDialog content={proposalContent} onClose={() => setProposalContent(null)} />
+            <BusinessSuiteKitDialog content={kitContent} client={kitContent ? clientsById[kitContent.clientId] : undefined} currentUserName={currentUser?.name} onClose={() => setKitContent(null)} onChanged={() => fetchData()} />
             <ProductionTasksDialog content={productionContent} client={productionContent ? clientsById[productionContent.clientId] : undefined} users={users} currentUserId={currentUser?.id} onClose={() => setProductionContent(null)} onCreated={() => { fetchData(); refetchData('tasks'); }} />
             <ImportTaskMediaDialog content={importContent} tasks={importContent ? linkedTaskIds(importContent).map(id => tasksById[id]).filter(Boolean) : []} onClose={() => setImportContent(null)} onImported={fetchData} />
 
@@ -2218,7 +2234,7 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                                         <div className="space-y-1.5 col-span-2">
                                             <Label className="text-xs text-muted-foreground">Link della storia</Label>
                                             <Input id="storyLink" name="storyLink" type="url" defaultValue={editingContent?.storyLink} placeholder="https://…" className="h-8 text-sm" />
-                                            <p className="text-[11px] text-muted-foreground">Il link resta salvato qui: l&apos;adesivo link sulla storia va aggiunto a mano, Windsor non lo pubblica.</p>
+                                            <p className="text-[11px] text-muted-foreground">Con un link la storia Instagram non esce da sola (l&apos;API di Meta non pubblica il link sticker): si programma da Meta Business Suite con il «Kit Business Suite». Senza sticker nell&apos;editor, il link va sull&apos;ultima slide.</p>
                                         </div>
                                     )}
                                     
