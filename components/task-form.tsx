@@ -861,7 +861,7 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                     </FormControl>
                                     <SelectContent>
                                         <SelectItem value="nessuno">Nessuno</SelectItem>
-                                        {[...users].sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map((user: User) => (
+                                        {[...users].filter(u => u.role !== 'Cliente' || u.id === field.value).sort((a, b) => (a.name || "").localeCompare(b.name || "", "it")).map((user: User) => (
                                             <SelectItem key={user.id} value={user.id}>
                                                 {user.name}
                                             </SelectItem>
