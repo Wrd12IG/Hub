@@ -40,7 +40,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { getAuthHeaders } from '@/lib/client-api-auth';
 import { useToast } from '@/hooks/use-toast';
 import { saveAs } from 'file-saver';
-import { addTask, addEditorialContent, updateTask } from '@/lib/actions';
+import { addTask, addEditorialContent, updateEditorialContent } from '@/lib/actions';
+import { proposeProduction } from '@/lib/content-production';
+import { parseStrategyDay, productionTypesForMedia, channelsFromPlatform } from '@/lib/strategy-to-ped';
 
 interface SocialStrategyResultsProps {
     result: {
@@ -66,12 +68,14 @@ interface SocialStrategyResultsProps {
     clientName?: string;
     clientId?: string;
     userId?: string;
+    /** Id della strategia salvata: il contenuto nel PED ricorda da dove viene. */
+    strategyId?: string;
     periodLabel?: string;
     toneOfVoice?: string;
 }
 
 
-export function SocialStrategyResults({ result, clientName, clientId, userId, periodLabel, toneOfVoice }: SocialStrategyResultsProps) {
+export function SocialStrategyResults({ result, clientName, clientId, userId, strategyId, periodLabel, toneOfVoice }: SocialStrategyResultsProps) {
     const { toast } = useToast();
     const [emailText, setEmailText] = useState(result.testo_email);
     const [expandedIdea, setExpandedIdea] = useState<number | null>(null);
@@ -316,92 +320,61 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
         setIsSaving(prev => ({ ...prev, [index]: true }));
 
         try {
-            // 1. Create Task for Media Production
-            const taskTitle = `[Produzione Media] ${item.topic}`;
-            const taskDescription = brief
+            // Strategia → Piano editoriale → task: prima il contenuto con la sua data di uscita,
+            // poi i task di produzione calcolati all'indietro da quella data (lib/content-production).
+            const publicationDate = parseStrategyDay(item.giorno);
+            const productionBrief = brief
                 ? `Tipo Media: ${brief.tipo_media}\n\nVisione Creativa: ${brief.descrizione_creativa}\n\nStruttura:\n${brief.struttura.map((s: any) => `- ${s.elemento}: ${s.dettagli}`).join('\n')}\n\nNote Tecniche: ${brief.note_tecniche}`
-                : `Produzione media per post: ${item.topic}\nFormato richiesto: ${mediaType}`;
-
-            // Calcola la dueDate dalla data del post (item.giorno).
-            // L'AI produce formati come "Lunedì 1", "Martedì 15", "Lunedì 3 Marzo", "2024-03-01".
-            // new Date() non riesce a parsare "Lunedì 1" → NaN → fallback robusto.
-            const parseDueDate = (giorno: string): string => {
-                if (!giorno) return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-                // 1. ISO o formato internazionale: "2024-03-15", "15/03/2024"
-                const iso = new Date(giorno.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1'));
-                if (!isNaN(iso.getTime()) && iso.getFullYear() > 2000) return iso.toISOString();
-
-                // 2. Formato AI: "Lunedì 1", "Martedì 15 Marzo", "Mercoledì 3"
-                const mesiIT: Record<string, number> = {
-                    gennaio: 0, febbraio: 1, marzo: 2, aprile: 3, maggio: 4, giugno: 5,
-                    luglio: 6, agosto: 7, settembre: 8, ottobre: 9, novembre: 10, dicembre: 11
-                };
-                const lower = giorno.toLowerCase();
-                const dayMatch = lower.match(/\b(\d{1,2})\b/);
-                const monthMatch = Object.keys(mesiIT).find(m => lower.includes(m));
-
-                const dayNum = dayMatch ? parseInt(dayMatch[1], 10) : null;
-                const now = new Date();
-
-                if (dayNum && dayNum >= 1 && dayNum <= 31) {
-                    const monthIdx = monthMatch !== undefined ? mesiIT[monthMatch] : now.getMonth();
-                    let year = now.getFullYear();
-                    // Se il mese indicato è già passato quest'anno, usa l'anno prossimo
-                    if (monthIdx < now.getMonth() || (monthIdx === now.getMonth() && dayNum < now.getDate())) {
-                        if (!monthMatch) {
-                            // Senza mese esplicito: usa il mese prossimo se il giorno è passato
-                            const candidate = new Date(year, now.getMonth(), dayNum);
-                            if (candidate < now) candidate.setMonth(candidate.getMonth() + 1);
-                            return candidate.toISOString();
-                        }
-                        year += 1;
-                    }
-                    const candidate = new Date(year, monthIdx, dayNum);
-                    if (!isNaN(candidate.getTime())) return candidate.toISOString();
-                }
-
-                // 3. Fallback: +7 giorni
-                return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-            };
-            const dueDate = parseDueDate(item.giorno);
-
-
-            const taskResult = await addTask({
-                title: taskTitle,
-                description: taskDescription,
-                clientId: clientId,
-                status: 'Da Fare',
-                priority: 'Media',
-                createdBy: userId,
-                activityType: 'social-media',
-                dueDate: dueDate,
-                estimatedDuration: mediaType === 'Video/Reel' ? 120 : mediaType === 'Storia' ? 30 : 60,
-                timeSpent: 0
-            }, userId);
+                : `Formato richiesto: ${mediaType}`;
 
             const editorialContentId = await addEditorialContent({
                 topic: item.topic,
                 clientId: clientId,
                 format: mediaType,
-                status: 'Da Programmare',
-                copy: item.caption,
-                facebook: item.piattaforma.toLowerCase().includes('facebook'),
-                instagram: item.piattaforma.toLowerCase().includes('instagram') && !item.piattaforma.toLowerCase().includes('stor'),
-                igStories: item.piattaforma.toLowerCase().includes('stor') || mediaType === 'Storia',
-                linkedin: item.piattaforma.toLowerCase().includes('linkedin'),
-                tiktok: item.piattaforma.toLowerCase().includes('tiktok'),
-                youtube: item.piattaforma.toLowerCase().includes('youtube'),
+                status: 'Bozza',
+                copy: customCaptions[index] || item.caption,
+                ...channelsFromPlatform(item.piattaforma, mediaType),
                 focus: item.cta,
-                taskId: taskResult.taskId,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                ...(publicationDate ? { publicationDate } : {}),
+                ...(strategyId ? { strategyId } : {}),
             } as any);
 
-            await updateTask(taskResult.taskId, { editorialContentId }, userId);
+            const today = new Date().toISOString().slice(0, 10);
+            const proposal = publicationDate
+                ? proposeProduction({ topic: item.topic, publicationDate }, productionTypesForMedia(mediaType), today)
+                : null;
+
+            const taskIds: string[] = [];
+            for (const p of proposal ?? []) {
+                const { taskId } = await addTask({
+                    title: p.title,
+                    description: `Task di produzione dal PED (da strategia social). Contenuto: ${item.topic}. Pubblicazione prevista: ${publicationDate}.\n\n${productionBrief}\n\nCarica qui il file finito: poi si importa nel contenuto.`,
+                    clientId: clientId,
+                    status: 'Da Fare',
+                    priority: p.late ? 'Alta' : 'Media',
+                    createdBy: userId,
+                    dueDate: new Date(`${p.dueDate}T17:00:00`).toISOString(),
+                    estimatedDuration: p.minutes,
+                    timeSpent: 0,
+                    attachments: [],
+                    comments: [],
+                    dependencies: [],
+                    editorialContentId,
+                    publicationDate: publicationDate ?? undefined,
+                }, userId);
+                taskIds.push(taskId);
+            }
+            if (taskIds.length > 0) await updateEditorialContent(editorialContentId, { taskIds, taskId: taskIds[0] });
 
             setSavedPosts(prev => ({ ...prev, [index]: true }));
-            toast({ title: 'Successo!', description: 'Post aggiunto al piano e task creato.' });
+            toast({
+                title: 'Aggiunto al Piano editoriale',
+                description: taskIds.length > 0
+                    ? `Contenuto in bozza con uscita ${publicationDate} e ${taskIds.length === 1 ? '1 task di produzione' : `${taskIds.length} task di produzione`}.`
+                    : publicationDate
+                        ? 'Contenuto in bozza. La data di uscita è già passata: nessun task creato, rivedi la data nel piano.'
+                        : 'Contenuto in bozza senza data: scegli la data nel piano, poi crea i task di produzione.',
+            });
         } catch (error) {
             console.error(error);
             toast({ title: 'Errore', description: 'Impossibile salvare il post nel piano.', variant: 'destructive' });
@@ -466,6 +439,25 @@ export function SocialStrategyResults({ result, clientName, clientId, userId, pe
                     </TabsContent>
 
                     <TabsContent value="calendario" className="mt-0">
+                        {/* Il calendario della strategia diventa il Piano editoriale del periodo in un colpo solo */}
+                        {clientId && userId && result.calendario.some((_, i) => !savedPosts[i]) && (
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 p-3">
+                                <p className="text-sm text-muted-foreground">
+                                    Porta i post nel Piano editoriale: ognuno diventa un contenuto in bozza con la sua data di uscita e i task di produzione.
+                                </p>
+                                <Button
+                                    size="sm"
+                                    disabled={Object.values(isSaving).some(Boolean)}
+                                    onClick={async () => {
+                                        for (let i = 0; i < result.calendario.length; i++) {
+                                            if (!savedPosts[i]) await handleCreateTaskAndPlan(i);
+                                        }
+                                    }}
+                                >
+                                    Aggiungi tutti al Piano editoriale
+                                </Button>
+                            </div>
+                        )}
                         <div className="grid gap-4 md:grid-cols-2">
                             {result.calendario.map((item, i) => (
                                 <Card key={i} className="overflow-hidden border-l-4 border-l-primary group">

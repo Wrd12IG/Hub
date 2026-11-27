@@ -519,6 +519,8 @@ export interface EditorialContent {
     id: string;
     topic: string;
     clientId: string;
+    /** Strategia social da cui nasce il contenuto, se c'è. */
+    strategyId?: string;
     format: string;
     status: string;
     publicationDate?: string;
