@@ -21,7 +21,9 @@ import { previousMonthKey, isMonthKey } from '@/lib/manual-kpis'
 import { ENTRY_TYPES, SOURCES, TYPE_LABEL, type EntryType, type MonthTotals } from '@/lib/dealer-kpi/types'
 import type { SyncStatus } from '@/lib/dealer-kpi/sync'
 
-type KpiPayload = { month: string; profile?: string; profileLabel?: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null; computedAt?: string; cached?: boolean }
+type KpiRange = { from: string; to: string; days: number; previousFrom: string; previousTo: string; wholeMonths: string[] | null }
+type Period = { kind: 'month'; month: string } | { kind: 'range'; from: string; to: string }
+type KpiPayload = { month: string | null; range?: KpiRange | null; profile?: string; profileLabel?: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null; computedAt?: string; cached?: boolean }
 
 type Payload = {
   clientName: string
@@ -43,6 +45,40 @@ const timeLabel = (iso?: string) => (iso ? new Date(iso).toLocaleTimeString('it-
 function defaultMonthKey(now = new Date()): string {
   if (now.getDate() === 1) return previousMonthKey(now)
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const yesterdayKey = () => { const d = new Date(); d.setDate(d.getDate() - 1); return isoDay(d) }
+const dayLabel = (iso: string, withYear = true) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('it-IT', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}) })
+const rangeLabel = (from: string, to: string) => (from === to ? dayLabel(to) : `${dayLabel(from, from.slice(0, 4) !== to.slice(0, 4))} – ${dayLabel(to)}`)
+const periodLabel = (p: Period) => (p.kind === 'month' ? monthLabel(p.month) : rangeLabel(p.from, p.to))
+const periodQuery = (p: Period) => (p.kind === 'month' ? `month=${p.month}` : `from=${p.from}&to=${p.to}`)
+const periodSlug = (p: Period) => (p.kind === 'month' ? p.month : `${p.from}_${p.to}`)
+/** I mesi interi coperti da un intervallo (dal giorno 1 all'ultimo giorno di un mese), altrimenti null. */
+function wholeMonthsOf(from: string, to: string): string[] | null {
+  const lastDay = (m: string) => new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 0).getDate()
+  if (from.slice(8) !== '01' || Number(to.slice(8)) !== lastDay(to.slice(0, 7))) return null
+  const out: string[] = []
+  let [y, m] = [Number(from.slice(0, 4)), Number(from.slice(5, 7))]
+  while (true) {
+    const key = `${y}-${String(m).padStart(2, '0')}`
+    out.push(key)
+    if (key >= to.slice(0, 7)) break
+    m++; if (m > 12) { m = 1; y++ }
+  }
+  return out
+}
+/** Somma dei totali dello Sheet di più mesi (per un intervallo di mesi interi). */
+function sumMonths(list: MonthTotals[], label: string): MonthTotals | null {
+  if (list.length === 0) return null
+  const zero = () => Object.fromEntries(ENTRY_TYPES.map((t) => [t, 0])) as Record<EntryType, number>
+  const maps = () => Object.fromEntries(ENTRY_TYPES.map((t) => [t, {}])) as Record<EntryType, Record<string, number>>
+  const out: MonthTotals = { month: label, byType: zero(), byBrand: maps(), bySource: maps() }
+  for (const m of list) for (const t of ENTRY_TYPES) {
+    out.byType[t] += m.byType[t] ?? 0
+    for (const [k, v] of Object.entries(m.byBrand?.[t] ?? {})) out.byBrand[t][k] = (out.byBrand[t][k] ?? 0) + v
+    for (const [k, v] of Object.entries(m.bySource?.[t] ?? {})) out.bySource[t][k] = (out.bySource[t][k] ?? 0) + v
+  }
+  return out
 }
 
 /** Un'icona per KPI, così la griglia si legge a colpo d'occhio. */
@@ -106,7 +142,7 @@ const TYPE_TONE: Record<EntryType, { bar: string; dot: string; icon: LucideIcon 
   vendita: { bar: 'bg-emerald-500', dot: 'bg-emerald-500', icon: Car },
 }
 
-function DeltaBadge({ k }: { k: KpiResult }) {
+function DeltaBadge({ k, prevLabel }: { k: KpiResult; prevLabel: string }) {
   if (k.value === null) return <span className="text-[11px] text-muted-foreground">{k.missing ?? 'Nessun dato'}</span>
   if (!k.vsPrev) return <span className="text-[11px] text-muted-foreground">nessun confronto</span>
   const d = k.vsPrev
@@ -114,15 +150,15 @@ function DeltaBadge({ k }: { k: KpiResult }) {
   const Icon = d.value > 0 ? TrendingUp : d.value < 0 ? TrendingDown : null
   return (
     <span className="flex flex-wrap items-center gap-1.5">
-      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${cls}`} title="Rispetto al mese prima">
+      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${cls}`} title={`Rispetto al ${prevLabel}`}>
         {Icon && <Icon className="h-3 w-3" />}{formatDelta(d, k.unit)}
       </span>
-      <span className="text-[11px] text-muted-foreground">vs mese prima{d.small ? ' · pochi dati' : ''}</span>
+      <span className="text-[11px] text-muted-foreground">vs {prevLabel}{d.small ? ' · pochi dati' : ''}</span>
     </span>
   )
 }
 
-function KpiCard({ k, featured }: { k: KpiResult; featured?: boolean }) {
+function KpiCard({ k, featured, prevLabel }: { k: KpiResult; featured?: boolean; prevLabel: string }) {
   const Icon = KPI_ICON[k.id] ?? Activity
   return (
     <div className={`group relative flex flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md ${featured ? 'ring-1 ring-primary/30' : ''}`}>
@@ -131,7 +167,7 @@ function KpiCard({ k, featured }: { k: KpiResult; featured?: boolean }) {
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-3.5 w-3.5" /></span>
       </div>
       <p className={`font-bold tabular-nums tracking-tight text-foreground ${featured ? 'text-3xl' : 'text-2xl'}`}>{k.value === null ? '—' : formatValue(k.value, k.unit)}</p>
-      <DeltaBadge k={k} />
+      <DeltaBadge k={k} prevLabel={prevLabel} />
       <p className="text-[10px] uppercase tracking-wide text-muted-foreground/80">
         {KPI_SOURCE[k.id] ?? ''}{k.kind === 'proxy' ? ` · stima (${k.proxyOf})` : ''}
       </p>
@@ -228,7 +264,9 @@ export default function DealerKpiPage() {
   const [url, setUrl] = useState('')
   const [tab, setTab] = useState('Dati')
   const [busy, setBusy] = useState<string | null>(null)
-  const [kpiMonth, setKpiMonth] = useState<string>(() => defaultMonthKey())
+  const [period, setPeriod] = useState<Period>(() => ({ kind: 'month', month: defaultMonthKey() }))
+  const [draft, setDraft] = useState<{ from: string; to: string }>(() => { const d = new Date(); d.setDate(d.getDate() - 7); return { from: isoDay(d), to: yesterdayKey() } })
+  const setKpiMonth = (m: string) => setPeriod({ kind: 'month', month: m })
   const [kpiData, setKpiData] = useState<KpiPayload | null>(null)
   const [kpiLoading, setKpiLoading] = useState(false)
   const [kpiError, setKpiError] = useState<string | null>(null)
@@ -248,11 +286,11 @@ export default function DealerKpiPage() {
   useEffect(() => { load() }, [load])
 
   // I KPI si leggono subito, in parallelo con lo Sheet: il mese di partenza è quello in corso e non dipende dai dati
-  const loadKpis = useCallback(async (month: string, fresh = false) => {
-    if (!isMonthKey(month)) return
+  const loadKpis = useCallback(async (p: Period, fresh = false) => {
+    if (p.kind === 'month' && !isMonthKey(p.month)) return
     setKpiLoading(true); setKpiError(null); setNoProfile(false)
     try {
-      const res = await authFetch(`/api/clients/${id}/dealer-kpi/kpis?month=${month}${fresh ? '&fresh=1' : ''}`)
+      const res = await authFetch(`/api/clients/${id}/dealer-kpi/kpis?${periodQuery(p)}${fresh ? '&fresh=1' : ''}`)
       const json = await res.json()
       if (!res.ok) { setNoProfile(!!json?.noProfile); throw new Error(json?.error || `Il server ha risposto ${res.status}.`) }
       setKpiData(json)
@@ -260,7 +298,7 @@ export default function DealerKpiPage() {
       setKpiData(null); setKpiError(e instanceof Error ? e.message : 'Errore')
     } finally { setKpiLoading(false) }
   }, [authFetch, id])
-  useEffect(() => { loadKpis(kpiMonth) }, [kpiMonth, loadKpis])
+  useEffect(() => { loadKpis(period) }, [period, loadKpis])
 
   const save = async () => {
     setBusy('save')
@@ -282,7 +320,7 @@ export default function DealerKpiPage() {
       const s = json.status as SyncStatus
       if (s.lastStatus === 'errore') toast.error(s.lastMessage); else toast.success(s.lastMessage)
       await load()
-      loadKpis(kpiMonth, true)
+      loadKpis(period, true)
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Errore') } finally { setBusy(null) }
   }
 
@@ -293,7 +331,22 @@ export default function DealerKpiPage() {
   const isDealer = data.kpiProfile === 'auto' || !!data.config
   const months = [...data.months].reverse()
   // Marca e provenienza del mese scelto: righe = marche (o provenienze) presenti, colonne = lead, appuntamenti, preventivi, vendite
-  const selected = data.months.find((m) => m.month === kpiMonth) ?? null
+  const rangeMonths = period.kind === 'range' ? wholeMonthsOf(period.from, period.to) : null
+  const selected: MonthTotals | null = period.kind === 'month'
+    ? data.months.find((m) => m.month === period.month) ?? null
+    : rangeMonths ? sumMonths(data.months.filter((m) => rangeMonths.includes(m.month)), rangeLabel(period.from, period.to)) : null
+  const label = periodLabel(period)
+  const prevLabel = period.kind === 'month' ? 'mese prima' : `periodo prima (${kpiData?.range ? rangeLabel(kpiData.range.previousFrom, kpiData.range.previousTo) : 'stessa durata'})`
+  const sheetNote = period.kind === 'range' && !rangeMonths
+    ? 'Lo Sheet del cliente è per mese: scegli mesi interi (dal giorno 1 all\'ultimo) per vedere lead, appuntamenti, preventivi e vendite.'
+    : 'Nessuna riga nello Sheet per questo periodo: quando il cliente lo compila (e dopo la sincronizzazione notturna o «Sincronizza ora») qui compaiono lead, appuntamenti, preventivi e vendite.'
+  const applyRange = () => {
+    if (!draft.from || !draft.to) return
+    const to = draft.to > yesterdayKey() ? yesterdayKey() : draft.to
+    const from = draft.from > to ? to : draft.from
+    setDraft({ from, to })
+    setPeriod({ kind: 'range', from, to })
+  }
   const breakdownRows = (maps: Record<EntryType, Record<string, number>> | undefined) => {
     const keys = new Set<string>()
     for (const t of ENTRY_TYPES) for (const k of Object.keys(maps?.[t] ?? {})) keys.add(k)
@@ -304,7 +357,7 @@ export default function DealerKpiPage() {
 
   const downloadCsv = () => {
     const kpis: ClientCsvKpi[] = []
-    if (kpiData && kpiData.month === kpiMonth) {
+    if (kpiData && (period.kind === 'month' ? kpiData.month === period.month : kpiData.range?.from === period.from && kpiData.range?.to === period.to)) {
       for (const g of kpiData.groups) {
         for (const kid of g.ids) {
           const k = kpiData.kpis.find((x) => x.id === kid)
@@ -317,11 +370,12 @@ export default function DealerKpiPage() {
         }
       }
     }
-    const csv = clientToCsv({ name: data.clientName, months: data.months, month: kpiMonth, kpis })
+    const months = period.kind === 'range' && selected ? [...data.months, selected] : data.months
+    const csv = clientToCsv({ name: data.clientName, months, month: period.kind === 'month' ? period.month : selected?.month ?? null, kpis })
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
     const a = document.createElement('a')
     const slug = data.clientName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'cliente'
-    a.href = url; a.download = `kpi-${slug}-${kpiMonth}.csv`; a.click()
+    a.href = url; a.download = `kpi-${slug}-${periodSlug(period)}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -340,16 +394,30 @@ export default function DealerKpiPage() {
             <h1 className="mt-1 truncate text-2xl font-extrabold tracking-tight text-foreground">{data.clientName}</h1>
             <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">
               {isDealer
-                ? 'Sito, campagne, Google Maps, lead e vendite per marca e provenienza, costo per lead: tutto in una pagina, confrontato con il mese prima. Il CSV scarica lo stesso report.'
+                ? 'Sito, campagne, Google Maps, lead e vendite per marca e provenienza, costo per lead: tutto in una pagina, per mese o per un intervallo di giorni, confrontato con il periodo prima. Il CSV scarica lo stesso report.'
                 : `I KPI di un cliente «${kpiData?.profileLabel ?? 'del suo profilo'}»: sito, campagne e canali collegati, con il confronto sul mese prima e sull'anno scorso.`}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm">
-              <CalendarDays className="h-4 w-4 text-muted-foreground" />
-              <input type="month" value={kpiMonth} onChange={(e) => e.target.value && setKpiMonth(e.target.value)} className="bg-transparent text-sm font-medium text-foreground outline-none" aria-label="Mese del report" />
-            </label>
-            <button type="button" onClick={() => loadKpis(kpiMonth, true)} disabled={kpiLoading} className={btn} title={kpiData?.computedAt ? `Dati letti alle ${timeLabel(kpiData.computedAt)}: rileggi le piattaforme adesso` : 'Rileggi le piattaforme adesso'}>
+            <div className="inline-flex h-9 items-center rounded-lg border border-border bg-background p-0.5 text-xs font-medium" role="tablist" aria-label="Tipo di periodo">
+              <button type="button" role="tab" aria-selected={period.kind === 'month'} onClick={() => period.kind !== 'month' && setPeriod({ kind: 'month', month: defaultMonthKey() })} className={`h-full rounded-md px-2.5 transition-colors ${period.kind === 'month' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Mese</button>
+              <button type="button" role="tab" aria-selected={period.kind === 'range'} onClick={() => period.kind !== 'range' && applyRange()} className={`h-full rounded-md px-2.5 transition-colors ${period.kind === 'range' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Giorni</button>
+            </div>
+            {period.kind === 'month' ? (
+              <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm">
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <input type="month" value={period.month} onChange={(e) => e.target.value && setKpiMonth(e.target.value)} className="bg-transparent text-sm font-medium text-foreground outline-none" aria-label="Mese del report" />
+              </label>
+            ) : (
+              <form className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-2 text-sm" onSubmit={(e) => { e.preventDefault(); applyRange() }}>
+                <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                <input type="date" value={draft.from} max={yesterdayKey()} onChange={(e) => setDraft((d) => ({ ...d, from: e.target.value }))} className="bg-transparent text-sm font-medium text-foreground outline-none" aria-label="Dal giorno" />
+                <span className="text-muted-foreground">→</span>
+                <input type="date" value={draft.to} max={yesterdayKey()} onChange={(e) => setDraft((d) => ({ ...d, to: e.target.value }))} className="bg-transparent text-sm font-medium text-foreground outline-none" aria-label="Al giorno" />
+                <button type="submit" className="ml-1 h-7 rounded-md bg-primary/10 px-2 text-xs font-semibold text-primary hover:bg-primary/20" disabled={!draft.from || !draft.to || (draft.from === (period as { from?: string }).from && draft.to === (period as { to?: string }).to)}>Applica</button>
+              </form>
+            )}
+            <button type="button" onClick={() => loadKpis(period, true)} disabled={kpiLoading} className={btn} title={kpiData?.computedAt ? `Dati letti alle ${timeLabel(kpiData.computedAt)}: rileggi le piattaforme adesso` : 'Rileggi le piattaforme adesso'}>
               <RefreshCw className={`h-4 w-4 ${kpiLoading ? 'animate-spin' : ''}`} /> Aggiorna
             </button>
             {isDealer && (
@@ -383,12 +451,12 @@ export default function DealerKpiPage() {
       {isDealer && (
         <section className="space-y-2">
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-sm font-extrabold tracking-tight">Il percorso di <span className="capitalize">{monthLabel(kpiMonth)}</span></h2>
+            <h2 className="text-sm font-extrabold tracking-tight">Il percorso di <span className="capitalize">{label}</span></h2>
             <p className="text-xs text-muted-foreground">dallo Sheet del cliente</p>
           </div>
           {selected ? <FunnelStrip totals={selected} /> : (
             <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-              Nessuna riga nello Sheet per questo mese: quando il cliente lo compila (e dopo la sincronizzazione notturna o «Sincronizza ora») qui compaiono lead, appuntamenti, preventivi e vendite.
+              {sheetNote}
             </p>
           )}
         </section>
@@ -397,7 +465,7 @@ export default function DealerKpiPage() {
       {/* KPI dalle piattaforme */}
       <section className="space-y-3">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-sm font-extrabold tracking-tight">KPI di <span className="capitalize">{monthLabel(kpiMonth)}</span></h2>
+          <h2 className="text-sm font-extrabold tracking-tight">KPI di <span className="capitalize">{label}</span>{kpiData?.range && !kpiLoading ? <span className="ml-2 text-xs font-normal text-muted-foreground">{kpiData.range.days} {kpiData.range.days === 1 ? 'giorno' : 'giorni'}</span> : null}</h2>
           <p className="text-xs text-muted-foreground">dalle piattaforme collegate in Setup API{kpiData?.computedAt && !kpiLoading ? ` · letti alle ${timeLabel(kpiData.computedAt)}` : ''}</p>
         </div>
         {kpiLoading && (
@@ -422,7 +490,7 @@ export default function DealerKpiPage() {
                 <div key={g.label} className="space-y-2">
                   {!primary && <h3 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"><span className="h-px w-4 bg-border" />{g.label}</h3>}
                   <div className={`grid grid-cols-2 gap-3 ${primary ? 'md:grid-cols-3 xl:grid-cols-4' : 'md:grid-cols-4 xl:grid-cols-5'}`}>
-                    {items.map((k) => <KpiCard key={k.id} k={k} featured={primary && (k.id === 'leads_real' || k.id === 'cost_per_lead_total' || k.id === 'sales')} />)}
+                    {items.map((k) => <KpiCard key={k.id} k={k} prevLabel={prevLabel} featured={primary && (k.id === 'leads_real' || k.id === 'cost_per_lead_total' || k.id === 'sales')} />)}
                   </div>
                 </div>
               )
@@ -444,7 +512,7 @@ export default function DealerKpiPage() {
               <p className="text-xs text-muted-foreground">chi compra cosa, e da dove arriva</p>
             </div>
             {!selected ? (
-              <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nessuna riga nello Sheet per questo mese.</p>
+              <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">{sheetNote}</p>
             ) : (
               <div className="grid gap-3 lg:grid-cols-2">
                 <BreakdownCard title="Per marca" icon={Car} rows={breakdownRows(selected.byBrand)} totals={selected} />
@@ -472,7 +540,7 @@ export default function DealerKpiPage() {
                   </thead>
                   <tbody>
                     {months.map((m) => {
-                      const active = m.month === kpiMonth
+                      const active = period.kind === 'month' ? m.month === period.month : !!rangeMonths?.includes(m.month)
                       return (
                         <tr key={m.month} onClick={() => setKpiMonth(m.month)} className={`cursor-pointer border-b border-border/50 transition-colors last:border-0 hover:bg-accent/50 ${active ? 'bg-primary/5' : ''}`} title="Mostra questo mese">
                           <td className="px-4 py-2.5 font-medium capitalize">{active && <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" />}{monthLabel(m.month)}</td>
