@@ -3,11 +3,16 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { Download, Loader2, RefreshCw } from 'lucide-react'
+import {
+  Activity, AlertTriangle, ArrowRight, BarChart3, CalendarCheck, CalendarDays, Car, Coins, Download, ExternalLink, Eye, FileText,
+  Inbox, Loader2, MapPin, Megaphone, MousePointerClick, Phone, RefreshCw, Sheet as SheetIcon, Table2, TrendingDown, TrendingUp, Users, Wallet,
+  type LucideIcon,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { btn } from '@/app/(app)/outreach/shared'
+import { CollapsibleCard } from '@/components/CollapsibleCard'
 import { funnelRate } from '@/lib/dealer-kpi/totals'
 import { clientToCsv, type ClientCsvKpi } from '@/lib/dealer-kpi/overview'
 import { formatDelta, formatValue, type KpiResult } from '@/lib/kpi-compute'
@@ -31,6 +36,141 @@ const STATUS_CLS: Record<string, string> = {
 const fmt = (iso?: string) => (iso ? new Date(iso).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' }) : '—')
 const monthLabel = (m: string) => new Date(`${m}-01T12:00:00Z`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
 const pct = (n: number | null) => (n === null ? '—' : `${n.toLocaleString('it-IT')}%`)
+const int = (n: number) => n.toLocaleString('it-IT')
+
+/** Un'icona per KPI, così la griglia si legge a colpo d'occhio. */
+const KPI_ICON: Record<string, LucideIcon> = {
+  sessions: MousePointerClick, users: Users, ads_impressions: Eye, meta_reach: Megaphone, gbp_calls: Phone, gbp_directions: MapPin,
+  leads_real: Inbox, cost_per_lead_total: Coins, appointments: CalendarCheck, quotes: FileText, sales: Car,
+  meta_impressions: Eye, meta_spend: Wallet, cpl_meta_real: Coins, gads_impressions: Eye, gads_clicks: MousePointerClick,
+  gads_conversions: Activity, gads_spend: Wallet, cpl_google: Coins,
+}
+/** Da dove arriva il numero: sotto il valore, in piccolo. */
+const KPI_SOURCE: Record<string, string> = {
+  sessions: 'Analytics', users: 'Analytics', ads_impressions: 'Meta + Google Ads', meta_reach: 'Meta Ads', gbp_calls: 'Google Maps', gbp_directions: 'Google Maps',
+  leads_real: 'Sheet del cliente', cost_per_lead_total: 'Spesa ÷ lead Google + Meta', appointments: 'Sheet del cliente', quotes: 'Sheet del cliente', sales: 'Sheet del cliente',
+  meta_impressions: 'Meta Ads', meta_spend: 'Meta Ads', cpl_meta_real: 'Meta Ads', gads_impressions: 'Google Ads', gads_clicks: 'Google Ads',
+  gads_conversions: 'Google Ads', gads_spend: 'Google Ads', cpl_google: 'Google Ads',
+}
+/** Colori del funnel: lead → appuntamento → preventivo → vendita. */
+const TYPE_TONE: Record<EntryType, { bar: string; dot: string; icon: LucideIcon }> = {
+  lead: { bar: 'bg-sky-500', dot: 'bg-sky-500', icon: Inbox },
+  appuntamento: { bar: 'bg-violet-500', dot: 'bg-violet-500', icon: CalendarCheck },
+  preventivo: { bar: 'bg-amber-500', dot: 'bg-amber-500', icon: FileText },
+  vendita: { bar: 'bg-emerald-500', dot: 'bg-emerald-500', icon: Car },
+}
+
+function DeltaBadge({ k }: { k: KpiResult }) {
+  if (k.value === null) return <span className="text-[11px] text-muted-foreground">{k.missing ?? 'Nessun dato'}</span>
+  if (!k.vsPrev) return <span className="text-[11px] text-muted-foreground">nessun confronto</span>
+  const d = k.vsPrev
+  const cls = d.tone === 'good' ? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-400' : d.tone === 'bad' ? 'bg-red-500/12 text-red-700 dark:text-red-400' : 'bg-muted text-muted-foreground'
+  const Icon = d.value > 0 ? TrendingUp : d.value < 0 ? TrendingDown : null
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${cls}`} title="Rispetto al mese prima">
+        {Icon && <Icon className="h-3 w-3" />}{formatDelta(d, k.unit)}
+      </span>
+      <span className="text-[11px] text-muted-foreground">vs mese prima{d.small ? ' · pochi dati' : ''}</span>
+    </span>
+  )
+}
+
+function KpiCard({ k, featured }: { k: KpiResult; featured?: boolean }) {
+  const Icon = KPI_ICON[k.id] ?? Activity
+  return (
+    <div className={`group relative flex flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md ${featured ? 'ring-1 ring-primary/30' : ''}`}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium leading-tight text-muted-foreground">{k.label}</p>
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-3.5 w-3.5" /></span>
+      </div>
+      <p className={`font-bold tabular-nums tracking-tight text-foreground ${featured ? 'text-3xl' : 'text-2xl'}`}>{k.value === null ? '—' : formatValue(k.value, k.unit)}</p>
+      <DeltaBadge k={k} />
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground/80">
+        {KPI_SOURCE[k.id] ?? ''}{k.kind === 'proxy' ? ` · stima (${k.proxyOf})` : ''}
+      </p>
+    </div>
+  )
+}
+
+/** Il percorso del mese: lead → appuntamenti → preventivi → vendite, con la resa di ogni passaggio. */
+function FunnelStrip({ totals }: { totals: MonthTotals }) {
+  const steps = ENTRY_TYPES.map((t, i) => ({
+    type: t, value: totals.byType[t],
+    rate: i === 0 ? null : funnelRate(totals.byType[t], totals.byType[ENTRY_TYPES[i - 1]]),
+  }))
+  const fromLead = funnelRate(totals.byType.vendita, totals.byType.lead)
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+      <div className="grid grid-cols-2 divide-y divide-border md:grid-cols-4 md:divide-x md:divide-y-0">
+        {steps.map((s) => {
+          const { icon: Icon, dot } = TYPE_TONE[s.type]
+          return (
+            <div key={s.type} className="relative flex flex-col gap-1 px-5 py-4">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <span className={`h-2 w-2 rounded-full ${dot}`} /> {TYPE_LABEL[s.type]}
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold tabular-nums tracking-tight text-foreground">{int(s.value)}</span>
+                {s.rate !== null && <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-muted-foreground"><ArrowRight className="h-3 w-3" />{pct(s.rate)}</span>}
+              </div>
+              <p className="text-[11px] text-muted-foreground">{s.type === 'lead' ? 'dichiarati nello Sheet' : `del passaggio precedente`}</p>
+              <Icon className="absolute right-4 top-4 h-4 w-4 text-muted-foreground/40" />
+            </div>
+          )
+        })}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/30 px-5 py-2.5 text-xs text-muted-foreground">
+        <span>Vendite su lead: <b className="text-foreground">{pct(fromLead)}</b></span>
+        <span>Appuntamenti su lead: <b className="text-foreground">{pct(funnelRate(totals.byType.appuntamento, totals.byType.lead))}</b></span>
+      </div>
+    </div>
+  )
+}
+
+/** Marca o provenienza: una riga per voce, barra proporzionale ai lead e i quattro numeri a destra. */
+function BreakdownCard({ title, icon: Icon, rows, totals }: { title: string; icon: LucideIcon; rows: { key: string; byType: Record<EntryType, number> }[]; totals: MonthTotals }) {
+  const max = Math.max(1, ...rows.map((r) => r.byType.lead))
+  return (
+    <div className="rounded-2xl border border-border bg-card shadow-sm">
+      <div className="flex items-center gap-3 border-b border-border p-4">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-extrabold tracking-tight">{title}</p>
+          <p className="text-xs text-muted-foreground">{rows.length} {rows.length === 1 ? 'voce' : 'voci'} · barra = quota di lead</p>
+        </div>
+        <div className="hidden gap-3 text-[10px] uppercase tracking-wide text-muted-foreground sm:flex">
+          {ENTRY_TYPES.map((t) => <span key={t} className="flex items-center gap-1"><span className={`h-1.5 w-1.5 rounded-full ${TYPE_TONE[t].dot}`} />{TYPE_LABEL[t]}</span>)}
+        </div>
+      </div>
+      <ul className="divide-y divide-border/60">
+        {rows.map((r) => (
+          <li key={r.key} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-2.5 sm:grid-cols-[minmax(0,1fr)_repeat(4,3.25rem)]">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{r.key}</p>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div className={`h-full rounded-full ${TYPE_TONE.lead.bar}`} style={{ width: `${Math.round((r.byType.lead / max) * 100)}%` }} />
+              </div>
+            </div>
+            <div className="col-span-1 flex gap-3 text-right text-sm tabular-nums sm:contents">
+              {ENTRY_TYPES.map((t) => (
+                <span key={t} className={`sm:text-right ${r.byType[t] ? 'font-semibold text-foreground' : 'text-muted-foreground/60'}`} title={TYPE_LABEL[t]}>
+                  {r.byType[t] ? int(r.byType[t]) : '—'}
+                </span>
+              ))}
+            </div>
+          </li>
+        ))}
+        <li className="grid grid-cols-[1fr_auto] items-center gap-x-4 rounded-b-2xl bg-muted/40 px-4 py-2.5 text-xs font-semibold sm:grid-cols-[minmax(0,1fr)_repeat(4,3.25rem)]">
+          <span>Totale</span>
+          <div className="flex gap-3 text-right tabular-nums sm:contents">
+            {ENTRY_TYPES.map((t) => <span key={t} className="sm:text-right">{int(totals.byType[t])}</span>)}
+          </div>
+        </li>
+      </ul>
+    </div>
+  )
+}
 
 export default function DealerKpiPage() {
   const { id } = useParams() as { id: string }
@@ -107,7 +247,7 @@ export default function DealerKpiPage() {
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Errore') } finally { setBusy(null) }
   }
 
-  if (loading) return <div className="p-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
+  if (loading) return <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carico il report…</div>
   if (!data) return <p className="p-6 text-sm text-muted-foreground">Non riesco a caricare i dati del cliente.</p>
   const st = data.config?.status ?? null
   // Lo Sheet dei lead, marca e provenienza è dei concessionari (e di chi ne ha già collegato uno): gli altri vedono solo i KPI
@@ -146,104 +286,106 @@ export default function DealerKpiPage() {
     URL.revokeObjectURL(url)
   }
 
+  const sheetSummary = data.config
+    ? <span className={`text-xs font-medium ${st ? STATUS_CLS[st.lastStatus] : 'text-muted-foreground'}`}>{st ? (st.lastStatus === 'ok' ? 'Sincronizzato' : st.lastStatus === 'avvisi' ? 'Con avvisi' : 'Errore') : 'Da sincronizzare'}</span>
+    : <span className="text-xs font-medium text-muted-foreground">Non collegato</span>
+
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">{data.kpiProfile === 'auto' ? 'Report KPI concessionario' : 'KPI'} · {data.clientName}</h1>
-          <p className="text-sm text-muted-foreground">
-            {isDealer
-              ? 'Tutto in una pagina: sito, impression e copertura delle campagne, telefonate e indicazioni da Google Maps, lead, appuntamenti, preventivi e vendite per marca e provenienza (dallo Sheet del cliente) e costo per lead. Il CSV scarica lo stesso report.'
-              : `I KPI di un cliente «${kpiData?.profileLabel ?? 'del suo profilo'}»: sito, campagne e canali collegati, con il confronto sul mese prima e sull'anno scorso.`}
-          </p>
+      {/* Testata: titolo, mese e azioni */}
+      <header className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="h-1 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+        <div className="flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary"><BarChart3 className="h-3.5 w-3.5" /> {isDealer ? 'Report KPI concessionario' : 'Report KPI'}</p>
+            <h1 className="mt-1 truncate text-2xl font-extrabold tracking-tight text-foreground">{data.clientName}</h1>
+            <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">
+              {isDealer
+                ? 'Sito, campagne, Google Maps, lead e vendite per marca e provenienza, costo per lead: tutto in una pagina, confrontato con il mese prima. Il CSV scarica lo stesso report.'
+                : `I KPI di un cliente «${kpiData?.profileLabel ?? 'del suo profilo'}»: sito, campagne e canali collegati, con il confronto sul mese prima e sull'anno scorso.`}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm">
+              <CalendarDays className="h-4 w-4 text-muted-foreground" />
+              <input type="month" value={kpiMonth} onChange={(e) => e.target.value && setKpiMonth(e.target.value)} className="bg-transparent text-sm font-medium text-foreground outline-none" aria-label="Mese del report" />
+            </label>
+            {isDealer && (
+              <button onClick={downloadCsv} disabled={data.months.length === 0 && !kpiData}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                title="Report KPI del mese scelto, marca e provenienza del mese e totali di tutti i mesi dello Sheet">
+                <Download className="h-4 w-4" /> Scarica CSV
+              </button>
+            )}
+          </div>
         </div>
-        {isDealer && (
-          <button onClick={downloadCsv} disabled={data.months.length === 0 && !kpiData} className={btn} title="Report KPI del mese scelto, marca e provenienza del mese e totali di tutti i mesi dello Sheet">
-            <Download className="h-4 w-4" /> Scarica CSV dei KPI
-          </button>
+        {kpiData?.partial && !kpiLoading && (
+          <div className="flex items-center gap-2 border-t border-amber-500/30 bg-amber-500/10 px-5 py-2 text-xs text-amber-700 dark:text-amber-400 sm:px-6">
+            <AlertTriangle className="h-3.5 w-3.5" /> Mese in corso: i numeri sono dei primi {kpiData.partial.days} giorni.
+          </div>
         )}
       </header>
 
-      {isDealer && (
-        <>
-      <section className="space-y-3 rounded-xl border border-border p-4">
-        <h2 className="text-sm font-medium">Sheet del cliente</h2>
-        {data.config ? (
-          <div className="space-y-1 text-sm">
-            <p>Collegato: <a className="underline" href={`https://docs.google.com/spreadsheets/d/${data.config.spreadsheetId}`} target="_blank" rel="noopener noreferrer">apri lo Sheet</a> · scheda «{data.config.tab}»</p>
-            {st ? (
-              <p>Ultima sincronizzazione ({fmt(st.lastSyncAt)}): <span className={STATUS_CLS[st.lastStatus]}>{st.lastMessage}</span></p>
-            ) : <p className="text-muted-foreground">Non ancora sincronizzato.</p>}
-          </div>
-        ) : <p className="text-sm text-muted-foreground">Nessuno Sheet collegato.</p>}
-
-        {isAdmin && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <input className="h-8 min-w-[260px] flex-1 rounded-lg border border-border bg-background px-2 text-sm" placeholder="Incolla il collegamento dello Sheet (https://docs.google.com/spreadsheets/d/…)" value={url} onChange={(e) => setUrl(e.target.value)} />
-              <input className="h-8 w-32 rounded-lg border border-border bg-background px-2 text-sm" value={tab} onChange={(e) => setTab(e.target.value)} aria-label="Nome della scheda" />
-              <button className={btn} disabled={busy !== null} onClick={save}>{busy === 'save' && <Loader2 className="h-4 w-4 animate-spin" />} {url.trim() ? 'Collega' : data.config ? 'Scollega' : 'Collega'}</button>
-              {data.config && <button className={btn} disabled={busy !== null} onClick={sync}>{busy === 'sync' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sincronizza ora</button>}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Condividi lo Sheet, <b>in sola lettura</b>, con <code className="rounded bg-muted px-1">{data.serviceAccountEmail ?? 'l\'account di servizio Google (non configurato)'}</code>. Per scollegare lascia vuoto il campo e premi «Scollega». Lo Sheet si rilegge da solo ogni notte.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {st && st.issuesTotal > 0 && (
-        <section className="space-y-1 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
-          <h2 className="text-sm font-medium">Da correggere nello Sheet ({st.issuesTotal})</h2>
-          <ul className="space-y-0.5 text-sm">
-            {st.issues.map((i, k) => <li key={k}><span className={i.level === 'errore' ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'}>Riga {i.row}</span> · {i.message}</li>)}
+      {/* Sheet da correggere: sempre in vista */}
+      {isDealer && st && st.issuesTotal > 0 && (
+        <section className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <h2 className="flex items-center gap-2 text-sm font-semibold"><AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" /> Da correggere nello Sheet ({st.issuesTotal})</h2>
+          <ul className="mt-1.5 space-y-0.5 text-sm">
+            {st.issues.map((i, k) => <li key={k}><span className={i.level === 'errore' ? 'font-medium text-red-600 dark:text-red-400' : 'font-medium text-amber-600 dark:text-amber-400'}>Riga {i.row}</span> · {i.message}</li>)}
           </ul>
-          {st.issuesTotal > st.issues.length && <p className="text-xs text-muted-foreground">… e altri {st.issuesTotal - st.issues.length}.</p>}
+          {st.issuesTotal > st.issues.length && <p className="mt-1 text-xs text-muted-foreground">… e altri {st.issuesTotal - st.issues.length}.</p>}
         </section>
       )}
 
-        </>
+      {/* Il percorso del mese */}
+      {isDealer && (
+        <section className="space-y-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-sm font-extrabold tracking-tight">Il percorso di <span className="capitalize">{monthLabel(kpiMonth)}</span></h2>
+            <p className="text-xs text-muted-foreground">dallo Sheet del cliente</p>
+          </div>
+          {selected ? <FunnelStrip totals={selected} /> : (
+            <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+              Nessuna riga nello Sheet per questo mese: quando il cliente lo compila (e dopo la sincronizzazione notturna o «Sincronizza ora») qui compaiono lead, appuntamenti, preventivi e vendite.
+            </p>
+          )}
+        </section>
       )}
 
+      {/* KPI dalle piattaforme */}
       <section className="space-y-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <h2 className="text-sm font-medium">KPI del mese</h2>
-          <label className="text-xs text-muted-foreground">Mese
-            <input type="month" value={kpiMonth} onChange={(e) => e.target.value && setKpiMonth(e.target.value)} className="ml-2 h-8 rounded-lg border border-border bg-background px-2 text-sm text-foreground" />
-          </label>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-sm font-extrabold tracking-tight">KPI di <span className="capitalize">{monthLabel(kpiMonth)}</span></h2>
+          <p className="text-xs text-muted-foreground">dalle piattaforme collegate in Setup API</p>
         </div>
-        {kpiLoading && <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Leggo le piattaforme collegate: può richiedere qualche secondo…</p>}
+        {kpiLoading && (
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-[118px] animate-pulse rounded-2xl border border-border bg-muted/40" />)}
+            <p className="col-span-full flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Leggo le piattaforme collegate: può richiedere qualche secondo…</p>
+          </div>
+        )}
         {kpiError && noProfile && (
-          <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+          <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
             {kpiError} <Link href="/admin/report-mensile" className="underline">Apri Mail mensile KPI</Link>.
           </p>
         )}
-        {kpiError && !noProfile && <p className="text-sm text-red-600 dark:text-red-400">{kpiError}</p>}
+        {kpiError && !noProfile && <p className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-700 dark:text-red-400">{kpiError}</p>}
         {kpiData && !kpiLoading && (
-          <div className="space-y-4">
-            {kpiData.partial && <p className="text-xs text-amber-600 dark:text-amber-400">Mese in corso: i numeri sono dei primi {kpiData.partial.days} giorni.</p>}
-            {kpiData.groups.map((g) => (
-              <div key={g.label} className="space-y-1.5">
-                <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</h3>
-                <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                  {g.ids.map((kid) => {
-                    const k = kpiData.kpis.find((x) => x.id === kid)
-                    if (!k) return null
-                    const tone = k.vsPrev?.tone === 'good' ? 'text-emerald-600 dark:text-emerald-400' : k.vsPrev?.tone === 'bad' ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'
-                    return (
-                      <div key={kid} className="rounded-xl border border-border p-3">
-                        <p className="text-xs text-muted-foreground">{k.label}</p>
-                        <p className="mt-1 text-xl font-semibold [font-variant-numeric:tabular-nums]">{k.value === null ? '—' : formatValue(k.value, k.unit)}</p>
-                        {k.value === null
-                          ? <p className="text-[11px] text-muted-foreground">{k.missing ?? 'Nessun dato'}</p>
-                          : <p className={`text-[11px] ${tone}`}>{k.vsPrev ? `${formatDelta(k.vsPrev, k.unit)} sul mese prima` : 'nessun confronto'}{k.kind === 'proxy' ? ` · stima (${k.proxyOf})` : ''}</p>}
-                      </div>
-                    )
-                  })}
+          <div className="space-y-5">
+            {kpiData.groups.map((g, gi) => {
+              const items = g.ids.map((kid) => kpiData.kpis.find((x) => x.id === kid)).filter((k): k is KpiResult => !!k)
+              if (items.length === 0) return null
+              const primary = gi === 0
+              return (
+                <div key={g.label} className="space-y-2">
+                  {!primary && <h3 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"><span className="h-px w-4 bg-border" />{g.label}</h3>}
+                  <div className={`grid grid-cols-2 gap-3 ${primary ? 'md:grid-cols-3 xl:grid-cols-4' : 'md:grid-cols-4 xl:grid-cols-5'}`}>
+                    {items.map((k) => <KpiCard key={k.id} k={k} featured={primary && (k.id === 'leads_real' || k.id === 'cost_per_lead_total' || k.id === 'sales')} />)}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <p className="text-[11px] text-muted-foreground">
+              )
+            })}
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
               {isDealer ? 'Il costo per lead (Google + Meta) è la spesa dei due canali divisa per i lead di quei due canali dichiarati nello Sheet. Le impression del report sommano Meta Ads e Google Ads; la copertura è solo Meta (Google Ads non dà le persone raggiunte). ' : 'Impression e copertura sono di Meta Ads. '}
               Sessioni e utenti sono quelli di Analytics («utenti attivi»). Con più siti gli utenti non si sommano: la stessa persona conterebbe due volte.
             </p>
@@ -253,74 +395,101 @@ export default function DealerKpiPage() {
 
       {isDealer && (
         <>
-      <section className="space-y-3">
-        <h2 className="text-sm font-medium">Marca e provenienza · <span className="capitalize">{monthLabel(kpiMonth)}</span></h2>
-        {!selected ? (
-          <p className="text-sm text-muted-foreground">Nessuna riga nello Sheet per questo mese: quando il cliente lo compila (e dopo la sincronizzazione notturna o «Sincronizza ora») qui compaiono lead, appuntamenti, preventivi e vendite divisi per marca e per provenienza.</p>
-        ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {([['Marca', breakdownRows(selected.byBrand)], ['Provenienza', breakdownRows(selected.bySource)]] as const).map(([title, rows]) => (
-              <div key={title} className="overflow-x-auto rounded-xl border border-border">
+          {/* Marca e provenienza */}
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-sm font-extrabold tracking-tight">Marca e provenienza</h2>
+              <p className="text-xs text-muted-foreground">chi compra cosa, e da dove arriva</p>
+            </div>
+            {!selected ? (
+              <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nessuna riga nello Sheet per questo mese.</p>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                <BreakdownCard title="Per marca" icon={Car} rows={breakdownRows(selected.byBrand)} totals={selected} />
+                <BreakdownCard title="Per provenienza" icon={Megaphone} rows={breakdownRows(selected.bySource)} totals={selected} />
+              </div>
+            )}
+          </section>
+
+          {/* Storico */}
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-2">
+              <h2 className="text-sm font-extrabold tracking-tight">Mese per mese</h2>
+              <p className="text-xs text-muted-foreground">tutti i mesi compilati nello Sheet</p>
+            </div>
+            {months.length === 0 ? <p className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">Nessun dato: collega lo Sheet e sincronizza. Un mese non compilato non compare (non è zero).</p> : (
+              <div className="overflow-x-auto rounded-2xl border border-border bg-card shadow-sm">
                 <table className="w-full text-sm">
-                  <thead><tr className="border-b border-border text-left text-xs text-muted-foreground">
-                    <th className="p-2">{title}</th>
-                    {ENTRY_TYPES.map((t) => <th key={t} className="p-2 text-right">{TYPE_LABEL[t]}</th>)}
-                  </tr></thead>
-                  <tbody>
-                    {rows.map((r) => (
-                      <tr key={r.key} className="border-b border-border/50 last:border-0">
-                        <td className="p-2 font-medium">{r.key}</td>
-                        {ENTRY_TYPES.map((t) => <td key={t} className="p-2 text-right [font-variant-numeric:tabular-nums]">{r.byType[t] ? r.byType[t].toLocaleString('it-IT') : <span className="text-muted-foreground">—</span>}</td>)}
-                      </tr>
-                    ))}
-                    <tr className="bg-muted/40 text-xs font-semibold">
-                      <td className="p-2">Totale</td>
-                      {ENTRY_TYPES.map((t) => <td key={t} className="p-2 text-right [font-variant-numeric:tabular-nums]">{selected.byType[t].toLocaleString('it-IT')}</td>)}
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30 text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <th className="px-4 py-2.5 font-semibold">Mese</th>
+                      {ENTRY_TYPES.map((t) => <th key={t} className="px-3 py-2.5 text-right font-semibold"><span className="inline-flex items-center gap-1.5"><span className={`h-1.5 w-1.5 rounded-full ${TYPE_TONE[t].dot}`} />{TYPE_LABEL[t]}</span></th>)}
+                      <th className="px-3 py-2.5 text-right font-semibold">App. / lead</th>
+                      <th className="px-4 py-2.5 text-right font-semibold">Vendite / lead</th>
                     </tr>
+                  </thead>
+                  <tbody>
+                    {months.map((m) => {
+                      const active = m.month === kpiMonth
+                      return (
+                        <tr key={m.month} onClick={() => setKpiMonth(m.month)} className={`cursor-pointer border-b border-border/50 transition-colors last:border-0 hover:bg-accent/50 ${active ? 'bg-primary/5' : ''}`} title="Mostra questo mese">
+                          <td className="px-4 py-2.5 font-medium capitalize">{active && <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" />}{monthLabel(m.month)}</td>
+                          {ENTRY_TYPES.map((t) => <td key={t} className="px-3 py-2.5 text-right tabular-nums">{int(m.byType[t])}</td>)}
+                          <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{pct(funnelRate(m.byType.appuntamento, m.byType.lead))}</td>
+                          <td className="px-4 py-2.5 text-right tabular-nums"><span className="rounded-full bg-emerald-500/12 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">{pct(funnelRate(m.byType.vendita, m.byType.lead))}</span></td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            )}
+          </section>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium">Totali per mese</h2>
-        {months.length === 0 ? <p className="text-sm text-muted-foreground">Nessun dato: collega lo Sheet e sincronizza. Un mese non compilato non compare (non è zero).</p> : (
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-border text-left text-xs text-muted-foreground">
-                <th className="p-2">Mese</th>
-                {ENTRY_TYPES.map((t) => <th key={t} className="p-2 text-right">{TYPE_LABEL[t]}</th>)}
-                <th className="p-2 text-right">Appuntamenti / lead</th><th className="p-2 text-right">Vendite / lead</th>
-              </tr></thead>
-              <tbody>
-                {months.map((m) => (
-                  <tr key={m.month} className="border-b border-border/50 last:border-0">
-                    <td className="p-2 font-medium capitalize">{monthLabel(m.month)}</td>
-                    {ENTRY_TYPES.map((t) => <td key={t} className="p-2 text-right">{m.byType[t].toLocaleString('it-IT')}</td>)}
-                    <td className="p-2 text-right">{pct(funnelRate(m.byType.appuntamento, m.byType.lead))}</td>
-                    <td className="p-2 text-right">{pct(funnelRate(m.byType.vendita, m.byType.lead))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+          {/* Collegamento e istruzioni: in fondo, chiusi */}
+          <CollapsibleCard
+            icon={SheetIcon}
+            title="Sheet del cliente"
+            description={data.config ? `Scheda «${data.config.tab}»${st ? ` · ultima lettura ${fmt(st.lastSyncAt)}` : ''}` : 'Il foglio Google con lead, appuntamenti, preventivi e vendite'}
+            summary={sheetSummary}
+            actions={data.config && isAdmin ? (
+              <button className={btn} disabled={busy !== null} onClick={sync}>{busy === 'sync' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Sincronizza ora</button>
+            ) : undefined}
+          >
+            <div className="space-y-4 text-sm">
+              {data.config ? (
+                <div className="space-y-1">
+                  <p><a className="inline-flex items-center gap-1 font-medium underline-offset-2 hover:underline" href={`https://docs.google.com/spreadsheets/d/${data.config.spreadsheetId}`} target="_blank" rel="noopener noreferrer">Apri lo Sheet <ExternalLink className="h-3.5 w-3.5" /></a></p>
+                  {st ? <p className="text-muted-foreground">Ultima sincronizzazione ({fmt(st.lastSyncAt)}): <span className={STATUS_CLS[st.lastStatus]}>{st.lastMessage}</span></p> : <p className="text-muted-foreground">Non ancora sincronizzato.</p>}
+                </div>
+              ) : <p className="text-muted-foreground">Nessuno Sheet collegato.</p>}
 
-      <section className="space-y-1 rounded-xl border border-border p-4 text-sm">
-        <h2 className="text-sm font-medium">Come preparare lo Sheet</h2>
-        <p className="text-muted-foreground">Scheda «{data.config?.tab ?? 'Dati'}», prima riga con queste colonne, una riga per ogni combinazione mese · tipo · marca · provenienza (così il report mostra marca e provenienza):</p>
-        <ul className="list-inside list-disc text-muted-foreground">
-          <li><b>Mese</b>: per esempio 2026-11 oppure 11/2026</li>
-          <li><b>Tipo</b>: {ENTRY_TYPES.map((t) => TYPE_LABEL[t]).join(', ')} (tendina)</li>
-          <li><b>Marca</b>: la marca del veicolo</li>
-          <li><b>Provenienza</b>: {SOURCES.join(', ')} (tendina)</li>
-          <li><b>Quantità</b>: numero intero</li>
-        </ul>
-      </section>
+              {isAdmin && (
+                <div className="space-y-2 rounded-xl border border-border bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input className="h-8 min-w-[260px] flex-1 rounded-lg border border-border bg-background px-2 text-sm" placeholder="Incolla il collegamento dello Sheet (https://docs.google.com/spreadsheets/d/…)" value={url} onChange={(e) => setUrl(e.target.value)} />
+                    <input className="h-8 w-32 rounded-lg border border-border bg-background px-2 text-sm" value={tab} onChange={(e) => setTab(e.target.value)} aria-label="Nome della scheda" />
+                    <button className={btn} disabled={busy !== null} onClick={save}>{busy === 'save' && <Loader2 className="h-4 w-4 animate-spin" />} {url.trim() ? 'Collega' : data.config ? 'Scollega' : 'Collega'}</button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Condividi lo Sheet, <b>in sola lettura</b>, con <code className="rounded bg-muted px-1">{data.serviceAccountEmail ?? 'l\'account di servizio Google (non configurato)'}</code>. Per scollegare lascia vuoto il campo e premi «Scollega». Lo Sheet si rilegge da solo ogni notte.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Table2 className="h-3.5 w-3.5" /> Come preparare lo Sheet</h3>
+                <p className="text-muted-foreground">Scheda «{data.config?.tab ?? 'Dati'}», prima riga con queste colonne, una riga per ogni combinazione mese · tipo · marca · provenienza:</p>
+                <ul className="grid gap-1 text-muted-foreground sm:grid-cols-2">
+                  <li><b className="text-foreground">Mese</b>: per esempio 2026-11 oppure 11/2026</li>
+                  <li><b className="text-foreground">Tipo</b>: {ENTRY_TYPES.map((t) => TYPE_LABEL[t]).join(', ')} (tendina)</li>
+                  <li><b className="text-foreground">Marca</b>: la marca del veicolo</li>
+                  <li><b className="text-foreground">Provenienza</b>: {SOURCES.join(', ')} (tendina)</li>
+                  <li><b className="text-foreground">Quantità</b>: numero intero</li>
+                </ul>
+              </div>
+            </div>
+          </CollapsibleCard>
         </>
       )}
     </div>
