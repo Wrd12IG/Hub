@@ -57,6 +57,7 @@ import { TaskApprovedCelebration } from '@/components/TaskApprovedCelebration';
 import { sanitizeHtml } from '@/lib/sanitize-html';
 import { extractNasPaths, cardSnippet } from '@/lib/nas-paths';
 import { nameFromUrl, displayAttachmentName } from '@/lib/attachment-name';
+import { approvalWaitTone, approvalWaitLabel, approverName } from '@/lib/approval-wait';
 
 
 
@@ -412,12 +413,24 @@ const TaskCard = ({
                             {task.activityType}
                         </span>
                     )}
-                    {isTaskInApproval && approvalDaysPending >= 1 && (
-                        <span className="text-xs font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5 animate-breathing-custom">
-                            <Timer className="h-2.5 w-2.5" />
-                            {approvalDaysPending}gg
-                        </span>
-                    )}
+                    {isTaskInApproval && (() => {
+                        const tone = approvalWaitTone(approvalDaysPending);
+                        const who = approverName(task.status, clients.find(c => c.id === task.clientId), usersById);
+                        return (
+                            <span
+                                className={cn(
+                                    'text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 border',
+                                    tone === 'late' && 'bg-red-500/10 text-red-600 border-red-500/30',
+                                    tone === 'warning' && 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+                                    tone === 'fresh' && 'bg-secondary/60 text-muted-foreground border-transparent'
+                                )}
+                                title={`In attesa da ${approvalWaitLabel(approvalDaysPending)}${who ? ` · tocca a ${who}` : ''}`}
+                            >
+                                <Timer className="h-3 w-3" />
+                                {approvalWaitLabel(approvalDaysPending)}{who ? ` · ${who}` : ''}
+                            </span>
+                        );
+                    })()}
                     {task.rejectionReason && (
                         <button
                             type="button"
@@ -697,6 +710,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         }
     };
     const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+    const [onlyOverdue, setOnlyOverdue] = useState(false);
     const [celebrationTrigger, setCelebrationTrigger] = useState(0);
 
 
@@ -1248,7 +1262,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
 
 
-    const { tasksByStatus, overdueTasks } = useMemo(() => {
+    const { tasksByStatus, overdueTasks, overdueIds } = useMemo(() => {
         const byStatus: Record<Task['status'], Task[]> = {
             'Da Fare': [],
             'In Lavorazione': [],
@@ -1274,11 +1288,10 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 }
             }
 
-            if (isOverdue) {
-                overdueTasks.push(task);
-            } else if (byStatus[task.status]) {
-                byStatus[task.status].push(task);
-            }
+            // Scaduto è un segnale, non uno stato: il task resta nella sua colonna
+            // (in cima, con il bordo rosso) e il filtro «Solo scaduti» li isola.
+            if (isOverdue) overdueTasks.push(task);
+            if (byStatus[task.status]) byStatus[task.status].push(task);
         });
 
         overdueTasks.sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : 0) - (b.dueDate ? new Date(b.dueDate).getTime() : 0));
@@ -1304,21 +1317,26 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             }
         };
 
-        Object.values(byStatus).forEach(arr => arr.sort(sortFn));
-        // Sort 'In Approvazione' by updatedAt descending (most recent requests first)
-        byStatus['In Approvazione'].sort((a, b) => {
+        const overdueIds = new Set(overdueTasks.map(t => t.id));
+        Object.values(byStatus).forEach(arr => arr.sort((a, b) =>
+            (overdueIds.has(a.id) ? 0 : 1) - (overdueIds.has(b.id) ? 0 : 1) || sortFn(a, b)));
+        // Approvazioni: prima chi aspetta da più tempo (interne e cliente)
+        const byWaitingSince = (a: Task, b: Task) => {
             const getUpdateDate = (task: typeof a) => {
                 if (!task.updatedAt) return new Date(0);
                 return typeof task.updatedAt === 'string'
                     ? new Date(task.updatedAt)
                     : (task.updatedAt as any).toDate ? (task.updatedAt as any).toDate() : new Date(0);
             };
-            return getUpdateDate(b).getTime() - getUpdateDate(a).getTime();
-        });
+            return getUpdateDate(a).getTime() - getUpdateDate(b).getTime();
+        };
+        byStatus['In Approvazione'].sort(byWaitingSince);
+        byStatus['In Approvazione Cliente'].sort(byWaitingSince);
 
         return {
             tasksByStatus: byStatus,
             overdueTasks,
+            overdueIds,
         };
     }, [filteredTasks, sortBy]);
 
@@ -1426,48 +1444,12 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         return (
             <div className="flex flex-col md:flex-row gap-6 md:overflow-x-auto pb-4 w-full">
 
-                {/* ── COLONNA SCADUTI (appare solo se ci sono scaduti) ── */}
-                {overdueTasks.length > 0 && filters.status !== 'completed' && (
-                    <div className="w-full md:flex-1 md:min-w-[300px]">
-                        <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-2">
-                                <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                                <h2 className="font-semibold text-lg text-red-500"> Scaduti</h2>
-                            </div>
-                            <Badge variant="destructive" className="px-3 py-1 text-sm">{overdueTasks.length}</Badge>
-                        </div>
-                        <div className="p-2 rounded-lg min-h-[200px] max-h-[calc(100vh-230px)] overflow-y-auto space-y-3 bg-red-500/5 border border-red-500/20 scroll-smooth">
-                            {overdueTasks.map(task => (
-                                <TaskCard
-                                    key={`overdue-${task.id}`}
-                                    task={task}
-                                    clients={clients}
-                                    allProjects={allProjects}
-                                    allTasks={allTasks}
-                                    usersById={usersById}
-                                    activityTypes={activityTypes}
-                                    canApprove={canApprove}
-                                    handlePlay={handlePlay}
-                                    handleSendForApproval={handleSendForApproval}
-                                    setApprovalState={setApprovalState}
-                                    setDisapprovalModalState={setDisapprovalModalState}
-                                    setRejectionReasonToShow={setRejectionReasonToShow}
-                                    setPreviewTask={setPreviewTask}
-                                    setPreviewProject={setPreviewProject}
-                                    handleChatOpen={handleChatOpen}
-                                    handleOpenModal={handleOpenModal}
-                                    setTaskToDelete={setTaskToDelete}
-                                    isHighlighted={task.id === highlightedTaskId}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
                 {boardColumns.map(status => {
-                    const tasksForColumn = tasksByStatus[status as Task['status']];
+                    const allForColumn = tasksByStatus[status as Task['status']];
 
-                    if (!tasksForColumn) return null;
+                    if (!allForColumn) return null;
+                    const tasksForColumn = onlyOverdue ? allForColumn.filter(t => overdueIds.has(t.id)) : allForColumn;
+                    if (onlyOverdue && tasksForColumn.length === 0) return null;
 
                     return (
                         <div key={status} className="w-full md:flex-1 md:min-w-[300px]">
@@ -1690,7 +1672,18 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                     </Badge>
                                 ))}
                             {overdueTasks.length > 0 && (
-                                <Badge variant="destructive" className="text-xs">Scaduti: {overdueTasks.length}</Badge>
+                                <button
+                                    type="button"
+                                    onClick={() => setOnlyOverdue(v => !v)}
+                                    aria-pressed={onlyOverdue}
+                                    title={onlyOverdue ? 'Mostra tutti i task' : 'Mostra solo i task scaduti'}
+                                    className={cn(
+                                        'text-xs font-semibold rounded-full px-2.5 py-0.5 border transition-colors',
+                                        onlyOverdue ? 'bg-red-600 text-white border-red-600' : 'bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20'
+                                    )}
+                                >
+                                    {onlyOverdue ? `Solo scaduti (${overdueTasks.length}) ✕` : `Scaduti: ${overdueTasks.length}`}
+                                </button>
                             )}
                         </div>
                     </div>
