@@ -41,6 +41,10 @@ import {
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useLayoutData } from "@/app/(app)/layout-context"
+import { getBriefs } from "@/lib/actions"
+import { openBriefsWithoutProject } from "@/lib/brief-status"
+import type { Brief } from "@/lib/data"
+import NextLink from "next/link"
 import { Project, Task } from "@/lib/data"
 import { addProject, updateProject, updateTask } from "@/lib/actions"
 import { useToast } from "@/hooks/use-toast"
@@ -105,6 +109,13 @@ export default function ProjectForm({ project, onSuccess, onCancel, onCreateTask
     })
 
     const selectedClientId = form.watch("clientId")
+    // Nuovo progetto: se il cliente ha brief aperti senza progetto, il progetto dovrebbe nascere da lì
+    const [briefs, setBriefs] = React.useState<Brief[]>([])
+    React.useEffect(() => {
+        if (project?.id) return
+        getBriefs().then(setBriefs).catch(() => setBriefs([]))
+    }, [project?.id])
+    const pendingBriefs = openBriefsWithoutProject(briefs, selectedClientId)
 
     const filteredTasks = React.useMemo(() => {
         let tasks = allTasks;
@@ -260,6 +271,14 @@ export default function ProjectForm({ project, onSuccess, onCancel, onCreateTask
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {!project?.id && pendingBriefs.length > 0 && (
+                                    <p className="text-xs text-muted-foreground mt-1.5">
+                                        {pendingBriefs.length === 1 ? 'Questo cliente ha un brief' : `Questo cliente ha ${pendingBriefs.length} brief`} senza progetto
+                                        ({pendingBriefs.slice(0, 2).map(b => b.projectName || b.title).join(', ')}).{' '}
+                                        <NextLink href="/briefs" className="underline font-medium text-foreground">Crea il progetto dal brief</NextLink>
+                                        : obiettivi e materiali passano al progetto.
+                                    </p>
+                                )}
                                 <FormMessage />
                             </FormItem>
                         )}

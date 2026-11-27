@@ -110,6 +110,8 @@ export interface Project {
     name: string;
     description?: string;
     status: 'Pianificazione' | 'In Corso' | 'Completato' | 'In Pausa' | 'Annullato';
+    /** Brief da cui è nato il progetto (se c'è): il brief è il primo passo del flusso. */
+    briefId?: string;
     clientId: string;
     startDate?: string;
     endDate?: string;
