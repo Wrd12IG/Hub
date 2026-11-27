@@ -54,8 +54,13 @@ interface LayoutContextType {
   handleLogin: (email: string, password?: string) => Promise<{ success: boolean; userId?: string; error?: string; }>;
   handleCreateUser: (user: Omit<User, 'id'>, password?: string) => Promise<{ success: boolean; userId?: string; error?: string; }>;
   handleLogout: () => void;
-  pomodoroTask: Task | null;
-  setPomodoroTask: React.Dispatch<React.SetStateAction<Task | null>>;
+  /** Task con il cronometro in corso per l'utente: possono essere più d'uno contemporaneamente. */
+  timerTasks: Task[];
+  /** Avvia il cronometro su un task, senza fermare gli altri. */
+  startTimer: (task: Task) => void;
+  /** Ferma il cronometro di un task: il pannello salva il tempo trascorso. */
+  stopTimer: (taskId: string) => void;
+  isTimerRunning: (taskId: string) => boolean;
   soundSettings: SoundSettings;
   setSoundSettings: React.Dispatch<React.SetStateAction<SoundSettings>>;
 }
@@ -108,7 +113,14 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     queueMicrotask(() => setWantWorkData(true));
   }, []);
   const [clientDetails, setClientDetails] = useState<Client | null>(null);
-  const [pomodoroTask, setPomodoroTask] = useState<Task | null>(null);
+  const [timerTasks, setTimerTasks] = useState<Task[]>([]);
+  const startTimer = useCallback((task: Task) => {
+    setTimerTasks(cur => (cur.some(t => t.id === task.id) ? cur : [...cur, task]));
+  }, []);
+  const stopTimer = useCallback((taskId: string) => {
+    setTimerTasks(cur => cur.filter(t => t.id !== taskId));
+  }, []);
+  const isTimerRunning = useCallback((taskId: string) => timerTasks.some(t => t.id === taskId), [timerTasks]);
 
   // App-wide data state
   const [users, setUsers] = useState<User[]>([]);
@@ -602,8 +614,10 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       get isLoadingWorkData() { requestWorkData(); return !(tasksReady && projectsReady); },
       clientDetails,
       setClientDetails,
-      pomodoroTask,
-      setPomodoroTask,
+      timerTasks,
+      startTimer,
+      stopTimer,
+      isTimerRunning,
       soundSettings,
       setSoundSettings,
     };
@@ -640,7 +654,10 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     tasksReady,
     projectsReady,
     clientDetails,
-    pomodoroTask,
+    timerTasks,
+    startTimer,
+    stopTimer,
+    isTimerRunning,
     soundSettings,
   ]);
 

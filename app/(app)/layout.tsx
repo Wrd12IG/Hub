@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { SidebarInset } from '@/components/ui/sidebar';
 import { cn } from '@/lib/utils';
 import { Toaster } from 'sonner';
-import PomodoroWidget from '@/components/pomodoro-timer';
+import TimersPanel from '@/components/pomodoro-timer';
 import CommandMenu, { CommandMenuProvider } from '@/components/command-menu';
 import MotivationalQuote from '@/components/motivational-quote';
 import { LoveHeartAnimation } from '@/components/love-heart-animation';
@@ -34,7 +34,7 @@ import { isClientAreaPath } from '@/lib/client-area';
 const FULL_HEIGHT_PAGES = ['/chat', '/focus'];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser, isLoadingLayout, pomodoroTask, setPomodoroTask, users } = useLayoutData();
+  const { currentUser, isLoadingLayout, timerTasks, stopTimer, users } = useLayoutData();
   const router = useRouter();
   const pathname = usePathname();
   const isFullHeightPage = FULL_HEIGHT_PAGES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -114,12 +114,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <FloatingCommandDock />
           </SidebarInset>
           <Toaster richColors position="top-right" />
-          {pomodoroTask && (
-            <PomodoroWidget
-              task={pomodoroTask}
-              onClose={() => setPomodoroTask(null)}
-            />
-          )}
+          {/* Cronometri in corso: più task possono essere cronometrati insieme */}
+          <TimersPanel tasks={timerTasks} onStop={stopTimer} />
           <DynamicIcons />
           {/* Le frasi motivazionali, il Konami, i cuori e i compleanni dei colleghi sono del team: il cliente vede solo i suoi
               risultati e non deve ricevere popup pensati per chi lavora nell'agenzia. */}
