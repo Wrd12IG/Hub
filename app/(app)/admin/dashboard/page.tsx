@@ -118,6 +118,7 @@ import { Leaderboard, LevelBadge, StreakDisplay } from '@/components/gamificatio
 import { getLevelFromXp } from '@/lib/gamification';
 import { DeadlineCountdownWidget } from '@/components/dashboard/deadline-countdown';
 import { WeatherWidget } from '@/components/dashboard/weather-widget';
+import { ApprovalQueueWidget } from '@/components/dashboard/approval-queue-widget';
 import { UpcomingBirthdaysWidget } from '@/components/birthday-celebration';
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
 import { AnimatedCounter, AnimatedHours } from '@/components/ui/animated-counter';
@@ -1734,8 +1735,9 @@ export default function Dashboard() {
                                 <UpcomingBirthdaysWidget users={users} />
                             </AnimatedGridItem>
 
+                            {/* In alto ciò che richiede un'azione; il meteo è sceso in fondo alla pagina */}
                             <AnimatedGridItem>
-                                <WeatherWidget city="Milano" apiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY} />
+                                <ApprovalQueueWidget tasks={allTasks} clientsById={clientsById} usersById={usersById} />
                             </AnimatedGridItem>
                         </>
                     )}
@@ -3501,6 +3503,12 @@ export default function Dashboard() {
                         </div>
                     </CardContent>
                 </Card>
+            )}
+
+            {isWidgetVisible('widgets_top') && (
+                <div className="max-w-md">
+                    <WeatherWidget city="Milano" apiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY} />
+                </div>
             )}
 
             {/* ===== Gamification Leaderboard ===== */}
