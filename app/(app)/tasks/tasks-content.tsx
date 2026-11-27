@@ -32,7 +32,6 @@ import { cn, getInitials } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import PomodoroWidget from '@/components/pomodoro-timer';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuthToken, getAuthToken } from '@/hooks/use-auth-token';
 import { getAttachmentUrl } from '@/lib/attachment-url';
@@ -191,13 +190,13 @@ const TaskCard = ({
     setTaskToDelete: React.Dispatch<React.SetStateAction<Task | null>>;
     isHighlighted: boolean;
 }) => {
-    const { pomodoroTask } = useLayoutData();
+    const { isTimerRunning } = useLayoutData();
     const cardRef = useRef<HTMLDivElement>(null);
     const client = clients.find(c => c.id === task.clientId);
     const project = allProjects.find(p => p.id === task.projectId);
     const assignedUser = task.assignedUserId ? usersById[task.assignedUserId] : null;
     const creator = task.createdBy ? usersById[task.createdBy] : null;
-    const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
+    const isTimerActiveForThisTask = isTimerRunning(task.id);
     const timeSpentFormatted = formatTime(task.timeSpent || 0);
     const isTaskInApproval = task.status === 'In Approvazione' || task.status === 'In Approvazione Cliente';
     const timeProgress = task.estimatedDuration > 0 ? Math.min(100, ((task.timeSpent || 0) / (task.estimatedDuration * 60)) * 100) : 0;
@@ -634,8 +633,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         clients,
         permissions,
         isLoadingLayout,
-        pomodoroTask,
-        setPomodoroTask,
+        isTimerRunning,
+        startTimer,
+        stopTimer,
     } = useLayoutData();
 
     const authToken = useAuthToken();
@@ -968,10 +968,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             setIsSubmitting(true);
 
             // Se il timer è attivo per questo task, fermalo prima di procedere
-            // Il cleanup del PomodoroWidget salverà il tempo automaticamente
-            const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
-            if (isTimerActiveForThisTask) {
-                setPomodoroTask(null);
+            // Il pannello dei cronometri salva il tempo quando la riga del task sparisce
+            if (isTimerRunning(task.id)) {
+                stopTimer(task.id);
                 // Breve attesa per permettere al cleanup del widget di avviarsi
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
@@ -1047,32 +1046,23 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     const handlePlay = async (task: Task) => {
         if (!currentUser) return;
 
-        const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
-
-        if (isTimerActiveForThisTask) {
-            // Ferma il timer: il cleanup del PomodoroWidget salverà il tempo automaticamente
-            // tramite il cleanup di useEffect (cleanupRanRef non è stato impostato a true,
-            // quindi il cleanup fire-and-forget salverà elapsedSecondsRef.current)
-            setPomodoroTask(null);
-        } else {
-            // Se c'è già un timer attivo per un altro task, fermalo prima.
-            // Il cleanup del widget salverà automaticamente il tempo trascorso.
-            if (pomodoroTask) {
-                setPomodoroTask(null);
-            }
-
-            if (task.status !== 'In Lavorazione') {
-                try {
-                    await updateTask(task.id, { status: 'In Lavorazione' }, currentUser.id, canApprove, false);
-                    toast.info(`Task "${task.title}" spostato in "In Lavorazione".`);
-                } catch (error: any) {
-                    toast.error("Errore", { description: `Impossibile aggiornare lo stato del task: ${error.message}` });
-                    return;
-                }
-            }
-            // Timeout per assicurarsi che il cleanup del vecchio task abbia avuto il tempo di eseguire
-            setTimeout(() => setPomodoroTask(task), 150);
+        if (isTimerRunning(task.id)) {
+            // Ferma solo questo cronometro: il pannello salva il tempo trascorso, gli altri continuano
+            stopTimer(task.id);
+            return;
         }
+
+        // Più cronometri insieme: avviarne uno non ferma quelli già in corso
+        if (task.status !== 'In Lavorazione') {
+            try {
+                await updateTask(task.id, { status: 'In Lavorazione' }, currentUser.id, canApprove, false);
+                toast.info(`Task "${task.title}" spostato in "In Lavorazione".`);
+            } catch (error: any) {
+                toast.error("Errore", { description: `Impossibile aggiornare lo stato del task: ${error.message}` });
+                return;
+            }
+        }
+        startTimer(task);
     };
 
 
@@ -1118,10 +1108,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
     const handleSendForApproval = async (task: Task, targetStatus: 'In Approvazione' | 'In Approvazione Cliente' = 'In Approvazione') => {
         if (!currentUser) return;
 
-        // Se il timer è attivo per questo task, fermalo prima di procedere
-        const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
-        if (isTimerActiveForThisTask) {
-            setPomodoroTask(null);
+        // Se il timer è attivo per questo task, fermalo prima di procedere (gli altri cronometri continuano)
+        if (isTimerRunning(task.id)) {
+            stopTimer(task.id);
             await new Promise(resolve => setTimeout(resolve, 100));
         }
 
@@ -1546,7 +1535,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 const project = allProjects.find(p => p.id === task.projectId);
                                 const assignedUser = task.assignedUserId ? usersById[task.assignedUserId] : null;
                                 const creator = task.createdBy ? usersById[task.createdBy] : null;
-                                const isTimerActiveForThisTask = pomodoroTask?.id === task.id;
+                                const isTimerActiveForThisTask = isTimerRunning(task.id);
                                 const isTaskInApproval = task.status === 'In Approvazione';
 
                                 return (
