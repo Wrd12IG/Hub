@@ -1,5 +1,6 @@
 /**
  * GET /api/clients/[id]/dealer-kpi/kpis?month=AAAA-MM[&fresh=1]  (staff)
+ * GET /api/clients/[id]/dealer-kpi/kpis?from=AAAA-MM-GG&to=AAAA-MM-GG[&fresh=1]  — un intervallo di giorni qualsiasi
  *
  * I KPI di un cliente per un mese, quelli del SUO profilo (lib/kpi-profiles.ts, PROFILE_KPI_GROUPS): per un concessionario
  * sito, Meta Ads, Google Ads, Google Maps, Sheet e costo per lead; per gli altri i canali che di solito usano. Ognuno con il
@@ -16,7 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { denyUnlessStaff, unauthorizedResponse, verifyAuth } from '@/lib/api-auth';
 import { adminDb } from '@/lib/firebase-admin';
 import { PROFILE_DEFS, isKpiProfile, kpiGroupsFor, kpiIdsOfGroups } from '@/lib/kpi-profiles';
-import { computeClientMonth } from '@/lib/kpi-monthly';
+import { DATE_RE, computeClientMonth, computeClientRange } from '@/lib/kpi-monthly';
 import { isMonthKey } from '@/lib/manual-kpis';
 import { sourcesSignature } from '@/lib/report-warm';
 
@@ -38,7 +39,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (denied) return denied;
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(params.id)) return NextResponse.json({ error: 'Cliente non valido' }, { status: 400 });
     const month = request.nextUrl.searchParams.get('month');
-    if (!isMonthKey(month)) return NextResponse.json({ error: 'Mese non valido (AAAA-MM).' }, { status: 400 });
+    const from = request.nextUrl.searchParams.get('from');
+    const to = request.nextUrl.searchParams.get('to');
+    const byRange = !!(from || to);
+    if (byRange && !(from && to && DATE_RE.test(from) && DATE_RE.test(to))) return NextResponse.json({ error: 'Intervallo non valido (from e to in AAAA-MM-GG).' }, { status: 400 });
+    if (!byRange && !isMonthKey(month)) return NextResponse.json({ error: 'Mese non valido (AAAA-MM).' }, { status: 400 });
+    const periodKey = byRange ? `${from}_${to}` : month!;
     const fresh = request.nextUrl.searchParams.get('fresh') === '1';
     try {
         const client = await adminDb.collection('clients').doc(params.id).get();
@@ -49,26 +55,30 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         const groups = kpiGroupsFor(profile);
         const kpiIds = kpiIdsOfGroups(groups);
 
-        const cacheRef = adminDb.collection('clients').doc(params.id).collection('cache').doc(kpiCacheKey(month, client.data(), kpiIds));
+        const cacheRef = adminDb.collection('clients').doc(params.id).collection('cache').doc(kpiCacheKey(periodKey, client.data(), kpiIds));
         if (!fresh) {
             const hit = await cacheRef.get().catch(() => null);
             const c = hit?.exists ? (hit.data() as any) : null;
             if (c?.computedAt && Array.isArray(c.kpis) && Date.now() - Date.parse(c.computedAt) < (c.ttlMs ?? TTL_PARTIAL_MS)) {
-                return NextResponse.json({ month, profile, profileLabel: PROFILE_DEFS[profile].label, groups, kpis: c.kpis, alerts: c.alerts ?? [], partial: c.partial ?? null, computedAt: c.computedAt, cached: true });
+                return NextResponse.json({ month: byRange ? null : month, range: c.range ?? null, profile, profileLabel: PROFILE_DEFS[profile].label, groups, kpis: c.kpis, alerts: c.alerts ?? [], partial: c.partial ?? null, computedAt: c.computedAt, cached: true });
             }
         }
 
-        const out = await computeClientMonth(params.id, month, { kpiIds, weeks: false, snapshot: false, yoy: false });
+        const out = byRange
+            ? await computeClientRange(params.id, from!, to!, { kpiIds })
+            : await computeClientMonth(params.id, month!, { kpiIds, weeks: false, snapshot: false, yoy: false });
         if (!out.ok) return NextResponse.json({ error: out.message }, { status: out.reason === 'not_found' ? 404 : 422 });
-        const { kpis, alerts, partial } = out.result;
+        const { kpis, alerts } = out.result;
+        const partial = 'range' in out ? null : out.result.partial;
+        const range = 'range' in out ? out.range : null;
         const computedAt = new Date().toISOString();
         // Una lettura con fonti in errore si tiene poco: al prossimo giro si riprova
         const degraded = alerts.some((a) => a.startsWith('Fonti che non hanno risposto'));
-        const ttlMs = degraded ? 2 * 60 * 1000 : partial ? TTL_PARTIAL_MS : TTL_CLOSED_MS;
+        const ttlMs = degraded ? 2 * 60 * 1000 : partial || range ? TTL_PARTIAL_MS : TTL_CLOSED_MS;
         // Firestore rifiuta gli undefined: il giro da JSON li toglie
-        await cacheRef.set(JSON.parse(JSON.stringify({ computedAt, ttlMs, kpis, alerts, partial: partial ?? null })))
+        await cacheRef.set(JSON.parse(JSON.stringify({ computedAt, ttlMs, kpis, alerts, partial: partial ?? null, range })))
             .catch((e: any) => console.error('[dealer-kpi kpis] cache non scritta:', e?.message));
-        return NextResponse.json({ month, profile, profileLabel: PROFILE_DEFS[profile].label, groups, kpis, alerts, partial: partial ?? null, computedAt, cached: false });
+        return NextResponse.json({ month: byRange ? null : month, range, profile, profileLabel: PROFILE_DEFS[profile].label, groups, kpis, alerts, partial: partial ?? null, computedAt, cached: false });
     } catch (e) {
         console.error('[dealer-kpi kpis]', e);
         return NextResponse.json({ error: 'Errore nella lettura dei dati' }, { status: 500 });
