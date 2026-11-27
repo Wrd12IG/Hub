@@ -55,6 +55,8 @@ import TaskGanttChart from '@/components/task-gantt-chart';
 import { GanttChart } from 'lucide-react';
 import { TaskApprovedCelebration } from '@/components/TaskApprovedCelebration';
 import { sanitizeHtml } from '@/lib/sanitize-html';
+import { extractNasPaths, cardSnippet } from '@/lib/nas-paths';
+import { nameFromUrl, displayAttachmentName } from '@/lib/attachment-name';
 
 
 
@@ -93,12 +95,6 @@ const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = Math.floor(totalSeconds % 60);
     return [hours, minutes, seconds].map((v) => (v < 10 ? '0' + v : v)).join(':');
-};
-
-const stripHtml = (html: string): string => {
-    if (!html) return '';
-    // Replace HTML tags with spaces, then normalize spacing
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
 const formatDescription = (desc: string): string => {
@@ -355,9 +351,9 @@ const TaskCard = ({
                 <h3 className="font-bold text-sm text-foreground leading-snug break-words uppercase">
                     {task.title}
                 </h3>
-                {task.description && stripHtml(task.description).trim() && (
+                {task.description && cardSnippet(task.description) && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                        {stripHtml(task.description)}
+                        {cardSnippet(task.description)}
                     </p>
                 )}
                 {/* Data richiesta di completamento */}
@@ -976,7 +972,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 // È un link, crea l'allegato direttamente
                 newAttachment = {
                     url: attachmentUrl,
-                    filename: attachmentFilename || 'Link allegato',
+                    filename: attachmentFilename?.trim() || nameFromUrl(attachmentUrl),
                     date: new Date().toISOString(),
                     userId: currentUser.id,
                     version: 1,
@@ -1890,7 +1886,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 <Label>Link da revisionare</Label>
                                 <a href={getAttachmentHref(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
                                     <FileText className="h-4 w-4 flex-shrink-0" />
-                                    <span className="truncate">{att.filename || 'Link allegato'}</span>
+                                    <span className="truncate">{displayAttachmentName(att)}</span>
                                 </a>
                             </div>
                         ))}
@@ -1994,7 +1990,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 <Label>Link da approvare</Label>
                                 <a href={getAttachmentHref(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
                                     <FileText className="h-4 w-4 flex-shrink-0" />
-                                    <span className="truncate">{att.filename || 'Link allegato'}</span>
+                                    <span className="truncate">{displayAttachmentName(att)}</span>
                                 </a>
                             </div>
                         ))}
@@ -2355,6 +2351,32 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             <CardTitle className="text-sm">Descrizione</CardTitle>
                                         </CardHeader>
                                         <CardContent>
+                                            {extractNasPaths(previewTask.description || '').length > 0 && (
+                                                <div className="mb-3 space-y-1.5">
+                                                    {extractNasPaths(previewTask.description || '').map(path => (
+                                                        <div key={path} className="flex items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1.5">
+                                                            <FolderKanban className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                            <span className="text-xs font-mono break-all flex-1" title={path}>{path}</span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-7 shrink-0"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await navigator.clipboard.writeText(path);
+                                                                        toast.success('Percorso NAS copiato');
+                                                                    } catch {
+                                                                        toast.error('Copia non riuscita: seleziona il percorso a mano');
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Copia
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <div 
                                                 className="text-sm leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>h1]:text-base [&>h1]:font-bold [&>h1]:mt-3 [&>h1]:mb-1 [&>h2]:text-sm [&>h2]:font-bold [&>h2]:mt-2 [&>h2]:mb-1 [&>blockquote]:border-l-4 [&>blockquote]:border-purple-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>code]:bg-purple-500/10 [&>code]:text-purple-500 [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded"
                                                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatDescription(previewTask.description || '')) }}

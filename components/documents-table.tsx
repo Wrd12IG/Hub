@@ -27,6 +27,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useLayoutData } from '@/app/(app)/layout-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
+import { displayAttachmentName } from '@/lib/attachment-name';
 
 export function DocumentsTable() {
   const {
@@ -35,6 +36,7 @@ export function DocumentsTable() {
     allTasks,
     allProjects,
     activityTypes,
+    clientsById,
     isLoadingLayout
   } = useLayoutData();
 
@@ -183,7 +185,7 @@ export function DocumentsTable() {
               <TableRow>
                 <TableHead className="w-[80px]">Tipo</TableHead>
                 <TableHead>Nome File</TableHead>
-                <TableHead className="hidden sm:table-cell">Task Associato</TableHead>
+                <TableHead className="hidden sm:table-cell">Cliente · Task</TableHead>
                 <TableHead className="hidden md:table-cell">Data Caricamento</TableHead>
                 <TableHead className="text-right">
                   <span className="sr-only">Azioni</span>
@@ -197,13 +199,18 @@ export function DocumentsTable() {
                     <FileText className="w-6 h-6 text-muted-foreground" />
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{att.filename}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {(att as any).description || 'Nessuna descrizione'}
-                    </div>
+                    <div className="font-medium break-all">{displayAttachmentName(att)}</div>
+                    {((att as any).description || (att as any).documentType) && (
+                      <div className="text-sm text-muted-foreground">
+                        {(att as any).description || (att as any).documentType}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    {att.taskTitle}
+                    {att.clientId && clientsById[att.clientId] && (
+                      <div className="text-xs font-semibold text-muted-foreground uppercase">{clientsById[att.clientId].name}</div>
+                    )}
+                    <div>{att.taskTitle}</div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
                     {new Date(att.date).toLocaleDateString('it-IT')}
@@ -215,7 +222,7 @@ export function DocumentsTable() {
                         Visualizza
                       </a>
                     </Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setAttachmentToDelete({ taskId: att.taskId, url: att.url, filename: att.filename })}>
+                    <Button variant="ghost" size="icon" aria-label="Elimina allegato" title="Elimina allegato" className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive" onClick={() => setAttachmentToDelete({ taskId: att.taskId, url: att.url, filename: displayAttachmentName(att) })}>
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </TableCell>
