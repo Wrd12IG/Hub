@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   getRecurringTasks,
   addRecurringTask,
@@ -80,12 +81,38 @@ const weeksOfMonth = [
   { value: 4, label: 'Quarta' },
 ];
 
-export default function RecurringTasksPage() {
+function RecurringTasksPageInner() {
   const { users, clients, allProjects, activityTypes, allTasks, usersById, refetchData, currentUser } = useLayoutData();
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState<'create' | 'edit' | null>(null);
   const [editingTask, setEditingTask] = useState<RecurringTask | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // «Rendi ricorrente» da un task: si apre la creazione già compilata con i suoi dati
+  useEffect(() => {
+    const fromTask = searchParams.get('fromTask');
+    if (!fromTask || allTasks.length === 0) return;
+    const source = allTasks.find(t => t.id === fromTask);
+    router.replace('/admin/recurring-tasks', { scroll: false });
+    if (!source) return;
+    setEditingTask({
+      id: '',
+      title: source.title,
+      description: source.description,
+      priority: source.priority,
+      clientId: source.clientId,
+      projectId: source.projectId,
+      activityType: source.activityType,
+      estimatedDuration: source.estimatedDuration || 60,
+      assignedUserId: source.assignedUserId,
+      recurrence: { type: 'monthly' } as RecurringTask['recurrence'],
+      isActive: true,
+    });
+    setModalOpen('create');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, allTasks.length]);
   const [taskToDelete, setTaskToDelete] = useState<RecurringTask | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [isActiveForm, setIsActiveForm] = useState(true); // controlled state for Switch
@@ -146,8 +173,24 @@ export default function RecurringTasksPage() {
 
     try {
       if (modalOpen === 'create') {
-        await addRecurringTask({ ...definition, createdAt: new Date().toISOString() });
-        toast({ title: 'Successo', description: 'Task ricorrente creato.' });
+        // Stessa ricorrenza per più clienti (es. «Grafica buon anno»): una definizione per cliente
+        let extraIds: string[] = [];
+        try { extraIds = JSON.parse((formData.get('extraClientIds') as string) || '[]'); } catch { extraIds = []; }
+        const clientIds = Array.from(new Set([definition.clientId, ...extraIds.filter(Boolean)]));
+        const now = new Date().toISOString();
+        for (const cid of clientIds) {
+          const isMain = cid === definition.clientId;
+          const assignee = isMain ? definition.assignedUserId : (definition.assignedUserId || clients.find(c => c.id === cid)?.socialManagerId || undefined);
+          await addRecurringTask({
+            ...definition,
+            clientId: cid,
+            // il progetto appartiene al primo cliente: sugli altri non ha senso
+            projectId: isMain ? definition.projectId : undefined,
+            assignedUserId: assignee,
+            createdAt: now,
+          });
+        }
+        toast({ title: 'Successo', description: clientIds.length === 1 ? 'Task ricorrente creato.' : `Task ricorrente creato per ${clientIds.length} clienti.` });
       } else if (editingTask) {
         await updateRecurringTask(editingTask.id, definition);
         toast({ title: 'Successo', description: 'Task ricorrente aggiornato.' });
@@ -487,6 +530,9 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
   const [selectedClientId, setSelectedClientId] = useState<string>(task?.clientId || '');
   const [selectedAssignedUserId, setSelectedAssignedUserId] = useState<string>(task?.assignedUserId || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isNew = !task?.id;
+  const [extraClientIds, setExtraClientIds] = useState<string[]>([]);
+  useEffect(() => { setExtraClientIds([]); }, [task, isOpen]);
 
   useEffect(() => {
     if (task) {
@@ -520,7 +566,7 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{task ? 'Modifica Task Ricorrente' : 'Crea Nuovo Task Ricorrente'}</DialogTitle>
+          <DialogTitle>{isNew ? 'Crea Nuovo Task Ricorrente' : 'Modifica Task Ricorrente'}</DialogTitle>
           <DialogDescription>Compila i dettagli per definire la creazione automatica del task.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 pt-4 max-h-[80vh] overflow-y-auto pr-4">
@@ -567,6 +613,24 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
                 </div>
                 <div><Label htmlFor="projectId">Progetto (Opzionale)</Label><Select name="projectId" defaultValue={task?.projectId || undefined}><SelectTrigger><SelectValue placeholder="Nessun Progetto" /></SelectTrigger><SelectContent>{[...projects].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
               </div>
+              {isNew && (
+                <div>
+                  <Label>Anche per altri clienti (opzionale)</Label>
+                  <p className="text-xs text-muted-foreground mb-2">Per i lavori uguali su più clienti, come gli auguri di fine anno: si crea una ricorrenza per ognuno.</p>
+                  <input type="hidden" name="extraClientIds" value={JSON.stringify(extraClientIds)} />
+                  <div className="max-h-40 overflow-y-auto rounded-md border p-2 grid grid-cols-2 gap-1.5">
+                    {[...clients].filter(c => c.id !== selectedClientId && !(c as any).archived).sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
+                      <label key={c.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={extraClientIds.includes(c.id)}
+                          onCheckedChange={(v) => setExtraClientIds(cur => v ? [...cur, c.id] : cur.filter(x => x !== c.id))}
+                        />
+                        <span className="truncate">{c.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div><Label htmlFor="activityType">Tipo Attività</Label><Select name="activityType" required defaultValue={task?.activityType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{[...activityTypes].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(at => <SelectItem key={at.id} value={at.name}>{at.name}</SelectItem>)}</SelectContent></Select></div>
                 <div>
@@ -644,5 +708,15 @@ function RecurringTaskForm({ isOpen, onClose, onSubmit, task, users, clients, pr
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+
+// useSearchParams (link «Rendi ricorrente» da un task) richiede un confine Suspense in Next 14
+export default function RecurringTasksPage() {
+  return (
+    <Suspense fallback={null}>
+      <RecurringTasksPageInner />
+    </Suspense>
   );
 }

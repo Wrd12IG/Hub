@@ -341,6 +341,10 @@ const TaskCard = ({
                         <DropdownMenuItem onClick={() => handleOpenModal('edit', task)} disabled={task.status === 'Approvato' && !canApprove}>Modifica</DropdownMenuItem>
                         {canApprove && (
                             <>
+                                {/* Lavoro che si ripete (auguri, promo del mese…): si imposta una volta sola, anche per più clienti */}
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/admin/recurring-tasks?fromTask=${task.id}`}>Rendi ricorrente…</Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-destructive" onClick={() => setTaskToDelete(task)}>Elimina</DropdownMenuItem>
                             </>
