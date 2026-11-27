@@ -118,6 +118,7 @@ import { Leaderboard, LevelBadge, StreakDisplay } from '@/components/gamificatio
 import { getLevelFromXp } from '@/lib/gamification';
 import { DeadlineCountdownWidget } from '@/components/dashboard/deadline-countdown';
 import { WeatherWidget } from '@/components/dashboard/weather-widget';
+import { ApprovalQueueWidget } from '@/components/dashboard/approval-queue-widget';
 import { UpcomingBirthdaysWidget } from '@/components/birthday-celebration';
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
 import { AnimatedCounter, AnimatedHours } from '@/components/ui/animated-counter';
@@ -304,7 +305,7 @@ const formatCurrency = formatEuro;
 
 
 export default function Dashboard() {
-    const { users, usersById, clients, clientsById, allTasks, allProjects, activityTypes, absences, calendarActivities, calendarActivityPresets, isLoadingLayout, currentUser, canViewFinancials } = useLayoutData();
+    const { users, usersById, clients, clientsById, allTasks, allProjects, activityTypes, absences, calendarActivities, calendarActivityPresets, isLoadingLayout, isLoadingWorkData, currentUser, canViewFinancials } = useLayoutData();
 
     // Protezione accesso: solo Amministratore può vedere la dashboard
     // NOTA: non usare early return qui — violerebbe le Rules of Hooks.
@@ -1673,6 +1674,14 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    {isLoadingWorkData ? (
+                    // Contatori in caricamento: niente «0», che sembra un dato vero
+                    <div className="flex flex-wrap items-center gap-2" aria-busy="true" aria-label="Caricamento contatori">
+                        {[112, 80, 72, 96, 64].map((w, i) => (
+                            <div key={i} className="h-[22px] rounded-full bg-muted animate-pulse" style={{ width: w }} />
+                        ))}
+                    </div>
+                    ) : (
                     <div className="flex flex-wrap items-center gap-2">
                         <Badge className="bg-primary/20 text-primary border-primary/30">
                              In corso: <AnimatedCounter value={globalKpis.activeProjects} duration={800} />/{globalKpis.totalProjects} progetti
@@ -1691,6 +1700,7 @@ export default function Dashboard() {
                             {globalKpis.trends.completedTasks >= 0 ? '↑' : '↓'} {Math.abs(globalKpis.trends.completedTasks).toFixed(0)}% task
                         </Badge>
                     </div>
+                    )}
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="sm" className="hidden sm:flex gap-2" onClick={handleExportCSV}>
                             <Download className="h-4 w-4" />
@@ -1725,8 +1735,9 @@ export default function Dashboard() {
                                 <UpcomingBirthdaysWidget users={users} />
                             </AnimatedGridItem>
 
+                            {/* In alto ciò che richiede un'azione; il meteo è sceso in fondo alla pagina */}
                             <AnimatedGridItem>
-                                <WeatherWidget city="Milano" apiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY} />
+                                <ApprovalQueueWidget tasks={allTasks} clientsById={clientsById} usersById={usersById} />
                             </AnimatedGridItem>
                         </>
                     )}
@@ -1776,7 +1787,11 @@ export default function Dashboard() {
                         <CardDescription>Task attualmente in corso con registrazione tempo</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').length === 0 ? (
+                        {isLoadingWorkData ? (
+                            <div className="space-y-3" aria-busy="true">
+                                {[0, 1, 2].map(i => <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />)}
+                            </div>
+                        ) : allTasks.filter(t => t.timerStartedAt && t.status !== 'Approvato' && t.status !== 'Annullato').length === 0 ? (
                             <p className="text-muted-foreground text-sm text-center py-4">
                                 {allTasks.filter(t => t.status === 'In Lavorazione').length > 0
                                     ? `Nessun timer attivo, ma ${allTasks.filter(t => t.status === 'In Lavorazione').length} task sono In Lavorazione senza timer avviato`
@@ -2605,7 +2620,7 @@ export default function Dashboard() {
                                     <div className="p-3 bg-muted rounded-full">
                                         <Briefcase className="h-6 w-6 opacity-50" />
                                     </div>
-                                    <p className="text-sm">Nessun progetto attivo trovato per i filtri selezionati.</p>
+                                    <p className="text-sm">{isLoadingWorkData ? 'Caricamento progetti…' : 'Nessun progetto attivo trovato per i filtri selezionati.'}</p>
                                 </div>
                             )}
                         </CardContent>
@@ -2977,7 +2992,7 @@ export default function Dashboard() {
                                         <div className="p-2.5 bg-emerald-500/10 rounded-full text-emerald-500">
                                             <CheckCircle className="h-5 w-5" />
                                         </div>
-                                        <p className="text-xs">Nessun task scaduto.</p>
+                                        <p className="text-xs">{isLoadingWorkData ? 'Caricamento task…' : 'Nessun task scaduto.'}</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -3488,6 +3503,12 @@ export default function Dashboard() {
                         </div>
                     </CardContent>
                 </Card>
+            )}
+
+            {isWidgetVisible('widgets_top') && (
+                <div className="max-w-md">
+                    <WeatherWidget city="Milano" apiKey={process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY} />
+                </div>
             )}
 
             {/* ===== Gamification Leaderboard ===== */}

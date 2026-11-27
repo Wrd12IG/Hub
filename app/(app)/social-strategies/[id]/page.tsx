@@ -178,6 +178,7 @@ export default function SocialStrategyDetailPage() {
                         clientName={client?.name}
                         clientId={strategy.clientId}
                         userId={strategy.createdBy}
+                        strategyId={strategy.id}
                         periodLabel={strategy.periodLabel}
                         toneOfVoice={client?.socialProfile?.toneOfVoice}
                     />

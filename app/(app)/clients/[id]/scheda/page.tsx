@@ -8,6 +8,10 @@ import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { btn } from '@/app/(app)/outreach/shared'
 import { LOG_TYPES, LOG_TYPE_LABEL, typeText, type LogEntry, type LogType } from '@/lib/client-scheda/types'
 import type { SchedaClient } from '@/lib/client-scheda/whitelist'
+import Link from 'next/link'
+import { useLayoutData } from '@/app/(app)/layout-context'
+import { ClientQuickLinks } from '@/components/client-quick-links'
+import { clientWorkSummary } from '@/lib/client-work-summary'
 
 type Payload = { client: SchedaClient; entries: LogEntry[]; nextBefore: string | null; canDecide: boolean }
 type Sent = { entry: LogEntry; emails: { sent: number; failed: number } }
@@ -25,6 +29,8 @@ const APPROVAL: Record<string, { label: string; cls: string }> = {
 export default function ClientSchedaPage() {
   const { id } = useParams() as { id: string }
   const { authFetch } = useAuthFetch()
+  const { currentUser, allTasks, isLoadingWorkData, clientsById } = useLayoutData()
+  const isStaff = !!currentUser && currentUser.role !== 'Cliente'
   const [data, setData] = useState<Payload | null>(null)
   const [entries, setEntries] = useState<LogEntry[]>([])
   const [next, setNext] = useState<string | null>(null)
@@ -108,6 +114,31 @@ export default function ClientSchedaPage() {
         <h1 className="text-xl font-semibold">{c.name}</h1>
         <p className="text-sm text-muted-foreground">Scheda cliente e registro delle interazioni</p>
       </header>
+
+      {/* Da qui si arriva a tutto il lavoro sul cliente: prima la scheda era un vicolo cieco */}
+      {isStaff && <ClientQuickLinks clientId={id} kpiProfile={clientsById[id]?.kpiProfile} />}
+
+      {isStaff && (() => {
+        const sum = clientWorkSummary(allTasks, id)
+        const cells: Array<{ label: string; value: number; tone?: string }> = [
+          { label: 'Task aperti', value: sum.open },
+          { label: 'Scaduti', value: sum.overdue, tone: sum.overdue > 0 ? 'text-red-600' : undefined },
+          { label: 'In approvazione', value: sum.inApproval, tone: sum.inApproval > 0 ? 'text-amber-600' : undefined },
+          { label: 'Attesa cliente', value: sum.waitingClient },
+        ]
+        return (
+          <Link href={`/clients/${id}/tasks`} className="grid grid-cols-2 sm:grid-cols-4 gap-px overflow-hidden rounded-xl border border-border bg-border hover:border-primary/40 transition-colors" aria-label="Apri i task del cliente">
+            {cells.map((cell) => (
+              <div key={cell.label} className="bg-background p-3">
+                <div className={`text-2xl font-semibold tabular-nums ${cell.tone ?? ''}`}>
+                  {isLoadingWorkData ? <span className="inline-block h-7 w-8 rounded bg-muted animate-pulse align-middle" /> : cell.value}
+                </div>
+                <div className="text-xs text-muted-foreground">{cell.label}</div>
+              </div>
+            ))}
+          </Link>
+        )
+      })()}
 
       <section className="rounded-xl border border-border p-4">
         <dl className="space-y-1.5">

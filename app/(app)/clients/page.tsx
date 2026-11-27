@@ -41,11 +41,6 @@ export default function ClientsPage() {
     return () => { cancelled = true }
   }, [])
 
-  const withVerdict = useMemo(
-    () => Object.values(health).filter((r) => r.cached && r.state && r.state !== 'unknown').length,
-    [health]
-  )
-
   const filteredClients = useMemo(() => {
     const list = (clients || []) as any[]
     return list.filter(
@@ -64,8 +59,7 @@ export default function ClientsPage() {
           <p className="text-muted-foreground text-sm mt-0.5">
             {isLoadingLayout
               ? '…'
-              : `${clients?.length ?? 0} clienti` +
-                (withVerdict > 0 ? ` · andamento calcolato per ${withVerdict} (si calcola aprendo la scheda del cliente)` : '')}
+              : `${clients?.length ?? 0} clienti`}
           </p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">

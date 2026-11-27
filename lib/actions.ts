@@ -733,6 +733,16 @@ export async function updateEditorialContent(contentId: string, data: Partial<Om
 }
 
 /**
+ * Il PED è l'origine dei task social: se cambia la data di uscita di un contenuto,
+ * i task di produzione collegati devono mostrarla aggiornata (la loro scadenza resta a chi la gestisce).
+ */
+export async function syncPublicationDateToTasks(taskIds: string[], publicationDate: string | undefined): Promise<void> {
+    const date = publicationDate ? publicationDate.slice(0, 10) : null;
+    await Promise.all(taskIds.map((id) => updateDoc(doc(db, 'tasks', id), { publicationDate: date, updatedAt: Timestamp.now() })
+        .catch((e) => console.error(`Impossibile aggiornare la data di uscita del task ${id}:`, e))));
+}
+
+/**
  * Storia Instagram con link sticker programmata a mano in Meta Business Suite (vedi lib/story-editor/business-suite.ts):
  * il canale risulta fatto e la pubblicazione automatica non lo tocca più. `done=false` annulla il segno.
  */

@@ -20,6 +20,7 @@ import { Brief, Project, Task } from '@/lib/data';
 import { getBriefs, deleteBrief, updateBrief } from '@/lib/actions';
 import { STAFF_BRIEF_MOVES, type BriefStatus } from '@/lib/brief-status';
 import BriefForm from '@/components/brief-form';
+import Link from 'next/link';
 import BriefToProjectForm from '@/components/brief-to-project-form';
 import dynamic from 'next/dynamic';
 const TaskForm = dynamic(() => import('@/components/task-form'), { ssr: false });
@@ -319,7 +320,17 @@ export default function BriefsPage() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>{brief.deadline ? new Date(brief.deadline).toLocaleDateString() : '-'}</TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-right whitespace-nowrap">
+                                            {/* Il passo successivo del flusso, in vista: dal brief nasce il progetto */}
+                                            {brief.projectId ? (
+                                                <Button variant="outline" size="sm" className="mr-1" asChild>
+                                                    <Link href={`/projects?projectId=${brief.projectId}`}>Apri progetto</Link>
+                                                </Button>
+                                            ) : brief.status !== 'Bozza' && brief.status !== 'Consegnato' ? (
+                                                <Button size="sm" className="mr-1" onClick={() => openProjectFormFromBrief(brief)}>
+                                                    Crea progetto
+                                                </Button>
+                                            ) : null}
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="sm">

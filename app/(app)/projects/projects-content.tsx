@@ -94,9 +94,11 @@ import { useToast } from '@/hooks/use-toast';
 
 import { TimelineView } from '@/components/timeline-view';
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
+import Link from 'next/link';
+import { CardGridSkeleton } from '@/components/ui/skeleton-loaders';
 
 export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: string } = {}) {
-    const { allProjects: projects, clients, allTasks: tasks, usersById, currentUser } = useLayoutData();
+    const { allProjects: projects, clients, allTasks: tasks, usersById, currentUser, isLoadingWorkData } = useLayoutData();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -180,6 +182,15 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
         setEditingProject(forcedClientId ? { clientId: forcedClientId } as any : null);
         setIsDialogOpen(true);
     };
+
+    // Link diretto a un progetto (?projectId=…), per esempio dal brief da cui è nato: apre l'anteprima
+    useEffect(() => {
+        const pid = searchParams.get('projectId');
+        if (!pid || previewProject?.id === pid) return;
+        const found = projects.find(p => p.id === pid);
+        if (found) setPreviewProject(found);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams, projects]);
 
     // Auto-open create dialog from URL (?action=new)
     useEffect(() => {
@@ -609,9 +620,13 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                         );
                     })}
                     {filteredProjects.length === 0 && (
-                        <div className="col-span-full text-center py-10 text-muted-foreground">
-                            Nessun progetto trovato.
-                        </div>
+                        isLoadingWorkData ? (
+                            <div className="col-span-full"><CardGridSkeleton count={8} /></div>
+                        ) : (
+                            <div className="col-span-full text-center py-10 text-muted-foreground">
+                                Nessun progetto trovato.
+                            </div>
+                        )
                     )}
                 </AnimatedGrid>
             )}
@@ -719,7 +734,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                 {filteredProjects.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                                            Nessun progetto trovato.
+                                            {isLoadingWorkData ? 'Caricamento progetti…' : 'Nessun progetto trovato.'}
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -815,6 +830,12 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                                 </div>
                                             </CardContent>
                                         </Card>
+                                    )}
+
+                                    {previewProject.briefId && (
+                                        <Link href="/briefs" className="block text-sm rounded-lg border px-3 py-2 hover:bg-muted/50">
+                                            Nato da un brief del cliente · <span className="underline">apri i brief</span>
+                                        </Link>
                                     )}
 
                                     {/* Descrizione e Note */}

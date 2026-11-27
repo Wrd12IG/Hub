@@ -63,3 +63,9 @@ export function briefTodo(briefs: Brief[], today: string): BriefTodo {
         overdue: open.filter((b) => !!b.deadline && b.deadline.slice(0, 10) < today).sort((a, b) => String(a.deadline).localeCompare(String(b.deadline))),
     };
 }
+
+/** Brief aperti di un cliente che non hanno ancora un progetto: il progetto dovrebbe nascere da uno di questi. */
+export function openBriefsWithoutProject<T extends Pick<Brief, 'clientId' | 'status' | 'projectId'>>(briefs: T[], clientId: string | undefined): T[] {
+    if (!clientId) return [];
+    return briefs.filter(b => b.clientId === clientId && !b.projectId && isBriefOpen(b.status));
+}

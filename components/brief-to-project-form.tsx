@@ -93,6 +93,7 @@ export default function BriefToProjectForm({
                 name: projectName,
                 description: projectDescription,
                 clientId: brief.clientId,
+                briefId: brief.id,
                 status: 'Pianificazione',
                 budget: projectBudget,
                 endDate: projectEndDate,

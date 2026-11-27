@@ -110,6 +110,8 @@ export interface Project {
     name: string;
     description?: string;
     status: 'Pianificazione' | 'In Corso' | 'Completato' | 'In Pausa' | 'Annullato';
+    /** Brief da cui è nato il progetto (se c'è): il brief è il primo passo del flusso. */
+    briefId?: string;
     clientId: string;
     startDate?: string;
     endDate?: string;
@@ -183,6 +185,8 @@ export interface Task {
     timerStartedAt?: string;  // ISO timestamp when timer was started
     timerUserId?: string;     // User ID who started the timer
     editorialContentId?: string; // Link to editorial content
+    /** Data di uscita del contenuto del PED da cui nasce il task (yyyy-MM-dd). Diversa dalla scadenza di produzione (dueDate). */
+    publicationDate?: string;
 }
 
 export interface ActivityType {
@@ -517,6 +521,8 @@ export interface EditorialContent {
     id: string;
     topic: string;
     clientId: string;
+    /** Strategia social da cui nasce il contenuto, se c'è. */
+    strategyId?: string;
     format: string;
     status: string;
     publicationDate?: string;

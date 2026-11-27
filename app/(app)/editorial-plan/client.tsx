@@ -22,6 +22,7 @@ import {
     CardTitle,
     CardDescription,
 } from '@/components/ui/card';
+import { syncPublicationDateToTasks } from '@/lib/actions';
 import { getEditorialContents, addEditorialContent, updateEditorialContent, deleteEditorialContent, getEditorialFormats, getEditorialColumns, getEditorialStatuses, addTask, addProject, uploadFilesAndGetAttachments } from '@/lib/actions';
 import type { EditorialContent, ChannelPublishState, Client, EditorialFormat, EditorialColumn, EditorialStatus, User, Task, Project, ActivityType } from '@/lib/data';
 import { PlusCircle, MoreVertical, Edit, Trash2, Instagram, Youtube, Clapperboard, Store, Briefcase, MessageSquare, Filter, Calendar as CalendarIcon, LayoutGrid, Kanban, List, Loader2, Pencil, GanttChartSquare, ClipboardList, Eraser, Facebook, Linkedin, AlertTriangle, Download, TrendingUp, Clock, FileText, BarChart3, Eye, CheckCircle, Timer, ImageIcon, X, Send, Wand2, Link2 } from 'lucide-react';
@@ -1640,6 +1641,14 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
                         defaultClientId={filters.clientId !== 'all' ? filters.clientId : undefined}
                         onOpenNestedModal={handleOpenNestedModal}
                         onSuccess={fetchData}
+                        onCreated={(content) => {
+                            // Se c'è una data di uscita futura si passa subito ai task di produzione:
+                            // i task social nascono dal piano, non vengono creati a mano a parte.
+                            const today = new Date().toISOString().slice(0, 10);
+                            if (content.status !== 'Pubblicato' && content.publicationDate && content.publicationDate.slice(0, 10) >= today) {
+                                setProductionContent(content);
+                            }
+                        }}
                     />
                 </DialogContent>
             </Dialog>
@@ -1755,7 +1764,7 @@ export function EditorialPlanPageContent({ forcedClientId, forceView }: { forced
 }
 
 // Wrapper component to manage form state and pass it down
-function FormWrapper({ modalState, handleCloseModal, editingContent, initialStatusForCreate, clients, editorialFormats, editorialStatuses, editorialColumns, forcedClientId, defaultClientId, onOpenNestedModal, onSuccess }: {
+function FormWrapper({ modalState, handleCloseModal, editingContent, initialStatusForCreate, clients, editorialFormats, editorialStatuses, editorialColumns, forcedClientId, defaultClientId, onOpenNestedModal, onSuccess, onCreated }: {
     modalState: ModalState,
     handleCloseModal: () => void,
     editingContent: EditorialContent | null,
@@ -1769,6 +1778,8 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
     defaultClientId?: string,
     onOpenNestedModal: (type: NestedModalState, formData: ContentFormData) => void;
     onSuccess?: () => void;
+    /** Contenuto appena creato: il PED è l'origine dei task social, quindi da qui si aprono i task di produzione. */
+    onCreated?: (content: EditorialContent) => void;
 }) {
 
     const [selectedClientId, setSelectedClientId] = useState<string | undefined>(editingContent?.clientId || forcedClientId || defaultClientId);
@@ -1915,10 +1926,18 @@ function FormWrapper({ modalState, handleCloseModal, editingContent, initialStat
                 toast.success('Contenuto aggiunto.');
                 handleCloseModal();
                 onSuccess?.();
+                onCreated?.({ ...(data as Omit<EditorialContent, 'id'>), id: newContentId } as EditorialContent);
                 return newContentId;
 
             } else if (modalState === 'edit' && editingContent) {
                 await updateEditorialContent(editingContent.id, data);
+                // Data di uscita cambiata: i task di produzione collegati la mostrano aggiornata
+                const newDate = (data as Partial<EditorialContent>).publicationDate;
+                const linked = linkedTaskIds(editingContent);
+                if (linked.length > 0 && (newDate || '').slice(0, 10) !== (editingContent.publicationDate || '').slice(0, 10)) {
+                    await syncPublicationDateToTasks(linked, newDate);
+                    toast.info('Data di uscita aggiornata anche nei task collegati: controlla le loro scadenze.');
+                }
                 toast.success('Contenuto aggiornato.');
                 handleCloseModal();
                 onSuccess?.();

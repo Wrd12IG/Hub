@@ -55,6 +55,9 @@ import TaskGanttChart from '@/components/task-gantt-chart';
 import { GanttChart } from 'lucide-react';
 import { TaskApprovedCelebration } from '@/components/TaskApprovedCelebration';
 import { sanitizeHtml } from '@/lib/sanitize-html';
+import { extractNasPaths, cardSnippet } from '@/lib/nas-paths';
+import { nameFromUrl, displayAttachmentName } from '@/lib/attachment-name';
+import { approvalWaitTone, approvalWaitLabel, approverName } from '@/lib/approval-wait';
 
 
 
@@ -93,12 +96,6 @@ const formatTime = (totalSeconds: number) => {
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = Math.floor(totalSeconds % 60);
     return [hours, minutes, seconds].map((v) => (v < 10 ? '0' + v : v)).join(':');
-};
-
-const stripHtml = (html: string): string => {
-    if (!html) return '';
-    // Replace HTML tags with spaces, then normalize spacing
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
 const formatDescription = (desc: string): string => {
@@ -213,12 +210,14 @@ const TaskCard = ({
     ) : null;
 
     const approvalDaysPending = useMemo(() => {
-        if (!isTaskInApproval || !task.updatedAt) return 0;
-        const updateDate = typeof task.updatedAt === 'string' ? new Date(task.updatedAt) :
-            (task.updatedAt as any).toDate ? (task.updatedAt as any).toDate() : new Date();
+        // Da quando è entrato nello stato (statusChangedAt); updatedAt cambia anche per un commento
+        const since = task.statusChangedAt || task.updatedAt;
+        if (!isTaskInApproval || !since) return 0;
+        const updateDate = typeof since === 'string' ? new Date(since) :
+            (since as any).toDate ? (since as any).toDate() : new Date();
         const diffTime = Math.abs(new Date().getTime() - updateDate.getTime());
         return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    }, [isTaskInApproval, task.updatedAt]);
+    }, [isTaskInApproval, task.updatedAt, task.statusChangedAt]);
 
     const isNewApprovalRequest = isTaskInApproval && approvalDaysPending < 1;
     const isOverdue = daysRemaining !== null && daysRemaining < 0 && (task.status === 'Da Fare' || task.status === 'In Lavorazione');
@@ -342,6 +341,10 @@ const TaskCard = ({
                         <DropdownMenuItem onClick={() => handleOpenModal('edit', task)} disabled={task.status === 'Approvato' && !canApprove}>Modifica</DropdownMenuItem>
                         {canApprove && (
                             <>
+                                {/* Lavoro che si ripete (auguri, promo del mese…): si imposta una volta sola, anche per più clienti */}
+                                <DropdownMenuItem asChild>
+                                    <Link href={`/admin/recurring-tasks?fromTask=${task.id}`}>Rendi ricorrente…</Link>
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem className="text-destructive" onClick={() => setTaskToDelete(task)}>Elimina</DropdownMenuItem>
                             </>
@@ -355,9 +358,9 @@ const TaskCard = ({
                 <h3 className="font-bold text-sm text-foreground leading-snug break-words uppercase">
                     {task.title}
                 </h3>
-                {task.description && stripHtml(task.description).trim() && (
+                {task.description && cardSnippet(task.description) && (
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-                        {stripHtml(task.description)}
+                        {cardSnippet(task.description)}
                     </p>
                 )}
                 {/* Data richiesta di completamento */}
@@ -382,6 +385,12 @@ const TaskCard = ({
                         </span>
                     ) : (
                         <span className="text-xs text-muted-foreground/50 italic">Nessuna scadenza</span>
+                    )}
+                    {/* Task nato dal Piano editoriale: la data di uscita è separata dalla scadenza di produzione */}
+                    {task.publicationDate && (
+                        <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap" title="Data di pubblicazione del contenuto nel Piano editoriale">
+                            Esce {format(new Date(`${task.publicationDate.slice(0, 10)}T12:00:00`), 'dd MMM', { locale: it })}
+                        </span>
                     )}
                 </div>
             </div>
@@ -416,12 +425,24 @@ const TaskCard = ({
                             {task.activityType}
                         </span>
                     )}
-                    {isTaskInApproval && approvalDaysPending >= 1 && (
-                        <span className="text-xs font-bold bg-red-500/10 text-red-600 border border-red-500/20 px-2 py-0.5 rounded-full flex items-center gap-0.5 animate-breathing-custom">
-                            <Timer className="h-2.5 w-2.5" />
-                            {approvalDaysPending}gg
-                        </span>
-                    )}
+                    {isTaskInApproval && (() => {
+                        const tone = approvalWaitTone(approvalDaysPending);
+                        const who = approverName(task.status, clients.find(c => c.id === task.clientId), usersById);
+                        return (
+                            <span
+                                className={cn(
+                                    'text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 border',
+                                    tone === 'late' && 'bg-red-500/10 text-red-600 border-red-500/30',
+                                    tone === 'warning' && 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
+                                    tone === 'fresh' && 'bg-secondary/60 text-muted-foreground border-transparent'
+                                )}
+                                title={`In attesa da ${approvalWaitLabel(approvalDaysPending)}${who ? ` · tocca a ${who}` : ''}`}
+                            >
+                                <Timer className="h-3 w-3" />
+                                {approvalWaitLabel(approvalDaysPending)}{who ? ` · ${who}` : ''}
+                            </span>
+                        );
+                    })()}
                     {task.rejectionReason && (
                         <button
                             type="button"
@@ -628,6 +649,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     const [allTasks, setAllTasks] = useState<Task[]>([]);
     const [allProjects, setAllProjects] = useState<Project[]>([]);
+    // true dopo il primo snapshot di "tasks": finché è false mostriamo lo skeleton,
+    // non lo stato vuoto ("Nessun task trovato"), che farebbe credere che i dati siano spariti.
+    const [tasksLoaded, setTasksLoaded] = useState(false);
     const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
 
     const [modalState, setModalState] = useState<ModalState>({ mode: 'create', isOpen: false });
@@ -698,6 +722,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         }
     };
     const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+    const [onlyOverdue, setOnlyOverdue] = useState(false);
     const [celebrationTrigger, setCelebrationTrigger] = useState(0);
 
 
@@ -758,6 +783,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         const unsubs = [
             onSnapshot(collection(db, "tasks"), (snapshot) => {
                 const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Task);
+                setTasksLoaded(true);
                 if (isModalOpenRef.current) {
                     // Modale aperta: bufferizza senza aggiornare la UI
                     pendingTasksRef.current = data;
@@ -828,8 +854,12 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         if (projectIdFromUrl) handleFilterChange('projectId', projectIdFromUrl);
         if (clientIdFromUrl) handleFilterChange('clientId', clientIdFromUrl);
 
-        if (taskIdFromUrl) {
+        // Il link diretto a un task va gestito solo quando i task sono arrivati:
+        // prima il timer da 5 s scadeva a vuoto e il task non veniva né evidenziato né aperto.
+        if (taskIdFromUrl && tasksLoaded) {
             setHighlightedTaskId(taskIdFromUrl);
+            const linkedTask = allTasks.find(t => t.id === taskIdFromUrl);
+            if (linkedTask) setPreviewTask(linkedTask);
             // Remove highlight after a delay
             const timer = setTimeout(() => {
                 setHighlightedTaskId(null);
@@ -840,7 +870,8 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [searchParams, router]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams, router, tasksLoaded]);
 
 
     const handleOpenModal = (mode: 'create' | 'edit', task?: Task | Partial<Task>) => {
@@ -967,7 +998,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 // È un link, crea l'allegato direttamente
                 newAttachment = {
                     url: attachmentUrl,
-                    filename: attachmentFilename || 'Link allegato',
+                    filename: attachmentFilename?.trim() || nameFromUrl(attachmentUrl),
                     date: new Date().toISOString(),
                     userId: currentUser.id,
                     version: 1,
@@ -1243,7 +1274,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
 
 
-    const { tasksByStatus, overdueTasks } = useMemo(() => {
+    const { tasksByStatus, overdueTasks, overdueIds } = useMemo(() => {
         const byStatus: Record<Task['status'], Task[]> = {
             'Da Fare': [],
             'In Lavorazione': [],
@@ -1269,11 +1300,10 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                 }
             }
 
-            if (isOverdue) {
-                overdueTasks.push(task);
-            } else if (byStatus[task.status]) {
-                byStatus[task.status].push(task);
-            }
+            // Scaduto è un segnale, non uno stato: il task resta nella sua colonna
+            // (in cima, con il bordo rosso) e il filtro «Solo scaduti» li isola.
+            if (isOverdue) overdueTasks.push(task);
+            if (byStatus[task.status]) byStatus[task.status].push(task);
         });
 
         overdueTasks.sort((a, b) => (a.dueDate ? new Date(a.dueDate).getTime() : 0) - (b.dueDate ? new Date(b.dueDate).getTime() : 0));
@@ -1299,21 +1329,27 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             }
         };
 
-        Object.values(byStatus).forEach(arr => arr.sort(sortFn));
-        // Sort 'In Approvazione' by updatedAt descending (most recent requests first)
-        byStatus['In Approvazione'].sort((a, b) => {
+        const overdueIds = new Set(overdueTasks.map(t => t.id));
+        Object.values(byStatus).forEach(arr => arr.sort((a, b) =>
+            (overdueIds.has(a.id) ? 0 : 1) - (overdueIds.has(b.id) ? 0 : 1) || sortFn(a, b)));
+        // Approvazioni: prima chi aspetta da più tempo (interne e cliente)
+        const byWaitingSince = (a: Task, b: Task) => {
             const getUpdateDate = (task: typeof a) => {
-                if (!task.updatedAt) return new Date(0);
-                return typeof task.updatedAt === 'string'
-                    ? new Date(task.updatedAt)
-                    : (task.updatedAt as any).toDate ? (task.updatedAt as any).toDate() : new Date(0);
+                const since = task.statusChangedAt || task.updatedAt;
+                if (!since) return new Date(0);
+                return typeof since === 'string'
+                    ? new Date(since)
+                    : (since as any).toDate ? (since as any).toDate() : new Date(0);
             };
-            return getUpdateDate(b).getTime() - getUpdateDate(a).getTime();
-        });
+            return getUpdateDate(a).getTime() - getUpdateDate(b).getTime();
+        };
+        byStatus['In Approvazione'].sort(byWaitingSince);
+        byStatus['In Approvazione Cliente'].sort(byWaitingSince);
 
         return {
             tasksByStatus: byStatus,
             overdueTasks,
+            overdueIds,
         };
     }, [filteredTasks, sortBy]);
 
@@ -1403,7 +1439,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         return <>{result}</>;
     };
 
-    if (isLoadingLayout) {
+    if (isLoadingLayout || !tasksLoaded) {
         return (
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex items-center justify-between">
@@ -1421,48 +1457,12 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         return (
             <div className="flex flex-col md:flex-row gap-6 md:overflow-x-auto pb-4 w-full">
 
-                {/* ── COLONNA SCADUTI (appare solo se ci sono scaduti) ── */}
-                {overdueTasks.length > 0 && filters.status !== 'completed' && (
-                    <div className="w-full md:flex-1 md:min-w-[300px]">
-                        <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-2">
-                                <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                                <h2 className="font-semibold text-lg text-red-500"> Scaduti</h2>
-                            </div>
-                            <Badge variant="destructive" className="px-3 py-1 text-sm">{overdueTasks.length}</Badge>
-                        </div>
-                        <div className="p-2 rounded-lg min-h-[200px] max-h-[calc(100vh-230px)] overflow-y-auto space-y-3 bg-red-500/5 border border-red-500/20 scroll-smooth">
-                            {overdueTasks.map(task => (
-                                <TaskCard
-                                    key={`overdue-${task.id}`}
-                                    task={task}
-                                    clients={clients}
-                                    allProjects={allProjects}
-                                    allTasks={allTasks}
-                                    usersById={usersById}
-                                    activityTypes={activityTypes}
-                                    canApprove={canApprove}
-                                    handlePlay={handlePlay}
-                                    handleSendForApproval={handleSendForApproval}
-                                    setApprovalState={setApprovalState}
-                                    setDisapprovalModalState={setDisapprovalModalState}
-                                    setRejectionReasonToShow={setRejectionReasonToShow}
-                                    setPreviewTask={setPreviewTask}
-                                    setPreviewProject={setPreviewProject}
-                                    handleChatOpen={handleChatOpen}
-                                    handleOpenModal={handleOpenModal}
-                                    setTaskToDelete={setTaskToDelete}
-                                    isHighlighted={task.id === highlightedTaskId}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
-
                 {boardColumns.map(status => {
-                    const tasksForColumn = tasksByStatus[status as Task['status']];
+                    const allForColumn = tasksByStatus[status as Task['status']];
 
-                    if (!tasksForColumn) return null;
+                    if (!allForColumn) return null;
+                    const tasksForColumn = onlyOverdue ? allForColumn.filter(t => overdueIds.has(t.id)) : allForColumn;
+                    if (onlyOverdue && tasksForColumn.length === 0) return null;
 
                     return (
                         <div key={status} className="w-full md:flex-1 md:min-w-[300px]">
@@ -1685,7 +1685,18 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                     </Badge>
                                 ))}
                             {overdueTasks.length > 0 && (
-                                <Badge variant="destructive" className="text-xs">Scaduti: {overdueTasks.length}</Badge>
+                                <button
+                                    type="button"
+                                    onClick={() => setOnlyOverdue(v => !v)}
+                                    aria-pressed={onlyOverdue}
+                                    title={onlyOverdue ? 'Mostra tutti i task' : 'Mostra solo i task scaduti'}
+                                    className={cn(
+                                        'text-xs font-semibold rounded-full px-2.5 py-0.5 border transition-colors',
+                                        onlyOverdue ? 'bg-red-600 text-white border-red-600' : 'bg-red-500/10 text-red-600 border-red-500/30 hover:bg-red-500/20'
+                                    )}
+                                >
+                                    {onlyOverdue ? `Solo scaduti (${overdueTasks.length}) ✕` : `Scaduti: ${overdueTasks.length}`}
+                                </button>
                             )}
                         </div>
                     </div>
@@ -1881,7 +1892,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 <Label>Link da revisionare</Label>
                                 <a href={getAttachmentHref(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
                                     <FileText className="h-4 w-4 flex-shrink-0" />
-                                    <span className="truncate">{att.filename || 'Link allegato'}</span>
+                                    <span className="truncate">{displayAttachmentName(att)}</span>
                                 </a>
                             </div>
                         ))}
@@ -1985,7 +1996,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                 <Label>Link da approvare</Label>
                                 <a href={getAttachmentHref(att.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 rounded-md bg-secondary text-sm hover:bg-secondary/80 break-all">
                                     <FileText className="h-4 w-4 flex-shrink-0" />
-                                    <span className="truncate">{att.filename || 'Link allegato'}</span>
+                                    <span className="truncate">{displayAttachmentName(att)}</span>
                                 </a>
                             </div>
                         ))}
@@ -2346,6 +2357,32 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
                                             <CardTitle className="text-sm">Descrizione</CardTitle>
                                         </CardHeader>
                                         <CardContent>
+                                            {extractNasPaths(previewTask.description || '').length > 0 && (
+                                                <div className="mb-3 space-y-1.5">
+                                                    {extractNasPaths(previewTask.description || '').map(path => (
+                                                        <div key={path} className="flex items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1.5">
+                                                            <FolderKanban className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                            <span className="text-xs font-mono break-all flex-1" title={path}>{path}</span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-7 shrink-0"
+                                                                onClick={async () => {
+                                                                    try {
+                                                                        await navigator.clipboard.writeText(path);
+                                                                        toast.success('Percorso NAS copiato');
+                                                                    } catch {
+                                                                        toast.error('Copia non riuscita: seleziona il percorso a mano');
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Copia
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <div 
                                                 className="text-sm leading-relaxed [&>p]:mb-2 [&>ul]:list-disc [&>ul]:pl-5 [&>ol]:list-decimal [&>ol]:pl-5 [&>h1]:text-base [&>h1]:font-bold [&>h1]:mt-3 [&>h1]:mb-1 [&>h2]:text-sm [&>h2]:font-bold [&>h2]:mt-2 [&>h2]:mb-1 [&>blockquote]:border-l-4 [&>blockquote]:border-purple-500 [&>blockquote]:pl-3 [&>blockquote]:italic [&>code]:bg-purple-500/10 [&>code]:text-purple-500 [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded"
                                                 dangerouslySetInnerHTML={{ __html: sanitizeHtml(formatDescription(previewTask.description || '')) }}

@@ -44,6 +44,8 @@ import { REPORT_SECTION_HREFS } from '@/lib/report-nav';
 // ── Stessa struttura di allNavItems dalla sidebar ──
 interface DockNavItem {
     label: string;
+    /** Nome breve scritto sotto l'icona sugli schermi larghi (il tooltip mostra quello completo). */
+    short?: string;
     href: string;
     icon: React.ElementType;
     permission?: string;
@@ -60,34 +62,40 @@ interface DockNavItem {
 
 // Un colore per gruppo (si legge come un blocco) e un'icona diversa per ogni voce.
 const allNavItems: DockNavItem[] = [
-    // Lavoro quotidiano — blu
-    { href: '/dashboard', icon: Gauge, label: 'Dashboard', color: 'text-blue-500', group: 'lavoro' },
-    { href: '/tasks', icon: ClipboardList, label: 'Tasks', color: 'text-blue-500', group: 'lavoro' },
-    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', permission: '_create-recurring-projects', color: 'text-blue-500', group: 'lavoro' },
+    // Lavoro quotidiano
+    { href: '/dashboard', icon: Gauge, label: 'Dashboard', short: 'Home', color: 'text-blue-500', group: 'lavoro' },
+    { href: '/tasks', icon: ClipboardList, label: 'Tasks', short: 'Task', color: 'text-blue-500', group: 'lavoro' },
     { href: '/projects', icon: LayoutGrid, label: 'Progetti', color: 'text-blue-500', group: 'lavoro' },
-    { href: '/admin/recurring-projects', icon: FolderSync, label: 'Progetti Ricorrenti', permission: '_create-recurring-projects', color: 'text-blue-500', group: 'lavoro' },
-    // Clienti — azzurro
+    { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-blue-500', group: 'lavoro' },
+    // Clienti
     { href: '/clients', icon: Users, label: 'Clienti', color: 'text-cyan-500', group: 'clienti' },
     { href: '/briefs', icon: BookOpen, label: 'Brief', color: 'text-cyan-500', group: 'clienti' },
-    { href: '/editorial-plan', icon: CalendarDays, label: 'Piano Editoriale', color: 'text-cyan-500', altHrefs: ['/import-editorial'], group: 'clienti' },
-    { href: '/social-strategies', icon: Compass, label: 'Strategie Social', color: 'text-cyan-500', group: 'clienti' },
-    { href: '/documents', icon: FolderOpen, label: 'Documenti e Media', color: 'text-cyan-500', altHrefs: ['/assets'], group: 'clienti' },
-    // Team — verde
-    { href: '/calendar', icon: Calendar, label: 'Calendario', color: 'text-emerald-500', group: 'team' },
-    { href: '/absences', icon: UserRoundX, label: 'Assenze', color: 'text-emerald-500', group: 'team' },
+    { href: '/editorial-plan', icon: CalendarDays, label: 'Piano Editoriale', short: 'Piano', color: 'text-cyan-500', altHrefs: ['/import-editorial'], group: 'clienti' },
+    { href: '/social-strategies', icon: Compass, label: 'Strategie Social', short: 'Strategie', color: 'text-cyan-500', group: 'clienti' },
+    { href: '/documents', icon: FolderOpen, label: 'Documenti e Media', short: 'Documenti', color: 'text-cyan-500', altHrefs: ['/assets'], group: 'clienti' },
+    // Team
     { href: '/chat', icon: MessageSquare, label: 'Chat', color: 'text-emerald-500', group: 'team' },
-    // Analisi — viola
+    { href: '/absences', icon: UserRoundX, label: 'Assenze', color: 'text-emerald-500', group: 'team' },
+    // Analisi
     // Una voce sola: le altre pagine (Analisi, Andamento clienti, KPI concessionari, Mail mensile) sono schede dei Report
     { href: '/reports', icon: BarChart3, label: 'Report', color: 'text-violet-500', altHrefs: REPORT_SECTION_HREFS.filter(h => h !== '/reports'), group: 'analisi' },
+    // Configurazione: i ricorrenti sono modelli che si impostano una volta, non lavoro quotidiano
+    { href: '/admin/recurring-tasks', icon: Repeat, label: 'Task Ricorrenti', short: 'Ricorrenti', permission: '_create-recurring-projects', color: 'text-orange-500', group: 'admin' },
+    { href: '/admin/recurring-projects', icon: FolderSync, label: 'Progetti Ricorrenti', short: 'Prog. ricorr.', permission: '_create-recurring-projects', color: 'text-orange-500', group: 'admin' },
 ];
 
-// Admin — arancio
+// Crescita e amministrazione
 const adminNavItems: DockNavItem[] = [
-    { href: '/admin', icon: Settings, label: 'Pannello Admin', color: 'text-orange-500', group: 'admin' },
-    { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-orange-500', group: 'admin' },
-    { href: '/site-monitor', icon: ScanSearch, label: 'Monitor siti', color: 'text-orange-500', group: 'admin' },
+    { href: '/site-monitor', icon: ScanSearch, label: 'Monitor siti', short: 'Monitor', color: 'text-violet-500', group: 'analisi' },
+    { href: '/outreach', icon: Send, label: 'Outreach', color: 'text-violet-500', group: 'analisi' },
+    { href: '/admin', icon: Settings, label: 'Pannello Admin', short: 'Admin', color: 'text-orange-500', group: 'admin' },
     { href: '/admin/assegnazioni', icon: UserCog, label: 'Assegnazioni', color: 'text-orange-500', group: 'admin' },
 ];
+
+// Ordine finale delle aree: le voci della stessa area devono stare vicine anche se arrivano da elenchi diversi
+const GROUP_ORDER: NonNullable<DockNavItem['group']>[] = ['lavoro', 'clienti', 'team', 'analisi', 'admin'];
+const byGroup = (items: DockNavItem[]) =>
+    [...items].sort((a, b) => GROUP_ORDER.indexOf(a.group ?? 'admin') - GROUP_ORDER.indexOf(b.group ?? 'admin'));
 
 // ── Quick Actions ──
 interface QuickAction {
@@ -173,7 +181,7 @@ export function FloatingCommandDock() {
         const normalizedRole = roleName.toLowerCase();
 
         if (normalizedRole === 'amministratore' || normalizedRole === 'admin') {
-            return [...allNavItems, ...adminNavItems];
+            return byGroup([...allNavItems, ...adminNavItems]);
         }
 
         const userPermissions = getRolePermissions(roleName, permissions);
@@ -201,7 +209,7 @@ export function FloatingCommandDock() {
             return hasPermission || userPermissions.includes(item.href);
         });
 
-        return [...mainItems, ...adminItems];
+        return byGroup([...mainItems, ...adminItems]);
     }, [currentUser, permissions, toApprove]);
 
     // ── Filtra azioni rapide: mostra solo se l'utente ha accesso alla pagina relativa ──
@@ -268,15 +276,23 @@ export function FloatingCommandDock() {
                                             aria-label={item.label}
                                             aria-current={isActive ? 'page' : undefined}
                                             className={cn(
-                                                'relative p-2 rounded-xl flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-105',
+                                                'relative p-2 xl:px-1.5 xl:py-1 rounded-xl flex items-center xl:flex-col justify-center gap-1.5 xl:gap-0.5 transition-all duration-200',
                                                 isActive
                                                     ? 'bg-primary/15 text-primary border border-primary/30 shadow-sm'
                                                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                                             )}
                                         >
-                                            <Icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive ? "text-primary" : item.color || "text-muted-foreground")} />
-                                            {/* La pagina corrente dice il suo nome: le altre icone restano compatte con tooltip */}
-                                            {isActive && <span className="hidden md:inline text-xs font-semibold whitespace-nowrap pr-1">{item.label}</span>}
+                                            {/* Icone monocromatiche: il colore resta solo alla voce attiva, così si vede dove sei */}
+                                            <Icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive ? "text-primary" : "text-muted-foreground")} />
+                                            {/* Su schermi larghi ogni voce ha il suo nome sotto l'icona; sotto i 1280px solo la voce attiva */}
+                                            <span className={cn(
+                                                'whitespace-nowrap',
+                                                'xl:inline xl:text-[11px] xl:leading-tight xl:font-medium',
+                                                isActive ? 'hidden md:inline text-xs font-semibold pr-1 xl:pr-0' : 'hidden'
+                                            )}>
+                                                <span className="xl:hidden">{item.label}</span>
+                                                <span className="hidden xl:inline">{item.short ?? item.label}</span>
+                                            </span>
                                             {!!item.badge && item.badge > 0 && (
                                                 <span
                                                     aria-label={`${item.badge} da approvare`}
