@@ -628,6 +628,9 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
 
     const [allTasks, setAllTasks] = useState<Task[]>([]);
     const [allProjects, setAllProjects] = useState<Project[]>([]);
+    // true dopo il primo snapshot di "tasks": finché è false mostriamo lo skeleton,
+    // non lo stato vuoto ("Nessun task trovato"), che farebbe credere che i dati siano spariti.
+    const [tasksLoaded, setTasksLoaded] = useState(false);
     const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
 
     const [modalState, setModalState] = useState<ModalState>({ mode: 'create', isOpen: false });
@@ -758,6 +761,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         const unsubs = [
             onSnapshot(collection(db, "tasks"), (snapshot) => {
                 const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as Task);
+                setTasksLoaded(true);
                 if (isModalOpenRef.current) {
                     // Modale aperta: bufferizza senza aggiornare la UI
                     pendingTasksRef.current = data;
@@ -828,8 +832,12 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         if (projectIdFromUrl) handleFilterChange('projectId', projectIdFromUrl);
         if (clientIdFromUrl) handleFilterChange('clientId', clientIdFromUrl);
 
-        if (taskIdFromUrl) {
+        // Il link diretto a un task va gestito solo quando i task sono arrivati:
+        // prima il timer da 5 s scadeva a vuoto e il task non veniva né evidenziato né aperto.
+        if (taskIdFromUrl && tasksLoaded) {
             setHighlightedTaskId(taskIdFromUrl);
+            const linkedTask = allTasks.find(t => t.id === taskIdFromUrl);
+            if (linkedTask) setPreviewTask(linkedTask);
             // Remove highlight after a delay
             const timer = setTimeout(() => {
                 setHighlightedTaskId(null);
@@ -840,7 +848,8 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
             }, 5000);
             return () => clearTimeout(timer);
         }
-    }, [searchParams, router]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchParams, router, tasksLoaded]);
 
 
     const handleOpenModal = (mode: 'create' | 'edit', task?: Task | Partial<Task>) => {
@@ -1403,7 +1412,7 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         return <>{result}</>;
     };
 
-    if (isLoadingLayout) {
+    if (isLoadingLayout || !tasksLoaded) {
         return (
             <div className="flex flex-col gap-6 p-6">
                 <div className="flex items-center justify-between">

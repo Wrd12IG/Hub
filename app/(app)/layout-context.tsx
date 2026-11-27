@@ -46,6 +46,8 @@ interface LayoutContextType {
   taskPrioritySettings: TaskPrioritySettings | null;
   setTaskPrioritySettings: React.Dispatch<React.SetStateAction<TaskPrioritySettings | null>>;
   isLoadingLayout: boolean;
+  /** true finché tasks e projects non hanno ricevuto il primo snapshot: in quel tempo mostrare uno skeleton, non lo stato vuoto. */
+  isLoadingWorkData: boolean;
   refetchData: <T extends 'users' | 'clients' | 'projects' | 'tasks' | 'absences' | 'activityTypes' | 'calendarActivities' | 'calendarActivityPresets' | 'briefServices' | 'briefServiceCategories' | 'serviceContracts' | 'all'>(dataType: T) => Promise<any[] | void>;
   clientDetails: Client | null;
   setClientDetails: React.Dispatch<React.SetStateAction<Client | null>>;
@@ -126,6 +128,8 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
   const [userCompensation, setUserCompensation] = useState<Record<string, { salary?: number; hourlyRate?: number }>>({});
   const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [allTasks, setAllTasks] = useState<Task[]>([]);
+  const [tasksReady, setTasksReady] = useState(false);
+  const [projectsReady, setProjectsReady] = useState(false);
   const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
   const [absences, setAbsences] = useState<Absence[]>([]);
   const [calendarActivities, setCalendarActivities] = useState<CalendarActivity[]>([]);
@@ -540,17 +544,22 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     if (!currentUser?.id || !wantWorkData) return;
     const isClientRole = currentUser.role === 'Cliente';
     const value = currentUser.clientId || '__no_client_assigned__';
-    const subscribe = (name: string, setter: (data: any[]) => void) => {
+    const subscribe = (name: string, setter: (data: any[]) => void, setReady: (v: boolean) => void) => {
       const ref: Query = isClientRole
         ? query(collection(db, name), where('clientId', '==', value))
         : collection(db, name);
       return onSnapshot(ref, (snapshot) => {
         setter(snapshot.docs.map(d => ({ id: d.id, ...convertTimestamps(d.data()) })));
-      }, (error) => console.error(`Error fetching ${name}:`, error));
+        setReady(true);
+      }, (error) => {
+        console.error(`Error fetching ${name}:`, error);
+        // anche in errore si esce dallo skeleton, altrimenti la pagina resterebbe in caricamento per sempre
+        setReady(true);
+      });
     };
-    const unsubTasks = subscribe('tasks', setAllTasks);
-    const unsubProjects = subscribe('projects', setAllProjects);
-    return () => { unsubTasks(); unsubProjects(); };
+    const unsubTasks = subscribe('tasks', setAllTasks, setTasksReady);
+    const unsubProjects = subscribe('projects', setAllProjects, setProjectsReady);
+    return () => { unsubTasks(); unsubProjects(); setTasksReady(false); setProjectsReady(false); };
   }, [currentUser?.id, currentUser?.role, currentUser?.clientId, wantWorkData]);
 
   // Persist sound settings to localStorage
@@ -590,6 +599,7 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
       taskPrioritySettings,
       setTaskPrioritySettings,
       isLoadingLayout,
+      get isLoadingWorkData() { requestWorkData(); return !(tasksReady && projectsReady); },
       clientDetails,
       setClientDetails,
       pomodoroTask,
@@ -627,6 +637,8 @@ export const LayoutDataProvider = ({ children }: { children: React.ReactNode }) 
     permissions,
     taskPrioritySettings,
     isLoadingLayout,
+    tasksReady,
+    projectsReady,
     clientDetails,
     pomodoroTask,
     soundSettings,

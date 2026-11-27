@@ -94,9 +94,10 @@ import { useToast } from '@/hooks/use-toast';
 
 import { TimelineView } from '@/components/timeline-view';
 import { AnimatedGrid, AnimatedGridItem } from '@/components/AnimatedGrid';
+import { CardGridSkeleton } from '@/components/ui/skeleton-loaders';
 
 export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: string } = {}) {
-    const { allProjects: projects, clients, allTasks: tasks, usersById, currentUser } = useLayoutData();
+    const { allProjects: projects, clients, allTasks: tasks, usersById, currentUser, isLoadingWorkData } = useLayoutData();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -609,9 +610,13 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                         );
                     })}
                     {filteredProjects.length === 0 && (
-                        <div className="col-span-full text-center py-10 text-muted-foreground">
-                            Nessun progetto trovato.
-                        </div>
+                        isLoadingWorkData ? (
+                            <div className="col-span-full"><CardGridSkeleton count={8} /></div>
+                        ) : (
+                            <div className="col-span-full text-center py-10 text-muted-foreground">
+                                Nessun progetto trovato.
+                            </div>
+                        )
                     )}
                 </AnimatedGrid>
             )}
@@ -719,7 +724,7 @@ export function ProjectsPageContent({ forcedClientId }: { forcedClientId?: strin
                                 {filteredProjects.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                                            Nessun progetto trovato.
+                                            {isLoadingWorkData ? 'Caricamento progetti…' : 'Nessun progetto trovato.'}
                                         </TableCell>
                                     </TableRow>
                                 )}
