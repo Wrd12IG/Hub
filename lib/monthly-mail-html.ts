@@ -15,7 +15,8 @@
 
 import { PROFILE_DEFS, KPI_PROFILES, KPI_CATALOG } from './kpi-profiles';
 import type { WeekResult } from './kpi-weekly';
-import { formatDelta, formatValue, monthLabel, shiftMonth, type ClientMonthly, type Delta, type KpiResult, type VerdictState } from './kpi-compute';
+import { formatDelta, formatValue, monthLabel, shiftMonth, type ClientMonthly, type DealerBreakdown, type Delta, type KpiResult, type VerdictState } from './kpi-compute';
+import { ENTRY_TYPES, TYPE_LABEL } from './dealer-kpi/types';
 
 export const GMAIL_CLIP_BYTES = 100 * 1024;
 
@@ -100,6 +101,35 @@ function weekTable(weeks: WeekResult[] | undefined): string {
         + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:11px;border-collapse:collapse;"><tr style="color:#9ca3af;font-size:10px;"><td></td>${th}</tr>${rows}</table>`;
 }
 
+/* ───────────── concessionari: marca e provenienza ───────────── */
+
+const nf = new Intl.NumberFormat('it-IT', { maximumFractionDigits: 0, useGrouping: 'always' });
+/** «Renault 12 · Dacia 3», dal più grande. */
+const breakdownLine = (m: Record<string, number> | undefined) =>
+    m ? Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${esc(k)} <b style="color:#111827;">${nf.format(v)}</b>`).join(' &nbsp;·&nbsp; ') : '<span style="color:#9ca3af;">&mdash;</span>';
+
+/** Tabella «marca e provenienza»: una riga per lead, appuntamenti, preventivi e vendite presenti nello Sheet. */
+function dealerTable(d: DealerBreakdown | undefined): string {
+    if (!d) return '';
+    const types = ENTRY_TYPES.filter((t) => d.byBrand[t] || d.bySource[t]);
+    if (types.length === 0) return '';
+    const rows = types.map((t) => `<tr>`
+        + `<td style="padding:3px 6px 3px 0;color:#374151;vertical-align:top;white-space:nowrap;">${esc(TYPE_LABEL[t])}</td>`
+        + `<td style="padding:3px 6px;vertical-align:top;">${breakdownLine(d.byBrand[t])}</td>`
+        + `<td style="padding:3px 0 3px 6px;vertical-align:top;">${breakdownLine(d.bySource[t])}</td>`
+        + `</tr>`).join('');
+    return `<div style="margin:10px 0 2px;font-size:11px;font-weight:700;color:#6b7280;">Marca e provenienza <span style="font-weight:400;">(dallo Sheet del cliente)</span></div>`
+        + `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:11px;border-collapse:collapse;">`
+        + `<tr style="color:#9ca3af;font-size:10px;"><td></td><td style="padding:0 6px 2px;">Marca</td><td style="padding:0 0 2px 6px;">Provenienza</td></tr>${rows}</table>`;
+}
+
+/** Versione testo: «Lead: Renault 12 · Dacia 3 | Google 9 · Meta 6». */
+export function dealerText(d: DealerBreakdown | undefined): string[] {
+    if (!d) return [];
+    const one = (m: Record<string, number> | undefined) => m ? Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(' · ') : '—';
+    return ENTRY_TYPES.filter((t) => d.byBrand[t] || d.bySource[t]).map((t) => `    ${TYPE_LABEL[t]}: ${one(d.byBrand[t])} | ${one(d.bySource[t])}`);
+}
+
 /** Cliente da guardare: nome, verdetto, tabella dei KPI e segnali. */
 function expandedBlock(c: ClientMonthly, baseUrl: string): string {
     const v = STATE[c.verdict.state];
@@ -111,6 +141,7 @@ function expandedBlock(c: ClientMonthly, baseUrl: string): string {
         + `<tr style="color:#9ca3af;font-size:11px;"><td></td><td style="text-align:right;padding:0 8px;">Mese</td><td style="text-align:right;padding:0 8px;">vs mese scorso</td><td style="text-align:right;padding:0 0 0 8px;">vs anno scorso</td></tr>`
         + c.kpis.map(kpiRow).join('')
         + `</table>`
+        + dealerTable(c.dealer)
         + weekTable(c.weeks)
         + (c.alerts.length ? `<ul style="margin:8px 0 0;padding-left:18px;font-size:12px;color:#92400e;">${c.alerts.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : '')
         + `</td></tr>`;
@@ -195,7 +226,7 @@ export function buildMonthlyMail(input: MonthlyMailInput): MonthlyMail {
         `Report KPI clienti — ${label}`,
         `In calo ${counts.down} · Stabili ${counts.flat} · In crescita ${counts.up} · Dati insufficienti ${counts.unknown}`,
         '',
-        ...(attention.length ? ['DA GUARDARE PER PRIMI', ...attention.flatMap((c) => [`- ${c.name}: ${c.verdict.headline}`, ...(c.weeks?.length ? [`    settimane: ${c.weeks.map((w) => `${Number(w.dateFrom.slice(8, 10))}-${Number(w.dateTo.slice(8, 10))} ${TEXT_MARK[w.verdict]}`).join(' · ')}`] : []), ...c.alerts.map((a) => `    ! ${a}`)]), ''] : []),
+        ...(attention.length ? ['DA GUARDARE PER PRIMI', ...attention.flatMap((c) => [`- ${c.name}: ${c.verdict.headline}`, ...dealerText(c.dealer), ...(c.weeks?.length ? [`    settimane: ${c.weeks.map((w) => `${Number(w.dateFrom.slice(8, 10))}-${Number(w.dateTo.slice(8, 10))} ${TEXT_MARK[w.verdict]}`).join(' · ')}`] : []), ...c.alerts.map((a) => `    ! ${a}`)]), ''] : []),
         ...(ok.length ? ['ALTRI CLIENTI', ...ok.sort(byName).map((c) => `- ${c.name}: ${c.verdict.headline}`), ''] : []),
         ...(insufficient.length ? ['DATI INSUFFICIENTI', ...insufficient.map((c) => `- ${c.name}`), ''] : []),
         baseUrl,

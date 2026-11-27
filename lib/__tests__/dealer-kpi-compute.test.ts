@@ -27,7 +27,9 @@ describe('KPI del concessionario', () => {
     it('il catalogo è coerente: ogni id dei gruppi esiste ed è unico', () => {
         expect(new Set(DEALER_KPI_IDS).size).toBe(DEALER_KPI_IDS.length);
         for (const id of DEALER_KPI_IDS) expect(KPI_CATALOG[id], id).toBeTruthy();
-        expect(DEALER_KPI_GROUPS.length).toBeGreaterThanOrEqual(6);
+        // Dal 27/11/2026 i gruppi sono tre: il «Report KPI» (gli 11 numeri del report) e i dettagli Meta e Google Ads
+        expect(DEALER_KPI_GROUPS.length).toBe(3);
+        expect(DEALER_KPI_GROUPS[0].label).toBe('Report KPI');
     });
     it('sito: sessioni e utenti, con il confronto sul mese prima', () => {
         expect(kpi('sessions').value).toBe(1000);
@@ -81,7 +83,7 @@ describe('KPI del concessionario', () => {
 
 describe('KPI per profilo (la pagina KPI di un cliente)', () => {
     it('ogni profilo ha i suoi gruppi, e «auto» ha quelli dei concessionari', () => {
-        for (const p of KPI_PROFILES) expect(kpiGroupsFor(p).length, p).toBeGreaterThanOrEqual(4);
+        for (const p of KPI_PROFILES) expect(kpiGroupsFor(p).length, p).toBeGreaterThanOrEqual(3);
         expect(PROFILE_KPI_GROUPS.auto).toBe(DEALER_KPI_GROUPS);
     });
     it('ogni KPI dei gruppi esiste nel catalogo e non si ripete dentro un profilo', () => {

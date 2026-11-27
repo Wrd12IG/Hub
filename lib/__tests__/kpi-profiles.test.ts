@@ -5,7 +5,7 @@ import {
 } from '../kpi-profiles';
 
 describe('kpi-profiles: catalogo', () => {
-    it('ogni profilo ha al massimo 5 KPI e tutti esistono nel catalogo', () => {
+    it('ogni profilo ha al massimo MAX_KPIS KPI e tutti esistono nel catalogo', () => {
         for (const p of KPI_PROFILES) {
             const ids = defaultKpiIds(p);
             expect(ids.length).toBeGreaterThan(0);
@@ -103,7 +103,7 @@ describe('kpi-profiles: KPI scelti a mano', () => {
     it('da 1 a 5 KPI del catalogo, senza ripetizioni; l\'ordine resta quello scelto', () => {
         expect(validateKpiSelection(['sessions', 'leads_meta'])).toEqual({ ok: true, ids: ['sessions', 'leads_meta'] });
         expect(validateKpiSelection([])).toMatchObject({ ok: false, error: expect.stringMatching(/almeno un KPI/) });
-        expect(validateKpiSelection(Object.keys(KPI_CATALOG).slice(0, MAX_KPIS + 1))).toMatchObject({ ok: false, error: expect.stringMatching(/Al massimo 5/) });
+        expect(validateKpiSelection(Object.keys(KPI_CATALOG).slice(0, MAX_KPIS + 1))).toMatchObject({ ok: false, error: expect.stringMatching(/Al massimo 12/) });
         expect(validateKpiSelection(['sessions', 'sessions'])).toMatchObject({ ok: false, error: expect.stringMatching(/ripetuto/) });
         expect(validateKpiSelection(['inventato'])).toMatchObject({ ok: false, error: expect.stringMatching(/sconosciuto/) });
         expect(validateKpiSelection('sessions')).toMatchObject({ ok: false });
@@ -156,5 +156,19 @@ describe('kpi-profiles: KPI di un singolo cliente', () => {
         expect(validateKpiFields({ kpiSelection: [] })).toMatch(/almeno un KPI/);
         expect(validateKpiFields({ kpiSelection: ['a', 'b', 'c', 'd', 'e', 'f'] })).toBeTruthy();
         expect(validateKpiFields({ kpiSelection: 'sessions' })).toBeTruthy();
+    });
+});
+
+
+describe('report KPI del concessionario (DEALER_REPORT_KPIS)', () => {
+    it('sono 11 indicatori, tutti nel catalogo, nell\'ordine concordato, e stanno nel limite di un elenco personale', async () => {
+        const { DEALER_REPORT_KPIS, DEALER_KPI_GROUPS, validateKpiSelection } = await import('../kpi-profiles');
+        expect(DEALER_REPORT_KPIS).toEqual([
+            'sessions', 'users', 'ads_impressions', 'meta_reach', 'gbp_calls', 'gbp_directions',
+            'leads_real', 'cost_per_lead_total', 'appointments', 'quotes', 'sales',
+        ]);
+        expect(validateKpiSelection(DEALER_REPORT_KPIS)).toMatchObject({ ok: true });
+        expect(DEALER_KPI_GROUPS[0]).toEqual({ label: 'Report KPI', ids: DEALER_REPORT_KPIS });
+        for (const id of DEALER_REPORT_KPIS) expect(KPI_CATALOG[id]).toBeDefined();
     });
 });

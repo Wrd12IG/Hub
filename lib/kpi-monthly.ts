@@ -13,7 +13,8 @@
 import { adminDb } from './firebase-admin';
 import { getClientToken } from './api-auth';
 import { getClientMarketingReport } from './reporting';
-import { computeClientMonthly, platformsNeeded, shiftMonth, SOURCE_NAMES, type ClientMonthly } from './kpi-compute';
+import { computeClientMonthly, platformsNeeded, shiftMonth, SOURCE_NAMES, type ClientMonthly, type DealerBreakdown } from './kpi-compute';
+import { typesPresent } from './dealer-kpi/bridge';
 import { isKpiProfile, kpiIdsForClient } from './kpi-profiles';
 import { sitesOf } from './client-sites';
 import { isMonthKey } from './manual-kpis';
@@ -36,6 +37,18 @@ export interface MonthOptions {
     weeks?: boolean;
     /** Salva la fotografia per la mail (di default sì). Chi guarda soltanto non deve sovrascriverla. */
     snapshot?: boolean;
+}
+
+/** Marca e provenienza del mese dallo Sheet del concessionario (clients/{id}/dealerKpi/{mese}); null se il mese non c'è. */
+export async function readDealerBreakdown(clientId: string, month: string): Promise<DealerBreakdown | null> {
+    const snap = await adminDb.collection('clients').doc(clientId).collection('dealerKpi').doc(month).get();
+    if (!snap.exists) return null;
+    const d = snap.data() as { totals?: { byBrand?: Record<string, Record<string, number>>; bySource?: Record<string, Record<string, number>> }; entries?: Array<{ type: string }> };
+    const present = typesPresent(d.entries);
+    const keep = (m: Record<string, Record<string, number>> | undefined) =>
+        Object.fromEntries(Object.entries(m ?? {}).filter(([type, v]) => present.has(type) && v && Object.keys(v).length > 0));
+    const out = { byBrand: keep(d.totals?.byBrand), bySource: keep(d.totals?.bySource) };
+    return Object.keys(out.byBrand).length || Object.keys(out.bySource).length ? out : null;
 }
 
 export async function computeClientMonth(clientId: string, month: string, opts: MonthOptions = {}): Promise<MonthlyOutcome> {
@@ -122,6 +135,13 @@ export async function computeClientMonth(clientId: string, month: string, opts: 
     await Promise.all(Array.from({ length: Math.min(WEEK_CONCURRENCY, blocks.length) }, worker));
     if (withWeeks) result.weeks = computeWeeks(kpiIds, weekInputs);
     if (windows.partial) result.partial = { days: windows.days };
+    // Concessionari: il dettaglio per marca e provenienza dello Sheet, se il mese è stato compilato. Lo Sheet è di mese intero,
+    // quindi si mostra anche a mese in corso (è ciò che il cliente ha scritto finora), senza entrare nei confronti.
+    const dealer = await readDealerBreakdown(clientId, month).catch((e: any) => {
+        console.error(`[kpi-monthly] ${clientId}: dettaglio marca/provenienza non disponibile:`, e?.message);
+        return null;
+    });
+    if (dealer) result.dealer = dealer;
 
     if (snapshot) await writeSnapshot(month, result);
     return { ok: true, result };
