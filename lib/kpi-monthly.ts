@@ -37,6 +37,8 @@ export interface MonthOptions {
     weeks?: boolean;
     /** Salva la fotografia per la mail (di default sì). Chi guarda soltanto non deve sovrascriverla. */
     snapshot?: boolean;
+    /** Confronto con l'anno scorso (di default sì: serve alla mail). È una lettura in più delle piattaforme: la pagina del report, che mostra solo il mese prima, la salta. */
+    yoy?: boolean;
 }
 
 /** Marca e provenienza del mese dallo Sheet del concessionario (clients/{id}/dealerKpi/{mese}); null se il mese non c'è. */
@@ -52,7 +54,7 @@ export async function readDealerBreakdown(clientId: string, month: string): Prom
 }
 
 export async function computeClientMonth(clientId: string, month: string, opts: MonthOptions = {}): Promise<MonthlyOutcome> {
-    const { weeks: withWeeks = true, snapshot = true } = opts;
+    const { weeks: withWeeks = true, snapshot = true, yoy: withYoy = true } = opts;
     if (!isMonthKey(month)) return { ok: false, reason: 'bad_month', message: 'Mese non valido.' };
     const today = romeDateKey(new Date());
     const windows = monthWindows(month, today);
@@ -98,7 +100,7 @@ export async function computeClientMonth(clientId: string, month: string, opts: 
     const [main, yoy, manual] = await Promise.all([
         getClientMarketingReport(source, 'last_30d', { current: windows.current, previous: windows.previous }),
         // L'anno scorso: una lettura a parte. Se fallisce non deve far cadere il mese: si perde solo quel confronto.
-        getClientMarketingReport(source, 'last_30d', { current: windows.yoy, previous: null }).catch((e: any) => {
+        !withYoy ? Promise.resolve([] as Awaited<ReturnType<typeof getClientMarketingReport>>) : getClientMarketingReport(source, 'last_30d', { current: windows.yoy, previous: null }).catch((e: any) => {
             console.error(`[kpi-monthly] ${clientId}: confronto anno scorso non disponibile:`, e?.message);
             return [];
         }),

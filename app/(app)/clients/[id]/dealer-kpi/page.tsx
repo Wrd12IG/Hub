@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
   Activity, AlertTriangle, ArrowRight, BarChart3, CalendarCheck, CalendarDays, Car, Coins, Download, ExternalLink, Eye, FileText,
-  Inbox, Loader2, MapPin, Megaphone, MousePointerClick, Phone, RefreshCw, Sheet as SheetIcon, Table2, TrendingDown, TrendingUp, Users, Wallet,
+  Inbox, Info, Loader2, MapPin, Megaphone, MousePointerClick, Phone, RefreshCw, Sheet as SheetIcon, Table2, TrendingDown, TrendingUp, Users, Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -13,6 +13,7 @@ import { useAuthFetch } from '@/hooks/useAuthFetch'
 import { useLayoutData } from '@/app/(app)/layout-context'
 import { btn } from '@/app/(app)/outreach/shared'
 import { CollapsibleCard } from '@/components/CollapsibleCard'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { funnelRate } from '@/lib/dealer-kpi/totals'
 import { clientToCsv, type ClientCsvKpi } from '@/lib/dealer-kpi/overview'
 import { formatDelta, formatValue, type KpiResult } from '@/lib/kpi-compute'
@@ -20,7 +21,7 @@ import { previousMonthKey, isMonthKey } from '@/lib/manual-kpis'
 import { ENTRY_TYPES, SOURCES, TYPE_LABEL, type EntryType, type MonthTotals } from '@/lib/dealer-kpi/types'
 import type { SyncStatus } from '@/lib/dealer-kpi/sync'
 
-type KpiPayload = { month: string; profile?: string; profileLabel?: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null }
+type KpiPayload = { month: string; profile?: string; profileLabel?: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null; computedAt?: string; cached?: boolean }
 
 type Payload = {
   clientName: string
@@ -37,6 +38,12 @@ const fmt = (iso?: string) => (iso ? new Date(iso).toLocaleString('it-IT', { dat
 const monthLabel = (m: string) => new Date(`${m}-01T12:00:00Z`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
 const pct = (n: number | null) => (n === null ? '—' : `${n.toLocaleString('it-IT')}%`)
 const int = (n: number) => n.toLocaleString('it-IT')
+const timeLabel = (iso?: string) => (iso ? new Date(iso).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '')
+/** Il mese in corso (ora locale). Il giorno 1 non ha ancora un giorno chiuso: si parte dal mese prima. */
+function defaultMonthKey(now = new Date()): string {
+  if (now.getDate() === 1) return previousMonthKey(now)
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
 
 /** Un'icona per KPI, così la griglia si legge a colpo d'occhio. */
 const KPI_ICON: Record<string, LucideIcon> = {
@@ -52,6 +59,45 @@ const KPI_SOURCE: Record<string, string> = {
   meta_impressions: 'Meta Ads', meta_spend: 'Meta Ads', cpl_meta_real: 'Meta Ads', gads_impressions: 'Google Ads', gads_clicks: 'Google Ads',
   gads_conversions: 'Google Ads', gads_spend: 'Google Ads', cpl_google: 'Google Ads',
 }
+/** La spiegazione dietro la (i) di ogni KPI: cos'è, da dove viene, come leggerlo. */
+const KPI_HELP: Record<string, string> = {
+  sessions: 'Le visite al sito nel mese (Google Analytics, «sessioni»). Una persona che torna due volte conta due sessioni.',
+  users: 'Le persone diverse che hanno visitato il sito nel mese (Google Analytics, «utenti attivi»). Con più siti non si sommano.',
+  ads_impressions: 'Quante volte gli annunci sono stati mostrati, sommando Meta Ads (Facebook e Instagram) e Google Ads. Non sono persone: la stessa persona può vederli più volte.',
+  meta_reach: 'Le persone diverse raggiunte dagli annunci Meta (Facebook e Instagram). Solo Meta: Google Ads non dice quante persone ha raggiunto.',
+  gbp_calls: 'Le telefonate fatte dal pulsante «Chiama» della scheda Google (Maps e ricerca). Somma di tutte le sedi collegate.',
+  gbp_directions: 'Quante volte è stato chiesto il percorso verso la sede dalla scheda Google (Maps e ricerca). Somma di tutte le sedi collegate.',
+  leads_real: 'I lead che il cliente ha dichiarato nello Sheet per il mese (righe di tipo «Lead»). Marca e provenienza sono più sotto.',
+  cost_per_lead_total: 'Quanto è costato ogni lead delle campagne: spesa Meta Ads + Google Ads del mese, divisa per i lead con provenienza «Meta» e «Google» dello Sheet.',
+  appointments: 'Gli appuntamenti dichiarati nello Sheet per il mese (righe di tipo «Appuntamento»).',
+  quotes: 'I preventivi dichiarati nello Sheet per il mese (righe di tipo «Preventivo»).',
+  sales: 'Le vendite dichiarate nello Sheet per il mese (righe di tipo «Vendita»).',
+  meta_impressions: 'Quante volte gli annunci Meta (Facebook e Instagram) sono stati mostrati nel mese.',
+  meta_spend: 'La spesa delle campagne Meta Ads nel mese, IVA esclusa.',
+  cpl_meta_real: 'Spesa Meta Ads del mese divisa per i lead con provenienza «Meta» dello Sheet.',
+  gads_impressions: 'Quante volte gli annunci Google Ads sono stati mostrati nel mese (ricerca, display, YouTube).',
+  gads_clicks: 'I click sugli annunci Google Ads nel mese.',
+  gads_conversions: 'Le conversioni registrate da Google Ads nel mese (telefonate, moduli, azioni impostate come conversione).',
+  gads_spend: 'La spesa delle campagne Google Ads nel mese, IVA esclusa.',
+  cpl_google: 'Spesa Google Ads del mese divisa per i lead con provenienza «Google» dello Sheet.',
+}
+
+function HelpTip({ text, label }: { text: string; label: string }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" aria-label={`Cos'è «${label}»`} className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+          <Info className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="top" align="start" className="w-72 p-3 text-xs leading-relaxed">
+        <p className="mb-1 font-semibold text-foreground">{label}</p>
+        <p className="text-muted-foreground">{text}</p>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 /** Colori del funnel: lead → appuntamento → preventivo → vendita. */
 const TYPE_TONE: Record<EntryType, { bar: string; dot: string; icon: LucideIcon }> = {
   lead: { bar: 'bg-sky-500', dot: 'bg-sky-500', icon: Inbox },
@@ -81,7 +127,7 @@ function KpiCard({ k, featured }: { k: KpiResult; featured?: boolean }) {
   return (
     <div className={`group relative flex flex-col gap-2 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md ${featured ? 'ring-1 ring-primary/30' : ''}`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium leading-tight text-muted-foreground">{k.label}</p>
+        <p className="flex items-start gap-1 text-xs font-medium leading-tight text-muted-foreground"><span>{k.label}</span>{KPI_HELP[k.id] && <HelpTip text={KPI_HELP[k.id]} label={k.label} />}</p>
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Icon className="h-3.5 w-3.5" /></span>
       </div>
       <p className={`font-bold tabular-nums tracking-tight text-foreground ${featured ? 'text-3xl' : 'text-2xl'}`}>{k.value === null ? '—' : formatValue(k.value, k.unit)}</p>
@@ -182,7 +228,7 @@ export default function DealerKpiPage() {
   const [url, setUrl] = useState('')
   const [tab, setTab] = useState('Dati')
   const [busy, setBusy] = useState<string | null>(null)
-  const [kpiMonth, setKpiMonth] = useState<string>(previousMonthKey())
+  const [kpiMonth, setKpiMonth] = useState<string>(() => defaultMonthKey())
   const [kpiData, setKpiData] = useState<KpiPayload | null>(null)
   const [kpiLoading, setKpiLoading] = useState(false)
   const [kpiError, setKpiError] = useState<string | null>(null)
@@ -201,20 +247,12 @@ export default function DealerKpiPage() {
   }, [authFetch, id])
   useEffect(() => { load() }, [load])
 
-  // Di partenza il mese più recente con dati nello Sheet (se c'è), altrimenti il mese scorso
-  const defaultedMonth = React.useRef(false)
-  useEffect(() => {
-    if (defaultedMonth.current || !data) return
-    defaultedMonth.current = true
-    const latest = data.months.length ? data.months[data.months.length - 1].month : null
-    if (latest && isMonthKey(latest)) setKpiMonth(latest)
-  }, [data])
-
-  const loadKpis = useCallback(async (month: string) => {
+  // I KPI si leggono subito, in parallelo con lo Sheet: il mese di partenza è quello in corso e non dipende dai dati
+  const loadKpis = useCallback(async (month: string, fresh = false) => {
     if (!isMonthKey(month)) return
     setKpiLoading(true); setKpiError(null); setNoProfile(false)
     try {
-      const res = await authFetch(`/api/clients/${id}/dealer-kpi/kpis?month=${month}`)
+      const res = await authFetch(`/api/clients/${id}/dealer-kpi/kpis?month=${month}${fresh ? '&fresh=1' : ''}`)
       const json = await res.json()
       if (!res.ok) { setNoProfile(!!json?.noProfile); throw new Error(json?.error || `Il server ha risposto ${res.status}.`) }
       setKpiData(json)
@@ -222,7 +260,7 @@ export default function DealerKpiPage() {
       setKpiData(null); setKpiError(e instanceof Error ? e.message : 'Errore')
     } finally { setKpiLoading(false) }
   }, [authFetch, id])
-  useEffect(() => { if (data) loadKpis(kpiMonth) }, [data === null, kpiMonth, loadKpis]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { loadKpis(kpiMonth) }, [kpiMonth, loadKpis])
 
   const save = async () => {
     setBusy('save')
@@ -244,6 +282,7 @@ export default function DealerKpiPage() {
       const s = json.status as SyncStatus
       if (s.lastStatus === 'errore') toast.error(s.lastMessage); else toast.success(s.lastMessage)
       await load()
+      loadKpis(kpiMonth, true)
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Errore') } finally { setBusy(null) }
   }
 
@@ -310,6 +349,9 @@ export default function DealerKpiPage() {
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
               <input type="month" value={kpiMonth} onChange={(e) => e.target.value && setKpiMonth(e.target.value)} className="bg-transparent text-sm font-medium text-foreground outline-none" aria-label="Mese del report" />
             </label>
+            <button type="button" onClick={() => loadKpis(kpiMonth, true)} disabled={kpiLoading} className={btn} title={kpiData?.computedAt ? `Dati letti alle ${timeLabel(kpiData.computedAt)}: rileggi le piattaforme adesso` : 'Rileggi le piattaforme adesso'}>
+              <RefreshCw className={`h-4 w-4 ${kpiLoading ? 'animate-spin' : ''}`} /> Aggiorna
+            </button>
             {isDealer && (
               <button onClick={downloadCsv} disabled={data.months.length === 0 && !kpiData}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -356,7 +398,7 @@ export default function DealerKpiPage() {
       <section className="space-y-3">
         <div className="flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-extrabold tracking-tight">KPI di <span className="capitalize">{monthLabel(kpiMonth)}</span></h2>
-          <p className="text-xs text-muted-foreground">dalle piattaforme collegate in Setup API</p>
+          <p className="text-xs text-muted-foreground">dalle piattaforme collegate in Setup API{kpiData?.computedAt && !kpiLoading ? ` · letti alle ${timeLabel(kpiData.computedAt)}` : ''}</p>
         </div>
         {kpiLoading && (
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
