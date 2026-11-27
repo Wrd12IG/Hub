@@ -98,9 +98,9 @@ export function platformsNeeded(kpiIds: string[]): Set<Platform> {
     const need = new Set<Platform>();
     const has = (id: string) => kpiIds.includes(id);
     if (has('leads_real') || has('leads_meta') || has('cost_per_lead') || has('ads_spend') || has('roas') || has('cpa')
-        || has('meta_impressions') || has('meta_reach') || has('meta_spend') || has('cost_per_lead_total') || has('cpl_meta_real')) need.add('facebook');
+        || has('meta_impressions') || has('meta_reach') || has('meta_spend') || has('cost_per_lead_total') || has('cpl_meta_real') || has('ads_impressions')) need.add('facebook');
     if (has('ads_spend') || has('roas') || has('cpa') || has('gads_impressions') || has('gads_clicks') || has('gads_spend') || has('gads_conversions')
-        || has('cost_per_lead_total') || has('cpl_google')) need.add('google_ads');
+        || has('cost_per_lead_total') || has('cpl_google') || has('ads_impressions')) need.add('google_ads');
     if (has('sessions') || has('users') || has('revenue') || has('orders') || has('conversion_rate') || has('roas') || has('cpa')) need.add('ga4');
     if (has('revenue') || has('orders')) { need.add('awin'); need.add('klaviyo'); }
     if (has('email_revenue')) need.add('klaviyo');
@@ -159,6 +159,9 @@ export function rawKpi(id: string, platforms: PlatformReport[], which: Which, ma
         // Utenti unici: con più siti la stessa persona può comparire in ciascuno, quindi non si sommano (le sessioni sì)
         case 'users': return entries(platforms, 'ga4').length > 1 ? real(null) : real(readSum(platforms, 'ga4', 'active_users', which));
         // Meta Ads e Google Ads, canale per canale. La copertura Meta è quella aggregata sul periodo (non la somma dei giorni).
+        // Impression di tutte le campagne: Meta + Google Ads (canali diversi, non si contano due volte). La copertura resta solo Meta:
+        // Google Ads non dà le persone raggiunte.
+        case 'ads_impressions': return real(add(readSum(platforms, 'facebook', 'impressions', which), readSum(platforms, 'google_ads', 'impressions', which)));
         case 'meta_impressions': return real(readSum(platforms, 'facebook', 'impressions', which));
         case 'meta_reach': return real(readSum(platforms, 'facebook', 'reach', which));
         case 'meta_spend': return real(readSum(platforms, 'facebook', 'spend', which));
@@ -290,6 +293,17 @@ export interface ClientMonthly {
     weeks?: WeekResult[];
     /** Presente se il mese è in corso: i numeri sono dei primi `days` giorni, confrontati con gli stessi giorni. */
     partial?: { days: number };
+    /**
+     * Concessionari: lead, appuntamenti, preventivi e vendite del mese per marca e per provenienza, dallo Sheet del cliente
+     * (clients/{id}/dealerKpi/{mese}). Solo i tipi che nello Sheet compaiono davvero: un tipo assente non è «zero».
+     */
+    dealer?: DealerBreakdown;
+}
+
+/** type (lead | appuntamento | preventivo | vendita) → marca o provenienza → totale del mese. */
+export interface DealerBreakdown {
+    byBrand: Record<string, Record<string, number>>;
+    bySource: Record<string, Record<string, number>>;
 }
 
 export interface ComputeInput {

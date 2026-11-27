@@ -237,3 +237,15 @@ describe('kpi-compute: più siti dello stesso cliente', () => {
         expect(r.kpis.find((k) => k.id === 'sessions')!.value).toBe(5000);
     });
 });
+
+describe('kpi-compute: impression Meta + Google Ads (report concessionario)', () => {
+    it('somma i due canali e legge entrambe le piattaforme', () => {
+        const main = [rep('facebook', { impressions: 1000, reach: 400 }), rep('google_ads', { impressions: 250 })];
+        expect(rawKpi('ads_impressions', main, 'current', undefined)).toEqual({ value: 1250, kind: 'real' });
+        expect(platformsNeeded(['ads_impressions'])).toEqual(new Set(['facebook', 'google_ads']));
+    });
+    it('con un solo canale collegato usa quello; senza nessuno resta assente, non zero', () => {
+        expect(rawKpi('ads_impressions', [rep('google_ads', { impressions: 250 })], 'current', undefined)).toEqual({ value: 250, kind: 'real' });
+        expect(rawKpi('ads_impressions', [], 'current', undefined)).toEqual({ value: null, kind: null });
+    });
+});

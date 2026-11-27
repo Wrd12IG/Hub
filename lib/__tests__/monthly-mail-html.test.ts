@@ -174,3 +174,22 @@ describe('monthly-mail-html', () => {
         expect(m.html).not.toContain('in forma ridotta');
     });
 });
+
+describe('monthly-mail-html: marca e provenienza dei concessionari', () => {
+    it('mostra la tabella solo per chi ha il dettaglio dello Sheet, con i soli tipi presenti', async () => {
+        const { buildMonthlyMail } = await import('../monthly-mail-html');
+        const base = {
+            profile: 'auto' as const, month: '2026-10', verdict: { state: 'down' as const, headline: 'In calo' }, alerts: ['x'],
+            kpis: [{ id: 'leads_real', label: 'Lead ricevuti', unit: 'int' as const, better: 'up' as const, value: 5, kind: 'real' as const, previous: 9, yoy: null, vsPrev: { kind: 'abs' as const, value: -4, tone: 'neutral' as const, small: true }, vsYoy: null }],
+        };
+        const withDealer = { ...base, clientId: 'a', name: 'Centro CarCazzaro', dealer: { byBrand: { lead: { Renault: 3, Dacia: 2 } }, bySource: { lead: { Google: 4, Meta: 1 } } } };
+        const without = { ...base, clientId: 'b', name: 'Altro' };
+        const mail = buildMonthlyMail({ month: '2026-10', clients: [withDealer, without], baseUrl: 'https://hub.test' });
+        expect(mail.html).toContain('Marca e provenienza');
+        expect(mail.html).toContain('Renault <b style="color:#111827;">3</b>');
+        expect(mail.html).toContain('Google <b style="color:#111827;">4</b>');
+        expect(mail.html).not.toContain('Appuntamento');
+        expect(mail.text).toContain('    Lead: Renault 3 · Dacia 2 | Google 4 · Meta 1');
+        expect((mail.html.match(/Marca e provenienza/g) ?? []).length).toBe(1);
+    });
+});

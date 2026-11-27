@@ -12,7 +12,7 @@ import { funnelRate } from '@/lib/dealer-kpi/totals'
 import { clientToCsv, type ClientCsvKpi } from '@/lib/dealer-kpi/overview'
 import { formatDelta, formatValue, type KpiResult } from '@/lib/kpi-compute'
 import { previousMonthKey, isMonthKey } from '@/lib/manual-kpis'
-import { ENTRY_TYPES, SOURCES, TYPE_LABEL, type MonthTotals } from '@/lib/dealer-kpi/types'
+import { ENTRY_TYPES, SOURCES, TYPE_LABEL, type EntryType, type MonthTotals } from '@/lib/dealer-kpi/types'
 import type { SyncStatus } from '@/lib/dealer-kpi/sync'
 
 type KpiPayload = { month: string; profile?: string; profileLabel?: string; groups: { label: string; ids: string[] }[]; kpis: KpiResult[]; alerts: string[]; partial: { days: number } | null }
@@ -113,6 +113,15 @@ export default function DealerKpiPage() {
   // Lo Sheet dei lead, marca e provenienza è dei concessionari (e di chi ne ha già collegato uno): gli altri vedono solo i KPI
   const isDealer = data.kpiProfile === 'auto' || !!data.config
   const months = [...data.months].reverse()
+  // Marca e provenienza del mese scelto: righe = marche (o provenienze) presenti, colonne = lead, appuntamenti, preventivi, vendite
+  const selected = data.months.find((m) => m.month === kpiMonth) ?? null
+  const breakdownRows = (maps: Record<EntryType, Record<string, number>> | undefined) => {
+    const keys = new Set<string>()
+    for (const t of ENTRY_TYPES) for (const k of Object.keys(maps?.[t] ?? {})) keys.add(k)
+    return Array.from(keys)
+      .map((key) => ({ key, byType: Object.fromEntries(ENTRY_TYPES.map((t) => [t, maps?.[t]?.[key] ?? 0])) as Record<EntryType, number> }))
+      .sort((a, b) => b.byType.lead - a.byType.lead || a.key.localeCompare(b.key, 'it'))
+  }
 
   const downloadCsv = () => {
     const kpis: ClientCsvKpi[] = []
@@ -141,16 +150,16 @@ export default function DealerKpiPage() {
     <div className="space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">{data.kpiProfile === 'auto' ? 'KPI concessionario' : 'KPI'} · {data.clientName}</h1>
+          <h1 className="text-xl font-semibold">{data.kpiProfile === 'auto' ? 'Report KPI concessionario' : 'KPI'} · {data.clientName}</h1>
           <p className="text-sm text-muted-foreground">
             {isDealer
-              ? 'Lead, appuntamenti, preventivi e vendite per marca e provenienza, letti dallo Sheet Google condiviso con il cliente, più i KPI delle piattaforme.'
+              ? 'Tutto in una pagina: sito, impression e copertura delle campagne, telefonate e indicazioni da Google Maps, lead, appuntamenti, preventivi e vendite per marca e provenienza (dallo Sheet del cliente) e costo per lead. Il CSV scarica lo stesso report.'
               : `I KPI di un cliente «${kpiData?.profileLabel ?? 'del suo profilo'}»: sito, campagne e canali collegati, con il confronto sul mese prima e sull'anno scorso.`}
           </p>
         </div>
         {isDealer && (
-          <button onClick={downloadCsv} disabled={data.months.length === 0} className={btn} title="Totali di tutti i mesi, marca e provenienza del mese scelto e, se già caricati, i KPI di piattaforma">
-            <Download className="h-4 w-4" /> Scarica CSV
+          <button onClick={downloadCsv} disabled={data.months.length === 0 && !kpiData} className={btn} title="Report KPI del mese scelto, marca e provenienza del mese e totali di tutti i mesi dello Sheet">
+            <Download className="h-4 w-4" /> Scarica CSV dei KPI
           </button>
         )}
       </header>
@@ -235,8 +244,8 @@ export default function DealerKpiPage() {
               </div>
             ))}
             <p className="text-[11px] text-muted-foreground">
-              {isDealer ? 'Il costo per lead è la spesa di Google e Meta divisa per i lead di quei due canali dichiarati nello Sheet. ' : ''}
-              Impression e copertura sono di Meta Ads; il numero di utenti è quello di Analytics («utenti attivi»). Con più siti gli utenti non si sommano: la stessa persona conterebbe due volte.
+              {isDealer ? 'Il costo per lead (Google + Meta) è la spesa dei due canali divisa per i lead di quei due canali dichiarati nello Sheet. Le impression del report sommano Meta Ads e Google Ads; la copertura è solo Meta (Google Ads non dà le persone raggiunte). ' : 'Impression e copertura sono di Meta Ads. '}
+              Sessioni e utenti sono quelli di Analytics («utenti attivi»). Con più siti gli utenti non si sommano: la stessa persona conterebbe due volte.
             </p>
           </div>
         )}
@@ -244,6 +253,38 @@ export default function DealerKpiPage() {
 
       {isDealer && (
         <>
+      <section className="space-y-3">
+        <h2 className="text-sm font-medium">Marca e provenienza · <span className="capitalize">{monthLabel(kpiMonth)}</span></h2>
+        {!selected ? (
+          <p className="text-sm text-muted-foreground">Nessuna riga nello Sheet per questo mese: quando il cliente lo compila (e dopo la sincronizzazione notturna o «Sincronizza ora») qui compaiono lead, appuntamenti, preventivi e vendite divisi per marca e per provenienza.</p>
+        ) : (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {([['Marca', breakdownRows(selected.byBrand)], ['Provenienza', breakdownRows(selected.bySource)]] as const).map(([title, rows]) => (
+              <div key={title} className="overflow-x-auto rounded-xl border border-border">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-border text-left text-xs text-muted-foreground">
+                    <th className="p-2">{title}</th>
+                    {ENTRY_TYPES.map((t) => <th key={t} className="p-2 text-right">{TYPE_LABEL[t]}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.key} className="border-b border-border/50 last:border-0">
+                        <td className="p-2 font-medium">{r.key}</td>
+                        {ENTRY_TYPES.map((t) => <td key={t} className="p-2 text-right [font-variant-numeric:tabular-nums]">{r.byType[t] ? r.byType[t].toLocaleString('it-IT') : <span className="text-muted-foreground">—</span>}</td>)}
+                      </tr>
+                    ))}
+                    <tr className="bg-muted/40 text-xs font-semibold">
+                      <td className="p-2">Totale</td>
+                      {ENTRY_TYPES.map((t) => <td key={t} className="p-2 text-right [font-variant-numeric:tabular-nums]">{selected.byType[t].toLocaleString('it-IT')}</td>)}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="space-y-2">
         <h2 className="text-sm font-medium">Totali per mese</h2>
         {months.length === 0 ? <p className="text-sm text-muted-foreground">Nessun dato: collega lo Sheet e sincronizza. Un mese non compilato non compare (non è zero).</p> : (
@@ -271,7 +312,7 @@ export default function DealerKpiPage() {
 
       <section className="space-y-1 rounded-xl border border-border p-4 text-sm">
         <h2 className="text-sm font-medium">Come preparare lo Sheet</h2>
-        <p className="text-muted-foreground">Scheda «Dati», prima riga con queste colonne, una riga per ogni combinazione:</p>
+        <p className="text-muted-foreground">Scheda «{data.config?.tab ?? 'Dati'}», prima riga con queste colonne, una riga per ogni combinazione mese · tipo · marca · provenienza (così il report mostra marca e provenienza):</p>
         <ul className="list-inside list-disc text-muted-foreground">
           <li><b>Mese</b>: per esempio 2026-11 oppure 11/2026</li>
           <li><b>Tipo</b>: {ENTRY_TYPES.map((t) => TYPE_LABEL[t]).join(', ')} (tendina)</li>

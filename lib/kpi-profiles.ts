@@ -8,7 +8,8 @@
  * Due regole di prodotto decise con Roberto (10/11/2026):
  *  - la mail è UNA sola, con tutti i clienti, e parte solo per i clienti con il flag `monthlyKpiMail` acceso: il flag è
  *    opt-in (un cliente nuovo NON entra finché qualcuno non lo accende);
- *  - al massimo 5 KPI per cliente.
+ *  - al massimo 5 KPI per profilo nella mail; un cliente con un elenco personale può arrivare a 12 (richiesta di Giada del
+ *    27/11/2026 per Centro CarCazzaro: il report del concessionario ha 11 indicatori, vedi DEALER_REPORT_KPIS).
  *
  * ⚠️ `source` dice da dove arriva il numero, NON è ancora il nome del campo Windsor. Quando in Fase 3 si collegano i
  * valori, ogni field id va verificato con get_fields: un id sbagliato non dà errore, Windsor risponde con una colonna
@@ -18,7 +19,7 @@
 export const KPI_PROFILES = ['auto', 'ecommerce', 'locale', 'b2b', 'social'] as const;
 export type KpiProfile = (typeof KPI_PROFILES)[number];
 
-export const MAX_KPIS = 5;
+export const MAX_KPIS = 12;
 
 export type KpiUnit = 'int' | 'eur' | 'pct' | 'ratio' | 'rating';
 export type KpiSource =
@@ -27,7 +28,7 @@ export type KpiSource =
 
 export const SOURCE_LABELS: Record<KpiSource, string> = {
     meta: 'Meta', google_ads: 'Google Ads', ga4: 'Sito (GA4)', gbp: 'Google Maps', instagram: 'Instagram', facebook_page: 'Facebook',
-    linkedin: 'LinkedIn', tiktok: 'TikTok', searchconsole: 'Ricerca Google', klaviyo: 'Email (Klaviyo)', awin: 'Awin', manual: 'Dato inserito a mano', calculated: 'Calcolato (spesa Google + Meta)',
+    linkedin: 'LinkedIn', tiktok: 'TikTok', searchconsole: 'Ricerca Google', klaviyo: 'Email (Klaviyo)', awin: 'Awin', manual: 'Dato inserito a mano', calculated: 'Calcolato (Google + Meta)',
 };
 
 export interface KpiDef {
@@ -67,6 +68,7 @@ export const KPI_CATALOG: Record<string, KpiDef> = {
     review_count:    { id: 'review_count',    label: 'Nuove recensioni',            unit: 'int',    better: 'up',   source: 'gbp' },
     // Concessionari (pagina «KPI concessionario»): sito, Meta Ads, Google Ads, preventivi e costo per lead calcolato
     users:           { id: 'users',           label: 'Utenti sito',                 unit: 'int',    better: 'up',   source: 'ga4' },
+    ads_impressions: { id: 'ads_impressions', label: 'Impression (Meta + Google Ads)', unit: 'int',  better: 'up',   source: 'calculated' },
     meta_impressions: { id: 'meta_impressions', label: 'Impression Meta Ads',       unit: 'int',    better: 'up',   source: 'meta' },
     meta_reach:      { id: 'meta_reach',      label: 'Copertura Meta Ads',          unit: 'int',    better: 'up',   source: 'meta' },
     meta_spend:      { id: 'meta_spend',      label: 'Spesa Meta Ads',              unit: 'eur',    better: 'down', source: 'meta' },
@@ -256,14 +258,21 @@ export function suggestionFor(name: string): Suggestion | undefined {
 }
 
 
-/** I KPI della pagina «KPI concessionario», raggruppati nell'ordine in cui si mostrano. */
+/**
+ * Il report KPI del concessionario, nell'ordine concordato con Giada (27/11/2026): sito, visibilità delle campagne, contatti da
+ * Google Maps, poi l'imbuto dello Sheet (lead, appuntamenti, preventivi, vendite: per marca e provenienza) e il costo per lead.
+ * È l'elenco personale da dare ai concessionari nella mail mensile e il primo blocco della pagina «KPI concessionario».
+ */
+export const DEALER_REPORT_KPIS: string[] = [
+    'sessions', 'users', 'ads_impressions', 'meta_reach', 'gbp_calls', 'gbp_directions',
+    'leads_real', 'cost_per_lead_total', 'appointments', 'quotes', 'sales',
+];
+
+/** I KPI della pagina «KPI concessionario», raggruppati nell'ordine in cui si mostrano: prima il report, poi il dettaglio per canale. */
 export const DEALER_KPI_GROUPS: { label: string; ids: string[] }[] = [
-    { label: 'Sito (Analytics)', ids: ['sessions', 'users'] },
-    { label: 'Meta Ads', ids: ['meta_impressions', 'meta_reach', 'meta_spend'] },
-    { label: 'Google Ads', ids: ['gads_impressions', 'gads_clicks', 'gads_spend', 'gads_conversions'] },
-    { label: 'Google Maps', ids: ['gbp_calls', 'gbp_directions'] },
-    { label: 'Dallo Sheet del cliente', ids: ['leads_real', 'appointments', 'quotes', 'sales'] },
-    { label: 'Costo per lead', ids: ['cost_per_lead_total', 'cpl_google', 'cpl_meta_real'] },
+    { label: 'Report KPI', ids: DEALER_REPORT_KPIS },
+    { label: 'Dettaglio Meta Ads', ids: ['meta_impressions', 'meta_spend', 'cpl_meta_real'] },
+    { label: 'Dettaglio Google Ads', ids: ['gads_impressions', 'gads_clicks', 'gads_conversions', 'gads_spend', 'cpl_google'] },
 ];
 export const DEALER_KPI_IDS: string[] = DEALER_KPI_GROUPS.flatMap((g) => g.ids);
 
