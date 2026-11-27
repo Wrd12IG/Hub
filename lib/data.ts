@@ -183,6 +183,8 @@ export interface Task {
     timerStartedAt?: string;  // ISO timestamp when timer was started
     timerUserId?: string;     // User ID who started the timer
     editorialContentId?: string; // Link to editorial content
+    /** Data di uscita del contenuto del PED da cui nasce il task (yyyy-MM-dd). Diversa dalla scadenza di produzione (dueDate). */
+    publicationDate?: string;
 }
 
 export interface ActivityType {

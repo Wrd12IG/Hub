@@ -210,12 +210,14 @@ const TaskCard = ({
     ) : null;
 
     const approvalDaysPending = useMemo(() => {
-        if (!isTaskInApproval || !task.updatedAt) return 0;
-        const updateDate = typeof task.updatedAt === 'string' ? new Date(task.updatedAt) :
-            (task.updatedAt as any).toDate ? (task.updatedAt as any).toDate() : new Date();
+        // Da quando è entrato nello stato (statusChangedAt); updatedAt cambia anche per un commento
+        const since = task.statusChangedAt || task.updatedAt;
+        if (!isTaskInApproval || !since) return 0;
+        const updateDate = typeof since === 'string' ? new Date(since) :
+            (since as any).toDate ? (since as any).toDate() : new Date();
         const diffTime = Math.abs(new Date().getTime() - updateDate.getTime());
         return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    }, [isTaskInApproval, task.updatedAt]);
+    }, [isTaskInApproval, task.updatedAt, task.statusChangedAt]);
 
     const isNewApprovalRequest = isTaskInApproval && approvalDaysPending < 1;
     const isOverdue = daysRemaining !== null && daysRemaining < 0 && (task.status === 'Da Fare' || task.status === 'In Lavorazione');
@@ -379,6 +381,12 @@ const TaskCard = ({
                         </span>
                     ) : (
                         <span className="text-xs text-muted-foreground/50 italic">Nessuna scadenza</span>
+                    )}
+                    {/* Task nato dal Piano editoriale: la data di uscita è separata dalla scadenza di produzione */}
+                    {task.publicationDate && (
+                        <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap" title="Data di pubblicazione del contenuto nel Piano editoriale">
+                            Esce {format(new Date(`${task.publicationDate.slice(0, 10)}T12:00:00`), 'dd MMM', { locale: it })}
+                        </span>
                     )}
                 </div>
             </div>
@@ -1323,10 +1331,11 @@ export function TasksPageContent({ forcedClientId }: { forcedClientId?: string }
         // Approvazioni: prima chi aspetta da più tempo (interne e cliente)
         const byWaitingSince = (a: Task, b: Task) => {
             const getUpdateDate = (task: typeof a) => {
-                if (!task.updatedAt) return new Date(0);
-                return typeof task.updatedAt === 'string'
-                    ? new Date(task.updatedAt)
-                    : (task.updatedAt as any).toDate ? (task.updatedAt as any).toDate() : new Date(0);
+                const since = task.statusChangedAt || task.updatedAt;
+                if (!since) return new Date(0);
+                return typeof since === 'string'
+                    ? new Date(since)
+                    : (since as any).toDate ? (since as any).toDate() : new Date(0);
             };
             return getUpdateDate(a).getTime() - getUpdateDate(b).getTime();
         };

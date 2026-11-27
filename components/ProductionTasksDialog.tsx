@@ -71,6 +71,7 @@ export function ProductionTasksDialog({ content, client, users, currentUserId, o
                     comments: [],
                     dependencies: [],
                     editorialContentId: content.id,
+                    publicationDate: content.publicationDate?.slice(0, 10),
                 }, currentUserId || 'system_auto');
                 created.push(taskId);
             }

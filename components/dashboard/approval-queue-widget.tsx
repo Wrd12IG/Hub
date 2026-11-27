@@ -29,7 +29,7 @@ export function ApprovalQueueWidget({ tasks, clientsById, usersById, max = 5 }: 
     const waiting = tasks
         .filter(t => t.status === 'In Approvazione' || t.status === 'In Approvazione Cliente')
         .map(t => {
-            const since = toDate(t.updatedAt);
+            const since = toDate(t.statusChangedAt || t.updatedAt);
             const days = since ? Math.floor((now - since.getTime()) / 86_400_000) : 0;
             return { task: t, days };
         })

@@ -1,6 +1,8 @@
 "use client"
 
 import { selectableClients } from '@/lib/client-archive';
+import { isSocialContentActivity } from '@/lib/social-activity'
+import NextLink from 'next/link'
 import * as React from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -842,6 +844,16 @@ export default function TaskForm({ task, defaultClientId, initialDate, onSuccess
                                         )}
                                     </SelectContent>
                                 </Select>
+                                {/* Task social creato a mano: il suo posto è il Piano editoriale, da cui nascono i task di produzione */}
+                                {!task?.id && !task?.editorialContentId && watchedClientId && isSocialContentActivity(field.value) && (
+                                    <p className="text-xs text-muted-foreground mt-1.5">
+                                        È un contenuto social? Crealo nel{' '}
+                                        <NextLink href={`/clients/${watchedClientId}/editorial-plan`} className="underline font-medium text-foreground">
+                                            Piano editoriale
+                                        </NextLink>
+                                        : avrà data di uscita, canali e approvazione cliente, e i task di produzione nascono da lì.
+                                    </p>
+                                )}
                                 <FormMessage />
                             </FormItem>
                         )}
